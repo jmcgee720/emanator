@@ -7,14 +7,18 @@ import { SELF_EDIT_PREFIX, getChatType, getUserRole, hasPermission, VALID_ROLES,
 import JSZip from 'jszip'
 
 // Helper function to handle CORS
-function handleCORS(response) {
-  response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
+function handleCORS(response, request = null) {
+  const origin = request?.headers.get('origin') || process.env.CORS_ORIGINS || '*'
+  response.headers.set('Access-Control-Allow-Origin', origin)
+  response.headers.set('Vary', 'Origin')
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, apikey, x-client-info, x-supabase-api-version'
+  )
   response.headers.set('Access-Control-Allow-Credentials', 'true')
   return response
 }
-
 // Get user from auth — tries cookies first, then bearer token fallback
 async function getAuthUser(request) {
   // Strategy 1: Cookie-based SSR auth
@@ -86,8 +90,8 @@ async function initializeOwner() {
 }
 
 // OPTIONS handler for CORS
-export async function OPTIONS() {
-  return handleCORS(new NextResponse(null, { status: 200 }))
+export async function OPTIONS(request) {
+  return handleCORS(new NextResponse(null, { status: 200 }), request)
 }
 
 // Route handler function
@@ -95,6 +99,9 @@ async function handleRoute(request, { params }) {
   const { path = [] } = await params
   const route = `/${path.join('/')}`
   const method = request.method
+if (method === 'OPTIONS') {
+  return handleCORS(new NextResponse(null, { status: 200 }), request)
+}
 
   try {
     await initializeOwner()
