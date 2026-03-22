@@ -1,0 +1,38 @@
+{
+  "iteration": 9,
+  "feature": "Role System — Owner / Admin / Member",
+  "description": "3-role permission system with Supabase Auth metadata for admin role storage (bypassing DB constraint)",
+  "files_modified": [
+    "lib/constants.js — ROLES enum (owner/admin/member), VALID_ROLES, getUserRole(), hasPermission()",
+    "app/api/[[...path]]/route.js — Role resolution via checkAllowlist() + auth metadata, admin CRUD, permission enforcement"
+  ],
+  "architecture": {
+    "owner_storage": "DB role field (value: 'owner')",
+    "admin_storage": "Supabase Auth user_metadata.app_role = 'admin' (pre-created at invite time, DB stores 'member')",
+    "member_storage": "DB role field (value: 'member', default)",
+    "resolution_order": "1. DB role='owner' → OWNER. 2. Auth metadata app_role='admin' → ADMIN. 3. Default → MEMBER",
+    "db_constraint": "users_role_check allows only 'owner'/'member' — admin stored in auth metadata instead"
+  },
+  "permissions": {
+    "self_edit": "owner only",
+    "manage_users": "owner only",
+    "manage_content": "owner + admin",
+    "execute_plan": "all roles",
+    "view_admin": "owner + admin"
+  },
+  "tests": {
+    "T1_auth_check_returns_role": "PASS — owner role returned",
+    "T2_create_admin_user": "PASS — role=admin in response, stored in auth metadata",
+    "T3_create_member_user": "PASS — role=member",
+    "T4_invalid_role_defaults_member": "PASS — 'superuser' → member",
+    "T5_user_list_enriched": "PASS — admin from metadata, member, owner all correct",
+    "T6_promote_member_to_admin": "PASS — PUT role=admin, auth metadata updated",
+    "T7_demote_admin_to_member": "PASS — PUT role=member, auth metadata cleared",
+    "T8_self_edit_owner_only": "PASS — chat_type=self_edit for owner"
+  },
+  "test_result": "PASSED",
+  "total_tests": 8,
+  "passed_tests": 8,
+  "failed_tests": 0,
+  "timestamp": "2026-03-19T04:20:00Z"
+}

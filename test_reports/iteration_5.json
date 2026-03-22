@@ -1,0 +1,53 @@
+{
+  "iteration": 5,
+  "feature": "Proof Test #2 — Extend Builder Memory Safely",
+  "description": "End-to-end proof test exercising the full self-builder pipeline to extend Builder Memory UI with a 'Total Memory Entries' summary",
+  "test_approach": "Node.js integration test with mocked DB, exercising all 6 pipeline modules + safety verification, plus filesystem write and UI verification",
+  "test_file": "/app/tests/proof_test_2_extend_builder_memory.js",
+  "file_modified": "/app/components/dashboard/BuilderMemory.jsx",
+  "change_applied": "Added 'Total Memory Entries: X' summary line with category breakdown badges in Builder Memory dialog header",
+  "pipeline_steps": {
+    "step_1_request_router": "PASSED — routed successfully",
+    "step_2_plan_creation": "PASSED — 1 file_action (update BuilderMemory.jsx)",
+    "step_3_enforce_plan_correctness": "PASSED — 0 corrections, detectSingleFileIntent='BuilderMemory.jsx'",
+    "step_4_plan_validation": "PASSED — 0 errors, hash=f6518e49ce293004",
+    "step_5_build_pending_diffs": "PASSED — 1 diff (25679 → 26579 chars)",
+    "step_6_safe_apply": "PASSED — written=[BuilderMemory.jsx], errors=[], rolledBack=false, version=2",
+    "step_7_change_log": "PASSED — logged with mode=apply result=applied, pattern stored",
+    "step_8_filesystem_write": "PASSED — markers confirmed in file",
+    "step_9_safety_checks": "PASSED — all 8 safety assertions passed (no provider/routing/persistence logic affected)"
+  },
+  "safety_checks": {
+    "hasAuthFetch": true,
+    "hasLoadAll": true,
+    "hasHandleDeleteMemory": true,
+    "hasHandleResetAll": true,
+    "hasDialog": true,
+    "noRequestRouter": true,
+    "noSafeApply": true,
+    "noProviderLogic": true
+  },
+  "ui_verification": {
+    "screenshot_confirmed": true,
+    "summary_text": "Total Memory Entries: 4  1 patterns",
+    "data_testid_memory_total_summary": true,
+    "data_testid_memory_total_count": true,
+    "all_existing_sections_intact": true
+  },
+  "verification_result": {
+    "file_modified": "components/dashboard/BuilderMemory.jsx",
+    "single_file": true,
+    "plan_valid": true,
+    "diff_correct": true,
+    "apply_success": true,
+    "rolledBack": false,
+    "ui_visible": true,
+    "logged": true,
+    "any_breakpoint": null
+  },
+  "test_result": "PASSED",
+  "total_steps": 9,
+  "passed_steps": 9,
+  "failed_steps": 0,
+  "timestamp": "2026-03-19T03:19:00Z"
+}

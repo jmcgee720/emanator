@@ -1,0 +1,110 @@
+{
+  "test_suite": "Rollback Feature Comprehensive Testing",
+  "url": "https://self-modify-stable.preview.emergentagent.com",
+  "auth": "REDACTED_LEAKED_USER",
+  "timestamp": "2026-03-19 14:50:18 UTC",
+  "summary": {
+    "total_tests": 16,
+    "passed": 16,
+    "failed": 0,
+    "success_rate": "100.0%"
+  },
+  "detailed_results": [
+    {
+      "test": "Find non-sandbox project",
+      "passed": true,
+      "details": "Found 21 non-sandbox projects, selected 2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd"
+    },
+    {
+      "test": "GET source files",
+      "passed": true,
+      "details": "Found 2 original files in source project"
+    },
+    {
+      "test": "POST create sandbox",
+      "passed": true,
+      "details": "Sandbox created: b3f5b2e9-47a0-48bb-b126-310567dc392f, is_sandbox=True, status=active, source_id matches=True"
+    },
+    {
+      "test": "TEST 1 - Add file to sandbox",
+      "passed": true,
+      "details": "File created: rollback-test.js"
+    },
+    {
+      "test": "TEST 2 - Test before apply",
+      "passed": true,
+      "details": "Test passed: {'passed': True, 'errors': [], 'checks': [{'name': 'sandbox_status', 'passed': True}, {'name': 'diff_exists', 'passed': True}, {'name': 'syntax', 'passed': True}, {'name': 'imports', 'passed': True}], 'timestamp': '2026-03-19T14:50:10.993Z', 'files_tested': 1}"
+    },
+    {
+      "test": "TEST 3 - Promote sandbox",
+      "passed": true,
+      "details": "Promoted successfully: {'success': True, 'files_promoted': 3, 'source_project_id': '2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd', 'sandbox_status': 'promoted', 'promoted_at': '2026-03-19T14:50:12.269Z'}"
+    },
+    {
+      "test": "TEST 4 - Verify source files",
+      "passed": true,
+      "details": "Found rollback-test.js in source project"
+    },
+    {
+      "test": "TEST 5 - Rollback non-promoted sandbox",
+      "passed": true,
+      "details": "Correctly blocked non-promoted sandbox rollback"
+    },
+    {
+      "test": "TEST 6 - Rollback promoted sandbox",
+      "passed": true,
+      "details": "success=True, files_restored=2, files_removed=1, status=rolled_back"
+    },
+    {
+      "test": "TEST 7 - Verify source files restored",
+      "passed": true,
+      "details": "Source files properly restored - rollback-test.js removed, 2 files match original"
+    },
+    {
+      "test": "TEST 8 - Verify sandbox status",
+      "passed": true,
+      "details": "Sandbox status correctly set to 'rolled_back'"
+    },
+    {
+      "test": "TEST 9 - Double rollback blocked",
+      "passed": true,
+      "details": "Double rollback correctly blocked"
+    },
+    {
+      "test": "TEST 10 - Non-sandbox rollback",
+      "passed": true,
+      "details": "Non-sandbox rollback correctly blocked"
+    },
+    {
+      "test": "TEST 11 - No auth",
+      "passed": true,
+      "details": "Unauthorized request correctly blocked"
+    },
+    {
+      "test": "Cleanup - Delete main sandbox",
+      "passed": true,
+      "details": "Sandbox b3f5b2e9-47a0-48bb-b126-310567dc392f deleted"
+    },
+    {
+      "test": "Cleanup - Delete second sandbox",
+      "passed": true,
+      "details": "Second sandbox 961707b8-6a05-40b7-9196-33282bb3922f deleted"
+    }
+  ],
+  "test_sequence": [
+    "SETUP: Find source project and note files",
+    "Create sandbox from source",
+    "Add file to sandbox",
+    "Run test-before-apply (should pass)",
+    "Promote sandbox",
+    "Verify source has promoted files",
+    "Rollback non-promoted sandbox \u2192 should fail",
+    "ROLLBACK promoted sandbox",
+    "Verify source files restored",
+    "Verify sandbox status = 'rolled_back'",
+    "Double rollback blocked",
+    "Non-sandbox rollback blocked",
+    "No auth \u2192 401",
+    "Cleanup"
+  ]
+}
