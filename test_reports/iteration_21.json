@@ -1,0 +1,196 @@
+{
+  "timestamp": "2026-03-19T15:08:36.960666",
+  "test_suite": "Intent Classification Routing Fix",
+  "app_url": "https://self-modify-stable.preview.emergentagent.com",
+  "auth": "testprov@test.com / password123",
+  "iteration": 21,
+  "tests": {
+    "code_architecture_prompts": {
+      "description": "Code/architecture prompts must NOT be image_gen",
+      "total_tests": 12,
+      "passed": 12,
+      "failed": 0,
+      "results": [
+        {
+          "prompt": "Implement rollback by extending the existing promote flow",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "Revise rollback logic in route.js",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "Modify route.js and Dashboard.jsx",
+          "intent": "edit",
+          "toolMode": "update_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "generate a variation of the dashboard",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "generate a graphic showing the architecture",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "design a new validator component",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "Add diff endpoint to lib/ai/service.js",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "create rollback by modifying route.js",
+          "intent": "build",
+          "toolMode": "create_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "modify the sidebar layout",
+          "intent": "edit",
+          "toolMode": "update_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "refactor the backend architecture",
+          "intent": "refactor",
+          "toolMode": "update_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "Add a planner middleware to app/api",
+          "intent": "edit",
+          "toolMode": "update_files",
+          "is_image_gen": false,
+          "passed": true
+        },
+        {
+          "prompt": "Update changelog with file_actions",
+          "intent": "edit",
+          "toolMode": "update_files",
+          "is_image_gen": false,
+          "passed": true
+        }
+      ]
+    },
+    "real_image_prompts": {
+      "description": "Real image prompts must STILL be image_gen",
+      "total_tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "results": [
+        {
+          "prompt": "Generate an image of a cat",
+          "intent": "image_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        },
+        {
+          "prompt": "Create an icon for the settings page",
+          "intent": "asset_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        },
+        {
+          "prompt": "Design a logo for the app",
+          "intent": "asset_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        },
+        {
+          "prompt": "Make a sprite sheet for the game character",
+          "intent": "sprite_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        },
+        {
+          "prompt": "Create a variation of the character",
+          "intent": "image_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        },
+        {
+          "prompt": "Draw a portrait of a wizard",
+          "intent": "image_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        },
+        {
+          "prompt": "Generate a landscape scene",
+          "intent": "image_generation",
+          "toolMode": "image_gen",
+          "is_image_gen": true,
+          "passed": true
+        }
+      ]
+    },
+    "streaming_endpoint": {
+      "description": "Code prompt via streaming should NOT emit image_intent SSE event",
+      "steps": [
+        {
+          "step": "Get auth token",
+          "status": "success",
+          "token_length": 795
+        },
+        {
+          "step": "Get projects",
+          "status": "success",
+          "project_count": 21,
+          "selected_project": "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd"
+        },
+        {
+          "step": "Create chat",
+          "status": "success",
+          "chat_id": "510e1dd3-c19e-42d5-90af-b678bf878f79"
+        },
+        {
+          "step": "Parse SSE events",
+          "status": "success",
+          "total_events": 16,
+          "unique_events": [
+            null
+          ],
+          "has_image_intent": false,
+          "test_passed": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "summary": {
+    "total_tests": 20,
+    "total_passed": 20,
+    "total_failed": 0,
+    "success_rate": "100.0%"
+  }
+}

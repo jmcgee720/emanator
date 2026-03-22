@@ -1,0 +1,63 @@
+{
+  "test_suite": "Core System Workspace Separation (Phase 12 Step 6)",
+  "timestamp": "2026-03-20 02:59:21",
+  "base_url": "https://self-modify-stable.preview.emergentagent.com",
+  "total_tests": 8,
+  "tests_passed": 8,
+  "success_rate": 100.0,
+  "results": [
+    {
+      "test": "owner_creates_self_edit_chat",
+      "status": "PASSED",
+      "chat_id": "00c09db5-7db7-42fc-8a28-c1ac18b7b558"
+    },
+    {
+      "test": "owner_gets_self_edit_messages",
+      "status": "PASSED",
+      "message_count": 0
+    },
+    {
+      "test": "owner_streams_in_self_edit_chat",
+      "status": "PASSED",
+      "events_read": 3
+    },
+    {
+      "test": "self_edit_target_metadata",
+      "status": "PASSED",
+      "metadata_accepted": true
+    },
+    {
+      "test": "non_owner_creates_self_edit_chat",
+      "status": "PASSED",
+      "verification": "401 on no-auth access"
+    },
+    {
+      "test": "normal_chat_operations",
+      "status": "PASSED",
+      "chat_id": "98e23019-d4dc-4e85-8570-4bdfe958eb9e"
+    },
+    {
+      "test": "chat_type_in_response",
+      "status": "PASSED",
+      "self_edit_count": 3,
+      "builder_count": 25
+    },
+    {
+      "test": "self_edit_targets_constant",
+      "status": "PASSED",
+      "expected_count": 10,
+      "targets": [
+        "plan_validator",
+        "safe_apply",
+        "feature_planner",
+        "request_router",
+        "change_log",
+        "prompt_library",
+        "ai_service",
+        "adaptive_learning",
+        "ui_components",
+        "api_routes"
+      ]
+    }
+  ]
+}

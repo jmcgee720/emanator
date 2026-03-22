@@ -1,0 +1,28 @@
+{
+  "iteration": 2,
+  "date": "2026-03-17",
+  "feature": "Request-Mode Gate",
+  "tests_run": 50,
+  "tests_passed": 50,
+  "tests_failed": 0,
+  "test_method": "deterministic unit tests (self-contained)",
+  "test_file": "/app/tests/test-request-mode.mjs",
+  "categories": {
+    "A1_read_only_classification": { "tests": 10, "status": "passed" },
+    "A2_plan_patch_classification": { "tests": 8, "status": "passed" },
+    "A3_apply_pending_diff": { "tests": 6, "status": "passed" },
+    "A4_discard_pending_diff": { "tests": 6, "status": "passed" },
+    "A5_edge_cases": { "tests": 3, "status": "passed" },
+    "B1_read_only_output_validation": { "tests": 6, "status": "passed" },
+    "B2_plan_patch_output_validation": { "tests": 1, "status": "passed" },
+    "B3_apply_output_validation": { "tests": 2, "status": "passed" },
+    "B4_discard_output_validation": { "tests": 2, "status": "passed" },
+    "C_integration_flows": { "tests": 6, "status": "passed" }
+  },
+  "compilation_check": "API route compiled successfully (HTTP 200)",
+  "files_changed": [
+    "lib/ai/intents.js — added classifyRequestMode() with 4 pattern sets",
+    "lib/ai/plan-validator.js — added validateRequestModeOutput()",
+    "lib/ai/service.js — imports + request-mode gate (pending diff detection, apply/discard bypass, read_only_report override, output validation with one retry)"
+  ]
+}

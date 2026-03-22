@@ -1,0 +1,72 @@
+{
+  "success": true,
+  "timestamp": "2026-03-13T02:22:21.029307",
+  "test_results": [
+    {
+      "test": "1.1 Supabase Direct Auth",
+      "success": true,
+      "details": "Got access token: eyJhbGciOiJFUzI1NiIs...",
+      "timestamp": "2026-03-13T02:22:15.483330"
+    },
+    {
+      "test": "1.2 Bearer Token API Call",
+      "success": true,
+      "details": "Got 0 projects",
+      "timestamp": "2026-03-13T02:22:16.647458"
+    },
+    {
+      "test": "2 Auth Check Endpoint",
+      "success": true,
+      "details": "User role: owner",
+      "timestamp": "2026-03-13T02:22:16.915710"
+    },
+    {
+      "test": "3.1 Project Creation with Bearer",
+      "success": true,
+      "details": "Created project ID: 29eb3fc9-14d1-4ed8-a238-7251e0675ac6",
+      "timestamp": "2026-03-13T02:22:17.856526"
+    },
+    {
+      "test": "3.2 Project List with Bearer",
+      "success": true,
+      "details": "Project found in list of 1",
+      "timestamp": "2026-03-13T02:22:18.299169"
+    },
+    {
+      "test": "4 Canvas Fetch with Bearer",
+      "success": true,
+      "details": "Canvas data retrieved with auto-creation",
+      "timestamp": "2026-03-13T02:22:19.096845"
+    },
+    {
+      "test": "5 Auth-fetch Utility",
+      "success": true,
+      "details": "Bearer token attachment working correctly",
+      "timestamp": "2026-03-13T02:22:19.554222"
+    },
+    {
+      "test": "6.1 Health Endpoint",
+      "success": true,
+      "details": "Database: supabase",
+      "timestamp": "2026-03-13T02:22:19.627384"
+    },
+    {
+      "test": "6.2 Provider Status Endpoint",
+      "success": true,
+      "details": "OpenAI: ready, Anthropic: ready",
+      "timestamp": "2026-03-13T02:22:20.737744"
+    },
+    {
+      "test": "7.1 Unauthorized Access Protection",
+      "success": true,
+      "details": "Correctly blocked unauthenticated request",
+      "timestamp": "2026-03-13T02:22:20.823025"
+    },
+    {
+      "test": "7.2 Invalid Bearer Token Protection",
+      "success": true,
+      "details": "Correctly rejected invalid bearer token",
+      "timestamp": "2026-03-13T02:22:21.028654"
+    }
+  ]
+}

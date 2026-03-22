@@ -1,0 +1,42 @@
+{
+  "iteration": 8,
+  "feature": "Phase 7 — Core System Boundary (Product Structure)",
+  "description": "First safe separation between normal builder work and MyMergent self-edit work",
+  "files_modified": [
+    "lib/constants.js — Added CHAT_TYPES, SELF_EDIT_PREFIX, getChatType(), selfEditTitle()",
+    "app/api/[[...path]]/route.js — Owner-only enforcement for self-edit chats, chat_type in list/create",
+    "components/dashboard/Dashboard.jsx — isOwner derivation, createSelfEditChat handler, new LeftPanel props",
+    "components/dashboard/LeftPanel.jsx — ChatRow component, split builder/self-edit sections, Core System entry, mode indicator"
+  ],
+  "requirements_met": {
+    "core_system_workspace_concept": true,
+    "core_system_chat_entry_point": true,
+    "owner_only_self_edit": true,
+    "separated_builder_from_selfedit_ui": true,
+    "self_edit_target_mode_indicator": true,
+    "all_existing_builder_flows_preserved": true,
+    "no_placeholder_code": true,
+    "minimal_patch": true
+  },
+  "backend_tests": {
+    "chat_list_returns_chat_type": "PASSED — 25 chats correctly typed (23 builder, 2 self_edit)",
+    "owner_creates_self_edit_chat": "PASSED — 201 with chat_type=self_edit",
+    "owner_creates_builder_chat": "PASSED — 201 with chat_type=builder",
+    "title_format_validation": "PASSED — exact prefix ⚙ Self-Edit: required",
+    "cleanup": "PASSED — all test chats deleted"
+  },
+  "ui_verification": {
+    "builder_chats_section": true,
+    "core_system_section_visible": true,
+    "core_system_label_amber": true,
+    "self_edit_chat_created": true,
+    "self_edit_mode_indicator_banner": "Self-Edit Mode — changes target Core System",
+    "self_edit_chat_amber_highlight": true,
+    "gear_icon_for_self_edit": true,
+    "shield_icon_for_core_system": true,
+    "self_builder_badge_preserved": true,
+    "all_existing_ui_preserved": true
+  },
+  "test_result": "PASSED",
+  "timestamp": "2026-03-19T03:48:00Z"
+}

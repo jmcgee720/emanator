@@ -1,0 +1,110 @@
+{
+  "test_report": {
+    "title": "Sandbox/Workspace Clone UI Testing - MyMergent",
+    "url": "https://self-modify-stable.preview.emergentagent.com",
+    "credentials": "testprov@test.com / password123",
+    "test_date": "2026-01-19",
+    "status": "PASSED",
+    "test_scenarios": {
+      "1_login_and_dashboard_load": {
+        "status": "PASSED",
+        "description": "Login with credentials and verify dashboard loads",
+        "details": [
+          "Login page loaded correctly with MyMergent branding",
+          "Authentication with testprov@test.com/password123 successful", 
+          "Dashboard loaded with data-testid='dashboard' visible",
+          "All required UI elements present (project selector, chat area, etc.)"
+        ]
+      },
+      "2_project_selector_shows_projects": {
+        "status": "PASSED", 
+        "description": "Click project-selector to open dropdown and verify projects are listed",
+        "details": [
+          "Project selector (data-testid='project-selector') clicked successfully",
+          "Project dropdown opened showing 21 total projects",
+          "Projects list populated correctly in dropdown",
+          "Create Sandbox option (data-testid='create-sandbox-btn') visible and accessible"
+        ]
+      },
+      "3_create_sandbox": {
+        "status": "PASSED",
+        "description": "Create sandbox from existing project",
+        "details": [
+          "Create Sandbox button (data-testid='create-sandbox-btn') clicked successfully",
+          "Sandbox creation completed within expected timeframe",
+          "Toast notification appeared: 'debug-inspect [sandbox] is ready. Changes stay isolated.'",
+          "Project selector updated to show sandbox project with [sandbox] suffix",
+          "Sandbox badge (data-testid='sandbox-badge') appeared with amber styling",
+          "Sandbox banner (data-testid='sandbox-banner') visible with text: 'Sandbox Mode — Changes stay isolated from the primary workspace'"
+        ]
+      },
+      "4_sandbox_listed_in_dropdown": {
+        "status": "PASSED",
+        "description": "Verify sandbox appears in project dropdown with proper indicators",
+        "details": [
+          "Sandbox project appears in dropdown with amber flask icon",
+          "Sandbox project has 'sandbox' badge visible",
+          "Sandbox project name shows '[sandbox]' suffix",
+          "Visual distinction from regular projects maintained",
+          "Can identify sandbox projects easily in the list"
+        ]
+      },
+      "5_ui_indicators_working": {
+        "status": "PASSED",
+        "description": "Verify all sandbox UI indicators are functioning",
+        "details": [
+          "Sandbox banner (data-testid='sandbox-banner') displays correct text",
+          "Sandbox badge (data-testid='sandbox-badge') shows 'sandbox' label with amber styling",
+          "Project title in header shows '[sandbox]' suffix",
+          "Amber color scheme used consistently for sandbox elements",
+          "Flask icon used to identify sandbox projects"
+        ]
+      }
+    },
+    "visual_evidence": {
+      "screenshots_taken": 5,
+      "key_screenshots": [
+        "/app/test_reports/iteration_15_dashboard_loaded.png - Dashboard after successful login",
+        "/app/test_reports/iteration_15_project_dropdown.png - Project dropdown with Create Sandbox option",
+        "/app/test_reports/iteration_15_sandbox_created.png - Sandbox created with banner and badge",
+        "/app/test_reports/iteration_15_sandbox_dropdown.png - Sandbox visible in project list",
+        "/app/test_reports/iteration_15_final_state.png - Final state showing sandbox active"
+      ]
+    },
+    "test_data_points": {
+      "total_projects_found": 21,
+      "create_sandbox_button_visible": true,
+      "sandbox_badge_visible": true,
+      "sandbox_banner_visible": true,
+      "sandbox_banner_text": "Sandbox Mode — Changes stay isolated from the primary workspace",
+      "toast_notification": "debug-inspect [sandbox] is ready. Changes stay isolated.",
+      "project_selector_updated": true,
+      "flask_icon_present": true
+    },
+    "critical_elements_verified": [
+      "data-testid='dashboard'",
+      "data-testid='project-selector'", 
+      "data-testid='create-sandbox-btn'",
+      "data-testid='sandbox-badge'",
+      "data-testid='sandbox-banner'"
+    ],
+    "functionality_confirmed": [
+      "Login and authentication flow",
+      "Project dropdown interaction",
+      "Sandbox creation workflow", 
+      "Sandbox visual indicators (banner, badge, icons)",
+      "Project list updates with sandbox entries",
+      "Isolation message display",
+      "UI state management during sandbox operations"
+    ],
+    "issues_found": [],
+    "notes": [
+      "App loads slowly as expected - used generous timeouts (15s initial, 10s login)",
+      "All specified test scenarios from review request completed successfully",
+      "Sandbox functionality is fully operational and user-friendly",
+      "Visual design is consistent with amber color scheme for sandbox elements",
+      "No cleanup needed as mentioned in requirements"
+    ],
+    "test_completion": "All 5 test scenarios passed. Sandbox/Workspace Clone UI is working correctly."
+  }
+}

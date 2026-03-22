@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-03-20T13:36:14.356179",
+  "test_type": "Variation Studio Backend Reliability",
+  "results": {
+    "size_validation": [
+      {
+        "test": 1,
+        "status": "PASS",
+        "expected": "clamp_to_1024x1024",
+        "actual": "1024x1024"
+      },
+      {
+        "test": 2,
+        "status": "PASS",
+        "expected": "1024x1024",
+        "actual": "1024x1024"
+      },
+      {
+        "test": 3,
+        "status": "PASS",
+        "expected": "1024x1536",
+        "actual": "1024x1536"
+      },
+      {
+        "test": 4,
+        "status": "PASS",
+        "expected": "1536x1024",
+        "actual": "1536x1024"
+      },
+      {
+        "test": 5,
+        "status": "PASS",
+        "expected": "auto",
+        "actual": "auto"
+      },
+      {
+        "test": 6,
+        "status": "PASS",
+        "expected": "default_to_1024x1024",
+        "actual": "1024x1024"
+      },
+      {
+        "test": 7,
+        "status": "PASS",
+        "expected": "clamp_to_1024x1024",
+        "actual": "1024x1024"
+      }
+    ],
+    "variation_params": [
+      {
+        "test": 1,
+        "status": "PASS",
+        "description": "Well-formed variation params"
+      },
+      {
+        "test": 2,
+        "status": "PASS",
+        "description": "Well-formed variation params"
+      },
+      {
+        "test": 3,
+        "status": "PASS",
+        "description": "Empty variation - prompt only"
+      },
+      {
+        "test": 4,
+        "status": "PASS",
+        "description": "No variation - prompt only"
+      }
+    ],
+    "api_endpoints": [
+      {
+        "test": 1,
+        "status": "PASS",
+        "endpoint": "/api/projects/test-project-id/generate-image"
+      },
+      {
+        "test": 2,
+        "status": "PASS",
+        "endpoint": "/api/projects/test-project-id/assets"
+      },
+      {
+        "test": 3,
+        "status": "PASS",
+        "endpoint": "/api/projects/test-project-id/asset-relationships"
+      }
+    ],
+    "asset_traceability": [
+      {
+        "test": "asset_traceability",
+        "status": "COMPLETED"
+      }
+    ]
+  }
+}

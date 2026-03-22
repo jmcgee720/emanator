@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-03-19T13:07:21.926494",
+  "test_suite": "Versioned Self-Modification Sandbox Feature",
+  "base_url": "https://self-modify-stable.preview.emergentagent.com/api",
+  "tests": {
+    "get_source_project": {
+      "passed": true,
+      "details": "Found 21 non-sandbox projects. Selected project ID: 2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd",
+      "response_data": {
+        "source_project_id": "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd",
+        "project_name": "debug-inspect",
+        "total_projects": 21,
+        "non_sandbox_projects": 21
+      },
+      "timestamp": "2026-03-19T13:07:23.803460"
+    },
+    "create_sandbox": {
+      "passed": true,
+      "details": "Sandbox created with ID: 983e2bd4-4d7e-4373-aa17-923957113eb4. Validation results: \u2705 Name ends with '[sandbox]'; \u2705 is_sandbox is true; \u2705 sandbox_source_id matches source project ID; \u2705 sandbox_status is 'active'; \u2705 sandbox_created_by matches test email; \u2705 initialChat title is 'Sandbox Chat'",
+      "response_data": {
+        "project": {
+          "id": "983e2bd4-4d7e-4373-aa17-923957113eb4",
+          "user_id": "f5f5334d-9020-4310-b117-ffd65d94a2d0",
+          "name": "debug-inspect [sandbox]",
+          "description": "",
+          "type": "app",
+          "settings": {
+            "is_sandbox": true,
+            "sandbox_status": "active",
+            "sandbox_source_id": "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd",
+            "sandbox_created_by": "testprov@test.com"
+          },
+          "imported_from": null,
+          "imported_at": null,
+          "created_at": "2026-03-19T13:07:24.480439+00:00",
+          "updated_at": "2026-03-19T13:07:24.480439+00:00"
+        },
+        "initialChat": {
+          "id": "92e8c5cc-a517-44b0-ac45-b23b400ffef1",
+          "project_id": "983e2bd4-4d7e-4373-aa17-923957113eb4",
+          "title": "Sandbox Chat",
+          "created_at": "2026-03-19T13:07:24.913664+00:00",
+          "updated_at": "2026-03-19T13:07:24.913664+00:00"
+        }
+      },
+      "timestamp": "2026-03-19T13:07:25.066796"
+    },
+    "verify_sandbox_files_cloned": {
+      "passed": true,
+      "details": "File count matches: source has 2 files, sandbox has 2 files. File paths match between source and sandbox",
+      "response_data": {
+        "source_file_count": 2,
+        "sandbox_file_count": 2
+      },
+      "timestamp": "2026-03-19T13:07:25.907469"
+    },
+    "sandbox_appears_in_project_list": {
+      "passed": true,
+      "details": "Sandbox project found in list with is_sandbox=true. Name: debug-inspect [sandbox]",
+      "response_data": {
+        "id": "983e2bd4-4d7e-4373-aa17-923957113eb4",
+        "user_id": "f5f5334d-9020-4310-b117-ffd65d94a2d0",
+        "name": "debug-inspect [sandbox]",
+        "description": "",
+        "type": "app",
+        "settings": {
+          "is_sandbox": true,
+          "sandbox_status": "active",
+          "sandbox_source_id": "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd",
+          "sandbox_created_by": "testprov@test.com"
+        },
+        "imported_from": null,
+        "imported_at": null,
+        "created_at": "2026-03-19T13:07:24.480439+00:00",
+        "updated_at": "2026-03-19T13:07:24.480439+00:00"
+      },
+      "timestamp": "2026-03-19T13:07:26.419545"
+    },
+    "sandbox_isolation": {
+      "passed": true,
+      "details": "Isolation test results: \u2705 Test chat appears in sandbox; \u2705 Test chat does NOT appear in source (isolation working); \u2705 Source chat count unchanged",
+      "response_data": {
+        "sandbox_chat_count": 2,
+        "source_chat_count_before": 24,
+        "source_chat_count_after": 24,
+        "test_chat_id": "1400eda8-4622-4fd5-a97f-a46a9b8261a6"
+      },
+      "timestamp": "2026-03-19T13:07:28.431127"
+    },
+    "auth_enforcement": {
+      "passed": true,
+      "details": "Correctly returned 401 Unauthorized without auth token",
+      "response_data": null,
+      "timestamp": "2026-03-19T13:07:28.613625"
+    },
+    "cleanup": {
+      "passed": true,
+      "details": "Sandbox project 983e2bd4-4d7e-4373-aa17-923957113eb4 successfully deleted and verified as removed",
+      "response_data": null,
+      "timestamp": "2026-03-19T13:07:29.924683"
+    }
+  },
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0
+  }
+}
