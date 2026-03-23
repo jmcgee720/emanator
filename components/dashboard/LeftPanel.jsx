@@ -342,17 +342,7 @@ export default function LeftPanel({
                 )}
 
                 {/* Core System workspace — owner only */}
-                {isOwner && builderMode === 'core' && (
-                  <div data-testid="self-edit-section">
-                    {selfEditChats.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground/50 px-2 py-1" data-testid="no-self-edit-chats">
-                        No Core System sessions yet
-                      </p>
-                    ) : (
-                      <div className="space-y-px" data-testid="self-edit-chats-list">
-                        {selfEditChats.map((chat) => (
-                          <ChatRow key={chat.id} chat={chat} selectedChat={selectedChat} onSelectChat={onSelectChat} onDeleteChat={onDeleteChat} isSelfEdit />
-                        ))}
+                
                       </div>
                     )}
                   </div>
