@@ -325,26 +325,6 @@ export default function LeftPanel({
             <>
               {/* Workspace tabs — owner only */}
               {isOwner && (
-                <div className="flex items-center gap-0.5 px-1 pb-1" data-testid="workspace-tabs">
-                  <button
-                    className={`flex-1 text-[10px] py-1 rounded-md transition-colors ${builderMode === 'app' ? 'bg-muted/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground/70'}`}
-                    onClick={() => onBuilderModeChange('app')}
-                    data-testid="workspace-tab-builder"
-                  >
-                    Builder
-                  </button>
-                  <button
-                    className={`flex-1 text-[10px] py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${builderMode === 'core' ? 'bg-amber-500/15 text-amber-400 font-medium' : 'text-muted-foreground hover:text-foreground/70'}`}
-                    onClick={() => onBuilderModeChange('core')}
-                    data-testid="workspace-tab-core"
-                  >
-                    <Shield className="w-2.5 h-2.5" />
-                    Core System
-                    <span className="text-[7px] text-amber-400/40 ml-0.5">owner</span>
-                  </button>
-                </div>
-              )}
-
               <div className="max-h-32 overflow-y-auto px-1 pb-1">
                 {/* Builder workspace */}
                 {(builderMode === 'app' || !isOwner) && (
