@@ -1390,15 +1390,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const renderProjectGrid = () => {
-    const ownerCoreCard = isOwner
-      ? {
-          id: '__core_system__',
-          name: 'Core System',
-          type: 'core',
-        }
-      : null
-
-    const cards = ownerCoreCard ? [ownerCoreCard, ...projects] : projects
+    const cards = projects
 
     return (
       <div className="flex-1 overflow-auto px-8 py-8">
