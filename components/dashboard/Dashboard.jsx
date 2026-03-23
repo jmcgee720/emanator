@@ -1440,21 +1440,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               return (
                 <div
                   key={item.id}
-                  className="relative aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
+                  className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col p-4 text-center"
                 >
-                  <div className="w-full flex justify-end mb-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const action = confirm(`Delete "${item.name}"?`)
-                        if (action) deleteProject(item.id)
-                      }}
-                      className="relative z-50 h-8 px-2 rounded-md border border-white bg-white text-black text-sm font-medium shadow-lg"
-                    >
-                      Delete
-                    </button>
-                  </div>
-
                   <button
                     onClick={() => {
                       if (isCoreCard) {
@@ -1470,16 +1457,32 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                       setBuilderMode('app')
                       openProjectWorkspace(item)
                     }}
-                    className="w-full h-full flex flex-col items-center justify-center text-center"
+                    className="flex-1 flex flex-col items-center justify-center text-center"
                   >
-                  <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
-                    {isCoreCard ? '⚙' : '□'}
-                  </div>
-                  <div className="text-sm font-medium text-foreground">{item.name}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {isCoreCard ? 'Owner only' : item.type || 'project'}
-                  </div>
-                </button>
+                    <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
+                      {isCoreCard ? '⚙' : '□'}
+                    </div>
+                    <div className="text-sm font-medium text-foreground">{item.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {isCoreCard ? 'Owner only' : item.type || 'project'}
+                    </div>
+                  </button>
+
+                  {!isCoreCard && (
+                    <div className="w-full flex justify-end pt-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const action = confirm(`Delete "${item.name}"?`)
+                          if (action) deleteProject(item.id)
+                        }}
+                        className="h-8 px-3 rounded-md border border-border bg-background text-sm text-foreground"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               )
             })}
 
