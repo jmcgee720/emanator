@@ -1451,18 +1451,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    if (isCoreCard) {
-                      setBuilderMode('core')
-                      if (projects.length > 0) {
-                        openProjectWorkspace(projects[0])
-                      } else {
-                        createProject('Emanator Backend', 'app')
-                      }
-                      return
-                    }
-
-                    setBuilderMode('app')
+                  onClick={() => {setBuilderMode('app')
                     openProjectWorkspace(item)
                   }}
                   className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
