@@ -1396,17 +1396,31 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       <div className="flex-1 overflow-auto px-8 py-8">
         <div className="mx-auto max-w-7xl border border-border bg-card/20 min-h-[calc(100vh-8rem)] rounded-2xl p-8">
 <div className="flex items-center justify-between mb-10">
-  {/* Left: Title */}
-  <div className="flex flex-col">
-    <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-      Project Bin
-    </h1>
-    <span className="text-xs text-muted-foreground mt-1">
-      Your projects and workspaces
-    </span>
+  <div className="flex items-center gap-4">
+    <div className="flex flex-col">
+      <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+        Project Bin
+      </h1>
+      <span className="text-xs text-muted-foreground mt-1">
+        Your projects and workspaces
+      </span>
+    </div>
+
+    {isOwner && (
+      <button
+        onClick={() => {
+          setBuilderMode('core')
+          if (projects.length > 0) {
+            openProjectWorkspace(projects[0])
+          }
+        }}
+        className="px-3 py-1.5 rounded-md text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+      >
+        Core System
+      </button>
+    )}
   </div>
 
-  {/* Right: Actions */}
   <div className="flex items-center gap-2">
     <button
       onClick={() => setShowNewProjectModal(true)}
