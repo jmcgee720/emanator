@@ -323,10 +323,7 @@ export default function LeftPanel({
           const selfEditChats = chats.filter(c => getChatType(c) === CHAT_TYPES.SELF_EDIT)
           return (
             <>
-              {/* Workspace tabs — owner only */}
-              {isOwner && (
               <div className="max-h-32 overflow-y-auto px-1 pb-1">
-                {/* Builder workspace */}
                 {(builderMode === 'app' || !isOwner) && (
                   <div className="space-y-px" data-testid="builder-chats-list">
                     {builderChats.length === 0 ? (
@@ -341,14 +338,20 @@ export default function LeftPanel({
                   </div>
                 )}
 
-                {/* Core System workspace — owner only */}
-                
-                      </div>
+                {isOwner && builderMode === 'core' && (
+                  <div className="space-y-px" data-testid="self-edit-chats-list">
+                    {selfEditChats.length === 0 ? (
+                      <p className="text-[10px] text-muted-foreground/50 px-2 py-1" data-testid="no-self-edit-chats">
+                        No Core System sessions yet
+                      </p>
+                    ) : (
+                      selfEditChats.map((chat) => (
+                        <ChatRow key={chat.id} chat={chat} selectedChat={selectedChat} onSelectChat={onSelectChat} onDeleteChat={onDeleteChat} isSelfEdit />
+                      ))
                     )}
                   </div>
                 )}
               </div>
-            </>
           )
         })()}
       </div>
