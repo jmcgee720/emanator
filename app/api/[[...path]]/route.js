@@ -53,6 +53,33 @@ async function checkAllowlist(email) {
   const ownerEmail = process.env.DEFAULT_OWNER_EMAIL
 
   if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
+    return {
+      id: 'bootstrap-owner',
+      email,
+      role: 'owner',
+      is_allowlisted: true,
+    }
+  }
+
+  const user = await db.users.findByEmail(email)
+  if (!user?.is_allowlisted) return null
+
+  if (user.role === 'owner') return user
+
+  try {
+    const supabase = getSupabaseAdmin()
+    const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+    const authUser = authUsers?.find(u => u.email === email)
+    const metaRole = authUser?.user_metadata?.app_role
+    if (metaRole === 'admin' || metaRole === 'child_monitored') {
+      return { ...user, role: metaRole }
+    }
+  } catch {}
+
+  return user
+}  const ownerEmail = process.env.DEFAULT_OWNER_EMAIL
+
+  if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
     try {
       return await db.users.upsertOwner(email)
     } catch {}
