@@ -27,6 +27,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const isMonitored = dbUser?.role === 'child_monitored'
 
   const [projects, setProjects] = useState([])
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [newProjectType, setNewProjectType] = useState('app')
   const [selectedProject, setSelectedProject] = useState(null)
   const [openProjectTabs, setOpenProjectTabs] = useState([])
 
@@ -1414,7 +1417,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   {/* Right: Actions */}
   <div className="flex items-center gap-2">
     <button
-      onClick={() => createProject(`New Project ${projects.length + 1}`, 'app')}
+      onClick={() => setShowNewProjectModal(true)}
       className="px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground hover:opacity-90"
     >
       New Project
@@ -1469,13 +1472,60 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             })}
 
             <button
-              onClick={() => createProject(`New Project ${projects.length + 1}`, 'app')}
+              onClick={() => setShowNewProjectModal(true)}
               className="aspect-square rounded-xl border border-dashed border-border bg-background/20 hover:border-primary hover:bg-background/50 transition-all flex items-center justify-center text-3xl text-muted-foreground"
             >
               +
             </button>
           </div>
         </div>
+      {showNewProjectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-card border border-border rounded-lg p-6 w-[400px]">
+
+            <h2 className="text-sm font-semibold mb-4">Create Project</h2>
+
+            <input
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="Project name"
+              className="w-full mb-3 px-3 py-2 text-sm border border-border rounded-md bg-background"
+            />
+
+            <select
+              value={newProjectType}
+              onChange={(e) => setNewProjectType(e.target.value)}
+              className="w-full mb-4 px-3 py-2 text-sm border border-border rounded-md bg-background"
+            >
+              <option value="app">App Builder</option>
+              <option value="core">Core System</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowNewProjectModal(false)}
+                className="px-3 py-1.5 text-xs border border-border rounded-md"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  if (!newProjectName.trim()) return
+                  createProject(newProjectName, newProjectType)
+                  setShowNewProjectModal(false)
+                  setNewProjectName('')
+                  setNewProjectType('app')
+                }}
+                className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md"
+              >
+                Create
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
       </div>
     )
   }
