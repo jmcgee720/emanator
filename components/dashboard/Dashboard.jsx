@@ -1442,17 +1442,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   key={item.id}
                   className="relative aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const action = confirm(`Delete "${item.name}"?`)
-                      if (action) deleteProject(item.id)
-                    }}
-                    className="absolute top-2 right-2 z-10 h-8 w-8 rounded-md border border-border bg-background/80 text-base text-foreground flex items-center justify-center"
-                  >
-                    ⋯
+                  <div className="w-full flex justify-end mb-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const action = confirm(`Delete "${item.name}"?`)
+                        if (action) deleteProject(item.id)
+                      }}
+                      className="h-8 px-2 rounded-md border border-border bg-background text-sm text-foreground"
+                    >
+                      Delete
                     </button>
-                </div>
+                  </div>
 
                   <button
                     onClick={() => {
