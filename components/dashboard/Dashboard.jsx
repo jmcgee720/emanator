@@ -1400,14 +1400,39 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     return (
       <div className="flex-1 overflow-auto px-8 py-8">
         <div className="mx-auto max-w-7xl border border-border bg-card/20 min-h-[calc(100vh-8rem)] rounded-2xl p-8">
-          <div className="flex items-start justify-between mb-10">
-            <div className="h-3 w-28 rounded-sm border border-border bg-background/40" />
-            <div className="h-3 w-28 rounded-sm border border-border bg-background/40" />
-          </div>
+<div className="flex items-center justify-between mb-10">
+  {/* Left: Title */}
+  <div className="flex flex-col">
+    <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+      Project Bin
+    </h1>
+    <span className="text-xs text-muted-foreground mt-1">
+      Your projects and workspaces
+    </span>
+  </div>
 
-          <div className="flex justify-center mb-12">
-            <div className="h-3 w-28 rounded-sm border border-border bg-background/40" />
-          </div>
+  {/* Right: Actions */}
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => createProject(`New Project ${projects.length + 1}`, 'app')}
+      className="px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground hover:opacity-90"
+    >
+      New Project
+    </button>
+
+    <button
+      onClick={() => setShowSearch(true)}
+      className="px-3 py-1.5 rounded-md text-xs border border-border hover:bg-muted"
+    >
+      Search
+    </button>
+  </div>
+</div>
+
+{/* Center: optional subtle divider */}
+<div className="flex justify-center mb-12">
+  <div className="h-px w-32 bg-border opacity-50" />
+</div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 max-w-5xl mx-auto">
             {cards.map((item) => {
