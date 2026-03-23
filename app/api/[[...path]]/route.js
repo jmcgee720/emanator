@@ -50,7 +50,7 @@ async function checkAllowlist(email) {
 
   if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
     return {
-      id: 'bootstrap-owner',
+      id: authUser?.id || user?.id || null,
       email,
       role: 'owner',
       is_allowlisted: true,
