@@ -344,17 +344,6 @@ export default function LeftPanel({
                 {/* Core System workspace — owner only */}
                 {isOwner && builderMode === 'core' && (
                   <div data-testid="self-edit-section">
-                    <div className="flex items-center justify-between px-2 mb-1">
-                      <span className="text-[10px] font-medium text-amber-400/70 uppercase tracking-wider">Core System Chats</span>
-                      <Button
-                        size="sm" variant="ghost" className="h-5 px-1.5 text-[10px] text-amber-400/70 gap-0.5 hover:text-amber-400"
-                        onClick={(e) => { e.stopPropagation(); onCreateSelfEditChat() }}
-                        disabled={!selectedProject}
-                        data-testid="new-self-edit-btn"
-                      >
-                        <Plus className="w-2.5 h-2.5" /> New
-                      </Button>
-                    </div>
                     {selfEditChats.length === 0 ? (
                       <p className="text-[10px] text-muted-foreground/50 px-2 py-1" data-testid="no-self-edit-chats">
                         No Core System sessions yet
