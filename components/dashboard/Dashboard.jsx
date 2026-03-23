@@ -30,10 +30,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectType, setNewProjectType] = useState('app')
-  const deleteProject = async (id) => {
-    await fetch(`/api/projects/${id}`, { method: 'DELETE' })
-    window.location.reload()
-  }
   const [selectedProject, setSelectedProject] = useState(null)
   const [openProjectTabs, setOpenProjectTabs] = useState([])
 
@@ -1438,51 +1434,32 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               const isCoreCard = item.id === '__core_system__'
 
               return (
-                <div
+                <button
                   key={item.id}
-                  className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col p-4 text-center"
-                >
-                  <button
-                    onClick={() => {
-                      if (isCoreCard) {
-                        setBuilderMode('core')
-                        if (projects.length > 0) {
-                          openProjectWorkspace(projects[0])
-                        } else {
-                          createProject('Emanator Backend', 'app')
-                        }
-                        return
+                  onClick={() => {
+                    if (isCoreCard) {
+                      setBuilderMode('core')
+                      if (projects.length > 0) {
+                        openProjectWorkspace(projects[0])
+                      } else {
+                        createProject('Emanator Backend', 'app')
                       }
+                      return
+                    }
 
-                      setBuilderMode('app')
-                      openProjectWorkspace(item)
-                    }}
-                    className="flex-1 flex flex-col items-center justify-center text-center"
-                  >
-                    <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
-                      {isCoreCard ? '⚙' : '□'}
-                    </div>
-                    <div className="text-sm font-medium text-foreground">{item.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {isCoreCard ? 'Owner only' : item.type || 'project'}
-                    </div>
-                  </button>
-
-                  {!isCoreCard && (
-                    <div className="w-full flex justify-end pt-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const action = confirm(`Delete "${item.name}"?`)
-                          if (action) deleteProject(item.id)
-                        }}
-                        className="h-8 px-3 rounded-md border border-border bg-background text-sm text-foreground"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    setBuilderMode('app')
+                    openProjectWorkspace(item)
+                  }}
+                  className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
+                >
+                  <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
+                    {isCoreCard ? '⚙' : '□'}
+                  </div>
+                  <div className="text-sm font-medium text-foreground">{item.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {isCoreCard ? 'Owner only' : item.type || 'project'}
+                  </div>
+                </button>
               )
             })}
 
