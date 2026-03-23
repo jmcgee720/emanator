@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { authFetch } from '@/lib/auth-fetch'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { useToast } from '@/hooks/use-toast'
@@ -26,17 +25,22 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' }
 export default function Dashboard({ user, dbUser, onSignOut }) {
   const isOwner = dbUser?.role === 'owner'
   const isMonitored = dbUser?.role === 'child_monitored'
+
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
+  const [openProjectTabs, setOpenProjectTabs] = useState([])
+
   const [chats, setChats] = useState([])
   const [selectedChat, setSelectedChat] = useState(null)
   const [messages, setMessages] = useState([])
   const [files, setFiles] = useState([])
   const [canvas, setCanvas] = useState(null)
+
   const [showAdmin, setShowAdmin] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showCanvas, setShowCanvas] = useState(false)
   const [showDesign, setShowDesign] = useState(false)
+
   const [designPrefs, setDesignPrefs] = useState(getDefaultDesignPrefs())
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('preview')
@@ -47,13 +51,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [scope, setScope] = useState('project')
   const [selfEditTarget, setSelfEditTarget] = useState(null)
 
-  // Clear selfEditTarget when switching to a non-self-edit chat
-  const handleSelectChat = (chat) => {
-    setSelectedChat(chat)
-    if (!chat || getChatType(chat) !== CHAT_TYPES.SELF_EDIT) {
-      setSelfEditTarget(null)
-    }
-  }
   const [streamingMessageId, setStreamingMessageId] = useState(null)
   const [streamingStatus, setStreamingStatus] = useState(null)
   const [pendingPlan, setPendingPlan] = useState(null)
@@ -78,8 +75,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [sandboxDiff, setSandboxDiff] = useState(null)
   const [showSandboxDiff, setShowSandboxDiff] = useState(false)
   const [loadingDiff, setLoadingDiff] = useState(false)
-  const streamAbortRef = useRef(null)
 
+  const streamAbortRef = useRef(null)
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -91,10 +88,52 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setLogs(prev => [...prev, { type, message, timestamp: new Date().toISOString() }])
   }, [])
 
-  // Fetch provider status on mount
   useEffect(() => {
-    fetchProviderStatus()
+    if (!isOwner && builderMode !== 'app') {
+      setBuilderMode('app')
+    }
+  }, [isOwner, builderMode])
+
+  const openProjectWorkspace = useCallback((project) => {
+    if (!project) return
+
+    setOpenProjectTabs(prev => {
+      const exists = prev.some(p => p.id === project.id)
+      if (exists) return prev
+      return [...prev, project]
+    })
+
+    setSelectedProject(project)
   }, [])
+
+  const closeProjectWorkspaceTab = useCallback((projectId) => {
+    setOpenProjectTabs(prev => {
+      const nextTabs = prev.filter(p => p.id !== projectId)
+
+      if (selectedProject?.id === projectId) {
+        if (nextTabs.length > 0) {
+          setSelectedProject(nextTabs[nextTabs.length - 1])
+        } else {
+          setSelectedProject(null)
+          setChats([])
+          setSelectedChat(null)
+          setMessages([])
+          setFiles([])
+          setCanvas(null)
+        }
+      }
+
+      return nextTabs
+    })
+  }, [selectedProject])
+
+  // Clear selfEditTarget when switching to a non-self-edit chat
+  const handleSelectChat = (chat) => {
+    setSelectedChat(chat)
+    if (!chat || getChatType(chat) !== CHAT_TYPES.SELF_EDIT) {
+      setSelfEditTarget(null)
+    }
+  }
 
   const fetchProviderStatus = async () => {
     try {
@@ -102,7 +141,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       if (res.ok) {
         const data = await res.json()
         setProviderStatus(data)
-        // Log any issues
         Object.entries(data).forEach(([prov, info]) => {
           if (info.status !== 'ready') {
             addLog('warn', `${prov}: ${info.status} — ${info.detail || ''}`)
@@ -110,16 +148,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         })
       }
     } catch {
-      // Non-critical, ignore
+      // non-critical
     }
   }
 
-  // Load projects on mount
+  useEffect(() => {
+    fetchProviderStatus()
+  }, [])
+
   useEffect(() => {
     loadProjects()
   }, [])
 
-  // Load project data when project changes
   useEffect(() => {
     if (selectedProject) {
       loadProjectData(selectedProject.id)
@@ -127,7 +167,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }, [selectedProject?.id])
 
-  // Load messages when chat changes
   useEffect(() => {
     if (selectedChat) {
       loadMessages(selectedChat.id)
@@ -147,9 +186,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const projectList = Array.isArray(data) ? data : []
       setProjects(projectList)
 
-      if (projectList.length > 0 && !selectedProject) {
-        setSelectedProject(projectList[0])
+      if (selectedProject) {
+        const refreshedSelected = projectList.find(p => p.id === selectedProject.id)
+        if (refreshedSelected) {
+          setSelectedProject(refreshedSelected)
+        }
       }
+
+      setOpenProjectTabs(prevTabs =>
+        prevTabs
+          .map(tab => projectList.find(p => p.id === tab.id) || tab)
+          .filter(Boolean)
+      )
     } catch (error) {
       console.error('Error loading projects:', error)
       addLog('error', `Failed to load projects: ${error.message}`)
@@ -159,7 +207,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const loadProjectData = async (projectId) => {
-    // Load chats
     try {
       const chatsResponse = await authFetch(`/api/projects/${projectId}/chats`)
       const chatsData = await chatsResponse.json()
@@ -176,7 +223,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       addLog('error', `Failed to load chats: ${error.message}`)
     }
 
-    // Load files
     try {
       const filesResponse = await authFetch(`/api/projects/${projectId}/files`)
       const filesData = await filesResponse.json()
@@ -185,7 +231,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       console.error('Error loading files:', error)
     }
 
-    // Load canvas — always succeeds now (auto-creates empty canvas)
     try {
       const canvasResponse = await authFetch(`/api/projects/${projectId}/canvas`)
       if (canvasResponse.ok) {
@@ -201,7 +246,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setCanvas(null)
     }
 
-    // Load design preferences
     try {
       const designResponse = await authFetch(`/api/projects/${projectId}/design`)
       if (designResponse.ok) {
@@ -263,7 +307,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const initialChat = data.initialChat || null
 
       setProjects(prev => [newProject, ...prev])
-      setSelectedProject(newProject)
+      openProjectWorkspace(newProject)
 
       if (initialChat) {
         setChats([initialChat])
@@ -302,13 +346,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const initialChat = data.initialChat || null
 
       setProjects(prev => [sandbox, ...prev])
-      setSelectedProject(sandbox)
+      openProjectWorkspace(sandbox)
 
       if (initialChat) {
         setChats([initialChat])
         setSelectedChat(initialChat)
         setMessages([])
       }
+
       setFiles([])
       setCanvas(null)
 
@@ -337,7 +382,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       })
       const result = await response.json()
       setSandboxTestResult(result)
-      // Refresh project settings to persist result
       setSelectedProject(prev => ({
         ...prev,
         settings: { ...prev.settings, last_test_result: result }
@@ -369,7 +413,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Promotion failed')
 
-      // Update sandbox status locally
       setSelectedProject(prev => ({
         ...prev,
         settings: { ...prev.settings, sandbox_status: 'promoted', promoted_at: result.promoted_at }
@@ -430,7 +473,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const createChat = async (title = 'New Chat') => {
     if (!selectedProject) return
 
-    // Block normal flow from accidentally creating Core System chats
     const isSelfEditTitle = title.startsWith('\u2699 Self-Edit: ')
     if (isSelfEditTitle && !isOwner) {
       toast({ title: 'Error', description: 'Only owners can create Core System chats', variant: 'destructive' })
@@ -453,7 +495,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setChats(prev => [newChat, ...prev])
       setSelectedChat(newChat)
       setMessages([])
-      addLog('info', `New conversation started`)
+      addLog('info', 'New conversation started')
     } catch (error) {
       console.error('Error creating chat:', error)
       addLog('error', `Failed to create chat: ${error.message}`)
@@ -478,12 +520,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setChats(prev => [newChat, ...prev])
       setSelectedChat(newChat)
       setSelfEditTarget(null)
-    } catch (err) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to create Core System chat', variant: 'destructive' })
     }
   }
 
-  // Upload files to project
   const uploadFiles = async (files) => {
     if (!selectedProject) return null
     try {
@@ -517,7 +558,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     const streamingAssistantId = `streaming-${Date.now()}`
     const collectedDiffs = []
 
-    // Optimistic user message with attachments
     const tempUserId = `temp-${Date.now()}`
     const tempUserMessage = {
       id: tempUserId,
@@ -528,7 +568,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
     setMessages(prev => [...prev, tempUserMessage])
 
-    // Create placeholder streaming assistant message
     const placeholderAssistant = {
       id: streamingAssistantId,
       role: 'assistant',
@@ -552,7 +591,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       streamOpts,
       {
         onUserMessage: (data) => {
-          // Replace temp user message with real one
           setMessages(prev => prev.map(m =>
             m.id === tempUserId ? { ...m, id: data.id, created_at: data.created_at } : m
           ))
@@ -564,7 +602,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onToken: (data) => {
-          // Append token to the streaming assistant message
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
               ? { ...m, content: m.content + data.content }
@@ -582,7 +619,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onImageGenerated: (data) => {
-          // Inline image into the streaming message
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
               ? { ...m, metadata: { ...m.metadata, generatedImage: data } }
@@ -592,7 +628,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onImageIntent: async (data) => {
-          // Stream closed fast. Now call generate-image SSE endpoint directly.
           const capturedMsgId = streamingAssistantId
           addLog('info', `Generating ${data.mode} image... (this may take 30-60s)`)
           setImageGenProgress({ stage: 'preparing', progress: 5, label: 'Preparing request', mode: data.mode, startTime: Date.now() })
@@ -617,7 +652,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               throw new Error(err.error || 'Image generation failed')
             }
 
-            // Read SSE stream from generate-image endpoint
             const reader = res.body.getReader()
             const decoder = new TextDecoder()
             let buffer = ''
@@ -679,7 +713,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
             const content = `## Image Generated\n\n**Prompt:** ${data.prompt.slice(0, 200)}\n**Mode:** ${asset.mode}\n**Size:** ${asset.size}\n**File:** \`${asset.path}\`\n${asset.revisedPrompt ? `**Revised prompt:** ${asset.revisedPrompt}\n` : ''}\n*Generated in ${(asset.duration / 1000).toFixed(1)}s*`
 
-            // Record duration for future time estimates
             try {
               const { recordGenerationDuration } = await import('./ImageGenerationProgress')
               recordGenerationDuration(asset.duration)
@@ -694,7 +727,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 }
                 return m
               })
-              // Fallback: if capturedMsgId wasn't found (e.g. race condition), find the last unresolved image_gen message
               if (!realMsgId) {
                 return prev.map(m => {
                   if (!realMsgId && m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage) {
@@ -712,7 +744,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             setStreamingStatus(null)
             setStreamingMessageId(null)
 
-            // Refresh project files
             try {
               const filesRes = await authFetch(`/api/projects/${data.projectId}/files`)
               if (filesRes.ok) {
@@ -721,10 +752,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               }
             } catch {}
 
-            // Refresh assets list so AssetsTab picks up the new image
             setAssetsRefreshKey(k => k + 1)
 
-            // Persist generatedImage to DB
             if (realMsgId && !realMsgId.startsWith('streaming-')) {
               try {
                 await authFetch(`/api/messages/${realMsgId}/metadata`, {
@@ -750,10 +779,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onDone: (data) => {
-          // Update streaming message with final metadata but keep streaming flag on
-          // (will be replaced by message_saved)
           const hasDiffs = (data?.diffFiles?.length > 0) || (collectedDiffs.length > 0)
-          setStreamingStatus({ stage: hasDiffs ? 'diff_ready' : 'complete', detail: data.proposedPlan ? 'Plan proposed — awaiting approval' : hasDiffs ? `${(data?.diffFiles || collectedDiffs).length} file(s) ready for review` : 'Generation complete' })
+          setStreamingStatus({
+            stage: hasDiffs ? 'diff_ready' : 'complete',
+            detail: data.proposedPlan ? 'Plan proposed — awaiting approval' : hasDiffs ? `${(data?.diffFiles || collectedDiffs).length} file(s) ready for review` : 'Generation complete'
+          })
 
           if (hasDiffs) {
             const diffs = data?.diffFiles || collectedDiffs
@@ -780,12 +810,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onPlan: (data) => {
-          // Plan was proposed by AI — store it for execute/revise/cancel
           setPendingPlan(data)
         },
 
         onMessageSaved: async (data) => {
-          // Replace streaming message with real persisted one
           const updatedMeta = { intent: data.intent, scope: data.scope }
           if (data.tool_mode) updatedMeta.toolMode = data.tool_mode
           if (data.proposedPlan) {
@@ -795,7 +823,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           if (data.planExecuted) {
             updatedMeta.planExecuted = true
           }
-          // Propagate diff files for DiffReviewPanel
           const diffs = data.diffFiles || (collectedDiffs.length > 0 ? collectedDiffs : null)
           if (diffs?.length > 0) {
             updatedMeta.diffFiles = diffs
@@ -805,17 +832,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
           setMessages(prev => prev.map(m => {
             if (m.id !== streamingAssistantId) return m
-            // Preserve generatedImage from streaming phase
             const existingImage = m.metadata?.generatedImage
             return {
-              ...m, id: data.id, streaming: false,
+              ...m,
+              id: data.id,
+              streaming: false,
               metadata: { ...updatedMeta, generatedImage: existingImage || null }
             }
           }))
           setStreamingMessageId(null)
           setStreamingStatus(null)
 
-          // Refresh files if any were generated (not diffs — diffs aren't written yet)
           if (data.generatedFiles?.length > 0 && !diffs?.length) {
             const filesResponse = await authFetch(`/api/projects/${selectedProject.id}/files`)
             const filesData = await filesResponse.json()
@@ -823,7 +850,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             setActiveTab('preview')
           }
 
-          // Refresh canvas
           const refreshCanvas = async (retries = 2) => {
             for (let i = 0; i <= retries; i++) {
               try {
@@ -831,7 +857,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 const res = await authFetch(`/api/projects/${selectedProject.id}/canvas`)
                 if (res.ok) {
                   const d = await res.json()
-                  if (d.canvas_content) { setCanvas(d.canvas_content); return }
+                  if (d.canvas_content) {
+                    setCanvas(d.canvas_content)
+                    return
+                  }
                 }
               } catch {}
             }
@@ -840,7 +869,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onError: (data) => {
-          // Replace streaming placeholder with error state
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
               ? {
@@ -870,7 +898,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     streamAbortRef.current = abortController
   }
 
-  // Execute an approved plan — generates diffs for review
   const executePlan = async (messageId, planData) => {
     if (!selectedChat || executingPlan) return
 
@@ -880,7 +907,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setDiffPlanData(planData)
     addLog('info', 'Generating file changes for review...')
 
-    // Mark the plan message as executing
     setMessages(prev => prev.map(m =>
       m.id === messageId
         ? { ...m, metadata: { ...m.metadata, planStatus: 'executing' } }
@@ -890,7 +916,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     const streamingAssistantId = `streaming-exec-${Date.now()}`
     const collectedDiffs = []
 
-    // Add placeholder for execution response
     const placeholderAssistant = {
       id: streamingAssistantId,
       role: 'assistant',
@@ -927,7 +952,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           addLog('info', `Diff ready: ${data.action} ${data.path}`)
         },
         onDone: (data) => {
-          // Diffs are ready for review — don't write files yet
           const diffs = data?.diffFiles || collectedDiffs
           if (diffs.length > 0) {
             setPendingDiffs(diffs)
@@ -939,7 +963,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
         onPlan: () => {},
         onMessageSaved: async (data) => {
-          // Mark execution response as saved — diffs attached
           const diffs = data.diffFiles || collectedDiffs
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
@@ -962,7 +985,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setStreamingStatus(null)
           setExecutingPlan(false)
 
-          // Update plan status based on diff availability
           if (diffs.length > 0) {
             setMessages(prev => prev.map(m =>
               m.id === messageId
@@ -989,7 +1011,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     streamAbortRef.current = abortController
   }
 
-  // Apply approved diffs — write files, create snapshot
   const applyDiffs = async (approvedFiles) => {
     if (!selectedProject || applyingDiffs) return
 
@@ -997,7 +1018,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     addLog('info', `Applying ${approvedFiles.length} approved file(s)...`)
 
     try {
-      // Extract planId and diffId from the pending diff message
       const pendingMsg = messages.find(m => m.id === diffMessageId && m.metadata?.diffStatus === 'pending')
       const planId = pendingMsg?.metadata?.planId || null
       const diffId = pendingMsg?.metadata?.diffId || null
@@ -1018,7 +1038,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const result = await response.json()
 
       if (result.success) {
-        // Mark diff message as applied
         if (diffMessageId) {
           setMessages(prev => prev.map(m =>
             m.id === diffMessageId
@@ -1027,7 +1046,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           ))
         }
 
-        // Log results
         if (result.snapshot) {
           addLog('info', `Snapshot created: ${result.snapshot.name}`)
         }
@@ -1039,13 +1057,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           }
         }
 
-        // Refresh files and preview
         const filesResponse = await authFetch(`/api/projects/${selectedProject.id}/files`)
         const filesData = await filesResponse.json()
         setFiles(Array.isArray(filesData) ? filesData : [])
         setActiveTab('preview')
 
-        // Refresh canvas
         try {
           const res = await authFetch(`/api/projects/${selectedProject.id}/canvas`)
           if (res.ok) {
@@ -1071,7 +1087,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  // Cancel/discard diffs — no files written
   const cancelDiffs = (messageId) => {
     if (messageId || diffMessageId) {
       setMessages(prev => prev.map(m =>
@@ -1087,7 +1102,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     toast({ title: 'Changes Discarded', description: 'No files were modified.' })
   }
 
-  // Cancel a proposed plan
   const cancelPlan = (messageId) => {
     setMessages(prev => prev.map(m =>
       m.id === messageId
@@ -1099,9 +1113,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     toast({ title: 'Plan Cancelled', description: 'No files were changed.' })
   }
 
-  // Retry the last user message with a fallback provider
   const retryWithFallback = async (errorMessage) => {
-    // Find the last user message before this error message
     const idx = messages.findIndex(m => m.id === errorMessage.id)
     const prevUser = idx > 0
       ? messages.slice(0, idx).reverse().find(m => m.role === 'user')
@@ -1112,18 +1124,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       return
     }
 
-    // Determine fallback provider
     const failedProvider = errorMessage.metadata?.provider
     const fallbackProvider = failedProvider === 'openai' ? 'anthropic' : 'openai'
     const fallbackModel = fallbackProvider === 'openai' ? 'gpt-4o' : 'claude-sonnet-4-6'
 
-    // Switch the model selector
     setAiProvider(fallbackProvider)
     setAiModel(fallbackModel)
 
     addLog('info', `Retrying with ${fallbackProvider}/${fallbackModel}...`)
-
-    // Resend the original message
     await sendMessage(prevUser.content)
   }
 
@@ -1153,9 +1161,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
       const remaining = projects.filter(p => p.id !== projectId)
       setProjects(remaining)
+      setOpenProjectTabs(prev => prev.filter(p => p.id !== projectId))
+
       if (selectedProject?.id === projectId) {
-        if (remaining.length > 0) {
-          setSelectedProject(remaining[0])
+        if (openProjectTabs.length > 1) {
+          const fallback = openProjectTabs.filter(p => p.id !== projectId)
+          setSelectedProject(fallback[fallback.length - 1] || null)
         } else {
           setSelectedProject(null)
           setChats([])
@@ -1165,6 +1176,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setCanvas(null)
         }
       }
+
       addLog('info', 'Project deleted')
       toast({ title: 'Project deleted' })
     } catch (error) {
@@ -1183,7 +1195,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const data = await response.json()
       if (data.project) {
         setProjects(prev => [data.project, ...prev])
-        setSelectedProject(data.project)
+        openProjectWorkspace(data.project)
         addLog('success', `Imported project: ${data.project.name}`)
         toast({ title: 'Project Imported', description: data.project.name })
       }
@@ -1209,10 +1221,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  // ── Variation Studio ──
   const openVariationStudio = (image, presetType, styleOverrides) => {
     setVariationStudio({ open: true, sourceImage: image, presetType, styleOverrides })
-    // Load assets for reference picker
     if (selectedProject) {
       authFetch(`/api/projects/${selectedProject.id}/assets`)
         .then(r => r.ok ? r.json() : [])
@@ -1226,7 +1236,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     const { variationType, sourceImage, references, locks, styleLevel, targetStyle, outputSettings, characterName, customPrompt, states } = params
 
-    // For sprite_states with multiple states, generate each state individually
     const statesToGenerate = (variationType === 'sprite_states' && states?.length > 1)
       ? states
       : [states?.[0] || null]
@@ -1235,7 +1244,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const stateLabel = stateName || variationType.replace(/_/g, ' ')
       addLog('info', `Generating variation: ${stateLabel}...`)
 
-      // Create a temporary assistant message
       const tempId = `streaming-variation-${Date.now()}`
       setMessages(prev => [...prev, {
         id: tempId,
@@ -1280,7 +1288,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           throw new Error(err.error || 'Variation generation failed')
         }
 
-        // Read SSE stream
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
@@ -1318,18 +1325,27 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (!asset) throw new Error('No image asset received')
 
         const genImage = {
-          id: asset.id, path: asset.path, filename: asset.filename,
-          prompt: asset.prompt, mode: asset.mode, size: asset.size,
-          revisedPrompt: asset.revisedPrompt, duration: asset.duration,
+          id: asset.id,
+          path: asset.path,
+          filename: asset.filename,
+          prompt: asset.prompt,
+          mode: asset.mode,
+          size: asset.size,
+          revisedPrompt: asset.revisedPrompt,
+          duration: asset.duration,
           projectId: selectedProject.id,
-          variationType: asset.variationType, sourceAssetPath: asset.sourceAssetPath,
-          stateName: asset.stateName, characterName: asset.characterName,
+          variationType: asset.variationType,
+          sourceAssetPath: asset.sourceAssetPath,
+          stateName: asset.stateName,
+          characterName: asset.characterName,
         }
 
         const content = `## ${stateName ? `${stateName} State` : 'Variation'} Generated\n\n**Type:** ${variationType.replace(/_/g, ' ')}\n**Prompt:** ${prompt.slice(0, 200)}\n**File:** \`${asset.path}\`\n${asset.revisedPrompt ? `**Revised:** ${asset.revisedPrompt}\n` : ''}\n*Generated in ${(asset.duration / 1000).toFixed(1)}s*`
 
-        // Record duration
-        try { const { recordGenerationDuration } = await import('./ImageGenerationProgress'); recordGenerationDuration(asset.duration) } catch {}
+        try {
+          const { recordGenerationDuration } = await import('./ImageGenerationProgress')
+          recordGenerationDuration(asset.duration)
+        } catch {}
 
         setMessages(prev => prev.map(m => m.id === tempId
           ? { ...m, id: m.id, content, streaming: false, metadata: { ...m.metadata, generatedImage: genImage } }
@@ -1338,10 +1354,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
         addLog('success', `Variation generated: ${asset.filename}`)
 
-        // Refresh files
-        try { const r = await authFetch(`/api/projects/${selectedProject.id}/files`); if (r.ok) setFiles(await r.json()) } catch {}
+        try {
+          const r = await authFetch(`/api/projects/${selectedProject.id}/files`)
+          if (r.ok) setFiles(await r.json())
+        } catch {}
 
-        // Refresh assets list
         setAssetsRefreshKey(k => k + 1)
 
       } catch (err) {
@@ -1369,15 +1386,165 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     )
   }
 
+  const renderProjectGrid = () => {
+    const ownerCoreCard = isOwner
+      ? {
+          id: '__core_system__',
+          name: 'Core System',
+          type: 'core',
+        }
+      : null
+
+    const cards = ownerCoreCard ? [ownerCoreCard, ...projects] : projects
+
+    return (
+      <div className="flex-1 overflow-auto px-8 py-8">
+        <div className="mx-auto max-w-7xl border border-border bg-card/20 min-h-[calc(100vh-8rem)] rounded-2xl p-8">
+          <div className="flex items-start justify-between mb-10">
+            <div className="h-3 w-28 rounded-sm border border-border bg-background/40" />
+            <div className="h-3 w-28 rounded-sm border border-border bg-background/40" />
+          </div>
+
+          <div className="flex justify-center mb-12">
+            <div className="h-3 w-28 rounded-sm border border-border bg-background/40" />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 max-w-5xl mx-auto">
+            {cards.map((item) => {
+              const isCoreCard = item.id === '__core_system__'
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (isCoreCard) {
+                      setBuilderMode('core')
+                      if (projects.length > 0) {
+                        openProjectWorkspace(projects[0])
+                      } else {
+                        createProject('Emanator Backend', 'app')
+                      }
+                      return
+                    }
+
+                    setBuilderMode('app')
+                    openProjectWorkspace(item)
+                  }}
+                  className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
+                >
+                  <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
+                    {isCoreCard ? '⚙' : '□'}
+                  </div>
+                  <div className="text-sm font-medium text-foreground">{item.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {isCoreCard ? 'Owner only' : item.type || 'project'}
+                  </div>
+                </button>
+              )
+            })}
+
+            <button
+              onClick={() => createProject(`New Project ${projects.length + 1}`, 'app')}
+              className="aspect-square rounded-xl border border-dashed border-border bg-background/20 hover:border-primary hover:bg-background/50 transition-all flex items-center justify-center text-3xl text-muted-foreground"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderWorkspaceTabs = () => (
+    <div className="h-12 border-b border-border flex items-center gap-2 px-3 overflow-x-auto">
+      <button
+        onClick={() => {
+          setSelectedProject(null)
+          setChats([])
+          setSelectedChat(null)
+          setMessages([])
+          setFiles([])
+          setCanvas(null)
+        }}
+        className="shrink-0 px-3 py-1.5 rounded-md border border-border text-sm hover:bg-muted transition-colors"
+      >
+        ← Projects
+      </button>
+
+      <div className="w-px h-6 bg-border shrink-0" />
+
+      {openProjectTabs.map((project) => {
+        const isActive = selectedProject?.id === project.id
+        return (
+          <div
+            key={project.id}
+            className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm ${
+              isActive ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-background text-muted-foreground'
+            }`}
+          >
+            <button onClick={() => openProjectWorkspace(project)} className="truncate max-w-[180px] text-left">
+              {project.name}
+            </button>
+            <button
+              onClick={() => closeProjectWorkspaceTab(project.id)}
+              className="text-xs opacity-70 hover:opacity-100"
+            >
+              ×
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const renderBuilderModeBar = () => {
+    if (!selectedProject) return null
+
+    return (
+      <div className="h-10 border-b border-border flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setBuilderMode('app')}
+            className={`px-3 py-1 rounded-md text-xs ${
+              builderMode === 'app'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-foreground'
+            }`}
+          >
+            Builder
+          </button>
+
+          {isOwner && (
+            <button
+              onClick={() => setBuilderMode('core')}
+              className={`px-3 py-1 rounded-md text-xs ${
+                builderMode === 'core'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-foreground'
+              }`}
+            >
+              Core System
+            </button>
+          )}
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          {builderMode === 'core'
+            ? 'Core System chats are owner-only and modify Emanator itself'
+            : 'Builder chats create and edit user projects'}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-screen flex flex-col bg-background relative" data-testid="dashboard">
-      {/* Self-Builder Active indicator — injected by proof test #1 */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
           Self-Builder Active
         </span>
       </div>
-      {/* Sandbox mode banner */}
+
       {selectedProject?.settings?.is_sandbox && (() => {
         const testResult = sandboxTestResult || selectedProject.settings.last_test_result
         const canPromote = isOwner && testResult?.passed && selectedProject.settings.sandbox_status === 'active'
@@ -1456,7 +1623,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 </span>
               )}
             </div>
-            {/* Promote confirmation overlay */}
+
             {showPromoteConfirm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" data-testid="promote-confirm-overlay">
                 <div className="bg-card border border-border rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="promote-confirm-dialog">
@@ -1485,7 +1652,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 </div>
               </div>
             )}
-            {/* Rollback confirmation overlay */}
+
             {showRollbackConfirm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" data-testid="rollback-confirm-overlay">
                 <div className="bg-card border border-border rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="rollback-confirm-dialog">
@@ -1514,7 +1681,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 </div>
               </div>
             )}
-            {/* Sandbox diff overlay */}
+
             {showSandboxDiff && sandboxDiff && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" data-testid="sandbox-diff-overlay">
                 <div className="bg-card border border-border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[70vh] flex flex-col" data-testid="sandbox-diff-panel">
@@ -1567,6 +1734,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           </>
         )
       })()}
+
       <TopBar
         user={user}
         dbUser={dbUser}
@@ -1580,94 +1748,106 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         isMonitored={isMonitored}
       />
 
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel defaultSize={35} minSize={25} maxSize={50} className="overflow-hidden">
-            <LeftPanel
-              projects={projects}
-              selectedProject={selectedProject}
-              onSelectProject={setSelectedProject}
-              onCreateProject={createProject}
-              onDeleteProject={deleteProject}
-              chats={chats}
-              selectedChat={selectedChat}
-              onSelectChat={handleSelectChat}
-              onCreateChat={createChat}
-              onDeleteChat={deleteChat}
-              onCreateSelfEditChat={createSelfEditChat}
-              selfEditTarget={selfEditTarget}
-              selfEditTargets={SELF_EDIT_TARGETS}
-              onSelfEditTargetChange={setSelfEditTarget}
-              isOwner={isOwner}
-              isMonitored={isMonitored}
-              messages={messages}
-              onSendMessage={sendMessage}
-              builderMode={builderMode}
-              onBuilderModeChange={setBuilderMode}
-              aiProvider={aiProvider}
-              aiModel={aiModel}
-              onAiProviderChange={setAiProvider}
-              onAiModelChange={setAiModel}
-              onImportProject={importProject}
-              providerStatus={providerStatus}
-              onRetryWithFallback={retryWithFallback}
-              scope={scope}
-              onScopeChange={setScope}
-              loading={loading}
-              streamingMessageId={streamingMessageId}
-              streamingStatus={streamingStatus}
-              pendingPlan={pendingPlan}
-              executingPlan={executingPlan}
-              onExecutePlan={executePlan}
-              onCancelPlan={cancelPlan}
-              pendingDiffs={pendingDiffs}
-              applyingDiffs={applyingDiffs}
-              onApplyDiffs={applyDiffs}
-              onCancelDiffs={cancelDiffs}
-              onUploadFiles={uploadFiles}
-              imageGenProgress={imageGenProgress}
-              onRetryImageGen={() => {
-                const lastUser = [...messages].reverse().find(m => m.role === 'user')
-                if (lastUser) {
-                  setImageGenProgress(null)
-                  sendMessage(lastUser.content)
-                }
-              }}
-              onOpenVariationStudio={openVariationStudio}
-              onOpenPromptLibrary={() => setShowPromptLibrary(true)}
-              onOpenBuilderMemory={() => setShowBuilderMemory(true)}
-              onSavePrompt={(text, metadata) => setSavePromptData({ text, metadata })}
-              onCreateSandbox={createSandbox}
-            />
-          </ResizablePanel>
+      {!selectedProject ? (
+        renderProjectGrid()
+      ) : (
+        <>
+          {renderWorkspaceTabs()}
+          {renderBuilderModeBar()}
 
-          <ResizableHandle className="w-px bg-[hsl(270_70%_55%/0.15)] hover:bg-[hsl(190_100%_50%/0.3)] transition-colors" />
+          <div className="flex-1 overflow-hidden">
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={35} minSize={25} maxSize={50} className="overflow-hidden">
+                <LeftPanel
+                  projects={projects}
+                  selectedProject={selectedProject}
+                  onSelectProject={openProjectWorkspace}
+                  onCreateProject={createProject}
+                  onDeleteProject={deleteProject}
+                  chats={builderMode === 'core' && isOwner
+                    ? chats.filter(chat => getChatType(chat) === CHAT_TYPES.SELF_EDIT)
+                    : chats.filter(chat => getChatType(chat) !== CHAT_TYPES.SELF_EDIT)
+                  }
+                  selectedChat={selectedChat}
+                  onSelectChat={handleSelectChat}
+                  onCreateChat={createChat}
+                  onDeleteChat={deleteChat}
+                  onCreateSelfEditChat={createSelfEditChat}
+                  selfEditTarget={selfEditTarget}
+                  selfEditTargets={SELF_EDIT_TARGETS}
+                  onSelfEditTargetChange={setSelfEditTarget}
+                  isOwner={isOwner}
+                  isMonitored={isMonitored}
+                  messages={messages}
+                  onSendMessage={sendMessage}
+                  builderMode={builderMode}
+                  onBuilderModeChange={setBuilderMode}
+                  aiProvider={aiProvider}
+                  aiModel={aiModel}
+                  onAiProviderChange={setAiProvider}
+                  onAiModelChange={setAiModel}
+                  onImportProject={importProject}
+                  providerStatus={providerStatus}
+                  onRetryWithFallback={retryWithFallback}
+                  scope={scope}
+                  onScopeChange={setScope}
+                  loading={loading}
+                  streamingMessageId={streamingMessageId}
+                  streamingStatus={streamingStatus}
+                  pendingPlan={pendingPlan}
+                  executingPlan={executingPlan}
+                  onExecutePlan={executePlan}
+                  onCancelPlan={cancelPlan}
+                  pendingDiffs={pendingDiffs}
+                  applyingDiffs={applyingDiffs}
+                  onApplyDiffs={applyDiffs}
+                  onCancelDiffs={cancelDiffs}
+                  onUploadFiles={uploadFiles}
+                  imageGenProgress={imageGenProgress}
+                  onRetryImageGen={() => {
+                    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+                    if (lastUser) {
+                      setImageGenProgress(null)
+                      sendMessage(lastUser.content)
+                    }
+                  }}
+                  onOpenVariationStudio={openVariationStudio}
+                  onOpenPromptLibrary={() => setShowPromptLibrary(true)}
+                  onOpenBuilderMemory={() => setShowBuilderMemory(true)}
+                  onSavePrompt={(text, metadata) => setSavePromptData({ text, metadata })}
+                  onCreateSandbox={createSandbox}
+                />
+              </ResizablePanel>
 
-          <ResizablePanel defaultSize={65} className="overflow-hidden">
-            <RightPanel
-              selectedProject={selectedProject}
-              files={files}
-              setFiles={setFiles}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              logs={logs}
-              addLog={addLog}
-              onOpenVariationStudio={openVariationStudio}
-              assetsRefreshKey={assetsRefreshKey}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+              <ResizableHandle className="w-px bg-[hsl(270_70%_55%/0.15)] hover:bg-[hsl(190_100%_50%/0.3)] transition-colors" />
+
+              <ResizablePanel defaultSize={65} className="overflow-hidden">
+                <RightPanel
+                  selectedProject={selectedProject}
+                  files={files}
+                  setFiles={setFiles}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  logs={logs}
+                  addLog={addLog}
+                  onOpenVariationStudio={openVariationStudio}
+                  assetsRefreshKey={assetsRefreshKey}
+                />
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
+        </>
+      )}
 
       {showSearch && (
         <SearchPanel
           onClose={() => setShowSearch(false)}
           onSelectProject={(project) => {
-            setSelectedProject(project)
+            openProjectWorkspace(project)
             setShowSearch(false)
           }}
           onSelectChat={(chat, project) => {
-            if (project) setSelectedProject(project)
+            if (project) openProjectWorkspace(project)
             setSelectedChat(chat)
             setShowSearch(false)
           }}
@@ -1710,7 +1890,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         projectId={selectedProject?.id}
         onUsePrompt={(text) => {
           const composer = document.querySelector('[data-testid="chat-input"]')
-          if (composer) { composer.value = text; composer.dispatchEvent(new Event('input', { bubbles: true })) }
+          if (composer) {
+            composer.value = text
+            composer.dispatchEvent(new Event('input', { bubbles: true }))
+          }
         }}
       />
 
