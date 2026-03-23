@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
-import { db } from '@/lib/supabase/db'
 
 // CORS helper
 function handleCORS(response) {
@@ -35,13 +34,6 @@ async function getAuthUser(request) {
   return null
 }
 
-// Allowlist check
-async function checkAllowlist(email) {
-  const user = await db.users.findByEmail(email)
-  if (!user || !user.is_allowlisted) return null
-  return user
-}
-
 // OPTIONS
 export async function OPTIONS() {
   return handleCORS(new NextResponse(null, { status: 200 }))
@@ -53,32 +45,15 @@ async function handleRoute(request, { params }) {
   const route = `/${path.join('/')}`
 
   try {
-    // AUTH CHECK ROUTE
+
+    // 🔥 FORCE ALLOW (DEBUG MODE)
     if (route === '/auth/check' && request.method === 'POST') {
-      const body = await request.json()
       const authUser = await getAuthUser(request)
-
-      if (!authUser) {
-        return handleCORS(
-          NextResponse.json({ allowed: false, message: 'Not authenticated' })
-        )
-      }
-
-      const user = await checkAllowlist(authUser.email)
-
-      if (!user) {
-        return handleCORS(
-          NextResponse.json({
-            allowed: false,
-            message: 'Access denied. Contact owner for approval.'
-          })
-        )
-      }
 
       return handleCORS(
         NextResponse.json({
           allowed: true,
-          user
+          debug_email: authUser?.email || null
         })
       )
     }
