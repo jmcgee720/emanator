@@ -153,8 +153,7 @@ export default function LeftPanel({
   const [convoCollapsed, setConvoCollapsed] = useState(() => {
     try { return localStorage.getItem('mymergent_convo_collapsed') === 'true' } catch { return false }
   })
-  const [activeWorkspace, setActiveWorkspace] = useState('builder')
-  const messagesEndRef = useRef(null)
+    const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
   const userIsScrolledUpRef = useRef(false)
 
@@ -328,15 +327,15 @@ export default function LeftPanel({
               {isOwner && (
                 <div className="flex items-center gap-0.5 px-1 pb-1" data-testid="workspace-tabs">
                   <button
-                    className={`flex-1 text-[10px] py-1 rounded-md transition-colors ${activeWorkspace === 'builder' ? 'bg-muted/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground/70'}`}
-                    onClick={() => setActiveWorkspace('builder')}
+                    className={`flex-1 text-[10px] py-1 rounded-md transition-colors ${builderMode === 'app' ? 'bg-muted/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground/70'}`}
+                    onClick={() => onBuilderModeChange('app')}
                     data-testid="workspace-tab-builder"
                   >
                     Builder
                   </button>
                   <button
-                    className={`flex-1 text-[10px] py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${activeWorkspace === 'core' ? 'bg-amber-500/15 text-amber-400 font-medium' : 'text-muted-foreground hover:text-foreground/70'}`}
-                    onClick={() => setActiveWorkspace('core')}
+                    className={`flex-1 text-[10px] py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${builderMode === 'core' ? 'bg-amber-500/15 text-amber-400 font-medium' : 'text-muted-foreground hover:text-foreground/70'}`}
+                    onClick={() => onBuilderModeChange('core')}
                     data-testid="workspace-tab-core"
                   >
                     <Shield className="w-2.5 h-2.5" />
@@ -348,7 +347,7 @@ export default function LeftPanel({
 
               <div className="max-h-32 overflow-y-auto px-1 pb-1">
                 {/* Builder workspace */}
-                {(activeWorkspace === 'builder' || !isOwner) && (
+                {(builderMode === 'app' || !isOwner) && (
                   <div className="space-y-px" data-testid="builder-chats-list">
                     {builderChats.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground px-2 py-1" data-testid="no-conversations">
@@ -363,7 +362,7 @@ export default function LeftPanel({
                 )}
 
                 {/* Core System workspace — owner only */}
-                {isOwner && activeWorkspace === 'core' && (
+                {isOwner && builderMode === 'core' && (
                   <div data-testid="self-edit-section">
                     <div className="flex items-center justify-between px-2 mb-1">
                       <span className="text-[10px] font-medium text-amber-400/70 uppercase tracking-wider">Core System Chats</span>
@@ -396,7 +395,7 @@ export default function LeftPanel({
       </div>
 
       {/* Self-edit target mode indicator + selector — only in Core System context */}
-      {isOwner && activeWorkspace === 'core' && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
+      {isOwner && builderMode === 'core' && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
         <div className="px-3 py-1.5 bg-amber-500/8 border-b border-amber-500/15" data-testid="self-edit-mode-indicator">
           <div className="flex items-center gap-1.5">
             <Shield className="w-3 h-3 text-amber-400" />
