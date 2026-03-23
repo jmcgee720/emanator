@@ -46,22 +46,34 @@ async function getAuthUser(request) {
 
 // Check if user is allowlisted, resolve effective role from DB + Supabase Auth metadata
 async function checkAllowlist(email) {
+  const ownerEmail = process.env.DEFAULT_OWNER_EMAIL
+
+  if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
+    return {
+      id: 'bootstrap-owner',
+      email,
+      role: 'owner',
+      is_allowlisted: true,
+    }
+  }
+
   const user = await db.users.findByEmail(email)
   if (!user?.is_allowlisted) return null
-  
-  // Effective role: DB 'owner' → owner; auth metadata 'admin'/'child_monitored' → that role; default → member
+
   if (user.role === 'owner') return user
-  
+
   try {
     const supabase = getSupabaseAdmin()
     const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-    const authUser = authUsers?.find(u => u.email === email)
+    const authUser = authUsers?.find((u) => u.email === email)
     const metaRole = authUser?.user_metadata?.app_role
+
     if (metaRole === 'admin' || metaRole === 'child_monitored') {
       return { ...user, role: metaRole }
     }
-  } catch {}
-  
+  } catch (error) {
+  }
+
   return user
 }
 
