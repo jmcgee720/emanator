@@ -30,6 +30,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectType, setNewProjectType] = useState('app')
+  const deleteProject = async (id) => {
+    await fetch(`/api/projects/${id}`, { method: 'DELETE' })
+    window.location.reload()
+  }
   const [selectedProject, setSelectedProject] = useState(null)
   const [openProjectTabs, setOpenProjectTabs] = useState([])
 
@@ -1434,24 +1438,39 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               const isCoreCard = item.id === '__core_system__'
 
               return (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => {
-                    if (isCoreCard) {
-                      setBuilderMode('core')
-                      if (projects.length > 0) {
-                        openProjectWorkspace(projects[0])
-                      } else {
-                        createProject('Emanator Backend', 'app')
-                      }
-                      return
-                    }
-
-                    setBuilderMode('app')
-                    openProjectWorkspace(item)
-                  }}
-                  className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
+                  className="relative aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
                 >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const action = confirm(`Delete "${item.name}"?`)
+                      if (action) deleteProject(item.id)
+                    }}
+                    className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100 z-10"
+                  >
+                    ⋯
+                    </button>
+                </div>
+
+                  <button
+                    onClick={() => {
+                      if (isCoreCard) {
+                        setBuilderMode('core')
+                        if (projects.length > 0) {
+                          openProjectWorkspace(projects[0])
+                        } else {
+                          createProject('Emanator Backend', 'app')
+                        }
+                        return
+                      }
+
+                      setBuilderMode('app')
+                      openProjectWorkspace(item)
+                    }}
+                    className="w-full h-full flex flex-col items-center justify-center text-center"
+                  >
                   <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
                     {isCoreCard ? '⚙' : '□'}
                   </div>
