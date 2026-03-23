@@ -1449,7 +1449,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                         const action = confirm(`Delete "${item.name}"?`)
                         if (action) deleteProject(item.id)
                       }}
-                      className="h-8 px-2 rounded-md border border-border bg-background text-sm text-foreground"
+                      className="relative z-50 h-8 px-2 rounded-md border border-white bg-white text-black text-sm font-medium shadow-lg"
                     >
                       Delete
                     </button>
