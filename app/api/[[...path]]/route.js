@@ -434,7 +434,8 @@ async function handleRoute(request, { params }) {
       }
       
       const body = await request.json()
-      const { name, description = '', type = 'app', settings = {} } = body
+      const { name, description = '', settings = {} } = body
+      const type = body.type === 'core' ? 'core' : 'app'
       
       if (!name) {
         return handleCORS(NextResponse.json({ error: 'Project name is required' }, { status: 400 }))
@@ -446,7 +447,7 @@ async function handleRoute(request, { params }) {
           user_id: dbUser.id,
           name,
           description,
-          type,
+          type: type || 'app',
           settings
         })
         
