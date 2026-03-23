@@ -148,16 +148,12 @@ export default function LeftPanel({
   onSavePrompt,
   onCreateSandbox
 }) {
-  const [newProjectName, setNewProjectName] = useState('')
   const [sending, setSending] = useState(false)
-  const [showNewProject, setShowNewProject] = useState(false)
-  const [importing, setImporting] = useState(false)
   const [collapsedMessages, setCollapsedMessages] = useState({})
   const [convoCollapsed, setConvoCollapsed] = useState(() => {
     try { return localStorage.getItem('mymergent_convo_collapsed') === 'true' } catch { return false }
   })
   const [activeWorkspace, setActiveWorkspace] = useState('builder')
-  const fileInputRef = useRef(null)
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
   const userIsScrolledUpRef = useRef(false)
@@ -195,35 +191,6 @@ export default function LeftPanel({
       await onSendMessage(content)
     } finally {
       setSending(false)
-    }
-  }
-
-  const handleCreateProject = async () => {
-    if (!newProjectName.trim()) return
-    try {
-      await onCreateProject(newProjectName, builderMode)
-      setNewProjectName('')
-      setShowNewProject(false)
-    } catch {
-      // Error already handled in parent
-    }
-  }
-
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImporting(true)
-    try {
-      const text = await file.text()
-      const manifest = JSON.parse(text)
-      await onImportProject(manifest)
-      setShowNewProject(false)
-    } catch (error) {
-      console.error('Import error:', error)
-      alert('Invalid project file. Please select a valid Emanator manifest.')
-    } finally {
-      setImporting(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -315,80 +282,9 @@ export default function LeftPanel({
               )
             })}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowNewProject(true)}>
-              <FolderPlus className="w-3.5 h-3.5 mr-2" />
-              New Project
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Dialog open={showNewProject} onOpenChange={setShowNewProject}>
-          <DialogTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-7 w-7 flex-shrink-0" data-testid="new-project-btn">
-              <FolderPlus className="w-3.5 h-3.5" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Project</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <Input
-                placeholder="Project name"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
-                data-testid="project-name-input"
-                autoFocus
-              />
-              <Select value={builderMode} onValueChange={onBuilderModeChange}>
-                <SelectTrigger data-testid="builder-mode-selector">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BUILDER_MODES.map((mode) => (
-                    <SelectItem key={mode.id} value={mode.id}>
-                      {mode.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleCreateProject} className="w-full" data-testid="create-project-btn">
-                Create Project
-              </Button>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or</span>
-                </div>
-              </div>
-              <div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".json"
-                  onChange={handleImportFile}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={importing}
-                  data-testid="import-project-btn"
-                >
-                  {importing ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-                  ) : (
-                    <><Upload className="mr-2 h-4 w-4" /> Import Project</>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Conversations — Split: Builder chats / Self-Edit chats */}

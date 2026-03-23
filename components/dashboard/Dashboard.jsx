@@ -1390,7 +1390,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const renderProjectGrid = () => {
-    const cards = projects
+    const cards = projects.filter(p => p.type !== 'core')
 
     return (
       <div className="flex-1 overflow-auto px-8 py-8">
