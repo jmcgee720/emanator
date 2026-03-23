@@ -48,14 +48,20 @@ async function getAuthUser(request) {
 async function checkAllowlist(email) {
   const ownerEmail = process.env.DEFAULT_OWNER_EMAIL
 
-  if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
-    return {
-      id: authUser?.id || user?.id || null,
+if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
+  // Ensure owner exists in DB and has a valid UUID
+  let owner = await db.users.findByEmail(email)
+
+  if (!owner) {
+    owner = await db.users.create({
       email,
       role: 'owner',
-      is_allowlisted: true,
-    }
+      is_allowlisted: true
+    })
   }
+
+  return owner
+}
 
   const user = await db.users.findByEmail(email)
   if (!user?.is_allowlisted) return null
