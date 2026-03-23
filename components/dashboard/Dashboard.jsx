@@ -1406,19 +1406,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       </span>
     </div>
 
-    {isOwner && (
-      <button
-        onClick={() => {
-          setBuilderMode('core')
-          if (projects.length > 0) {
-            openProjectWorkspace(projects[0])
-          }
-        }}
-        className="px-3 py-1.5 rounded-md text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-      >
-        Core System
-      </button>
-    )}
   </div>
 
   <div className="flex items-center gap-2">
