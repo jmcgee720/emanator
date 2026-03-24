@@ -260,26 +260,6 @@ const previewWindow = previewLines
 console.log('PREVIEW FILE ORDER:\n' + debugFiles)
 console.log('PREVIEW CODE WINDOW 70-95:\n' + previewWindow)
 
-  const debugPreviewHtml =
-  '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Preview Debug</title></head><body style="margin:0;background:#111;color:#0f0;font:12px/1.4 monospace;white-space:pre-wrap;padding:16px;">' +
-  'ENTRY FILE: ' + safeEntryName + '\n\n' +
-  'FILES:\n' + safeDebugFiles + '\n\n' +
-  'ASSEMBLED CODE:\n\n' + assembledCode
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;') +
-  '</body></html>'
-
-return (
-  <iframe
-    key={refreshKey}
-    title="preview"
-    className="w-full h-full border-0 bg-white"
-    sandbox="allow-scripts allow-same-origin"
-    srcDoc={debugPreviewHtml}
-  />
-)
-
 const html = [
     '<!DOCTYPE html><html lang="en"><head>',
     '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
