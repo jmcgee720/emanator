@@ -220,8 +220,12 @@ function buildReactPreview({ htmlFiles, cssFiles, jsFiles, jsxFiles, tsFiles, us
     let code = f.content
     code = stripTypeScript(code)
     code = stripReactBindings(code)
+
     const modName = f.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
-    code = convertExports(code, modName)
+
+    code = code.replace(/import\s+[^;]+;/g, '')
+    code = code.replace(/export\s+default/g, 'window.__COMPONENTS__["' + modName + '"] =')
+code = code.replace(/export\s+\{[^}]+\};?/g, '')
     assembledCode += '\n// --- ' + f.path + ' ---\n' + code + '\n'
   }
 
