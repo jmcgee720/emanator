@@ -1568,19 +1568,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     </div>
   )
 
-  const renderBuilderModeBar = () => {
-    if (!selectedProject) return null
-
-    return (
-      <div className="h-10 border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setBuilderMode('app')}
-            className={`px-3 py-1 rounded-md text-xs ${
-              builderMode === 'app'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground'
-            }`}
+  `}
           >
             Builder
           </button>
