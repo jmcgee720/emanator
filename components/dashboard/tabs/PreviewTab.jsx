@@ -368,7 +368,23 @@ export default function PreviewTab({ project, files, onLog }) {
 
   // Build preview
   const { previewHtml, projectInfo, buildLog } = useMemo(() => {
-    const info = classifyProject(files)
+    const clientFiles = (files || []).filter(f => {
+  const p = f.path || ''
+  return (
+    p.startsWith('components/') ||
+    p.startsWith('app/') ||
+    p.endsWith('.jsx') ||
+    p.endsWith('.tsx') ||
+    p.endsWith('.js') ||
+    p.endsWith('.css') ||
+    p.endsWith('.html')
+  ) &&
+  !p.includes('lib/self_builder') &&
+  !p.includes('supabase') &&
+  !p.includes('api/')
+})
+
+const info = classifyProject(clientFiles)
     const log = []
 
     log.push(`Type: ${info.type}`)
@@ -390,7 +406,7 @@ export default function PreviewTab({ project, files, onLog }) {
     let html = null
     switch (info.type) {
       case 'html':   html = buildHtmlPreview(info); break
-      case 'react':  html = buildReactPreview(info); break
+      case 'react':  html = buildReactPreview({ ...info, files: clientFiles }); break
       case 'js':     html = buildJsPreview(info); break
       case 'css-only': html = buildCssPreview(info); break
     }
