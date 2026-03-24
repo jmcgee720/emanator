@@ -286,33 +286,6 @@ export default function LeftPanel({
 
       </div>
 
-      {/* Conversations — Split: Builder chats / Self-Edit chats */}
-      <div className="border-b border-border/30 flex-shrink-0" data-testid="conversations-section">
-        {!convoCollapsed && (
-          <div className="max-h-32 overflow-y-auto px-1 pb-1">
-            <div className="space-y-px" data-testid="builder-chats-list">
-              {chats.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground px-2 py-1" data-testid="no-conversations">
-                  {selectedProject ? 'Loading...' : 'Select a project'}
-                </p>
-              ) : (
-                chats
-  .filter(chat => chat.title !== 'New Conversation')
-  .filter((chat, i, arr) => arr.findIndex(c => c.title === chat.title) === i)
-  .map((chat) => (
-                  <ChatRow
-                    key={chat.id}
-                    chat={chat}
-                    selectedChat={selectedChat}
-                    onSelectChat={onSelectChat}
-                    onDeleteChat={onDeleteChat}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Self-edit target mode indicator + selector — only in Core System context */}
       {isOwner && false && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
