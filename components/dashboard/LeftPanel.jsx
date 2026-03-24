@@ -324,7 +324,7 @@ export default function LeftPanel({
           return (
             <>
               <div className="max-h-32 overflow-y-auto px-1 pb-1">
-                {(builderMode === 'app' || !isOwner) && (
+                {true && (
                   <div className="space-y-px" data-testid="builder-chats-list">
                     {builderChats.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground px-2 py-1" data-testid="no-conversations">
@@ -338,17 +338,7 @@ export default function LeftPanel({
                   </div>
                 )}
 
-                {isOwner && builderMode === 'core' && (
-                  <div className="space-y-px" data-testid="self-edit-chats-list">
-                    {selfEditChats.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground/50 px-2 py-1" data-testid="no-self-edit-chats">
-                        No Core System sessions yet
-                      </p>
-                    ) : (
-                      selfEditChats.map((chat) => (
-                        <ChatRow key={chat.id} chat={chat} selectedChat={selectedChat} onSelectChat={onSelectChat} onDeleteChat={onDeleteChat} isSelfEdit />
-                      ))
-                    )}
+                
                   </div>
                 )}
               </div>
@@ -357,7 +347,7 @@ export default function LeftPanel({
       </div>
 
       {/* Self-edit target mode indicator + selector — only in Core System context */}
-      {isOwner && builderMode === 'core' && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
+      {isOwner && false && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
         <div className="px-3 py-1.5 bg-amber-500/8 border-b border-amber-500/15" data-testid="self-edit-mode-indicator">
           <div className="flex items-center gap-1.5">
             <Shield className="w-3 h-3 text-amber-400" />
