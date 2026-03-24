@@ -1568,8 +1568,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     </div>
   )
 
-    )
-  }
 
   return (
     <div className="h-screen flex flex-col bg-background relative" data-testid="dashboard">
