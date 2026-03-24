@@ -7,6 +7,8 @@ import {
   Loader2, FileCode, AlertCircle, Terminal
 } from 'lucide-react'
 
+console.log('PREVIEWTAB_DEPLOY_CHECK_2026_03_24')
+
 // ─── Project classifier ────────────────────────────────────────────
 function classifyProject(files) {
   if (!files?.length) return { type: 'empty', files: [] }
@@ -223,23 +225,62 @@ function buildReactPreview({ htmlFiles, cssFiles, jsFiles, jsxFiles, tsFiles, us
 
     const modName = f.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
 
-    code = code.replace(/import[\s\S]*?from\s+['"][^'"]+['"];?/g, '')
+code = code.replace(/import[\s\S]*?from\s+['"][^'"]+['"];?/g, '')
 code = code.replace(/import\s+['"][^'"]+['"];?/g, '')
 code = code.replace(/^\s*import\s.*$/gm, '')
-    code = code.replace(/export\s+default/g, 'window.__COMPONENTS__["' + modName + '"] =')
-code = code.replace(/export\s+\{[^}]+\};?/g, '')
-code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
+
+// remove all re-export forms
 code = code.replace(/^\s*export\s+\*\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
-    assembledCode += '\n// --- ' + f.path + ' ---\n' + code + '\n'
-  }
+code = code.replace(/^\s*export\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
+code = code.replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, '')
+
+// convert default export assignments/declarations
+code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = class ')
+code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = function ')
+code = code.replace(/^\s*export\s+default\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = ')
+
+// strip export keyword from named declarations
+code = code.replace(/^\s*export\s+(async\s+function)\s+/gm, '$1 ')
+code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
+
+// final safety scrub: remove any remaining export token at line start
+code = code.replace(/^\s*export\b.*$/gm, '')  }
 
   // CRITICAL: Build HTML via concatenation, NOT template literals.
   // User code may contain ${...} (e.g. "${ price }" in JSX text for currency)
   // which would be evaluated as template expressions if placed inside backticks.
   const safeEntryName = entryName.replace(/'/g, "\\'")
   const safeDebugFiles = debugFiles.replace(/'/g, "\\'")
+  const previewLines = assembledCode.split('\n')
+const previewWindow = previewLines
+  .slice(70, 95)
+  .map((line, i) => `${70 + i}: ${line}`)
+  .join('\n')
 
-  const html = [
+console.log('PREVIEW FILE ORDER:\n' + debugFiles)
+console.log('PREVIEW CODE WINDOW 70-95:\n' + previewWindow)
+
+  const debugPreviewHtml =
+  '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Preview Debug</title></head><body style="margin:0;background:#111;color:#0f0;font:12px/1.4 monospace;white-space:pre-wrap;padding:16px;">' +
+  'ENTRY FILE: ' + safeEntryName + '\n\n' +
+  'FILES:\n' + safeDebugFiles + '\n\n' +
+  'ASSEMBLED CODE:\n\n' + assembledCode
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;') +
+  '</body></html>'
+
+return (
+  <iframe
+    key={refreshKey}
+    title="preview"
+    className="w-full h-full border-0 bg-white"
+    sandbox="allow-scripts allow-same-origin"
+    srcDoc={debugPreviewHtml}
+  />
+)
+
+const html = [
     '<!DOCTYPE html><html lang="en"><head>',
     '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
     '<title>Preview</title>',
