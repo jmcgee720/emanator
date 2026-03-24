@@ -318,32 +318,27 @@ export default function LeftPanel({
             <Plus className="w-3 h-3" />
           </Button>
         </div>
-        {!convoCollapsed && (() => {
-          const builderChats = chats.filter(c => getChatType(c) === CHAT_TYPES.BUILDER)
-          const selfEditChats = chats.filter(c => getChatType(c) === CHAT_TYPES.SELF_EDIT)
-          return (
-            <>
-              <div className="max-h-32 overflow-y-auto px-1 pb-1">
-                {true && (
-                  <div className="space-y-px" data-testid="builder-chats-list">
-                    {builderChats.length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground px-2 py-1" data-testid="no-conversations">
-                        {selectedProject ? 'Loading...' : 'Select a project'}
-                      </p>
-                    ) : (
-                      builderChats.map((chat) => (
-                        <ChatRow key={chat.id} chat={chat} selectedChat={selectedChat} onSelectChat={onSelectChat} onDeleteChat={onDeleteChat} />
-                      ))
-                    )}
-                  </div>
-                )}
-
-                
-                  </div>
-                )}
-              </div>
-          )
-        })()}
+        {!convoCollapsed && (
+          <div className="max-h-32 overflow-y-auto px-1 pb-1">
+            <div className="space-y-px" data-testid="builder-chats-list">
+              {chats.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground px-2 py-1" data-testid="no-conversations">
+                  {selectedProject ? 'Loading...' : 'Select a project'}
+                </p>
+              ) : (
+                chats.map((chat) => (
+                  <ChatRow
+                    key={chat.id}
+                    chat={chat}
+                    selectedChat={selectedChat}
+                    onSelectChat={onSelectChat}
+                    onDeleteChat={onDeleteChat}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Self-edit target mode indicator + selector — only in Core System context */}
