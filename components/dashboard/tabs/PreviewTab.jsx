@@ -196,22 +196,30 @@ function buildReactPreview({ htmlFiles, cssFiles, jsFiles, jsxFiles, tsFiles, us
 
   // Collect component files
   const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])]
-  const reactJsFiles = (jsFiles || []).filter(f => {
-    const c = f.content || ''
-    return c.includes('React') || c.includes('useState') || c.includes('export default') || /<\w+[\s/>]/.test(c)
-  })
-  const allComponents = [...componentFiles, ...reactJsFiles]
 
-  // Find entry point
-  const entryFile =
-    allComponents.find(f => f.path.match(/App\.(jsx|tsx|js)$/i)) ||
-    allComponents.find(f => f.path.match(/index\.(jsx|tsx|js)$/i)) ||
-    allComponents.find(f => f.path.match(/page\.(jsx|tsx|js)$/i)) ||
-    allComponents[0]
+const reactJsFiles = (jsFiles || []).filter(f => {
+  const c = f.content || ''
+  return c.includes('React') || c.includes('useState') || c.includes('export default') || /<\/?[A-Z]/.test(c)
+})
 
-  if (!entryFile) return null
+const candidateFiles = [...componentFiles, ...reactJsFiles]
 
-  const entryName = entryFile.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
+const allComponents = candidateFiles.filter(f =>
+  /^components\/.*\.(jsx|tsx|js|ts)$/.test(f.path || '') &&
+  !/\.d\.ts$/.test(f.path || '')
+)
+
+const entryFile =
+  allComponents.find(f => /components\/dashboard\/Dashboard\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
+  allComponents.find(f => /\/App\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
+  allComponents.find(f => /\/index\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
+  allComponents.find(f => /\/page\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
+  allComponents[0] ||
+  null
+
+if (!entryFile) return null
+
+const entryName = entryFile.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
 
   // Build debug info
   const debugFiles = allComponents.map(f => f.path).join(', ')
