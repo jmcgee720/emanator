@@ -1568,31 +1568,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     </div>
   )
 
-  `}
-          >
-            Builder
-          </button>
-
-          {isOwner && (
-            <button
-              onClick={() => setBuilderMode('core')}
-              className={`px-3 py-1 rounded-md text-xs ${
-                builderMode === 'core'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
-              }`}
-            >
-              Core System
-            </button>
-          )}
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          {builderMode === 'core'
-            ? 'Core System chats are owner-only and modify Emanator itself'
-            : 'Builder chats create and edit user projects'}
-        </div>
-      </div>
     )
   }
 
