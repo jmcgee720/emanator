@@ -1824,7 +1824,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       ) : (
         <>
           {renderWorkspaceTabs()}
-          {renderBuilderModeBar()}
 
           <div className="flex-1 overflow-hidden">
             <ResizablePanelGroup direction="horizontal">
