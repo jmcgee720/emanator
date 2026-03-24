@@ -296,7 +296,10 @@ export default function LeftPanel({
                   {selectedProject ? 'Loading...' : 'Select a project'}
                 </p>
               ) : (
-                chats.map((chat) => (
+                chats
+  .filter(chat => chat.title !== 'New Conversation')
+  .filter((chat, i, arr) => arr.findIndex(c => c.title === chat.title) === i)
+  .map((chat) => (
                   <ChatRow
                     key={chat.id}
                     chat={chat}
