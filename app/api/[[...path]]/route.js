@@ -1077,9 +1077,11 @@ async function handleRoute(request, { params }) {
         }
       }
 
-      // Strip self-edit prefix from title if flag not explicitly set (prevents injection via title alone)
+      // Store self-edit chats with prefix so getChatType() can classify them correctly
       let finalTitle = title
-      if (titleLooksSelfEdit && !is_self_edit) {
+      if (is_self_edit && !titleLooksSelfEdit) {
+        finalTitle = `${SELF_EDIT_PREFIX}${title}`.trim()
+      } else if (titleLooksSelfEdit && !is_self_edit) {
         finalTitle = title.replace(SELF_EDIT_PREFIX, '').trim() || 'New Chat'
       }
       
