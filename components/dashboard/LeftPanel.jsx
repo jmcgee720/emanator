@@ -288,36 +288,6 @@ export default function LeftPanel({
 
       {/* Conversations — Split: Builder chats / Self-Edit chats */}
       <div className="border-b border-border/30 flex-shrink-0" data-testid="conversations-section">
-        <div
-          className="flex items-center justify-between px-3 h-8 cursor-pointer hover:bg-muted/20 transition-colors"
-          onClick={() => {
-            const next = !convoCollapsed
-            setConvoCollapsed(next)
-            try { localStorage.setItem('mymergent_convo_collapsed', String(next)) } catch {}
-          }}
-          data-testid="conversations-toggle"
-        >
-          <div className="flex items-center gap-1.5">
-            {convoCollapsed
-              ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
-              : <ChevronDown className="w-3 h-3 text-muted-foreground" />
-            }
-            <span className="text-xs font-medium text-muted-foreground">Conversations</span>
-            {convoCollapsed && chats.length > 0 && (
-              <Badge variant="secondary" className="text-[9px] h-3.5 px-1 ml-0.5">{chats.length}</Badge>
-            )}
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-5 w-5 p-0"
-            onClick={(e) => { e.stopPropagation(); onCreateChat() }}
-            disabled={!selectedProject}
-            data-testid="new-chat-btn"
-          >
-            <Plus className="w-3 h-3" />
-          </Button>
-        </div>
         {!convoCollapsed && (
           <div className="max-h-32 overflow-y-auto px-1 pb-1">
             <div className="space-y-px" data-testid="builder-chats-list">
