@@ -256,7 +256,9 @@ code = code.replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, '')
 // convert default export assignments/declarations
 code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = class ')
 code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = function ')
-code = code.replace(/^\s*export\s+default\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = ')
+code = code.replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, 'function $1; window.__COMPONENTS__["' + modName + '"] = $1')
+code = code.replace(/export\s+default\s+class\s+([A-Za-z0-9_]+)/g, 'class $1; window.__COMPONENTS__["' + modName + '"] = $1')
+code = code.replace(/export\s+default\s+(.+)/g, 'window.__COMPONENTS__["' + modName + '"] = $1')
 
 // strip export keyword from named declarations
 code = code.replace(/^\s*export\s+(async\s+function)\s+/gm, '$1 ')
