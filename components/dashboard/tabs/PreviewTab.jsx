@@ -195,31 +195,42 @@ function buildReactPreview({ htmlFiles, cssFiles, jsFiles, jsxFiles, tsFiles, us
   const allCss = cssFiles?.map(f => f.content).join('\n') || ''
 
   // Collect component files
-  const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])]
+  const normalizePreviewPath = (p = '') => String(p).replace(/^\.\//, '')
 
-const reactJsFiles = (jsFiles || []).filter(f => {
-  const c = f.content || ''
-  return c.includes('React') || c.includes('useState') || c.includes('export default') || /<\/?[A-Z]/.test(c)
+const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])].filter(f => {
+  const p = normalizePreviewPath(f.path)
+  return p.startsWith('components/') && !/\.d\.ts$/.test(p)
 })
 
-const candidateFiles = [...componentFiles, ...reactJsFiles]
+const reactJsFiles = (jsFiles || []).filter(f => {
+  const p = normalizePreviewPath(f.path)
+  if (!p.startsWith('components/')) return false
 
-const allComponents = candidateFiles.filter(f =>
-  /^components\/.*\.(jsx|tsx|js|ts)$/.test(f.path || '') &&
-  !/\.d\.ts$/.test(f.path || '')
-)
+  const c = f.content || ''
+  return (
+    c.includes('React') ||
+    c.includes('useState') ||
+    c.includes('export default') ||
+    /<\/?[A-Z]/.test(c)
+  )
+})
+
+const allComponents = [...componentFiles, ...reactJsFiles]
 
 const entryFile =
-  allComponents.find(f => /components\/dashboard\/Dashboard\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
-  allComponents.find(f => /\/App\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
-  allComponents.find(f => /\/index\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
-  allComponents.find(f => /\/page\.(jsx|tsx|js|ts)$/.test(f.path || '')) ||
+  allComponents.find(f => /components\/dashboard\/Dashboard\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+  allComponents.find(f => /\/App\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+  allComponents.find(f => /\/index\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+  allComponents.find(f => /\/page\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
   allComponents[0] ||
   null
 
 if (!entryFile) return null
 
-const entryName = entryFile.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
+const entryName = normalizePreviewPath(entryFile.path)
+  .replace(/\.(jsx|tsx|js|ts)$/, '')
+  .split('/')
+  .pop()
 
   // Build debug info
   const debugFiles = allComponents.map(f => f.path).join(', ')
