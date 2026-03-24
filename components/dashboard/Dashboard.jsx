@@ -1411,12 +1411,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   <div className="flex items-center gap-2">
     {isOwner && (
       <button
-        onClick={() => {
-          setBuilderMode('core')
-          if (projects.length > 0) {
-            openProjectWorkspace(projects[0])
-          }
-        }}
+      onClick={() => {
+  setBuilderMode('core')
+
+  const coreProject =
+    projects.find(p => p.type === 'core') ||
+    projects.find(p => p.name === 'Emanator Backend') ||
+    projects.find(p => p.name === 'Emanator') ||
+    null
+
+  if (coreProject) {
+    openProjectWorkspace(coreProject)
+  }
+}}
         className="px-3 py-1.5 rounded-md text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
       >
         Core System
