@@ -228,6 +228,8 @@ code = code.replace(/import\s+['"][^'"]+['"];?/g, '')
 code = code.replace(/^\s*import\s.*$/gm, '')
     code = code.replace(/export\s+default/g, 'window.__COMPONENTS__["' + modName + '"] =')
 code = code.replace(/export\s+\{[^}]+\};?/g, '')
+code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
+code = code.replace(/^\s*export\s+\*\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
     assembledCode += '\n// --- ' + f.path + ' ---\n' + code + '\n'
   }
 
