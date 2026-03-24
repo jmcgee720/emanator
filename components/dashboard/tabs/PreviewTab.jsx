@@ -7,7 +7,6 @@ import {
   Loader2, FileCode, AlertCircle, Terminal
 } from 'lucide-react'
 
-console.log('PREVIEWTAB_DEPLOY_CHECK_2026_03_24')
 
 // ─── Project classifier ────────────────────────────────────────────
 function classifyProject(files) {
@@ -278,8 +277,6 @@ const previewWindow = previewLines
   .map((line, i) => `${70 + i}: ${line}`)
   .join('\n')
 
-console.log('PREVIEW FILE ORDER:\n' + debugFiles)
-console.log('PREVIEW CODE WINDOW 70-95:\n' + previewWindow)
 
 const html = [
     '<!DOCTYPE html><html lang="en"><head>',
