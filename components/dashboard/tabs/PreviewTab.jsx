@@ -7,12 +7,10 @@ import {
   Loader2, FileCode, AlertCircle, Terminal
 } from 'lucide-react'
 
-
 // ─── Project classifier ────────────────────────────────────────────
 function classifyProject(files) {
   if (!files?.length) return { type: 'empty', files: [] }
 
-  // Filter out generated assets and uploads — they are NOT code files
   const codeFiles = files.filter(f => {
     if (!f.path) return false
     if (f.path.startsWith('_generated/')) return false
@@ -22,7 +20,6 @@ function classifyProject(files) {
     return true
   })
 
-  // If the project only contains non-code files (assets/images), show a clear message
   if (codeFiles.length === 0) {
     const assetCount = files.filter(f => f.path?.startsWith('_generated/') || f.path?.startsWith('_uploads/')).length
     if (assetCount > 0) {
@@ -44,10 +41,6 @@ function classifyProject(files) {
     allCode.includes("from 'react'") || allCode.includes('useState') ||
     allCode.includes('jsx') || jsxFiles.length > 0
 
-  // Priority check: if index.html is a complete standalone HTML document
-  // (has <!DOCTYPE or <html AND inline <style>), use HTML mode regardless
-  // of whether other .jsx files exist in the project.
-  // This handles mixed projects where the user generated a standalone HTML page.
   if (htmlFiles.length > 0) {
     const indexHtml = htmlFiles.find(f => f.path.match(/(^|\/)index\.html?$/i))
     if (indexHtml) {
@@ -81,68 +74,22 @@ function escapeRegex(str) {
 }
 
 // ─── Strip ALL React-related imports and declarations from a code string ──
-// This is the critical function that prevents duplicate identifier errors.
-// It removes every form of "bring React / hooks into scope" because the
-// preview shell already provides them as globals via CDN + a single `var`.
 function stripReactBindings(code) {
-  // 1. ESM imports from 'react' / 'react-dom' / 'react-dom/client'
-  //    import React from 'react'
-  //    import { useState, useEffect } from 'react'
-  //    import * as React from 'react'
-  //    import React, { useState } from 'react'
   code = code.replace(/import\s+(?:React\s*,\s*)?\{[^}]*\}\s+from\s+['"]react['"];?\s*/g, '')
   code = code.replace(/import\s+(?:\*\s+as\s+\w+|\w+)\s+from\s+['"]react['"];?\s*/g, '')
   code = code.replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+['"]react-dom(?:\/client)?['"];?\s*/g, '')
-
-  // 2. CJS require
-  //    const React = require('react')
-  //    const { useState } = require('react')
   code = code.replace(/(?:const|let|var)\s+(?:\{[^}]*\}|\w+)\s*=\s*require\s*\(\s*['"]react(?:-dom)?(?:\/client)?['"]\s*\)\s*;?\s*/g, '')
-
-  // 3. Destructuring from the React global
-  //    const { useState, useEffect, useRef } = React;
-  //    This is the pattern that caused the original crash.
   code = code.replace(/(?:const|let|var)\s+\{[^}]*\}\s*=\s*React\s*;?\s*/g, '')
-
-  // 4. Relative imports (the inlined components are concatenated, not modules)
   code = code.replace(/import\s+.*?\s+from\s+['"]\.\.?\/[^'"]+['"];?\s*/g, '')
-
-  // 5. CSS imports
   code = code.replace(/import\s+['"][^'"]+\.css['"];?\s*/g, '')
-
-  // 6. TypeScript `import type`
   code = code.replace(/import\s+type\s+.*?from\s+['"][^'"]+['"]\s*;?/g, '')
-
   return code
 }
 
 // ─── Strip simple TypeScript annotations ───────────────────────────
-// IMPORTANT: Only strip annotations that cannot be JavaScript values.
-// DO NOT strip `: null`, `: undefined`, `: object` etc. as these are
-// commonly used as property values in plain JS objects.
 function stripTypeScript(code) {
-  // Only strip unambiguous TS-only annotations that never appear as JS values
-  // e.g., param: string, arg: number, x: boolean, cb: React.FC<Props>
-  // These are preceded by an identifier and followed by , ) = ; { or newline.
-  // We use a lookbehind for a word char + optional ? to ensure this is a param annotation.
   code = code.replace(/(?<=\w\??)\s*:\s*(?:string|number|boolean|any|void|never|unknown|React\.\w+(?:<[^>]*>)?|JSX\.Element)(?:\[\])?\s*(?=[,)=;{\n])/g, '')
-  // Remove interface / type declarations (top-level only)
   code = code.replace(/(?:export\s+)?(?:interface|type)\s+\w+\s*(?:<[^>]*>)?\s*(?:extends\s+[^{]+)?\{[^}]*\}/g, '')
-  return code
-}
-
-// ─── Convert exports to window.__COMPONENTS__ assignments ──────────
-function convertExports(code, fallbackName) {
-  const safeName = fallbackName.replace(/[^a-zA-Z0-9_]/g, '_')
-  code = code.replace(/export\s+default\s+function\s+(\w+)/g, `window.__COMPONENTS__.$1 = function $1`)
-  code = code.replace(/export\s+default\s+class\s+(\w+)/g, `window.__COMPONENTS__.$1 = class $1`)
-  code = code.replace(/export\s+default\s+/g, `window.__COMPONENTS__.${safeName} = `)
-  // Named exports: export const Foo = …  →  window.__COMPONENTS__.Foo = …
-  code = code.replace(/export\s+(const|let|var|function|class)\s+(\w+)/g, (_, kw, name) => {
-    return `window.__COMPONENTS__.${name} = ${kw === 'function' || kw === 'class' ? `${kw} ${name}` : ''}`
-  })
-  // Cleanup leftover `export { … };`
-  code = code.replace(/export\s+\{[^}]*\}\s*;?/g, '')
   return code
 }
 
@@ -156,7 +103,7 @@ function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
 
   for (const cssFile of cssFiles) {
     const fileName = cssFile.path.split('/').pop()
-    const linkPattern = new RegExp('<link[^>]*href=["\'](?:\\.\\/)?'+ escapeRegex(fileName) +'["\'][^>]*\\/?>','gi')
+    const linkPattern = new RegExp('<link[^>]*href=["\'](?:\\.\\/)?' + escapeRegex(fileName) + '["\'][^>]*\\/?>', 'gi')
     if (linkPattern.test(html)) {
       html = html.replace(linkPattern, '<style>\n' + cssFile.content + '\n</style>')
     } else if (html.includes('</head>')) {
@@ -166,75 +113,57 @@ function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
 
   for (const jsFile of jsFiles) {
     const fileName = jsFile.path.split('/').pop()
-    const scriptPattern = new RegExp('<script[^>]*src=["\'](?:\\.\\/)?'+ escapeRegex(fileName) +'["\'][^>]*>\\s*<\\/script>','gi')
+    const scriptPattern = new RegExp('<script[^>]*src=["\'](?:\\.\\/)?' + escapeRegex(fileName) + '["\'][^>]*>\\s*<\\/script>', 'gi')
     if (scriptPattern.test(html)) {
       html = html.replace(scriptPattern, '<script>\n' + jsFile.content + '\n<\/script>')
     }
-    // Only inline JS files that are referenced in the HTML via <script src="...">.
-    // Do NOT blindly append unrelated JS files (e.g., React entry points with
-    // `import` statements) — they cause SyntaxError in a non-module context.
   }
 
   return wrapWithErrorHandler(html)
 }
 
 // ─── Build: React/JSX ──────────────────────────────────────────────
-//
-// Strategy:
-//   • React 18 UMD + ReactDOM UMD loaded via CDN  → `React` and `ReactDOM` are globals
-//   • ONE `<script type="text/babel">` block with:
-//       – A SINGLE `var` destructure of hooks from `React`
-//       – All component code concatenated (imports stripped, exports converted)
-//       – A render call at the bottom
-//   • Babel standalone transpiles JSX at runtime, then injects ONE regular <script>
-//   • Because we use `var` (not `const`) for the destructure, a stray re-declaration
-//     in component code would merely shadow — but we strip those too, so it's clean.
-//
-function buildReactPreview({ htmlFiles, cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind }) {
+function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind }) {
   const allCss = cssFiles?.map(f => f.content).join('\n') || ''
-
-  // Collect component files
   const normalizePreviewPath = (p = '') => String(p).replace(/^\.\//, '')
 
-const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])].filter(f => {
-  const p = normalizePreviewPath(f.path)
-  return p.startsWith('components/') && !/\.d\.ts$/.test(p)
-})
+  const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])].filter(f => {
+    const p = normalizePreviewPath(f.path)
+    return p.startsWith('components/') && !/\.d\.ts$/.test(p)
+  })
 
-const reactJsFiles = (jsFiles || []).filter(f => {
-  const p = normalizePreviewPath(f.path)
-  if (!p.startsWith('components/')) return false
+  const reactJsFiles = (jsFiles || []).filter(f => {
+    const p = normalizePreviewPath(f.path)
+    if (!p.startsWith('components/')) return false
 
-  const c = f.content || ''
-  return (
-    c.includes('React') ||
-    c.includes('useState') ||
-    c.includes('export default') ||
-    /<\/?[A-Z]/.test(c)
-  )
-})
+    const c = f.content || ''
+    return (
+      c.includes('React') ||
+      c.includes('useState') ||
+      c.includes('export default') ||
+      /<\/?[A-Z]/.test(c)
+    )
+  })
 
-const allComponents = [...componentFiles, ...reactJsFiles]
+  const allComponents = [...componentFiles, ...reactJsFiles]
 
-const entryFile =
-  allComponents.find(f => /components\/dashboard\/Dashboard\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-  allComponents.find(f => /\/App\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-  allComponents.find(f => /\/index\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-  allComponents.find(f => /\/page\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-  allComponents[0] ||
-  null
+  const entryFile =
+    allComponents.find(f => /components\/dashboard\/Dashboard\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+    allComponents.find(f => /\/App\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+    allComponents.find(f => /\/index\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+    allComponents.find(f => /\/page\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+    allComponents[0] ||
+    null
 
-if (!entryFile) return null
+  if (!entryFile) return null
 
-const entryName = normalizePreviewPath(entryFile.path)
-  .replace(/\.(jsx|tsx|js|ts)$/, '')
-  .split('/')
-  .pop()
+  const entryName = normalizePreviewPath(entryFile.path)
+    .replace(/\.(jsx|tsx|js|ts)$/, '')
+    .split('/')
+    .pop()
 
-  // Build debug info
   const debugFiles = allComponents.map(f => f.path).join(', ')
 
-  // Process each component file
   let assembledCode = ''
   for (const f of allComponents) {
     let code = f.content
@@ -243,42 +172,31 @@ const entryName = normalizePreviewPath(entryFile.path)
 
     const modName = f.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
 
-code = code.replace(/import[\s\S]*?from\s+['"][^'"]+['"];?/g, '')
-code = code.replace(/import\s+['"][^'"]+['"];?/g, '')
-code = code.replace(/^\s*import\s.*$/gm, '')
+    code = code.replace(/import[\s\S]*?from\s+['"][^'"]+['"];?/g, '')
+    code = code.replace(/import\s+['"][^'"]+['"];?/g, '')
+    code = code.replace(/^\s*import\s.*$/gm, '')
 
-// remove all re-export forms
-code = code.replace(/^\s*export\s+\*\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
-code = code.replace(/^\s*export\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
-code = code.replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, '')
+    code = code.replace(/^\s*export\s+\*\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
+    code = code.replace(/^\s*export\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
+    code = code.replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, '')
 
-// convert default export assignments/declarations
-code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = class ')
-code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = function ')
-code = code.replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, 'function $1; window.__COMPONENTS__["' + modName + '"] = $1')
-code = code.replace(/export\s+default\s+class\s+([A-Za-z0-9_]+)/g, 'class $1; window.__COMPONENTS__["' + modName + '"] = $1')
-code = code.replace(/export\s+default\s+(.+)/g, 'window.__COMPONENTS__["' + modName + '"] = $1')
+    code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = class ')
+    code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = function ')
+    code = code.replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, 'function $1; window.__COMPONENTS__["' + modName + '"] = $1')
+    code = code.replace(/export\s+default\s+class\s+([A-Za-z0-9_]+)/g, 'class $1; window.__COMPONENTS__["' + modName + '"] = $1')
+    code = code.replace(/export\s+default\s+(.+)/g, 'window.__COMPONENTS__["' + modName + '"] = $1')
 
-// strip export keyword from named declarations
-code = code.replace(/^\s*export\s+(async\s+function)\s+/gm, '$1 ')
-code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
+    code = code.replace(/^\s*export\s+(async\s+function)\s+/gm, '$1 ')
+    code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
+    code = code.replace(/^\s*export\b.*$/gm, '')
 
-// final safety scrub: remove any remaining export token at line start
-code = code.replace(/^\s*export\b.*$/gm, '')  }
+    assembledCode += '\n\n// FILE: ' + f.path + '\n' + code
+  }
 
-  // CRITICAL: Build HTML via concatenation, NOT template literals.
-  // User code may contain ${...} (e.g. "${ price }" in JSX text for currency)
-  // which would be evaluated as template expressions if placed inside backticks.
   const safeEntryName = entryName.replace(/'/g, "\\'")
   const safeDebugFiles = debugFiles.replace(/'/g, "\\'")
-  const previewLines = assembledCode.split('\n')
-const previewWindow = previewLines
-  .slice(70, 95)
-  .map((line, i) => `${70 + i}: ${line}`)
-  .join('\n')
 
-
-const html = [
+  const html = [
     '<!DOCTYPE html><html lang="en"><head>',
     '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
     '<title>Preview</title>',
@@ -381,7 +299,6 @@ export default function PreviewTab({ project, files, onLog }) {
     desktop: { width: '100%', label: 'Desktop' }
   }
 
-  // Auto-refresh when files change
   useEffect(() => {
     const prevHash = prevFilesRef.current
     const currentHash = files?.map(f => `${f.path}:${f.version || 0}`).join('|') || ''
@@ -394,7 +311,6 @@ export default function PreviewTab({ project, files, onLog }) {
     prevFilesRef.current = currentHash
   }, [files])
 
-  // Listen for messages from iframe
   useEffect(() => {
     const handler = (e) => {
       if (e.data?.type === '__PREVIEW_ERROR__') {
@@ -413,25 +329,24 @@ export default function PreviewTab({ project, files, onLog }) {
     return () => window.removeEventListener('message', handler)
   }, [onLog])
 
-  // Build preview
   const { previewHtml, projectInfo, buildLog } = useMemo(() => {
     const clientFiles = (files || []).filter(f => {
-  const p = f.path || ''
-  return (
-    p.startsWith('components/') ||
-    p.startsWith('app/') ||
-    p.endsWith('.jsx') ||
-    p.endsWith('.tsx') ||
-    p.endsWith('.js') ||
-    p.endsWith('.css') ||
-    p.endsWith('.html')
-  ) &&
-  !p.includes('lib/self_builder') &&
-  !p.includes('supabase') &&
-  !p.includes('api/')
-})
+      const p = f.path || ''
+      return (
+        p.startsWith('components/') ||
+        p.startsWith('app/') ||
+        p.endsWith('.jsx') ||
+        p.endsWith('.tsx') ||
+        p.endsWith('.js') ||
+        p.endsWith('.css') ||
+        p.endsWith('.html')
+      ) &&
+      !p.includes('lib/self_builder') &&
+      !p.includes('supabase') &&
+      !p.includes('api/')
+    })
 
-const info = classifyProject(clientFiles)
+    const info = classifyProject(clientFiles)
     const log = []
 
     log.push(`Type: ${info.type}`)
@@ -452,16 +367,15 @@ const info = classifyProject(clientFiles)
 
     let html = null
     switch (info.type) {
-      case 'html':   html = buildHtmlPreview(info); break
-      case 'react':  html = buildReactPreview({ ...info, files: clientFiles }); break
-      case 'js':     html = buildJsPreview(info); break
+      case 'html': html = buildHtmlPreview(info); break
+      case 'react': html = buildReactPreview(info); break
+      case 'js': html = buildJsPreview(info); break
       case 'css-only': html = buildCssPreview(info); break
     }
 
     if (html) log.push(`Output: ${html.length} chars`)
 
     return { previewHtml: html, projectInfo: info, buildLog: log }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files, refreshKey])
 
   const handleRefresh = useCallback(() => {
@@ -471,12 +385,29 @@ const info = classifyProject(clientFiles)
     setIframeLoaded(false)
   }, [])
 
-  // ─── Empty states ──────────────────────────────────────────────
+  const isCoreSystemProject =
+    project?.name === 'Emanator Backend' ||
+    project?.name === 'Emanator' ||
+    project?.type === 'core'
 
   if (!project) {
     return (
       <div className="h-full flex items-center justify-center bg-background text-muted-foreground" data-testid="preview-empty">
         <p className="text-sm">Select a project to preview</p>
+      </div>
+    )
+  }
+
+  if (isCoreSystemProject) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center bg-background text-muted-foreground gap-3" data-testid="preview-core-disabled">
+        <AlertTriangle className="w-10 h-10 opacity-30" />
+        <div className="text-center">
+          <p className="text-sm font-medium">Core System Preview Disabled</p>
+          <p className="text-xs mt-1 max-w-xs opacity-70">
+            Emanator cannot preview itself through the isolated Babel component pipeline.
+          </p>
+        </div>
       </div>
     )
   }
@@ -505,9 +436,6 @@ const info = classifyProject(clientFiles)
             This project contains {projectInfo.assetCount} generated asset{projectInfo.assetCount !== 1 ? 's' : ''} but no HTML, CSS, or JavaScript files.
             Check the <strong>Assets</strong> tab to view generated images.
           </p>
-          <p className="text-xs mt-2 opacity-50">
-            Ask the AI to build a web page or app to see a live preview here.
-          </p>
         </div>
       </div>
     )
@@ -521,11 +449,7 @@ const info = classifyProject(clientFiles)
           <p className="text-sm font-medium">Unsupported project structure</p>
           <p className="text-xs mt-1 max-w-xs opacity-70">
             Preview supports HTML, CSS, JavaScript, and React/JSX projects.
-            This project contains {files?.length} file(s) of other types.
           </p>
-          <div className="mt-3 text-xs opacity-50">
-            {files?.slice(0, 5).map(f => f.path).join(', ')}
-          </div>
         </div>
       </div>
     )
@@ -539,7 +463,6 @@ const info = classifyProject(clientFiles)
           <p className="text-sm font-medium">Preview render failed</p>
           <p className="text-xs mt-1 max-w-xs opacity-70">
             Could not assemble a preview from {files?.length} file(s).
-            Try regenerating the files with an index.html entry point.
           </p>
           {buildLog.length > 0 && (
             <pre className="mt-3 text-[10px] text-left bg-muted/40 rounded p-2 max-w-md overflow-auto">
@@ -551,8 +474,6 @@ const info = classifyProject(clientFiles)
     )
   }
 
-  // ─── Preview render ────────────────────────────────────────────
-
   const modeLabel = projectInfo.type === 'react' ? 'React (Babel)' :
     projectInfo.type === 'html' ? 'HTML' :
     projectInfo.type === 'js' ? 'JavaScript' :
@@ -560,7 +481,6 @@ const info = classifyProject(clientFiles)
 
   return (
     <div className="h-full flex flex-col bg-background" data-testid="preview-tab">
-      {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40">
         <div className="flex items-center gap-1">
           <Button size="sm" variant={viewportSize === 'mobile' ? 'secondary' : 'ghost'}
@@ -575,8 +495,7 @@ const info = classifyProject(clientFiles)
             className="h-7 w-7 p-0" onClick={() => setViewportSize('desktop')} data-testid="preview-viewport-desktop">
             <Monitor className="w-3.5 h-3.5" />
           </Button>
-          <span className="ml-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded"
-                data-testid="preview-mode-label">
+          <span className="ml-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded" data-testid="preview-mode-label">
             {modeLabel}{projectInfo.usesTailwind ? ' + Tailwind' : ''}
           </span>
         </div>
@@ -598,10 +517,8 @@ const info = classifyProject(clientFiles)
         </div>
       </div>
 
-      {/* Error banner */}
       {iframeErrors.length > 0 && (
-        <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/40 text-red-300 text-[11px] font-mono max-h-24 overflow-auto"
-             data-testid="preview-error-banner">
+        <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/40 text-red-300 text-[11px] font-mono max-h-24 overflow-auto" data-testid="preview-error-banner">
           {iframeErrors.map((err, i) => (
             <div key={i} className="flex gap-1.5 items-start py-0.5">
               <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
@@ -611,7 +528,6 @@ const info = classifyProject(clientFiles)
         </div>
       )}
 
-      {/* iframe */}
       <div className="flex-1 overflow-auto bg-white flex justify-center relative">
         {!iframeLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10" data-testid="preview-loading">
@@ -634,7 +550,6 @@ const info = classifyProject(clientFiles)
         />
       </div>
 
-      {/* Console panel */}
       {showConsole && (
         <div className="border-t border-border/40 bg-muted/20 max-h-40 overflow-auto" data-testid="preview-console">
           <div className="flex items-center justify-between px-3 py-1 border-b border-border/30">
