@@ -1415,9 +1415,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   setBuilderMode('core')
 
   const coreProject =
-    projects.find(p => p.type === 'core') ||
     projects.find(p => p.name === 'Emanator Backend') ||
     projects.find(p => p.name === 'Emanator') ||
+    projects.find(p => p.type === 'core') ||
     null
 
   if (coreProject) {
