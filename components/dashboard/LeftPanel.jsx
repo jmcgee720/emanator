@@ -419,11 +419,33 @@ export default function LeftPanel({
                           <AttachmentChips attachments={message.metadata?.attachments} />
                         </div>
                       ) : (
-                        <>
+                      <>
                         <div className={`min-w-0 ${isCollapsed ? 'max-h-24 overflow-hidden relative' : ''}`}>
-                          <MessageRenderer content={message.content} />
-                          {isMessageStreaming && (
-                            <span className="inline-block w-2 h-4 bg-primary/80 animate-pulse rounded-sm ml-0.5 align-text-bottom" data-testid="streaming-cursor" />
+                          {/* Inline Image Generation Progress */}
+                          {isMessageStreaming && imageGenProgress && imageGenProgress.stage !== 'error' && !message.metadata?.generatedImage && (
+                            <ImageGenerationProgress
+                              stage={imageGenProgress.stage}
+                              progress={imageGenProgress.progress}
+                              mode={imageGenProgress.mode}
+                            />
+                          )}
+                          {/* Inline Image Generation Error */}
+                          {imageGenProgress?.stage === 'error' && message.id === streamingMessageId && !message.metadata?.generatedImage && (
+                            <ImageGenerationProgress
+                              stage="error"
+                              error={imageGenProgress.error}
+                              onRetry={onRetryImageGen}
+                              mode={imageGenProgress.mode}
+                            />
+                          )}
+                          {/* Regular message content (hide if showing image progress) */}
+                          {!(isMessageStreaming && imageGenProgress && imageGenProgress.stage !== 'error' && !message.metadata?.generatedImage) && !(imageGenProgress?.stage === 'error' && message.id === streamingMessageId && !message.metadata?.generatedImage) && (
+                            <>
+                              <MessageRenderer content={message.content} />
+                              {isMessageStreaming && (
+                                <span className="inline-block w-2 h-4 bg-primary/80 animate-pulse rounded-sm ml-0.5 align-text-bottom" data-testid="streaming-cursor" />
+                              )}
+                            </>
                           )}
                           {isCollapsed && (
                             <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[hsl(var(--muted)/0.3)] to-transparent" />
@@ -495,36 +517,7 @@ export default function LeftPanel({
             })
           )}
 
-          {/* Streaming / Image generation status indicator */}
-          {isStreaming && imageGenProgress && imageGenProgress.stage !== 'error' && (
-            <div className="flex gap-3" data-testid="image-gen-indicator">
-              <div className="w-6 h-6 rounded-md bg-muted/50 border border-border/30 flex items-center justify-center mt-0.5">
-                <Zap className="w-3 h-3 text-muted-foreground/50" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <ImageGenerationProgress
-                  stage={imageGenProgress.stage}
-                  progress={imageGenProgress.progress}
-                  mode={imageGenProgress.mode}
-                />
-              </div>
-            </div>
-          )}
-          {imageGenProgress?.stage === 'error' && (
-            <div className="flex gap-3" data-testid="image-gen-error-indicator">
-              <div className="w-6 h-6 rounded-md bg-red-900/15 border border-red-500/10 flex items-center justify-center mt-0.5">
-                <AlertTriangle className="w-3 h-3 text-red-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <ImageGenerationProgress
-                  stage="error"
-                  error={imageGenProgress.error}
-                  onRetry={onRetryImageGen}
-                  mode={imageGenProgress.mode}
-                />
-              </div>
-            </div>
-          )}
+          {/* Streaming status indicator (non-image generation) */}
           {isStreaming && streamingStatus && !imageGenProgress && (
             <div className="flex gap-3" data-testid="streaming-indicator">
               <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${
