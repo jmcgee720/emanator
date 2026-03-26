@@ -80,7 +80,26 @@ export default function MessageRenderer({ content }) {
           h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2 text-foreground break-words">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-semibold mt-3 mb-2 text-foreground break-words">{children}</h2>,
           h3: ({ children }) => <h3 className="text-base font-semibold mt-3 mb-1 text-foreground break-words">{children}</h3>,
-          p: ({ children }) => <p className="mb-2 leading-relaxed text-foreground/90 break-words">{children}</p>,
+          p: ({ children }) => {
+            const hasBlock =
+              Array.isArray(children) &&
+              children.some(
+                (child) =>
+                  child?.type === 'div' ||
+                  child?.type === 'pre' ||
+                  child?.props?.node?.tagName === 'pre'
+              )
+
+            if (hasBlock) {
+              return <>{children}</>
+            }
+
+            return (
+              <p className="mb-2 leading-relaxed text-foreground/90 break-words">
+                {children}
+              </p>
+            )
+          },
           ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
           li: ({ children }) => <li className="text-foreground/90 break-words">{children}</li>,
