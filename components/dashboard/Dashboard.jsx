@@ -631,6 +631,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onImageIntent: async (data) => {
+          // ── HARD GUARD: Block image generation for BUILD / plan_patch requests ──
+          const isBuildIntent = /\bINTENT:\s*BUILD\b/i.test(data.prompt || '')
+          if (isBuildIntent) {
+            console.warn('[Dashboard] Image generation blocked — INTENT: BUILD detected in prompt')
+            return
+          }
+
           const capturedMsgId = streamingAssistantId
           addLog('info', `Generating ${data.mode} image... (this may take 30-60s)`)
           setImageGenProgress({ stage: 'preparing', progress: 5, label: 'Preparing request', mode: data.mode, startTime: Date.now() })
