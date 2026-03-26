@@ -129,13 +129,11 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
 
   const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])].filter(f => {
     const p = normalizePreviewPath(f.path)
-    return p.startsWith('components/') && !/\.d\.ts$/.test(p)
+    return !/\.d\.ts$/.test(p)
   })
 
   const reactJsFiles = (jsFiles || []).filter(f => {
     const p = normalizePreviewPath(f.path)
-    if (!p.startsWith('components/')) return false
-
     const c = f.content || ''
     return (
       c.includes('React') ||
@@ -148,10 +146,9 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
   const allComponents = [...componentFiles, ...reactJsFiles]
 
   const entryFile =
-    allComponents.find(f => /components\/dashboard\/Dashboard\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-    allComponents.find(f => /\/App\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-    allComponents.find(f => /\/index\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
-    allComponents.find(f => /\/page\.(jsx|tsx|js|ts)$/.test(normalizePreviewPath(f.path))) ||
+    allComponents.find(f => /App\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
+    allComponents.find(f => /index\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
+    allComponents.find(f => /page\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
     allComponents[0] ||
     null
 
