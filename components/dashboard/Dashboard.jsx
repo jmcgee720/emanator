@@ -1014,16 +1014,44 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     streamAbortRef.current = abortController
   }
 
-  const applyDiffs = async (approvedFiles) => {
-    if (!selectedProject || applyingDiffs) return
+      const applyDiffs = async (approvedFiles) => {
+    if (!selectedProject || !selectedChat || applyingDiffs) return
 
     setApplyingDiffs(true)
     addLog('info', `Applying ${approvedFiles.length} approved file(s)...`)
 
     try {
-      const pendingMsg = messages.find(m => m.id === diffMessageId && m.metadata?.diffStatus === 'pending')
-      const planId = pendingMsg?.metadata?.planId || null
-      const diffId = pendingMsg?.metadata?.diffId || null
+      let serverPendingMsg = null
+
+      for (let i = 0; i < 10; i++) {
+        const messagesRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
+        const messagesData = await messagesRes.json()
+
+        if (Array.isArray(messagesData)) {
+          serverPendingMsg = [...messagesData].reverse().find(
+            m =>
+              m.role === 'assistant' &&
+              m.metadata?.diffStatus === 'pending' &&
+              m.metadata?.diffFiles?.length > 0
+          )
+        }
+
+        if (serverPendingMsg) break
+        await new Promise(r => setTimeout(r, 800))
+      }
+
+      if (!serverPendingMsg) {
+        addLog('error', 'Apply blocked: pending diff message not yet saved on server')
+        toast({
+          title: 'Apply Not Ready',
+          description: 'The diff is still being saved. Wait 2–3 seconds, then click Apply All again.',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      const planId = serverPendingMsg?.metadata?.planId || null
+      const diffId = serverPendingMsg?.metadata?.diffId || null
 
       const response = await authFetch(`/api/projects/${selectedProject.id}/apply-diffs`, {
         method: 'POST',
@@ -1031,7 +1059,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         body: JSON.stringify({
           approvedFiles,
           planData: diffPlanData,
-          chatId: selectedChat?.id,
+          chatId: selectedChat.id,
           planId,
           diffId,
           provider: aiProvider,
@@ -1041,22 +1069,28 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const result = await response.json()
 
       if (result.success) {
-        if (diffMessageId) {
-          setMessages(prev => prev.map(m =>
-            m.id === diffMessageId
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === serverPendingMsg.id
               ? { ...m, metadata: { ...m.metadata, diffStatus: 'applied' } }
               : m
-          ))
-        }
+          )
+        )
 
         if (result.snapshot) {
           addLog('info', `Snapshot created: ${result.snapshot.name}`)
         }
-        addLog('success', `Applied ${result.written.length} file(s)${result.deleted.length > 0 ? `, deleted ${result.deleted.length}` : ''}`)
+
+        addLog(
+          'success',
+          `Applied ${result.written.length} file(s)${
+            result.deleted.length > 0 ? `, deleted ${result.deleted.length}` : ''
+          }`
+        )
 
         if (result.errors.length > 0) {
           for (const err of result.errors) {
-            addLog('error', `Failed: ${err.path} — ${err.error}`)
+            addLog('error', typeof err === 'string' ? err : `${err.path} — ${err.error}`)
           }
         }
 
@@ -1073,7 +1107,15 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           }
         } catch {}
 
-        toast({ title: 'Changes Applied', description: `${result.written.length} file(s) written. Snapshot saved.` })
+        toast({
+          title: 'Changes Applied',
+          description: `${result.written.length} file(s) written. Snapshot saved.`
+        })
+
+        setPendingDiffs([])
+        setDiffMessageId(null)
+        setDiffPlanData(null)
+        setPendingPlan(null)
       } else {
         addLog('error', `Apply failed: ${result.error}`)
         toast({ title: 'Apply Failed', description: result.error, variant: 'destructive' })
@@ -1081,15 +1123,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     } catch (err) {
       addLog('error', `Apply error: ${err.message}`)
       toast({ title: 'Error', description: err.message, variant: 'destructive' })
-    } finally {
-      setApplyingDiffs(false)
-      setPendingDiffs([])
-      setDiffMessageId(null)
-      setDiffPlanData(null)
-      setPendingPlan(null)
-    }
+      } finally {
+    setApplyingDiffs(false)
   }
-
+}
   const cancelDiffs = (messageId) => {
     if (messageId || diffMessageId) {
       setMessages(prev => prev.map(m =>

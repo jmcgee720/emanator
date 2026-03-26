@@ -47,9 +47,12 @@ export default function CodeTab({ project, files, setFiles, addLog }) {
 
   // Build file tree
   const buildFileTree = () => {
-    const tree = {}
-    files.forEach(file => {
+      const tree = {}
+  files
+    .filter(file => file && typeof file.path === 'string' && file.path.length > 0)
+    .forEach(file => {
       const parts = file.path.split('/')
+
       let current = tree
       parts.forEach((part, index) => {
         if (index === parts.length - 1) {
