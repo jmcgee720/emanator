@@ -361,7 +361,7 @@ async function handleRoute(request, { params }) {
           user_task: `Role changed for user ${userId}: → ${effectiveRole}`,
           task_mode: 'role_change',
           plan_summary: `Role → ${effectiveRole}`,
-        }).catch(() => {})
+        }).catch(e => console.warn('[changelog] role_change write failed:', e.message))
       }
 
       return handleCORS(NextResponse.json({ success: true, role: effectiveRole }))
@@ -609,7 +609,7 @@ async function handleRoute(request, { params }) {
         user_task: `Sandbox created from "${source.name}"`,
         task_mode: 'sandbox_create',
         plan_summary: `Source: ${sourceId}`,
-      }).catch(() => {})
+      }).catch(e => console.warn('[changelog] sandbox_create write failed:', e.message))
 
       return handleCORS(NextResponse.json({ project: sandbox, initialChat: chat }, { status: 201 }))
     }
@@ -934,7 +934,7 @@ async function handleRoute(request, { params }) {
         task_mode: 'sandbox_promote',
         plan_summary: `Source sandbox: ${sandboxId} → Target: ${sourceId} | ${sandboxFiles.length} file(s)`,
         file_actions: { snapshot, sandbox_id: sandboxId },
-      }).catch(() => {})
+      }).catch(e => console.warn('[changelog] sandbox_promote write failed:', e.message))
 
       return handleCORS(NextResponse.json({
         success: true,
@@ -1021,7 +1021,7 @@ async function handleRoute(request, { params }) {
         user_task: `Rollback: restored primary from pre-promotion snapshot`,
         task_mode: 'sandbox_rollback',
         plan_summary: `Sandbox: ${sandboxId} | Restored ${toRestore.length} file(s), removed ${snapshot.filter(f => !f.existed_before).length} sandbox-only file(s)`,
-      }).catch(() => {})
+      }).catch(e => console.warn('[changelog] sandbox_rollback write failed:', e.message))
 
       return handleCORS(NextResponse.json({
         success: true,
@@ -1099,7 +1099,7 @@ async function handleRoute(request, { params }) {
           user_task: `Self-edit chat created: ${title}`,
           task_mode: 'self_edit_chat',
           plan_summary: title,
-        }).catch(() => {})
+        }).catch(e => console.warn('[changelog] self_edit_chat write failed:', e.message))
       }
       
       // Derive chat_type from title
@@ -1217,7 +1217,7 @@ async function handleRoute(request, { params }) {
           user_task: promptSummary,
           task_mode: 'monitored_prompt',
           plan_summary: `Monitored prompt in chat: ${chat.title || chatId}`,
-        }).catch(() => {})
+        }).catch(e => console.warn('[changelog] monitored_prompt write failed:', e.message))
       }
 
       const providerName = metadata.provider || 'openai'
@@ -1334,7 +1334,7 @@ async function handleRoute(request, { params }) {
                   fileActions: discardedPaths.map(p => ({ path: p, action: 'none' })),
                   chatType: chat?.title?.startsWith(SELF_EDIT_PREFIX) ? 'self_edit' : 'builder',
                 })
-              }).catch(() => {})
+              }).catch(e => console.warn('[changelog] discard logChange failed:', e.message))
             }
 
             // Log apply events from streaming apply_pending_diff (fire-and-forget)
@@ -1356,7 +1356,7 @@ async function handleRoute(request, { params }) {
                   ],
                   chatType: chat?.title?.startsWith(SELF_EDIT_PREFIX) ? 'self_edit' : 'builder',
                 })
-              }).catch(() => {})
+              }).catch(e => console.warn('[changelog] apply logChange failed:', e.message))
             }
 
           } catch (err) {
@@ -1468,7 +1468,7 @@ async function handleRoute(request, { params }) {
           user_task: promptSummary,
           task_mode: 'monitored_prompt',
           plan_summary: `Monitored prompt in chat: ${chat.title || chatId}`,
-        }).catch(() => {})
+        }).catch(e => console.warn('[changelog] monitored_prompt write failed:', e.message))
       }
       
       // If user message, generate AI response
@@ -1951,7 +1951,7 @@ async function handleRoute(request, { params }) {
           rejectionReasons: guardErrors,
           planSummary: planData?.summary || null,
           fileActions: approvedFiles.map(d => ({ action: d.action, path: d.path })),
-        }).catch(() => {})
+        }).catch(e => console.warn('[changelog] diff_review_rejected logPlanEvent failed:', e.message))
 
         return handleCORS(NextResponse.json({
           success: false,
@@ -1996,7 +1996,7 @@ async function handleRoute(request, { params }) {
           ],
           chatType,
         })
-      }).catch(() => {})
+      }).catch(e => console.warn('[changelog] apply logChange failed:', e.message))
 
       return handleCORS(NextResponse.json({
         success: !results.rolledBack,
