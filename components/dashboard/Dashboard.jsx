@@ -80,7 +80,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [loadingDiff, setLoadingDiff] = useState(false)
 
   const streamAbortRef = useRef(null)
-  const currentAssistantMsgIdRef = useRef(null) // Tracks live assistant message ID across streaming → onDone ID swap
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -572,16 +571,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
     setMessages(prev => [...prev, tempUserMessage])
 
+    const clientMessageKey = `cmk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const placeholderAssistant = {
       id: streamingAssistantId,
       role: 'assistant',
       content: '',
       streaming: true,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      clientMessageKey,
     }
     setMessages(prev => [...prev, placeholderAssistant])
     setStreamingMessageId(streamingAssistantId)
-    currentAssistantMsgIdRef.current = streamingAssistantId // Initialize stable reference
     setStreamingStatus({ stage: 'connecting', detail: 'Connecting...' })
 
     const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
@@ -640,8 +640,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             return
           }
 
-          // Use ref for stable message ID that survives onDone ID swap
-          const getMsgId = () => currentAssistantMsgIdRef.current
+          // clientMessageKey is closed over from outer scope — stable identity that survives id swap
           addLog('info', `Generating ${data.mode} image... (this may take 30-60s)`)
           setImageGenProgress({ stage: 'preparing', progress: 5, label: 'Preparing request', mode: data.mode, startTime: Date.now() })
           setStreamingStatus({ stage: 'generating_image', detail: `Generating ${data.mode} with OpenAI...` })
@@ -694,7 +693,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                       setImageGenProgress(prev => ({ ...prev, ...progressUpdate }))
                       // Persist progress to message metadata for stable rendering
                       setMessages(prev => prev.map(m => 
-                        m.id === getMsgId() 
+                        m.clientMessageKey === clientMessageKey 
                           ? { ...m, metadata: { ...m.metadata, imageGenProgress: progressUpdate } }
                           : m
                       ))
@@ -738,10 +737,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             } catch {}
 
             let realMsgId = null
-            const targetMsgId = getMsgId()
             setMessages(prev => {
               const updated = prev.map(m => {
-                if (m.id === targetMsgId) {
+                if (m.clientMessageKey === clientMessageKey) {
                   realMsgId = m.id
                   // Clear imageGenProgress when attaching generatedImage
                   const { imageGenProgress: _, ...restMetadata } = m.metadata || {}
@@ -791,9 +789,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           } catch (err) {
             console.error('[Dashboard] Image generation error:', err)
             setImageGenProgress({ stage: 'error', progress: 0, error: err.message, mode: data.mode })
-            const targetMsgId = getMsgId()
             setMessages(prev => prev.map(m =>
-              (m.id === targetMsgId || (m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage))
+              (m.clientMessageKey === clientMessageKey || (m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage))
                 ? { ...m, content: `Image generation failed: ${err.message}\n\nPlease try again.`, streaming: false }
                 : m
             ))
@@ -862,11 +859,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               ...m,
               id: data.id,
               streaming: false,
+              clientMessageKey: m.clientMessageKey,  // Preserve stable identity across id swap
               metadata: { ...updatedMeta, generatedImage: existingImage || null }
             }
           }))
-          // Update stable reference to the new DB-assigned ID
-          currentAssistantMsgIdRef.current = data.id
           setStreamingMessageId(null)
           setStreamingStatus(null)
 
