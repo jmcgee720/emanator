@@ -421,32 +421,64 @@ export default function LeftPanel({
                       ) : (
                       <>
                         <div className={`min-w-0 ${isCollapsed ? 'max-h-24 overflow-hidden relative' : ''}`}>
-                          {/* Inline Image Generation Progress */}
-                          {isMessageStreaming && imageGenProgress && imageGenProgress.stage !== 'error' && !message.metadata?.generatedImage && (
-                            <ImageGenerationProgress
-                              stage={imageGenProgress.stage}
-                              progress={imageGenProgress.progress}
-                              mode={imageGenProgress.mode}
-                            />
-                          )}
+                          {/* Inline Image Generation Progress - persist until generatedImage exists or error */}
+                          {(() => {
+                            const isImageGenMessage = message.metadata?.toolMode === 'image_gen'
+                            const hasGeneratedImage = !!message.metadata?.generatedImage
+                            const isActiveImageGen = imageGenProgress && imageGenProgress.stage !== 'error'
+                            const showProgress = !hasGeneratedImage && isActiveImageGen && (isMessageStreaming || isImageGenMessage)
+                            
+                            if (showProgress) {
+                              return (
+                                <ImageGenerationProgress
+                                  stage={imageGenProgress.stage}
+                                  progress={imageGenProgress.progress}
+                                  mode={imageGenProgress.mode}
+                                />
+                              )
+                            }
+                            return null
+                          })()}
                           {/* Inline Image Generation Error */}
-                          {imageGenProgress?.stage === 'error' && message.id === streamingMessageId && !message.metadata?.generatedImage && (
-                            <ImageGenerationProgress
-                              stage="error"
-                              error={imageGenProgress.error}
-                              onRetry={onRetryImageGen}
-                              mode={imageGenProgress.mode}
-                            />
-                          )}
-                          {/* Regular message content (hide if showing image progress) */}
-                          {!(isMessageStreaming && imageGenProgress && imageGenProgress.stage !== 'error' && !message.metadata?.generatedImage) && !(imageGenProgress?.stage === 'error' && message.id === streamingMessageId && !message.metadata?.generatedImage) && (
-                            <>
-                              <MessageRenderer content={message.content} />
-                              {isMessageStreaming && (
-                                <span className="inline-block w-2 h-4 bg-primary/80 animate-pulse rounded-sm ml-0.5 align-text-bottom" data-testid="streaming-cursor" />
-                              )}
-                            </>
-                          )}
+                          {(() => {
+                            const hasGeneratedImage = !!message.metadata?.generatedImage
+                            const isError = imageGenProgress?.stage === 'error'
+                            const isThisMessage = message.id === streamingMessageId || message.metadata?.toolMode === 'image_gen'
+                            
+                            if (!hasGeneratedImage && isError && isThisMessage) {
+                              return (
+                                <ImageGenerationProgress
+                                  stage="error"
+                                  error={imageGenProgress.error}
+                                  onRetry={onRetryImageGen}
+                                  mode={imageGenProgress.mode}
+                                />
+                              )
+                            }
+                            return null
+                          })()}
+                          {/* Regular message content (hide if showing image progress/error) */}
+                          {(() => {
+                            const isImageGenMessage = message.metadata?.toolMode === 'image_gen'
+                            const hasGeneratedImage = !!message.metadata?.generatedImage
+                            const isActiveImageGen = imageGenProgress && imageGenProgress.stage !== 'error'
+                            const showProgress = !hasGeneratedImage && isActiveImageGen && (isMessageStreaming || isImageGenMessage)
+                            const isError = imageGenProgress?.stage === 'error'
+                            const isThisMessage = message.id === streamingMessageId || isImageGenMessage
+                            const showError = !hasGeneratedImage && isError && isThisMessage
+                            
+                            if (showProgress || showError) {
+                              return null
+                            }
+                            return (
+                              <>
+                                <MessageRenderer content={message.content} />
+                                {isMessageStreaming && (
+                                  <span className="inline-block w-2 h-4 bg-primary/80 animate-pulse rounded-sm ml-0.5 align-text-bottom" data-testid="streaming-cursor" />
+                                )}
+                              </>
+                            )
+                          })()}
                           {isCollapsed && (
                             <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[hsl(var(--muted)/0.3)] to-transparent" />
                           )}
