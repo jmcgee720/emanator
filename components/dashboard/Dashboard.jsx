@@ -80,6 +80,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [loadingDiff, setLoadingDiff] = useState(false)
 
   const streamAbortRef = useRef(null)
+  const currentAssistantMsgIdRef = useRef(null) // Tracks live assistant message ID across streaming → onDone ID swap
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -580,6 +581,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
     setMessages(prev => [...prev, placeholderAssistant])
     setStreamingMessageId(streamingAssistantId)
+    currentAssistantMsgIdRef.current = streamingAssistantId // Initialize stable reference
     setStreamingStatus({ stage: 'connecting', detail: 'Connecting...' })
 
     const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
@@ -638,7 +640,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             return
           }
 
-          const capturedMsgId = streamingAssistantId
+          // Use ref for stable message ID that survives onDone ID swap
+          const getMsgId = () => currentAssistantMsgIdRef.current
           addLog('info', `Generating ${data.mode} image... (this may take 30-60s)`)
           setImageGenProgress({ stage: 'preparing', progress: 5, label: 'Preparing request', mode: data.mode, startTime: Date.now() })
           setStreamingStatus({ stage: 'generating_image', detail: `Generating ${data.mode} with OpenAI...` })
@@ -691,7 +694,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                       setImageGenProgress(prev => ({ ...prev, ...progressUpdate }))
                       // Persist progress to message metadata for stable rendering
                       setMessages(prev => prev.map(m => 
-                        m.id === capturedMsgId 
+                        m.id === getMsgId() 
                           ? { ...m, metadata: { ...m.metadata, imageGenProgress: progressUpdate } }
                           : m
                       ))
@@ -735,9 +738,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             } catch {}
 
             let realMsgId = null
+            const targetMsgId = getMsgId()
             setMessages(prev => {
               const updated = prev.map(m => {
-                if (m.id === capturedMsgId) {
+                if (m.id === targetMsgId) {
                   realMsgId = m.id
                   // Clear imageGenProgress when attaching generatedImage
                   const { imageGenProgress: _, ...restMetadata } = m.metadata || {}
@@ -746,6 +750,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 return m
               })
               if (!realMsgId) {
+                // Fallback for variation studio where toolMode is set
                 return prev.map(m => {
                   if (!realMsgId && m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage) {
                     realMsgId = m.id
@@ -786,8 +791,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           } catch (err) {
             console.error('[Dashboard] Image generation error:', err)
             setImageGenProgress({ stage: 'error', progress: 0, error: err.message, mode: data.mode })
+            const targetMsgId = getMsgId()
             setMessages(prev => prev.map(m =>
-              (m.id === capturedMsgId || (m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage))
+              (m.id === targetMsgId || (m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage))
                 ? { ...m, content: `Image generation failed: ${err.message}\n\nPlease try again.`, streaming: false }
                 : m
             ))
@@ -859,6 +865,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               metadata: { ...updatedMeta, generatedImage: existingImage || null }
             }
           }))
+          // Update stable reference to the new DB-assigned ID
+          currentAssistantMsgIdRef.current = data.id
           setStreamingMessageId(null)
           setStreamingStatus(null)
 
