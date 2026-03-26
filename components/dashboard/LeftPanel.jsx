@@ -425,15 +425,18 @@ export default function LeftPanel({
                           {(() => {
                             const isImageGenMessage = message.metadata?.toolMode === 'image_gen'
                             const hasGeneratedImage = !!message.metadata?.generatedImage
-                            const isActiveImageGen = imageGenProgress && imageGenProgress.stage !== 'error'
+                            // Prefer message-level persisted progress over transient global state
+                            const msgProgress = message.metadata?.imageGenProgress
+                            const effectiveProgress = msgProgress || (isMessageStreaming ? imageGenProgress : null)
+                            const isActiveImageGen = effectiveProgress && effectiveProgress.stage !== 'error'
                             const showProgress = !hasGeneratedImage && isActiveImageGen && (isMessageStreaming || isImageGenMessage)
                             
                             if (showProgress) {
                               return (
                                 <ImageGenerationProgress
-                                  stage={imageGenProgress.stage}
-                                  progress={imageGenProgress.progress}
-                                  mode={imageGenProgress.mode}
+                                  stage={effectiveProgress.stage}
+                                  progress={effectiveProgress.progress}
+                                  mode={effectiveProgress.mode || imageGenProgress?.mode}
                                 />
                               )
                             }
@@ -461,7 +464,9 @@ export default function LeftPanel({
                           {(() => {
                             const isImageGenMessage = message.metadata?.toolMode === 'image_gen'
                             const hasGeneratedImage = !!message.metadata?.generatedImage
-                            const isActiveImageGen = imageGenProgress && imageGenProgress.stage !== 'error'
+                            const msgProgress = message.metadata?.imageGenProgress
+                            const effectiveProgress = msgProgress || (isMessageStreaming ? imageGenProgress : null)
+                            const isActiveImageGen = effectiveProgress && effectiveProgress.stage !== 'error'
                             const showProgress = !hasGeneratedImage && isActiveImageGen && (isMessageStreaming || isImageGenMessage)
                             const isError = imageGenProgress?.stage === 'error'
                             const isThisMessage = message.id === streamingMessageId || isImageGenMessage

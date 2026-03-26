@@ -683,12 +683,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   try {
                     const eventData = JSON.parse(line.slice(6))
                     if (currentEvent === 'image_stage') {
-                      setImageGenProgress(prev => ({
-                        ...prev,
+                      const progressUpdate = {
                         stage: eventData.stage,
                         progress: eventData.progress,
                         label: eventData.label,
-                      }))
+                      }
+                      setImageGenProgress(prev => ({ ...prev, ...progressUpdate }))
+                      // Persist progress to message metadata for stable rendering
+                      setMessages(prev => prev.map(m => 
+                        m.id === capturedMsgId 
+                          ? { ...m, metadata: { ...m.metadata, imageGenProgress: progressUpdate } }
+                          : m
+                      ))
                     } else if (currentEvent === 'image_complete') {
                       asset = eventData.asset
                       setImageGenProgress(prev => ({ ...prev, stage: 'rendering', progress: 100, label: 'Rendering preview' }))
@@ -733,7 +739,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               const updated = prev.map(m => {
                 if (m.id === capturedMsgId) {
                   realMsgId = m.id
-                  return { ...m, content, streaming: false, metadata: { ...m.metadata, generatedImage: genImage } }
+                  // Clear imageGenProgress when attaching generatedImage
+                  const { imageGenProgress: _, ...restMetadata } = m.metadata || {}
+                  return { ...m, content, streaming: false, metadata: { ...restMetadata, generatedImage: genImage } }
                 }
                 return m
               })
@@ -741,7 +749,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 return prev.map(m => {
                   if (!realMsgId && m.role === 'assistant' && m.metadata?.toolMode === 'image_gen' && !m.metadata?.generatedImage) {
                     realMsgId = m.id
-                    return { ...m, content, streaming: false, metadata: { ...m.metadata, generatedImage: genImage } }
+                    const { imageGenProgress: _, ...restMetadata } = m.metadata || {}
+                    return { ...m, content, streaming: false, metadata: { ...restMetadata, generatedImage: genImage } }
                   }
                   return m
                 })
