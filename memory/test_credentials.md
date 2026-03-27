@@ -1,3 +1,4 @@
 # Test Credentials
-# Agent writes here when creating/modifying auth credentials (admin accounts, test users).
-# Testing agent reads this before auth tests. Fork/continuation agents read on startup.
+
+- **URL**: `process.env.REACT_APP_BACKEND_URL`
+- **Login**: `testprov@test.com` / `password123` (Owner role)
