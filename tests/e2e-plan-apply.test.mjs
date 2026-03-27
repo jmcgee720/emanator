@@ -166,4 +166,69 @@ describe('E2E: plan → execute → diff → apply', () => {
     )
     assert.ok(rejected, 'should emit error or plan_validation_failed status')
   })
+
+  it('aborting mid-stream stops cleanly with no late events', async () => {
+    const plan = {
+      summary: `Create abort-target-${Date.now()}.js`,
+      intent: 'build',
+      file_actions: [{ action: 'create', path: `abort-target-${Date.now()}.js`, reason: 'Abort test', description: 'Abort test file', intent: 'build', grounded_on: ['NONEXISTENT — new file'] }],
+      reasoning: ['Abort test'],
+      constraints_checked: { has_file_actions: true, no_illegal_create: true, minimal_patch: true, grounded_in_file_context: true },
+    }
+
+    const { eventsBeforeAbort, eventsAfterAbort, aborted } = await new Promise((resolve, reject) => {
+      const before = []
+      const after = []
+      let didAbort = false
+      let buf = ''
+
+      const opts = { hostname: NJ_HOST, port: NJ_PORT, path: `/api/chats/${chatId}/messages/stream`, method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      const req = http.request(opts, res => {
+        res.on('data', chunk => {
+          buf += chunk.toString()
+          while (buf.includes('\n\n')) {
+            const [block, rest] = buf.split('\n\n', 2)
+            buf = rest
+            const lines = block.trim().split('\n')
+            let event = '', data = ''
+            for (const line of lines) {
+              if (line.startsWith('event: ')) event = line.slice(7)
+              else if (line.startsWith('data: ')) data = line.slice(6)
+            }
+            if (!event) continue
+            let parsed
+            try { parsed = JSON.parse(data) } catch { parsed = data }
+
+            if (didAbort) {
+              after.push({ event, data: parsed })
+            } else {
+              before.push({ event, data: parsed })
+              // Abort after receiving 2 events
+              if (before.length >= 2) {
+                didAbort = true
+                req.destroy()
+              }
+            }
+          }
+        })
+        res.on('end', () => resolve({ eventsBeforeAbort: before, eventsAfterAbort: after, aborted: didAbort }))
+        res.on('error', () => resolve({ eventsBeforeAbort: before, eventsAfterAbort: after, aborted: didAbort }))
+      })
+      req.on('error', () => resolve({ eventsBeforeAbort: before, eventsAfterAbort: after, aborted: didAbort }))
+      req.setTimeout(30000, () => { req.destroy(); reject(new Error('timeout')) })
+      req.write(JSON.stringify({ content: 'Execute the approved plan', metadata: { scope: 'project', executePlan: plan } }))
+      req.end()
+    })
+
+    assert.ok(aborted, 'should have aborted the request')
+    assert.ok(eventsBeforeAbort.length >= 2, 'should have received at least 2 events before abort')
+
+    // No diff_file after abort
+    const lateDiffs = eventsAfterAbort.filter(e => e.event === 'diff_file')
+    assert.equal(lateDiffs.length, 0, 'should not receive diff_file after abort')
+
+    // No done after abort
+    const lateDone = eventsAfterAbort.filter(e => e.event === 'done')
+    assert.equal(lateDone.length, 0, 'should not receive done after abort')
+  })
 })
