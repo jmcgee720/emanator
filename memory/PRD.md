@@ -21,6 +21,7 @@ Import GitHub repo (`https://github.com/jmcgee720/emanator`), run the existing N
 - Supabase RLS recursion fix (`005_fix_generation_runs_rls.sql`)
 - Plan Validator empty-project bypass fixed in `_processStream`
 - **`validatePlan()` guard added to `executePlanStream`** (Feb 2026) — rejects invalid plans before any file operations
+- **`validatePatchGrounding` added to text-parsing fallback** (Feb 2026) — both `_processStream` and `executePlanStream` now validate diffs extracted from raw AI text before emitting `diff_file` events
 
 ## Backlog
 - P1: Further Phase A2 Plan Validator audits (user-directed)
