@@ -288,7 +288,7 @@ export default function LeftPanel({
 
 
       {/* Self-edit target mode indicator + selector — only in Core System context */}
-      {isOwner && false && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
+      {isOwner && selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT && (
         <div className="px-3 py-1.5 bg-amber-500/8 border-b border-amber-500/15" data-testid="self-edit-mode-indicator">
           <div className="flex items-center gap-1.5">
             <Shield className="w-3 h-3 text-amber-400" />
@@ -298,8 +298,11 @@ export default function LeftPanel({
             <span className="text-[9px] text-amber-400/50">Target:</span>
             <select
               className="text-[10px] bg-amber-500/10 border border-amber-500/20 rounded px-1.5 py-0.5 text-amber-300 flex-1 outline-none focus:border-amber-400/40"
-              value={selfEditTarget || ''}
-              onChange={e => onSelfEditTargetChange?.(e.target.value || null)}
+              value={selfEditTarget?.id || ''}
+              onChange={e => {
+                const targets = selfEditTargets || SELF_EDIT_TARGETS
+                onSelfEditTargetChange?.(targets.find(t => t.id === e.target.value) || null)
+              }}
               data-testid="self-edit-target-select"
             >
               <option value="">All Core System</option>
