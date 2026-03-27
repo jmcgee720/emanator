@@ -1258,6 +1258,7 @@ async function handleRoute(request, { params }) {
             })
 
             for await (const evt of generator) {
+              if (closed) break
               send(evt.event, evt.data)
               if (evt.event === 'token') fullContent += evt.data.content
               if (evt.event === 'done') streamMeta = evt.data
