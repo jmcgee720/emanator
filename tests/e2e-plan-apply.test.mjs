@@ -141,4 +141,29 @@ describe('E2E: plan → execute → diff → apply', () => {
     assert.ok(done.data.appliedFiles.includes(TARGET_FILE), `appliedFiles should include ${TARGET_FILE}`)
     assert.equal(done.data.rolledBack, false, 'should not be rolled back')
   })
+
+  it('invalid plan is rejected with no diffs emitted', async () => {
+    const invalidPlan = {
+      summary: 'Bad plan',
+      intent: 'build',
+      file_actions: [],
+      reasoning: ['empty'],
+      constraints_checked: {},
+    }
+
+    const events = await sseStream(`/api/chats/${chatId}/messages/stream`, token, {
+      content: 'Execute the approved plan',
+      metadata: { scope: 'project', executePlan: invalidPlan },
+    })
+
+    // No diff_file events
+    const diffs = events.filter(e => e.event === 'diff_file')
+    assert.equal(diffs.length, 0, 'should not emit any diff_file events')
+
+    // Should have error or plan_validation_failed
+    const rejected = events.some(e =>
+      e.event === 'error' || e.data?.stage === 'plan_validation_failed'
+    )
+    assert.ok(rejected, 'should emit error or plan_validation_failed status')
+  })
 })
