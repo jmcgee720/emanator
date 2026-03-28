@@ -329,22 +329,23 @@ input:-webkit-autofill:active {
   position: relative;
   background: linear-gradient(
     170deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(200, 220, 255, 0.04) 40%,
-    rgba(255, 255, 255, 0.06) 100%
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(200, 220, 255, 0.03) 40%,
+    rgba(255, 255, 255, 0.05) 100%
   );
-  backdrop-filter: blur(32px) saturate(1.4) brightness(1.05);
-  -webkit-backdrop-filter: blur(32px) saturate(1.4) brightness(1.05);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(28px) saturate(1.5) brightness(1.06);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5) brightness(1.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 16px;
   box-shadow:
-    0 12px 60px rgba(0, 0, 0, 0.25),
-    0 2px 20px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 0 40px rgba(255, 255, 255, 0.02);
+    0 16px 70px rgba(0, 0, 0, 0.30),
+    0 4px 24px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 50px rgba(255, 255, 255, 0.015);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
 }
 
-/* Specular shimmer on all glass elements */
+/* Specular shimmer — thin, crisp top edge */
 .em-glass::before {
   content: "";
   position: absolute;
@@ -353,11 +354,11 @@ input:-webkit-autofill:active {
   background: linear-gradient(
     90deg,
     transparent 2%,
-    rgba(255,255,255,0.12) 10%,
-    rgba(255,255,255,0.35) 25%,
-    rgba(255,255,255,0.5) 40%,
-    rgba(0,229,255,0.25) 55%,
-    rgba(255,255,255,0.3) 70%,
+    rgba(255,255,255,0.10) 10%,
+    rgba(255,255,255,0.40) 22%,
+    rgba(255,255,255,0.60) 38%,
+    rgba(0,229,255,0.30) 52%,
+    rgba(255,255,255,0.35) 68%,
     rgba(255,255,255,0.10) 88%,
     transparent 98%
   );
@@ -366,19 +367,18 @@ input:-webkit-autofill:active {
   border-radius: inherit;
 }
 
-/* Diagonal light refraction shimmer */
+/* Vertical reflection gradient — subtle glass depth */
 .em-glass::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    135deg,
-    rgba(255,255,255,0.06) 0%,
-    transparent 28%,
-    transparent 55%,
-    rgba(255,255,255,0.03) 72%,
-    rgba(0,229,255,0.02) 88%,
-    transparent 100%
+    180deg,
+    rgba(255,255,255,0.05) 0%,
+    rgba(255,255,255,0.015) 18%,
+    transparent 45%,
+    rgba(0,0,0,0.03) 85%,
+    rgba(0,0,0,0.06) 100%
   );
   pointer-events: none;
   border-radius: inherit;

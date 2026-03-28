@@ -24,12 +24,14 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
   - Removed all violet/purple border references, replaced with neutral white glass borders
   - Text Crispness Pass: Primary `#FFFFFF`, Secondary `#C0C4D8`, Muted `#8A8EA6`
 
-## Design Rules
-- Glass: see-through frosted style with white tint bg `rgba(255,255,255, 0.04-0.08)`, blur 32px, saturate 1.4
-- Glass panels must be SEE-THROUGH (aurora visible), NOT opaque/dark/heavy
-- Specular: bright top-edge shimmer (0.5+ peak white, cyan accent), edge highlights on all sides
-- Diagonal light refraction shimmer overlay (::after pseudo) on all glass
-- Borders: `rgba(255,255,255, 0.18)` — clean white glass edge
+## Design Rules (Phase H5 LOCKED)
+- Glass: see-through frosted, white tint bg `rgba(255,255,255, 0.03-0.06)`, blur 28px, saturate 1.5
+- Hero input: higher glass clarity than cards (0.09 tint, blur 36px, stronger specular)
+- Glass panels MUST be see-through — aurora visible through them
+- Specular: crisp 1px top-edge shimmer (0.60 peak white + cyan accent)
+- Vertical reflection gradient on cards (::after — light top, dark bottom)
+- Card hover: -translate-y-0.5 lift + glow intensify, no harsh scale
+- Borders: `rgba(255,255,255, 0.14)`, hover to 0.24
 - Buttons: glass ghost (white border, backdrop-blur) or brand gradient (purple-magenta)
 - Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
 - Core System button: glass ghost style with teal/cyan text
