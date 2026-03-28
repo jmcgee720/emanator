@@ -33,18 +33,18 @@ export default function RightPanel({
 
   if (!selectedProject) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center" style={{ background: 'var(--em-void)' }}>
         <div className="text-center">
-          <FolderOpen className="w-12 h-12 mx-auto text-muted-foreground/15 mb-4" />
-          <h3 className="text-sm font-medium text-foreground/60 mb-1">No Project Selected</h3>
-          <p className="text-xs text-muted-foreground/40">Select or create a project to get started</p>
+          <FolderOpen className="w-12 h-12 mx-auto em-text-muted mb-4" style={{ opacity: 0.3 }} />
+          <h3 className="text-sm font-medium em-text-secondary mb-1">No Project Selected</h3>
+          <p className="text-xs em-text-muted">Select or create a project to get started</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-background" data-testid="right-panel">
+    <div className="absolute inset-0 flex flex-col" style={{ background: 'var(--em-void)' }} data-testid="right-panel">
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col">
         <div className="em-accent-edge-bottom px-4">
           <TabsList className="h-11 bg-transparent justify-start gap-0.5">
@@ -52,7 +52,7 @@ export default function RightPanel({
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="data-[state=active]:bg-muted/60 data-[state=active]:shadow-none rounded-md px-3.5 text-xs font-medium"
+                className="data-[state=active]:bg-[rgba(0,229,255,0.06)] data-[state=active]:text-[var(--em-text-primary)] data-[state=active]:shadow-none rounded-lg px-3.5 text-xs font-medium em-text-muted transition-colors duration-200"
               >
                 <tab.icon className="w-3.5 h-3.5 mr-1.5" />
                 {tab.name}

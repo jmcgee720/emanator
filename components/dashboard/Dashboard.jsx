@@ -1479,14 +1479,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     return (
       <div className="flex-1 overflow-auto px-8 py-8">
-        <div className="mx-auto max-w-7xl border border-border bg-card/20 min-h-[calc(100vh-8rem)] rounded-2xl p-8">
+        <div className="mx-auto max-w-7xl border border-[rgba(124,58,237,0.1)] bg-[rgba(20,20,56,0.4)] min-h-[calc(100vh-8rem)] rounded-2xl p-8">
 <div className="flex items-center justify-between mb-10">
   <div className="flex items-center gap-4">
     <div className="flex flex-col">
-      <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+      <h1 className="text-2xl font-semibold em-text-primary tracking-tight">
         Project Bin
       </h1>
-      <span className="text-xs text-muted-foreground mt-1">
+      <span className="text-xs em-text-secondary mt-1">
         Your projects and workspaces
       </span>
     </div>
@@ -1509,7 +1509,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     openProjectWorkspace(coreProject)
   }
 }}
-        className="px-3 py-1.5 rounded-md text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+        className="px-3 py-1.5 rounded-lg text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors duration-200"
       >
         Core System
       </button>
@@ -1517,23 +1517,23 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     <button
       onClick={() => setShowNewProjectModal(true)}
-      className="px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground hover:opacity-90"
+      className="px-3 py-1.5 rounded-lg text-xs em-btn-brand"
     >
       New Project
     </button>
 
     <button
       onClick={() => setShowSearch(true)}
-      className="px-3 py-1.5 rounded-md text-xs border border-border hover:bg-muted"
+      className="px-3 py-1.5 rounded-lg text-xs em-btn-ghost"
     >
       Search
     </button>
   </div>
 </div>
 
-{/* Center: optional subtle divider */}
+{/* Center: subtle glow divider */}
 <div className="flex justify-center mb-12">
-  <div className="h-px w-32 bg-border opacity-50" />
+  <div className="h-px w-32 bg-gradient-to-r from-transparent via-[rgba(0,229,255,0.2)] to-transparent" />
 </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 max-w-5xl mx-auto">
@@ -1546,13 +1546,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   onClick={() => {setBuilderMode('app')
                     openProjectWorkspace(item)
                   }}
-                  className="aspect-square rounded-xl border border-border bg-background/40 hover:border-primary hover:bg-background/70 transition-all flex flex-col items-center justify-center p-4 text-center"
+                  className="aspect-square rounded-xl em-card hover:border-[rgba(0,229,255,0.25)] transition-all duration-200 flex flex-col items-center justify-center p-4 text-center"
                 >
-                  <div className="w-16 h-16 rounded-lg border border-border mb-4 flex items-center justify-center text-sm">
+                  <div className="w-16 h-16 rounded-lg border border-[rgba(124,58,237,0.12)] mb-4 flex items-center justify-center text-sm em-text-muted">
                     {isCoreCard ? '⚙' : '□'}
                   </div>
-                  <div className="text-sm font-medium text-foreground">{item.name}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-sm font-medium em-text-primary">{item.name}</div>
+                  <div className="text-xs em-text-secondary mt-1">
                     {isCoreCard ? 'Owner only' : item.type || 'project'}
                   </div>
                 </button>
@@ -1561,29 +1561,29 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
             <button
               onClick={() => setShowNewProjectModal(true)}
-              className="aspect-square rounded-xl border border-dashed border-border bg-background/20 hover:border-primary hover:bg-background/50 transition-all flex items-center justify-center text-3xl text-muted-foreground"
+              className="aspect-square rounded-xl border border-dashed border-[rgba(124,58,237,0.15)] hover:border-[rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 flex items-center justify-center text-3xl em-text-muted"
             >
               +
             </button>
           </div>
         </div>
       {showNewProjectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-card border border-border rounded-lg p-6 w-[400px]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="em-glass p-6 w-[400px]">
 
-            <h2 className="text-sm font-semibold mb-4">Create Project</h2>
+            <h2 className="text-sm font-semibold mb-4 em-text-primary">Create Project</h2>
 
             <input
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               placeholder="Project name"
-              className="w-full mb-3 px-3 py-2 text-sm border border-border rounded-md bg-background"
+              className="w-full mb-3 px-3 py-2 text-sm em-input"
             />
 
             <select
               value={newProjectType}
               onChange={(e) => setNewProjectType(e.target.value)}
-              className="w-full mb-4 px-3 py-2 text-sm border border-border rounded-md bg-background"
+              className="w-full mb-4 px-3 py-2 text-sm em-input"
             >
               <option value="app">App Builder</option>
               <option value="core">Core System</option>
@@ -1592,7 +1592,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowNewProjectModal(false)}
-                className="px-3 py-1.5 text-xs border border-border rounded-md"
+                className="px-3 py-1.5 text-xs em-btn-ghost"
               >
                 Cancel
               </button>
@@ -1605,7 +1605,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   setNewProjectName('')
                   setNewProjectType('app')
                 }}
-                className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md"
+                className="px-3 py-1.5 text-xs em-btn-brand"
               >
                 Create
               </button>
@@ -1619,7 +1619,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const renderWorkspaceTabs = () => (
-    <div className="h-12 border-b border-border flex items-center gap-2 px-3 overflow-x-auto">
+    <div className="h-12 em-accent-edge-bottom flex items-center gap-2 px-3 overflow-x-auto" style={{ background: 'var(--em-panel)' }}>
       <button
         onClick={() => {
           setSelectedProject(null)
@@ -1629,20 +1629,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setFiles([])
           setCanvas(null)
         }}
-        className="shrink-0 px-3 py-1.5 rounded-md border border-border text-sm hover:bg-muted transition-colors"
+        className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(124,58,237,0.15)] text-sm em-text-secondary hover:bg-[rgba(0,229,255,0.06)] hover:text-[var(--em-text-primary)] hover:border-[rgba(0,229,255,0.2)] transition-all duration-200"
       >
         ← Projects
       </button>
 
-      <div className="w-px h-6 bg-border shrink-0" />
+      <div className="w-px h-6 bg-[rgba(124,58,237,0.12)] shrink-0" />
 
       {openProjectTabs.map((project) => {
         const isActive = selectedProject?.id === project.id
         return (
           <div
             key={project.id}
-            className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm ${
-              isActive ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-background text-muted-foreground'
+            className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-all duration-200 ${
+              isActive ? 'border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.06)] text-[var(--em-text-primary)]' : 'border-[rgba(124,58,237,0.1)] em-text-secondary hover:bg-[rgba(0,229,255,0.04)]'
             }`}
           >
             <button onClick={() => openProjectWorkspace(project)} className="truncate max-w-[180px] text-left">
@@ -1662,7 +1662,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
 
   return (
-    <div className="h-screen flex flex-col bg-background relative" data-testid="dashboard">
+    <div className="h-screen flex flex-col relative" style={{ background: 'var(--em-void)', color: 'var(--em-text-primary)' }} data-testid="dashboard">
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
           Self-Builder Active
@@ -1943,7 +1943,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 />
               </ResizablePanel>
 
-              <ResizableHandle className="w-px bg-[hsl(270_70%_55%/0.15)] hover:bg-[hsl(190_100%_50%/0.3)] transition-colors" />
+              <ResizableHandle className="w-px bg-[rgba(124,58,237,0.12)] hover:bg-[rgba(0,229,255,0.3)] transition-colors duration-200" />
 
               <ResizablePanel defaultSize={65} className="overflow-hidden">
                 <RightPanel

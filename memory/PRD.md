@@ -8,29 +8,32 @@ Import GitHub repo (`https://github.com/jmcgee720/emanator`), run the existing N
 - **CRA Stub**: Emergent platform default frontend (port 3000, supervisor: `frontend`)
 - **Backend**: FastAPI reverse proxy (port 8001 -> 3002)
 - **Database**: Supabase (Postgres + RLS)
-- **AI**: OpenAI / Anthropic via user API keys or Emergent Universal Key
+- **AI**: OpenAI / Anthropic via user API keys
 
 ## Completed Phases
-- **Phases A-G5**: Plan validation, Core System Workspaces, Memory Injection, AI Routing, Multi-Pass Planning, Self-Critique, Autonomous Multi-Step Execution
+- **Phases A-G5**: Plan validation, Core System Workspaces, Memory, AI Routing, Multi-Pass Planning, Self-Critique, Autonomous Execution
 - **Phase G6**: Session Forking — `POST /api/chats/:id/fork` + UI Fork button
-- **Phase H1**: Moodboard Translation — design-system brief from cosmic AI moodboard
-- **Phase H2**: Design Token System (Mar 2026)
-  - Rewrote `globals.css` with complete token layer: `--em-void`, `--em-panel`, `--em-surface`, accent colors, gradient tokens
-  - Added utility classes: `.em-panel`, `.em-card`, `.em-input`, `.em-glass`, `.em-elevated-interactive`, `.em-btn-brand`, `.em-btn-ghost`, `.em-text-primary/secondary/muted`, `.em-accent-edge-*`
-  - Swapped TopBar logo from inline SVG to new brand mark image (`/public/emanator-logo.png`)
-  - Updated shadcn semantic tokens (`.dark`) to map to Emanator palette
-  - Tokens compiled and verified live in Next.js build
+- **Phase H1**: Moodboard Translation — design-system brief (cosmic dark UI)
+- **Phase H2**: Design Token System — CSS variables, utility classes, brand logo (Mar 2026)
+- **Phase H3**: Component Refactor — Dashboard Shell (Mar 2026)
+  - TopBar: `em-panel` bg, glow-edge bottom, image logo, cyan icon hovers
+  - LeftPanel: `em-panel` bg, `em-accent-edge-right` separator, cyan hover states
+  - RightPanel: `em-void` bg, cyan active tabs
+  - Dashboard wrapper: void bg, glow-edge workspace tabs, `em-card` project cards, `em-glass` modal, `em-btn-brand/ghost` buttons
+  - All gray borders → glow edges, all bg-muted → em-surface/void, all border-border → rgba violet
 
 ## Backlog
-- P0: Phase H3 — Apply tokens to Dashboard shell (TopBar, LeftPanel, RightPanel structure)
-- P0: Phase H4 — Apply tokens to Chat/Messages, Diff Preview, Memory panels
-- P2: Refactor `lib/ai/service.js` (~2600 lines) into smaller modules
+- P0: Phase H4 — Apply tokens to Chat/Messages, Diff Preview, Memory/Prompts panels
+- P1: Phase H5 — Login page token alignment (currently partially styled)
+- P2: Refactor `lib/ai/service.js` (~2600 lines)
 
 ## Key Files
-- `/app/app/globals.css` — Design token system (H2)
-- `/app/public/emanator-logo.png` — New brand mark
-- `/app/components/dashboard/TopBar.jsx` — Updated with image logo + `em-panel` class
-- `/app/components/dashboard/Dashboard.jsx` — Main dashboard (forkChat handler)
-- `/app/components/dashboard/LeftPanel.jsx` — Chat panel with Fork button
-- `/app/app/api/[[...path]]/route.js` — API catch-all (fork endpoint)
+- `/app/app/globals.css` — Design token system
+- `/app/public/emanator-logo.png` — Brand mark (256x256)
+- `/app/components/dashboard/TopBar.jsx` — TopBar (H3 patched)
+- `/app/components/dashboard/LeftPanel.jsx` — LeftPanel (H3 patched)
+- `/app/components/dashboard/RightPanel.jsx` — RightPanel (H3 patched)
+- `/app/components/dashboard/Dashboard.jsx` — Dashboard shell (H3 patched)
+- `/app/components/auth/LoginPage.jsx` — Login page (partially styled)
+- `/app/app/api/[[...path]]/route.js` — API catch-all
 - `/app/backend/server.py` — FastAPI proxy (port 3002)
