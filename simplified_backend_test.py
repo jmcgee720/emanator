@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://blurry-streaks.preview.emergentagent.com"
+BASE_URL = "https://aurora-depth-preview.preview.emergentagent.com"
 AUTH_EMAIL = "REDACTED_LEAKED_USER"
 AUTH_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 

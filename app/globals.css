@@ -485,30 +485,48 @@ input:-webkit-autofill:active {
   background: #0C1018;
 }
 
-/* Containment — 3D horseshoe with Z-depth perspective, large coverage */
+/* Containment — horseshoe clipping with center-bottom void cutout */
 .em-aurora-containment {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  transform: perspective(800px) rotateX(15deg);
-  transform-origin: center 8%;
-  -webkit-mask-image: radial-gradient(
-    ellipse 56% 58% at 48% 32%,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,0.92) 28%,
-    rgba(0,0,0,0.55) 52%,
-    rgba(0,0,0,0.15) 76%,
-    rgba(0,0,0,0) 100%
-  );
-  mask-image: radial-gradient(
-    ellipse 56% 58% at 48% 32%,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,0.92) 28%,
-    rgba(0,0,0,0.55) 52%,
-    rgba(0,0,0,0.15) 76%,
-    rgba(0,0,0,0) 100%
-  );
+  -webkit-mask-image: 
+    radial-gradient(
+      ellipse 70% 76% at 50% 28%,
+      black 0%,
+      rgba(0,0,0,0.97) 28%,
+      rgba(0,0,0,0.6) 55%,
+      rgba(0,0,0,0.12) 80%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 36% 52% at 50% 72%,
+      transparent 0%,
+      transparent 40%,
+      rgba(0,0,0,0.4) 60%,
+      black 85%,
+      black 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-image: 
+    radial-gradient(
+      ellipse 70% 76% at 50% 28%,
+      black 0%,
+      rgba(0,0,0,0.97) 28%,
+      rgba(0,0,0,0.6) 55%,
+      rgba(0,0,0,0.12) 80%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 36% 52% at 50% 72%,
+      transparent 0%,
+      transparent 40%,
+      rgba(0,0,0,0.4) 60%,
+      black 85%,
+      black 100%
+    );
+  mask-composite: intersect;
 }
 
 .em-aurora::before {
@@ -547,9 +565,10 @@ input:-webkit-autofill:active {
 
 
 /* ═══════════════════════════════════════════
-   VEIL 3 — PRIMARY: Cyan curtain RAYS (dense)
-   Thin columns along ENTIRE horseshoe: left arm → back arc → right arm
-   5x density, 0.3-0.5% wide, 2-3px blur
+   VEIL 3 — PRIMARY: Cyan curtain columns
+   Wide, overlapping columns along the full horseshoe arc.
+   Columns are largest at the sides (foreground) and smaller
+   at the top center (background), creating 3D depth.
    ═══════════════════════════════════════════ */
 .em-aurora-veil-3 {
   position: absolute; inset: 0;
@@ -557,114 +576,73 @@ input:-webkit-autofill:active {
   mix-blend-mode: screen;
 }
 
-/* Cyan rays — LEFT ARM + half of BACK ARC */
+/* Cyan columns — LEFT half of horseshoe arc */
 .em-aurora-veil-3::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* ── LEFT ARM outer (back, high) ── */
-    radial-gradient(ellipse 0.3% 8% at 3% 12%, rgba(0,225,245,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 10% at 4.5% 13%, rgba(0,230,248,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 9% at 6% 14%, rgba(0,228,246,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 12% at 7% 15.5%, rgba(0,235,250,0.26) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 11% at 8.5% 17%, rgba(0,232,248,0.22) 0%, transparent 100%),
-    /* ── LEFT ARM descending ── */
-    radial-gradient(ellipse 0.5% 16% at 9.5% 19%, rgba(0,238,252,0.32) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 14% at 10.5% 20%, rgba(0,235,250,0.26) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 18% at 11.5% 22%, rgba(0,240,254,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 16% at 12.5% 24%, rgba(0,238,252,0.30) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 22% at 13.5% 26%, rgba(0,242,255,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 18% at 14.5% 28%, rgba(0,240,252,0.34) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 24% at 15.5% 30%, rgba(0,245,255,0.42) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 22% at 16.5% 32%, rgba(0,242,254,0.38) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 28% at 17.5% 35%, rgba(0,248,255,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 24% at 18.5% 37%, rgba(0,245,254,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 32% at 19.5% 40%, rgba(0,250,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 28% at 20.5% 42%, rgba(0,248,255,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 34% at 21.5% 44%, rgba(0,252,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 36% at 22.5% 47%, rgba(0,254,255,0.54) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 30% at 23.5% 49%, rgba(0,250,255,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 40% at 24.5% 52%, rgba(0,255,255,0.56) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 36% at 25.5% 54%, rgba(0,252,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 42% at 26.5% 57%, rgba(0,255,255,0.54) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 44% at 27.5% 59%, rgba(0,254,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 40% at 28.5% 61%, rgba(0,252,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 42% at 29.5% 62%, rgba(0,250,255,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 36% at 30.5% 60%, rgba(0,248,252,0.42) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 30% at 31.5% 56%, rgba(0,245,250,0.36) 0%, transparent 100%),
-    /* ── BACK ARC left half (connecting, short rays) ── */
-    radial-gradient(ellipse 0.35% 12% at 33% 16%, rgba(0,232,246,0.24) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 10% at 34.5% 15%, rgba(0,230,244,0.22) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 11% at 36% 14%, rgba(0,232,246,0.24) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 9% at 37.5% 13%, rgba(0,228,242,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 10% at 39% 12.5%, rgba(0,230,244,0.22) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 8% at 40.5% 12%, rgba(0,226,240,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 9% at 42% 11%, rgba(0,228,242,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 43.5% 10.5%, rgba(0,224,238,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 8% at 45% 10%, rgba(0,226,240,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 46.5% 9.5%, rgba(0,222,236,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 7% at 48% 9%, rgba(0,224,238,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 6% at 49.5% 8.5%, rgba(0,220,234,0.14) 0%, transparent 100%);
-  filter: blur(3px);
+    radial-gradient(ellipse 3.0% 56% at 6.3% 58.3%, rgba(0,240,246,0.65) 0%, transparent 100%),
+    radial-gradient(ellipse 2.9% 55% at 8.5% 53.9%, rgba(0,240,247,0.63) 0%, transparent 100%),
+    radial-gradient(ellipse 2.8% 55% at 10.0% 50.0%, rgba(0,241,247,0.62) 0%, transparent 100%),
+    radial-gradient(ellipse 2.8% 54% at 13.1% 46.8%, rgba(0,242,247,0.60) 0%, transparent 100%),
+    radial-gradient(ellipse 2.7% 53% at 15.2% 43.5%, rgba(0,242,247,0.59) 0%, transparent 100%),
+    radial-gradient(ellipse 2.6% 52% at 16.8% 39.9%, rgba(0,243,248,0.57) 0%, transparent 100%),
+    radial-gradient(ellipse 2.5% 52% at 19.8% 37.0%, rgba(0,243,248,0.56) 0%, transparent 100%),
+    radial-gradient(ellipse 2.4% 51% at 22.0% 34.7%, rgba(0,244,248,0.54) 0%, transparent 100%),
+    radial-gradient(ellipse 2.3% 50% at 23.6% 32.0%, rgba(0,244,248,0.53) 0%, transparent 100%),
+    radial-gradient(ellipse 2.3% 50% at 26.6% 29.3%, rgba(0,245,248,0.51) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 49% at 28.8% 27.5%, rgba(0,245,249,0.50) 0%, transparent 100%),
+    radial-gradient(ellipse 2.1% 48% at 30.3% 25.9%, rgba(0,246,249,0.48) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 47% at 33.4% 23.8%, rgba(0,246,249,0.47) 0%, transparent 100%),
+    radial-gradient(ellipse 1.9% 47% at 35.5% 22.2%, rgba(0,247,249,0.45) 0%, transparent 100%),
+    radial-gradient(ellipse 1.9% 46% at 37.1% 21.3%, rgba(0,247,249,0.43) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 45% at 40.2% 20.4%, rgba(0,248,250,0.42) 0%, transparent 100%),
+    radial-gradient(ellipse 1.7% 45% at 42.3% 19.1%, rgba(0,249,250,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1.6% 44% at 43.9% 18.5%, rgba(0,249,250,0.39) 0%, transparent 100%),
+    radial-gradient(ellipse 1.5% 43% at 46.9% 18.5%, rgba(0,250,250,0.37) 0%, transparent 100%),
+    radial-gradient(ellipse 1.4% 42% at 49.0% 18.1%, rgba(0,250,250,0.36) 0%, transparent 100%);
+  filter: blur(5px);
   animation: em-au-sway 42s ease-in-out infinite;
   will-change: transform;
 }
 
-/* Cyan rays — BACK ARC right half + RIGHT ARM */
+/* Cyan columns — RIGHT half of horseshoe arc */
 .em-aurora-veil-3::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* ── BACK ARC right half ── */
-    radial-gradient(ellipse 0.3% 6% at 51% 8.5%, rgba(0,220,234,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 7% at 52.5% 9%, rgba(0,224,238,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 54% 9.5%, rgba(0,222,236,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 8% at 55.5% 10%, rgba(0,226,240,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 57% 10.5%, rgba(0,224,238,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 9% at 58.5% 11%, rgba(0,228,242,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 8% at 60% 11.5%, rgba(0,226,240,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 10% at 61.5% 12%, rgba(0,230,244,0.22) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 9% at 63% 13%, rgba(0,228,242,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 11% at 64.5% 14%, rgba(0,232,246,0.24) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 10% at 66% 15%, rgba(0,230,244,0.22) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 12% at 67.5% 16%, rgba(0,232,246,0.24) 0%, transparent 100%),
-    /* ── RIGHT ARM descending (angles from X=95 inward toward X=72) ── */
-    radial-gradient(ellipse 0.3% 8% at 95% 12%, rgba(0,222,240,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 10% at 94% 13.5%, rgba(0,228,245,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 9% at 93% 14.5%, rgba(0,225,242,0.17) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 13% at 92% 16%, rgba(0,232,248,0.26) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 11% at 91% 17.5%, rgba(0,228,246,0.22) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 16% at 90% 20%, rgba(0,238,252,0.32) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 14% at 89% 22%, rgba(0,235,250,0.28) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 20% at 88% 24%, rgba(0,240,254,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 18% at 87% 26%, rgba(0,238,252,0.32) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 24% at 86% 28%, rgba(0,242,255,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 20% at 85% 30%, rgba(0,240,254,0.34) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 28% at 84% 33%, rgba(0,248,255,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 24% at 83% 35%, rgba(0,245,255,0.38) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 32% at 82% 38%, rgba(0,250,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 28% at 81% 40%, rgba(0,248,255,0.42) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 34% at 80% 42%, rgba(0,252,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 30% at 79% 44%, rgba(0,250,255,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 36% at 78% 47%, rgba(0,254,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 32% at 77% 49%, rgba(0,250,254,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 36% at 76% 51%, rgba(0,252,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 34% at 75% 49%, rgba(0,250,255,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 30% at 74% 47%, rgba(0,248,252,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 26% at 73% 44%, rgba(0,245,250,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 14% at 69% 16%, rgba(0,232,246,0.24) 0%, transparent 100%);
-  filter: blur(3px);
+    radial-gradient(ellipse 1.4% 42% at 50.6% 17.7%, rgba(0,250,250,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 1.5% 43% at 53.7% 18.2%, rgba(0,250,250,0.37) 0%, transparent 100%),
+    radial-gradient(ellipse 1.6% 44% at 55.8% 19.0%, rgba(0,249,250,0.39) 0%, transparent 100%),
+    radial-gradient(ellipse 1.7% 45% at 57.4% 19.2%, rgba(0,249,250,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 45% at 60.5% 19.8%, rgba(0,248,250,0.42) 0%, transparent 100%),
+    radial-gradient(ellipse 1.9% 46% at 62.6% 21.3%, rgba(0,247,249,0.43) 0%, transparent 100%),
+    radial-gradient(ellipse 1.9% 47% at 64.2% 22.7%, rgba(0,247,249,0.45) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 47% at 67.3% 23.7%, rgba(0,246,249,0.47) 0%, transparent 100%),
+    radial-gradient(ellipse 2.1% 48% at 69.3% 25.4%, rgba(0,246,249,0.48) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 49% at 71.0% 27.7%, rgba(0,245,249,0.50) 0%, transparent 100%),
+    radial-gradient(ellipse 2.3% 50% at 74.0% 29.8%, rgba(0,245,248,0.51) 0%, transparent 100%),
+    radial-gradient(ellipse 2.3% 50% at 76.1% 31.6%, rgba(0,244,248,0.53) 0%, transparent 100%),
+    radial-gradient(ellipse 2.4% 51% at 77.7% 34.4%, rgba(0,244,248,0.54) 0%, transparent 100%),
+    radial-gradient(ellipse 2.5% 52% at 80.8% 37.5%, rgba(0,243,248,0.56) 0%, transparent 100%),
+    radial-gradient(ellipse 2.6% 52% at 82.8% 40.1%, rgba(0,243,248,0.57) 0%, transparent 100%),
+    radial-gradient(ellipse 2.7% 53% at 84.5% 43.0%, rgba(0,242,247,0.59) 0%, transparent 100%),
+    radial-gradient(ellipse 2.8% 54% at 87.6% 46.7%, rgba(0,242,247,0.60) 0%, transparent 100%),
+    radial-gradient(ellipse 2.8% 55% at 89.6% 50.5%, rgba(0,241,247,0.62) 0%, transparent 100%),
+    radial-gradient(ellipse 2.9% 55% at 91.3% 53.9%, rgba(0,240,247,0.63) 0%, transparent 100%),
+    radial-gradient(ellipse 3.0% 56% at 94.4% 57.8%, rgba(0,240,246,0.65) 0%, transparent 100%);
+  filter: blur(5px);
   animation: em-au-drift 48s ease-in-out infinite 4s;
   will-change: transform;
 }
 
 
 /* ═══════════════════════════════════════════
-   VEIL 4 — SECONDARY: Violet-purple curtain RAYS
-   Thin individual columns positioned ~6-8% HIGHER than cyan
-   Purple crowns each curtain ray. Same horseshoe path.
+   VEIL 4 — SECONDARY: Violet / purple crown layer
+   Positioned higher than cyan to create the color
+   gradient within each column (cyan base → violet top).
    ═══════════════════════════════════════════ */
 .em-aurora-veil-4 {
   position: absolute; inset: 0;
@@ -672,111 +650,73 @@ input:-webkit-autofill:active {
   mix-blend-mode: screen;
 }
 
-/* Violet rays — LEFT ARM crowns + dense BACK ARC left half */
+/* Violet crowns — LEFT half */
 .em-aurora-veil-4::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* ── LEFT ARM: violet ray crowns (dense) ── */
-    radial-gradient(ellipse 0.35% 9% at 3.5% 7%, rgba(160,62,232,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 11% at 5% 8%, rgba(168,68,236,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 10% at 6.5% 9%, rgba(164,65,234,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 14% at 7.5% 10%, rgba(175,74,240,0.26) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 12% at 9% 12%, rgba(170,70,238,0.22) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 18% at 10% 14%, rgba(180,78,244,0.32) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 14% at 11% 15%, rgba(175,74,240,0.26) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 20% at 12% 17%, rgba(185,82,248,0.38) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 18% at 13% 19%, rgba(182,80,246,0.34) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 22% at 14% 21%, rgba(188,84,249,0.38) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 26% at 15% 23%, rgba(190,86,250,0.42) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 22% at 16% 25%, rgba(186,83,248,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 28% at 17% 27%, rgba(192,88,252,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 26% at 18% 29%, rgba(190,86,250,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 32% at 19% 32%, rgba(196,90,254,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 30% at 20% 34%, rgba(194,88,252,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 36% at 21% 37%, rgba(198,92,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 32% at 22% 39%, rgba(196,90,254,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 38% at 23% 42%, rgba(200,94,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 34% at 24% 44%, rgba(196,90,254,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 42% at 25% 47%, rgba(202,96,255,0.54) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 38% at 26% 49%, rgba(200,94,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 44% at 27% 52%, rgba(204,98,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 42% at 28.5% 55%, rgba(202,96,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 40% at 29.5% 57%, rgba(200,94,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 36% at 30.5% 54%, rgba(196,90,254,0.42) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 30% at 31.5% 50%, rgba(192,88,252,0.36) 0%, transparent 100%),
-    /* ── BACK ARC left half violet (dense, every ~1.5%) ── */
-    radial-gradient(ellipse 0.35% 10% at 33% 10%, rgba(170,70,238,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 9% at 34.5% 9.5%, rgba(168,68,237,0.19) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 8% at 36% 9%, rgba(166,67,236,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 8% at 37.5% 8.5%, rgba(164,66,234,0.17) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 7% at 39% 8%, rgba(162,64,233,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 40.5% 7.5%, rgba(160,63,232,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 6% at 42% 7%, rgba(158,62,231,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 6% at 43.5% 6.5%, rgba(157,61,230,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 5% at 45% 6%, rgba(156,60,229,0.13) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 5% at 46.5% 5.5%, rgba(155,59,228,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 5% at 48% 5%, rgba(155,58,228,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.25% 4% at 49.5% 4.5%, rgba(154,58,226,0.11) 0%, transparent 100%);
-  filter: blur(3px);
+    radial-gradient(ellipse 2.5% 46% at 6.3% 46.3%, rgba(186,71,238,0.55) 0%, transparent 100%),
+    radial-gradient(ellipse 2.4% 45% at 8.5% 41.9%, rgba(185,71,238,0.54) 0%, transparent 100%),
+    radial-gradient(ellipse 2.4% 45% at 10.0% 38.0%, rgba(184,70,238,0.52) 0%, transparent 100%),
+    radial-gradient(ellipse 2.3% 44% at 13.1% 34.8%, rgba(183,70,237,0.51) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 44% at 15.2% 31.5%, rgba(182,69,237,0.49) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 43% at 16.8% 27.9%, rgba(181,69,237,0.48) 0%, transparent 100%),
+    radial-gradient(ellipse 2.1% 42% at 19.8% 25.0%, rgba(180,69,236,0.47) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 42% at 22.0% 22.7%, rgba(179,68,236,0.45) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 41% at 23.6% 20.0%, rgba(178,68,236,0.44) 0%, transparent 100%),
+    radial-gradient(ellipse 1.9% 40% at 26.6% 17.3%, rgba(178,67,235,0.43) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 40% at 28.8% 15.5%, rgba(176,67,235,0.41) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 39% at 30.3% 13.9%, rgba(176,67,235,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1.7% 39% at 33.4% 11.8%, rgba(174,66,234,0.38) 0%, transparent 100%),
+    radial-gradient(ellipse 1.6% 38% at 35.5% 10.2%, rgba(173,66,234,0.37) 0%, transparent 100%),
+    radial-gradient(ellipse 1.6% 37% at 37.1% 9.3%, rgba(173,65,234,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 1.5% 37% at 40.2% 8.4%, rgba(171,65,233,0.34) 0%, transparent 100%),
+    radial-gradient(ellipse 1.4% 36% at 42.3% 7.1%, rgba(171,64,233,0.33) 0%, transparent 100%),
+    radial-gradient(ellipse 1.4% 36% at 43.9% 6.5%, rgba(169,64,232,0.31) 0%, transparent 100%),
+    radial-gradient(ellipse 1.3% 35% at 46.9% 6.5%, rgba(169,64,232,0.30) 0%, transparent 100%),
+    radial-gradient(ellipse 1.2% 34% at 49.0% 6.1%, rgba(168,63,232,0.29) 0%, transparent 100%);
+  filter: blur(5px);
   animation: em-au-drift 50s ease-in-out infinite 2s;
   will-change: transform;
 }
 
-/* Violet rays — dense BACK ARC right half + RIGHT ARM */
+/* Violet crowns — RIGHT half */
 .em-aurora-veil-4::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* ── BACK ARC right half violet (dense, every ~1.5%) ── */
-    radial-gradient(ellipse 0.25% 4% at 51% 4.5%, rgba(154,58,226,0.11) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 5% at 52.5% 5%, rgba(155,58,228,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 5% at 54% 5.5%, rgba(155,59,228,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 5% at 55.5% 6%, rgba(156,60,229,0.13) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 6% at 57% 6.5%, rgba(157,61,230,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 6% at 58.5% 7%, rgba(158,62,231,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 60% 7.5%, rgba(160,63,232,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 7% at 61.5% 8%, rgba(162,64,233,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 8% at 63% 8.5%, rgba(164,66,234,0.17) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 8% at 64.5% 9%, rgba(166,67,236,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 9% at 66% 9.5%, rgba(168,68,237,0.19) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 10% at 67.5% 10%, rgba(170,70,238,0.20) 0%, transparent 100%),
-    /* ── RIGHT ARM violet crowns (dense) ── */
-    radial-gradient(ellipse 0.3% 7% at 95.5% 7%, rgba(156,58,228,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 10% at 94.5% 8%, rgba(164,64,234,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 9% at 93.5% 9%, rgba(160,62,232,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 14% at 92.5% 10.5%, rgba(172,72,240,0.24) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 12% at 91.5% 12%, rgba(168,68,236,0.20) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 18% at 90.5% 14%, rgba(180,78,244,0.32) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 16% at 89.5% 16%, rgba(176,76,242,0.28) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 22% at 88.5% 18%, rgba(185,82,248,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 20% at 87.5% 20%, rgba(182,80,246,0.32) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 26% at 86.5% 22%, rgba(188,84,250,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 24% at 85.5% 24%, rgba(186,83,248,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 30% at 84.5% 27%, rgba(192,88,252,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 26% at 83.5% 29%, rgba(190,86,250,0.38) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 34% at 82.5% 32%, rgba(196,90,254,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 30% at 81.5% 34%, rgba(194,88,252,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 36% at 80.5% 36%, rgba(198,92,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 32% at 79.5% 38%, rgba(196,90,254,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 38% at 78.5% 41%, rgba(200,94,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 34% at 77.5% 43%, rgba(196,90,254,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 38% at 76.5% 45%, rgba(198,92,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 36% at 75.5% 43%, rgba(196,90,254,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 32% at 74.5% 41%, rgba(192,88,252,0.40) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 28% at 73.5% 38%, rgba(188,84,250,0.34) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 14% at 69.5% 10.5%, rgba(172,72,240,0.22) 0%, transparent 100%);
-  filter: blur(3px);
+    radial-gradient(ellipse 1.2% 34% at 50.6% 5.7%, rgba(168,63,232,0.29) 0%, transparent 100%),
+    radial-gradient(ellipse 1.3% 35% at 53.7% 6.2%, rgba(169,64,232,0.30) 0%, transparent 100%),
+    radial-gradient(ellipse 1.4% 36% at 55.8% 7.0%, rgba(169,64,232,0.31) 0%, transparent 100%),
+    radial-gradient(ellipse 1.4% 36% at 57.4% 7.2%, rgba(171,64,233,0.33) 0%, transparent 100%),
+    radial-gradient(ellipse 1.5% 37% at 60.5% 7.8%, rgba(171,65,233,0.34) 0%, transparent 100%),
+    radial-gradient(ellipse 1.6% 37% at 62.6% 9.3%, rgba(173,65,234,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 1.6% 38% at 64.2% 10.7%, rgba(173,66,234,0.37) 0%, transparent 100%),
+    radial-gradient(ellipse 1.7% 39% at 67.3% 11.7%, rgba(174,66,234,0.38) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 39% at 69.3% 13.4%, rgba(176,67,235,0.40) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 40% at 71.0% 15.7%, rgba(176,67,235,0.41) 0%, transparent 100%),
+    radial-gradient(ellipse 1.9% 40% at 74.0% 17.8%, rgba(178,67,235,0.43) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 41% at 76.1% 19.6%, rgba(178,68,236,0.44) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 42% at 77.7% 22.4%, rgba(179,68,236,0.45) 0%, transparent 100%),
+    radial-gradient(ellipse 2.1% 42% at 80.8% 25.5%, rgba(180,69,236,0.47) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 43% at 82.8% 28.1%, rgba(181,69,237,0.48) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 44% at 84.5% 31.0%, rgba(182,69,237,0.49) 0%, transparent 100%),
+    radial-gradient(ellipse 2.3% 44% at 87.6% 34.7%, rgba(183,70,237,0.51) 0%, transparent 100%),
+    radial-gradient(ellipse 2.4% 45% at 89.6% 38.5%, rgba(184,70,238,0.52) 0%, transparent 100%),
+    radial-gradient(ellipse 2.4% 45% at 91.3% 41.9%, rgba(185,71,238,0.54) 0%, transparent 100%),
+    radial-gradient(ellipse 2.5% 46% at 94.4% 45.8%, rgba(186,71,238,0.55) 0%, transparent 100%);
+  filter: blur(5px);
   animation: em-au-sway 55s ease-in-out infinite 6s;
   will-change: transform;
 }
 
 
 /* ═══════════════════════════════════════════
-   VEIL 5 — ACCENT: Bright highlight RAYS on horseshoe arms
-   Thin magenta + bright cyan rays at the closest arm sections
+   VEIL 5 — ACCENT: Bright magenta highlights + cyan tips
+   Magenta-white hotspots at the column peaks and bright
+   cyan accents at the bottom of the foreground arms.
    ═══════════════════════════════════════════ */
 .em-aurora-veil-5 {
   position: absolute; inset: 0;
@@ -784,84 +724,79 @@ input:-webkit-autofill:active {
   mix-blend-mode: screen;
 }
 
-/* Magenta highlight rays — along full horseshoe including back arc */
+/* Magenta highlights along the arch */
 .em-aurora-veil-5::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* Left arm magenta */
-    radial-gradient(ellipse 0.4% 28% at 18% 30%, rgba(220,85,255,0.36) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 34% at 20% 36%, rgba(228,92,255,0.44) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 38% at 22% 42%, rgba(232,96,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 42% at 24% 48%, rgba(235,98,255,0.52) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 40% at 26% 52%, rgba(230,94,255,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 44% at 28% 56%, rgba(232,96,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.35% 36% at 30% 54%, rgba(225,90,252,0.40) 0%, transparent 100%),
-    /* Back arc magenta highlights (connecting) */
-    radial-gradient(ellipse 0.3% 8% at 34% 11%, rgba(212,78,248,0.18) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 38% 9%, rgba(210,76,246,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.25% 5% at 42% 7.5%, rgba(208,74,244,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.25% 5% at 46% 6.5%, rgba(206,72,242,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.25% 4% at 50% 5.5%, rgba(205,70,240,0.11) 0%, transparent 100%),
-    radial-gradient(ellipse 0.25% 5% at 54% 6.5%, rgba(206,72,242,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 0.25% 5% at 58% 7.5%, rgba(208,74,244,0.14) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 7% at 62% 9%, rgba(210,76,246,0.16) 0%, transparent 100%),
-    radial-gradient(ellipse 0.3% 8% at 66% 11%, rgba(212,78,248,0.18) 0%, transparent 100%),
-    /* Right arm magenta */
-    radial-gradient(ellipse 0.4% 30% at 84% 28%, rgba(220,85,255,0.34) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 36% at 82% 34%, rgba(228,92,255,0.42) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 38% at 80% 40%, rgba(232,96,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 40% at 78% 44%, rgba(230,94,255,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 36% at 76% 42%, rgba(225,90,252,0.40) 0%, transparent 100%);
-  filter: blur(2px);
+    /* Left arm highlights — following steep horseshoe curve */
+    radial-gradient(ellipse 3.5% 32% at 14% 44%, rgba(218,82,252,0.30) 0%, transparent 100%),
+    radial-gradient(ellipse 3.8% 36% at 20% 34%, rgba(225,88,255,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 3.2% 28% at 28% 24%, rgba(215,78,248,0.28) 0%, transparent 100%),
+    /* Top of arch highlights — high up */
+    radial-gradient(ellipse 2.2% 22% at 36% 12%, rgba(210,72,244,0.22) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 20% at 44% 8%, rgba(205,68,240,0.18) 0%, transparent 100%),
+    radial-gradient(ellipse 1.8% 18% at 50% 6%, rgba(200,65,236,0.16) 0%, transparent 100%),
+    radial-gradient(ellipse 2.0% 20% at 56% 8%, rgba(205,68,240,0.18) 0%, transparent 100%),
+    radial-gradient(ellipse 2.2% 22% at 64% 12%, rgba(210,72,244,0.22) 0%, transparent 100%),
+    /* Right arm highlights */
+    radial-gradient(ellipse 3.2% 28% at 72% 24%, rgba(215,78,248,0.28) 0%, transparent 100%),
+    radial-gradient(ellipse 3.8% 36% at 80% 34%, rgba(225,88,255,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 3.5% 32% at 86% 44%, rgba(218,82,252,0.30) 0%, transparent 100%);
+  filter: blur(4px);
   animation: em-au-float 38s ease-in-out infinite;
   will-change: transform;
 }
 
-/* Bright cyan tip rays — at the very bottom of each arm */
+/* Bright cyan accents at arm tips */
 .em-aurora-veil-5::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* Left arm bright cyan tip rays */
-    radial-gradient(ellipse 0.5% 20% at 25% 56%, rgba(0,252,255,0.48) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 24% at 27% 60%, rgba(0,255,255,0.54) 0%, transparent 100%),
-    radial-gradient(ellipse 0.5% 22% at 29% 62%, rgba(0,252,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 18% at 30% 58%, rgba(0,250,252,0.44) 0%, transparent 100%),
-    /* Right arm bright cyan tip rays */
-    radial-gradient(ellipse 0.5% 20% at 77% 48%, rgba(0,252,255,0.46) 0%, transparent 100%),
-    radial-gradient(ellipse 0.45% 22% at 79% 46%, rgba(0,255,255,0.50) 0%, transparent 100%),
-    radial-gradient(ellipse 0.4% 18% at 75% 50%, rgba(0,250,252,0.42) 0%, transparent 100%);
-  filter: blur(2px);
+    /* Left arm cyan tips — following steep horseshoe */
+    radial-gradient(ellipse 3.2% 28% at 8% 64%, rgba(0,240,255,0.38) 0%, transparent 100%),
+    radial-gradient(ellipse 3.0% 26% at 14% 52%, rgba(0,245,255,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 2.8% 22% at 20% 40%, rgba(0,242,255,0.32) 0%, transparent 100%),
+    /* Right arm cyan tips */
+    radial-gradient(ellipse 2.8% 22% at 80% 40%, rgba(0,242,255,0.32) 0%, transparent 100%),
+    radial-gradient(ellipse 3.0% 26% at 86% 52%, rgba(0,245,255,0.36) 0%, transparent 100%),
+    radial-gradient(ellipse 3.2% 28% at 92% 64%, rgba(0,240,255,0.38) 0%, transparent 100%);
+  filter: blur(6px);
   animation: em-au-sway 35s ease-in-out infinite 3s;
   will-change: transform;
 }
 
 
 /* ═══════════════════════════════════════════
-   VEIL 6 — GLOW: Ambient light following the arc shape
+   VEIL 6 — GLOW: Ambient diffuse light along the horseshoe
+   Large, heavily blurred shapes establishing the overall
+   color atmosphere behind the column details.
    ═══════════════════════════════════════════ */
 .em-aurora-veil-6 {
   position: absolute; inset: 0;
-  pointer-events: none; z-index: 3; overflow: hidden;
+  pointer-events: none; z-index: 1; overflow: hidden;
   mix-blend-mode: screen;
 }
 
-/* Soft ambient glow — follows horseshoe arms, brighter on arms */
+/* Ambient glow — follows horseshoe shape */
 .em-aurora-veil-6::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* Left arm ambient glow */
-    radial-gradient(ellipse 18% 28% at 18% 36%, rgba(100,70,230,0.06) 0%, transparent 100%),
-    /* Back arc subtle glow */
-    radial-gradient(ellipse 22% 8% at 50% 10%, rgba(120,80,235,0.03) 0%, transparent 100%),
-    /* Right arm ambient glow */
-    radial-gradient(ellipse 18% 26% at 82% 34%, rgba(0,180,220,0.06) 0%, transparent 100%);
-  filter: blur(45px);
+    /* Left arm ambient: warm violet tint */
+    radial-gradient(ellipse 22% 34% at 14% 48%, rgba(120,55,210,0.08) 0%, transparent 100%),
+    /* Left upper curve */
+    radial-gradient(ellipse 18% 24% at 28% 22%, rgba(100,50,200,0.06) 0%, transparent 100%),
+    /* Top center ambient: subtle violet */
+    radial-gradient(ellipse 24% 16% at 50% 10%, rgba(140,65,220,0.05) 0%, transparent 100%),
+    /* Right upper curve */
+    radial-gradient(ellipse 18% 24% at 72% 22%, rgba(100,50,200,0.06) 0%, transparent 100%),
+    /* Right arm ambient: cool cyan tint */
+    radial-gradient(ellipse 22% 34% at 86% 48%, rgba(0,160,200,0.08) 0%, transparent 100%);
+  filter: blur(50px);
   animation: em-au-breathe 30s ease-in-out infinite;
   --lo: 0.88; --hi: 1;
   will-change: opacity;
