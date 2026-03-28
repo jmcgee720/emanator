@@ -73,11 +73,11 @@ export default function LoginPage({ onAuthSuccess }) {
   const inputStyle = {
     background: 'rgba(5, 5, 26, 0.8)',
     border: '1px solid rgba(124, 58, 237, 0.18)',
-    color: '#F0F0F8',
+    color: '#FFFFFF',
     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
   }
 
-  const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#444466]"
+  const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#7A7E98]"
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden em-aurora em-aurora--login" data-testid="login-page">
@@ -110,7 +110,7 @@ export default function LoginPage({ onAuthSuccess }) {
           draggable={false}
         />
 
-        <p className="text-sm font-medium tracking-[0.2em] uppercase" style={{ color: '#6668AA' }}>
+        <p className="text-sm font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
           AI Builder Platform
         </p>
       </div>
@@ -169,8 +169,8 @@ export default function LoginPage({ onAuthSuccess }) {
                   Private Access
                 </span>
               </div>
-              <h2 className="text-xl font-semibold" style={{ color: '#F0F0F8' }}>Welcome</h2>
-              <p className="text-sm mt-1.5" style={{ color: '#7778AA' }}>Sign in with your approved account</p>
+              <h2 className="text-xl font-semibold" style={{ color: '#FFFFFF' }}>Welcome</h2>
+              <p className="text-sm mt-1.5" style={{ color: '#B0B4CC' }}>Sign in with your approved account</p>
             </div>
 
             {/* Tabs */}
@@ -186,7 +186,7 @@ export default function LoginPage({ onAuthSuccess }) {
                 <TabsTrigger value="signin" data-testid="signin-tab"
                   className="text-xs font-semibold rounded-lg transition-all duration-150 data-[state=active]:shadow-none"
                   style={{
-                    color: mode === 'signin' ? '#F0F0F8' : '#555577',
+                    color: mode === 'signin' ? '#FFFFFF' : '#8A8EA6',
                     background: mode === 'signin' ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
                     boxShadow: mode === 'signin' ? '0 0 12px rgba(0, 229, 255, 0.06)' : 'none',
                   }}
@@ -194,7 +194,7 @@ export default function LoginPage({ onAuthSuccess }) {
                 <TabsTrigger value="signup" data-testid="signup-tab"
                   className="text-xs font-semibold rounded-lg transition-all duration-150 data-[state=active]:shadow-none"
                   style={{
-                    color: mode === 'signup' ? '#F0F0F8' : '#555577',
+                    color: mode === 'signup' ? '#FFFFFF' : '#8A8EA6',
                     background: mode === 'signup' ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
                     boxShadow: mode === 'signup' ? '0 0 12px rgba(0, 229, 255, 0.06)' : 'none',
                   }}
@@ -204,13 +204,13 @@ export default function LoginPage({ onAuthSuccess }) {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-5" data-testid="signin-form">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-xs font-medium" style={{ color: '#7778AA' }}>Email</Label>
+                    <Label htmlFor="email" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Email</Label>
                     <Input id="email" type="email" placeholder="you@company.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} required
                       data-testid="email-input" className={inputFocusClass} style={inputStyle} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-xs font-medium" style={{ color: '#7778AA' }}>Password</Label>
+                    <Label htmlFor="password" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Password</Label>
                     <Input id="password" type="password" placeholder="••••••••" value={password}
                       onChange={(e) => setPassword(e.target.value)} required
                       data-testid="password-input" className={inputFocusClass} style={inputStyle} />
@@ -218,7 +218,7 @@ export default function LoginPage({ onAuthSuccess }) {
                   <div className="flex items-center space-x-2 pt-1">
                     <Checkbox id="stay-signed-in" checked={staySignedIn} onCheckedChange={setStaySignedIn}
                       className="border-[rgba(124,58,237,0.3)] data-[state=checked]:bg-[#00E5FF] data-[state=checked]:border-[#00E5FF]" />
-                    <Label htmlFor="stay-signed-in" className="text-xs font-normal cursor-pointer" style={{ color: '#555577' }}>Stay signed in</Label>
+                    <Label htmlFor="stay-signed-in" className="text-xs font-normal cursor-pointer" style={{ color: '#8A8EA6' }}>Stay signed in</Label>
                   </div>
                   <button type="submit" disabled={loading} data-testid="signin-btn"
                     className="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-2"
@@ -229,7 +229,7 @@ export default function LoginPage({ onAuthSuccess }) {
                     {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Signing In...</span> : 'Sign In'}
                   </button>
                   <button type="button" onClick={handlePasswordReset} disabled={loading}
-                    className="w-full text-xs py-2 transition-colors duration-150 hover:opacity-80" style={{ color: '#555577' }}>
+                    className="w-full text-xs py-2 transition-colors duration-150 hover:opacity-80" style={{ color: '#8A8EA6' }}>
                     Forgot password?
                   </button>
                 </form>
@@ -238,13 +238,13 @@ export default function LoginPage({ onAuthSuccess }) {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-5" data-testid="signup-form">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-xs font-medium" style={{ color: '#7778AA' }}>Email</Label>
+                    <Label htmlFor="signup-email" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Email</Label>
                     <Input id="signup-email" type="email" placeholder="you@company.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} required
                       className={inputFocusClass} style={inputStyle} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-xs font-medium" style={{ color: '#7778AA' }}>Password</Label>
+                    <Label htmlFor="signup-password" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Password</Label>
                     <Input id="signup-password" type="password" placeholder="••••••••" value={password}
                       onChange={(e) => setPassword(e.target.value)} required minLength={6}
                       className={inputFocusClass} style={inputStyle} />
@@ -252,7 +252,7 @@ export default function LoginPage({ onAuthSuccess }) {
                   <div className="flex items-center space-x-2 pt-1">
                     <Checkbox id="stay-signed-in-signup" checked={staySignedIn} onCheckedChange={setStaySignedIn}
                       className="border-[rgba(124,58,237,0.3)] data-[state=checked]:bg-[#00E5FF] data-[state=checked]:border-[#00E5FF]" />
-                    <Label htmlFor="stay-signed-in-signup" className="text-xs font-normal cursor-pointer" style={{ color: '#555577' }}>Stay signed in</Label>
+                    <Label htmlFor="stay-signed-in-signup" className="text-xs font-normal cursor-pointer" style={{ color: '#8A8EA6' }}>Stay signed in</Label>
                   </div>
                   <button type="submit" disabled={loading} data-testid="signup-btn"
                     className="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-2"
@@ -262,7 +262,7 @@ export default function LoginPage({ onAuthSuccess }) {
                     }}>
                     {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Creating Account...</span> : 'Create Account'}
                   </button>
-                  <p className="text-[11px] text-center pt-1" style={{ color: '#555577' }}>
+                  <p className="text-[11px] text-center pt-1" style={{ color: '#8A8EA6' }}>
                     You need to be on the allowlist to access the platform after signing up.
                   </p>
                 </form>
@@ -273,7 +273,7 @@ export default function LoginPage({ onAuthSuccess }) {
       </div>
 
       {/* Footer */}
-      <p className="relative z-10 text-center text-[11px] mt-10 em-panel-enter" style={{ color: '#444466', animationDelay: '120ms' }}>
+      <p className="relative z-10 text-center text-[11px] mt-10 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
         Private internal tool — access by invitation only
       </p>
     </div>
