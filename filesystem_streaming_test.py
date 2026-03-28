@@ -10,7 +10,7 @@ mentioned in the review request with focus on:
 4. Project files API
 5. Message persistence
 
-Test URL: https://aurora-dome.preview.emergentagent.com
+Test URL: https://aurora-glass-engine.preview.emergentagent.com
 Known Project ID: be43ac27-901d-46b3-a965-e1ad7e3e7d0a (MyMergent Landing Page)
 Known Chat ID: 36c0d150-2960-4b70-9267-9b6a521893a8
 """
@@ -23,7 +23,7 @@ import subprocess
 from datetime import datetime
 
 # Configuration from review request
-API_URL = "https://aurora-dome.preview.emergentagent.com"
+API_URL = "https://aurora-glass-engine.preview.emergentagent.com"
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 PROJECT_ID = "be43ac27-901d-46b3-a965-e1ad7e3e7d0a"
