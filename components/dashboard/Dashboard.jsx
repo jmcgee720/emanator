@@ -1980,14 +1980,16 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   return (
     <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)' }} data-testid="dashboard">
-      {/* Aurora borealis background — 6 depth layers */}
-      <div className="em-aurora-veil-1" />
-      <div className="em-aurora-veil-2" />
-      <div className="em-aurora-veil-3" />
-      <div className="em-aurora-veil-4" />
-      <div className="em-aurora-veil-5" />
-      <div className="em-aurora-veil-6" />
-      <div className="em-aurora-horizon" />
+      {/* Aurora borealis background — contained in center */}
+      <div className="em-aurora-containment">
+        <div className="em-aurora-veil-1" />
+        <div className="em-aurora-veil-2" />
+        <div className="em-aurora-veil-3" />
+        <div className="em-aurora-veil-4" />
+        <div className="em-aurora-veil-5" />
+        <div className="em-aurora-veil-6" />
+        <div className="em-aurora-horizon" />
+      </div>
       <div className="em-aurora-noise" />
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">

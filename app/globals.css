@@ -468,6 +468,30 @@ input:-webkit-autofill:active {
   background: #0C1018;
 }
 
+/* Containment — constrains aurora to center canvas, dark navy margins */
+.em-aurora-containment {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(
+    ellipse 52% 55% at 50% 38%,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,0.85) 35%,
+    rgba(0,0,0,0.5) 55%,
+    rgba(0,0,0,0.15) 72%,
+    rgba(0,0,0,0) 88%
+  );
+  mask-image: radial-gradient(
+    ellipse 52% 55% at 50% 38%,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,0.85) 35%,
+    rgba(0,0,0,0.5) 55%,
+    rgba(0,0,0,0.15) 72%,
+    rgba(0,0,0,0) 88%
+  );
+}
+
 .em-aurora::before {
   content: "";
   position: absolute;
