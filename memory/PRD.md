@@ -48,6 +48,6 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 
 ## Backlog
 - P1: Credits backend integration
-- P1: Import Project ingestion logic
 - P2: ChatComposer, ModelSelector, SearchPanel token pass
 - P2: Refactor `lib/ai/service.js`
+- P3: GitHub repository import (Connect Repository)

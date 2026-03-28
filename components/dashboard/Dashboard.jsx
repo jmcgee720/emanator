@@ -112,6 +112,46 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showImportModal, setShowImportModal] = useState(false)
   const [projectMode, setProjectMode] = useState('fullstack')
   const [promptInput, setPromptInput] = useState('')
+  // ── Import handlers ──
+  const [importLoading, setImportLoading] = useState(false)
+  const [importError, setImportError] = useState(null)
+  const fileInputRef = useRef(null)
+
+  const handleZipImport = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImportLoading(true)
+    setImportError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await authFetch('/api/import/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setImportError(data.error || 'Import failed')
+        return
+      }
+
+      toast({ title: 'Import Successful', description: `${data.metadata.file_count} files imported as "${data.metadata.project_name}" (${data.metadata.framework})` })
+      setShowImportModal(false)
+      loadProjects()
+      openProjectWorkspace(data.project)
+    } catch (err) {
+      setImportError(err.message || 'Import failed')
+    } finally {
+      setImportLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const [headline] = useState(() => EMANATOR_HEADLINES[Math.floor(Math.random() * EMANATOR_HEADLINES.length)])
 
   // Aurora control system — Phase H6
@@ -1787,48 +1827,58 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
                   Import Project
                 </h2>
-                <button onClick={() => setShowImportModal(false)} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
+                <button onClick={() => { setShowImportModal(false); setImportError(null) }} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
+              {importError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs" data-testid="import-error">
+                  {importError}
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".zip"
+                className="hidden"
+                onChange={handleZipImport}
+                data-testid="import-file-input"
+              />
+
               <div className="space-y-3" data-testid="import-options">
                 <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left"
-                  data-testid="import-upload"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0">
-                    <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium em-text-primary">Upload Project File</div>
-                    <div className="text-[11px] em-text-secondary mt-0.5">Upload a project manifest or config file</div>
-                  </div>
-                </button>
-
-                <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importLoading}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left disabled:opacity-50"
                   data-testid="import-zip"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0">
-                    <FolderArchive className="w-4 h-4 text-purple-400" />
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0">
+                    {importLoading ? (
+                      <div className="w-4 h-4 border-2 border-[var(--em-cyan)] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FolderArchive className="w-4 h-4 text-[var(--em-cyan)]" />
+                    )}
                   </div>
                   <div>
-                    <div className="text-sm font-medium em-text-primary">Import from Zip</div>
-                    <div className="text-[11px] em-text-secondary mt-0.5">Upload a zipped project directory</div>
+                    <div className="text-sm font-medium em-text-primary">{importLoading ? 'Importing...' : 'Import from Zip'}</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">Upload a zipped project directory (.zip)</div>
                   </div>
                 </button>
 
                 <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left opacity-50 cursor-not-allowed"
                   data-testid="import-repo"
+                  disabled
                 >
                   <div className="w-10 h-10 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0">
                     <GitBranch className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
                     <div className="text-sm font-medium em-text-primary">Connect Repository</div>
-                    <div className="text-[11px] em-text-secondary mt-0.5">Link an existing GitHub repository</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">GitHub integration — coming soon</div>
                   </div>
                 </button>
               </div>
