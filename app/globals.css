@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════
+   EMANATOR DESIGN TOKENS — Phase H2
+   Cosmic dark UI. Depth via colored glow. No gray. No flat.
+   ══════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -32,24 +37,25 @@
   }
 
   .dark {
-    --background: 252 40% 5%;
-    --foreground: 230 25% 93%;
-    --card: 252 35% 8%;
-    --card-foreground: 230 25% 93%;
-    --popover: 252 35% 9%;
-    --popover-foreground: 230 25% 93%;
+    /* ── Shadcn semantic tokens mapped to Emanator palette ── */
+    --background: 244 60% 7%;
+    --foreground: 240 20% 95%;
+    --card: 244 45% 10%;
+    --card-foreground: 240 20% 95%;
+    --popover: 244 50% 8%;
+    --popover-foreground: 240 20% 95%;
     --primary: 190 100% 50%;
-    --primary-foreground: 252 40% 5%;
-    --secondary: 270 40% 16%;
-    --secondary-foreground: 270 20% 85%;
-    --muted: 252 25% 12%;
-    --muted-foreground: 230 15% 48%;
+    --primary-foreground: 244 60% 7%;
+    --secondary: 260 30% 14%;
+    --secondary-foreground: 260 15% 85%;
+    --muted: 244 30% 12%;
+    --muted-foreground: 240 15% 48%;
     --accent: 270 70% 55%;
     --accent-foreground: 270 15% 95%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 260 20% 16%;
-    --input: 252 25% 12%;
+    --border: 260 25% 16%;
+    --input: 244 60% 7%;
     --ring: 190 100% 50%;
     --radius: 0.625rem;
     --chart-1: 190 100% 50%;
@@ -58,13 +64,28 @@
     --chart-4: 200 75% 52%;
     --chart-5: 45 80% 58%;
 
-    --em-cyan: 190 100% 50%;
-    --em-violet: 270 70% 55%;
-    --em-magenta: 320 80% 55%;
-    --em-surface-raised: 252 30% 10%;
-    --em-surface-overlay: 252 30% 13%;
-    --em-surface-sunken: 252 40% 3.5%;
-    --em-sidebar: 252 38% 6.5%;
+    /* ── Emanator core tokens ── */
+    --em-void: #07071E;
+    --em-panel: #0D0D2B;
+    --em-surface: #141438;
+    --em-surface-hover: #1A1A45;
+    --em-cyan: #00E5FF;
+    --em-violet: #7C3AED;
+    --em-magenta: #E040FB;
+    --em-text-primary: #F0F0F8;
+    --em-text-secondary: #8888AA;
+    --em-text-muted: #555577;
+
+    /* ── HSL versions for opacity compositing ── */
+    --em-cyan-hsl: 190 100% 50%;
+    --em-violet-hsl: 270 70% 55%;
+    --em-magenta-hsl: 320 80% 55%;
+
+    /* ── Surface HSL tokens (legacy compat) ── */
+    --em-surface-raised: 244 45% 10%;
+    --em-surface-overlay: 244 35% 14%;
+    --em-surface-sunken: 244 60% 7%;
+    --em-sidebar: 244 50% 8%;
   }
 }
 
@@ -74,13 +95,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: var(--em-void);
+    color: var(--em-text-primary);
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* ── Scrollbar ── */
+
+/* ══════════════════════════════════════════════════════
+   SCROLLBAR
+   ══════════════════════════════════════════════════════ */
+
 .dark ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -91,139 +118,248 @@
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: hsl(260 20% 22%);
+  background: rgba(124, 58, 237, 0.25);
   border-radius: 100px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(270 30% 32%);
+  background: rgba(124, 58, 237, 0.4);
 }
 
-/* ── Emanator brand gradient ── */
+
+/* ══════════════════════════════════════════════════════
+   BRAND GRADIENT
+   ══════════════════════════════════════════════════════ */
+
 .em-brand-gradient {
-  background: linear-gradient(135deg, #00E5FF, #7C3AED, #E040FB);
+  background: linear-gradient(135deg, #00E5FF 0%, #7C3AED 45%, #E040FB 100%);
 }
 
 .em-gradient-text {
-  background: linear-gradient(135deg, #00E5FF 0%, #7C3AED 50%, #E040FB 100%);
+  background: linear-gradient(135deg, #00E5FF 0%, #7C3AED 45%, #E040FB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .em-gradient-border {
-  border-image: linear-gradient(135deg, hsl(190 100% 50% / 0.4), hsl(270 70% 55% / 0.4), hsl(320 80% 55% / 0.3)) 1;
+  border-image: linear-gradient(135deg, rgba(0,229,255,0.4), rgba(124,58,237,0.4), rgba(224,64,251,0.3)) 1;
 }
 
-/* ── Glow utilities ── */
+
+/* ══════════════════════════════════════════════════════
+   GLOW UTILITIES
+   ══════════════════════════════════════════════════════ */
+
 .em-glow-cyan {
   box-shadow:
-    0 0 20px -4px hsl(190 100% 50% / 0.25),
-    0 0 8px -2px hsl(190 100% 50% / 0.15);
+    0 0 20px -4px rgba(0, 229, 255, 0.25),
+    0 0 8px -2px rgba(0, 229, 255, 0.15);
 }
 
 .em-glow-violet {
   box-shadow:
-    0 0 20px -4px hsl(270 70% 55% / 0.25),
-    0 0 8px -2px hsl(270 70% 55% / 0.15);
+    0 0 20px -4px rgba(124, 58, 237, 0.25),
+    0 0 8px -2px rgba(124, 58, 237, 0.15);
 }
 
 .em-glow-magenta {
   box-shadow:
-    0 0 20px -4px hsl(320 80% 55% / 0.25),
-    0 0 8px -2px hsl(320 80% 55% / 0.15);
+    0 0 20px -4px rgba(224, 64, 251, 0.25),
+    0 0 8px -2px rgba(224, 64, 251, 0.15);
 }
 
-/* ── Accent border glow (top or bottom edge) ── */
+.em-glow-soft {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.04);
+}
+
+
+/* ══════════════════════════════════════════════════════
+   EDGE GLOWS (replaces solid borders)
+   ══════════════════════════════════════════════════════ */
+
 .em-accent-edge-top {
   border-top: 1px solid transparent;
-  border-image: linear-gradient(90deg, transparent, hsl(190 100% 50% / 0.4), hsl(270 70% 55% / 0.3), transparent) 1;
+  border-image: linear-gradient(90deg, transparent, rgba(0,229,255,0.4), rgba(124,58,237,0.3), transparent) 1;
 }
 
 .em-accent-edge-bottom {
   border-bottom: 1px solid transparent;
-  border-image: linear-gradient(90deg, transparent, hsl(190 100% 50% / 0.35), hsl(270 70% 55% / 0.25), transparent) 1;
+  border-image: linear-gradient(90deg, transparent, rgba(0,229,255,0.35), rgba(124,58,237,0.25), transparent) 1;
 }
 
 .em-accent-edge-left {
   border-left: 2px solid transparent;
-  border-image: linear-gradient(180deg, hsl(190 100% 50% / 0.6), hsl(270 70% 55% / 0.4)) 1;
+  border-image: linear-gradient(180deg, rgba(0,229,255,0.6), rgba(124,58,237,0.4)) 1;
 }
 
-.em-surface {
-  background: hsl(var(--em-surface-raised));
-  border: 1px solid hsl(var(--border));
+.em-accent-edge-right {
+  border-right: 1px solid transparent;
+  border-image: linear-gradient(180deg, transparent, rgba(0,229,255,0.15), rgba(124,58,237,0.1), transparent) 1;
 }
 
-/* ── Elevated surfaces ── */
-.em-elevated {
-  background: hsl(var(--em-surface-raised));
+
+/* ══════════════════════════════════════════════════════
+   SURFACE SYSTEM
+   Panel → Card → Input (dark to light layering)
+   ══════════════════════════════════════════════════════ */
+
+/* Panel: sidebar / major regions */
+.em-panel {
+  background: var(--em-panel);
+}
+
+/* Card: content containers floating on panels/void */
+.em-card {
+  background: rgba(20, 20, 56, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.04);
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.em-card:hover {
+  border-color: rgba(0, 229, 255, 0.2);
   box-shadow:
-    0 1px 3px hsl(0 0% 0% / 0.3),
-    0 4px 16px hsl(0 0% 0% / 0.18),
-    inset 0 1px 0 hsl(260 20% 16%);
+    0 0 20px rgba(0, 229, 255, 0.04),
+    inset 0 0 30px rgba(0, 229, 255, 0.04);
+}
+
+/* Input: sunken into surface */
+.em-input {
+  background: var(--em-void);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 10px;
+  color: var(--em-text-primary);
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.em-input:focus,
+.em-input:focus-within {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.08);
+  outline: none;
+}
+
+/* Surface: raised surface within a panel */
+.em-surface {
+  background: var(--em-surface);
+  border: 1px solid rgba(124, 58, 237, 0.08);
+}
+
+
+/* ══════════════════════════════════════════════════════
+   ELEVATED SURFACES (interactive cards)
+   ══════════════════════════════════════════════════════ */
+
+.em-elevated {
+  background: var(--em-surface);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.03);
 }
 
 .em-elevated-interactive {
-  background: hsl(var(--em-surface-raised));
-  box-shadow:
-    0 1px 3px hsl(0 0% 0% / 0.3),
-    0 4px 16px hsl(0 0% 0% / 0.18),
-    inset 0 1px 0 hsl(260 20% 16%);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  background: var(--em-surface);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.03);
+  transition: box-shadow 200ms ease-out, border-color 200ms ease-out, background-color 200ms ease-out;
 }
 
 .em-elevated-interactive:hover {
-  background: hsl(var(--em-surface-overlay));
+  background: var(--em-surface-hover);
+  border-color: rgba(0, 229, 255, 0.18);
   box-shadow:
-    0 2px 4px hsl(0 0% 0% / 0.35),
-    0 8px 24px hsl(0 0% 0% / 0.22),
-    inset 0 1px 0 hsl(260 20% 18%);
+    0 0 20px rgba(0, 229, 255, 0.06),
+    inset 0 0 30px rgba(0, 229, 255, 0.03);
 }
 
-/* ── Code editor ── */
-.code-editor {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
-  line-height: 1.6;
+
+/* ══════════════════════════════════════════════════════
+   TEXT UTILITIES
+   ══════════════════════════════════════════════════════ */
+
+.em-text-primary {
+  color: var(--em-text-primary);
 }
 
-/* ── Resize handle ── */
-.resize-handle {
-  @apply bg-border hover:bg-primary/40 transition-colors;
+.em-text-secondary {
+  color: var(--em-text-secondary);
 }
 
-/* ── Canvas ── */
-.canvas-section {
-  @apply border-l-2 border-primary/20 pl-4 mb-4;
+.em-text-muted {
+  color: var(--em-text-muted);
 }
 
-.canvas-item {
-  @apply bg-muted/40 rounded-lg p-3 mb-2;
+
+/* ══════════════════════════════════════════════════════
+   GLASS-MORPHISM (overlays, modals, floating panels)
+   ══════════════════════════════════════════════════════ */
+
+.em-glass {
+  background: rgba(13, 13, 43, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 16px;
 }
 
-/* ── Focus ring ── */
-.dark *:focus-visible {
-  outline: 2px solid hsl(var(--ring) / 0.35);
-  outline-offset: 2px;
+
+/* ══════════════════════════════════════════════════════
+   BUTTON SYSTEM
+   ══════════════════════════════════════════════════════ */
+
+.em-btn-brand {
+  background: linear-gradient(135deg, #7C3AED 0%, #E040FB 100%);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  transition: opacity 200ms ease-out, box-shadow 200ms ease-out;
 }
 
-/* ── Aurora ambient background ── */
+.em-btn-brand:hover {
+  opacity: 0.92;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+}
+
+.em-btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  color: var(--em-cyan);
+  border-radius: 10px;
+  transition: background 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.em-btn-ghost:hover {
+  background: rgba(0, 229, 255, 0.06);
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.06);
+}
+
+
+/* ══════════════════════════════════════════════════════
+   AURORA AMBIENT BACKGROUND
+   ══════════════════════════════════════════════════════ */
+
 .em-aurora {
   position: relative;
 }
+
 .em-aurora::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 40% at 10% 0%, hsl(270 70% 55% / 0.06) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 90% 100%, hsl(190 100% 50% / 0.04) 0%, transparent 70%);
+    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 90% 100%, rgba(0, 229, 255, 0.03) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 
-/* ── Subtle noise texture for premium feel ── */
+
+/* ══════════════════════════════════════════════════════
+   NOISE TEXTURE
+   ══════════════════════════════════════════════════════ */
+
 .em-noise::before {
   content: "";
   position: absolute;
@@ -233,23 +369,53 @@
   z-index: 0;
 }
 
-/* ── Transition helpers ── */
+
+/* ══════════════════════════════════════════════════════
+   TRANSITIONS
+   ══════════════════════════════════════════════════════ */
+
 .em-transition-fast {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .em-transition {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Brand button gradient ── */
-.em-btn-brand {
-  background: linear-gradient(135deg, hsl(190 100% 45%), hsl(270 70% 50%));
-  color: white;
-  border: none;
-  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+
+/* ══════════════════════════════════════════════════════
+   FOCUS RING (cyan glow, no browser default)
+   ══════════════════════════════════════════════════════ */
+
+.dark *:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.3);
 }
-.em-btn-brand:hover {
-  opacity: 0.9;
-  box-shadow: 0 0 16px -4px hsl(190 100% 50% / 0.35);
+
+
+/* ══════════════════════════════════════════════════════
+   CODE EDITOR
+   ══════════════════════════════════════════════════════ */
+
+.code-editor {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   CANVAS / MISC
+   ══════════════════════════════════════════════════════ */
+
+.resize-handle {
+  @apply bg-border hover:bg-primary/40 transition-colors;
+}
+
+.canvas-section {
+  @apply border-l-2 border-primary/20 pl-4 mb-4;
+}
+
+.canvas-item {
+  @apply bg-muted/40 rounded-lg p-3 mb-2;
 }
