@@ -1,7 +1,7 @@
 {
   "test_report": {
     "title": "Sandbox/Workspace Clone UI Testing - MyMergent",
-    "url": "https://aurora-dome.preview.emergentagent.com",
+    "url": "https://aurora-glass-engine.preview.emergentagent.com",
     "credentials": "REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD",
     "test_date": "2026-01-19",
     "status": "PASSED",

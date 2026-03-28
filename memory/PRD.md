@@ -16,18 +16,20 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **Glass H7.1**: Premium glass — clear glass, no purple tint, neutral cool tone
 - **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards on aurora, credits/import UI
 - **Visual Correction Pass** (Mar 2026):
-  - Login panel: clear glossy glass (bg opacity 0.52, neutral fill, white specular)
+  - Login panel: crisp glossy glass (bg opacity 0.91-0.94, neutral fill, white specular 0.22)
   - TopBar: PNG logo only, removed gradient text
-  - Project cards: highly transparent glass (bg opacity 0.28-0.34), stronger top highlight
-  - All glass: shifted from purple-tinted to neutral cool, white+cyan specular edges
+  - Project cards: crisp glossy glass matching global `.em-glass` class
+  - All glass: shifted from ghosted/transparent to solid/crisp, neutral cool
+  - Core System button: teal/cyan futuristic style (not amber/yellow)
 
 ## Design Rules
-- Glass: bg `rgba(14,18,32, 0.28-0.34)`, blur 48px, saturate 1.4, brightness 1.12
-- Borders: `rgba(255,255,255, 0.07-0.08)` — NO purple tint
-- Specular: `rgba(255,255,255, 0.16)` top inset + white-to-cyan gradient line
+- Glass: bg `rgba(14,18,34, 0.90-0.94)`, blur 48px, saturate 1.7, brightness 1.12 — CRISP/GLOSSY, NOT ghosted
+- Borders: `rgba(255,255,255, 0.13)` — neutral cool, visible edge
+- Specular: `rgba(255,255,255, 0.22)` top inset + white-to-cyan gradient line (0.28 peak)
 - Aurora: TOP-ORIGIN dome, radial ribbon streaks, skewX wave, teal-to-purple
 - Background: dark navy #0C1018
 - Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
+- Core System button: teal/cyan style (border + text var(--em-cyan)), NOT yellow/amber
 
 ## Key Files
 - `/app/app/globals.css` — Token system + Aurora engine + Glass system

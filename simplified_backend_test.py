@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://aurora-dome.preview.emergentagent.com"
+BASE_URL = "https://aurora-glass-engine.preview.emergentagent.com"
 AUTH_EMAIL = "REDACTED_LEAKED_USER"
 AUTH_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 

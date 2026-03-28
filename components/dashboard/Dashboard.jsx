@@ -1612,7 +1612,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                         null
                       if (coreProject) openProjectWorkspace(coreProject)
                     }}
-                    className="px-3 py-1.5 rounded-lg text-[11px] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors duration-200"
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium border border-[rgba(0,229,255,0.2)] text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.08)] hover:border-[rgba(0,229,255,0.35)] transition-all duration-200"
                     data-testid="core-system-btn"
                   >
                     Core System

@@ -15,7 +15,7 @@
  *   /app/components/dashboard/BuilderMemory.jsx
  *
  * Test Environment:
- *   URL: https://aurora-dome.preview.emergentagent.com
+ *   URL: https://aurora-glass-engine.preview.emergentagent.com
  *   Auth: REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD  (Supabase)
  */
 
@@ -33,7 +33,7 @@ jest.mock('../../lib/supabase/db', () => ({
 }))
 
 /* ──────────────────────── constants ──────────────────────── */
-const BASE_URL       = 'https://aurora-dome.preview.emergentagent.com'
+const BASE_URL       = 'https://aurora-glass-engine.preview.emergentagent.com'
 const SUPABASE_URL   = 'https://cawmmqakaxbznbelcrwd.supabase.co'
 const SUPABASE_KEY   = 'sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22'
 const TEST_EMAIL     = 'REDACTED_LEAKED_USER'

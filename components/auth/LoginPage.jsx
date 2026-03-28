@@ -131,22 +131,21 @@ export default function LoginPage({ onAuthSuccess }) {
           className="relative rounded-2xl overflow-hidden"
           data-testid="login-card"
           style={{
-            background: 'linear-gradient(170deg, rgba(14, 18, 30, 0.52) 0%, rgba(12, 15, 26, 0.56) 40%, rgba(10, 13, 24, 0.58) 100%)',
-            backdropFilter: 'blur(54px) saturate(1.5) brightness(1.08)',
-            WebkitBackdropFilter: 'blur(54px) saturate(1.5) brightness(1.08)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'linear-gradient(170deg, rgba(14, 18, 34, 0.91) 0%, rgba(12, 16, 30, 0.93) 40%, rgba(10, 14, 28, 0.94) 100%)',
+            backdropFilter: 'blur(48px) saturate(1.7) brightness(1.12)',
+            WebkitBackdropFilter: 'blur(48px) saturate(1.7) brightness(1.12)',
+            border: '1px solid rgba(255, 255, 255, 0.13)',
             boxShadow: `
               0 20px 100px rgba(0, 0, 0, 0.5),
-              0 4px 50px rgba(0, 0, 0, 0.25),
-              0 0 80px rgba(0, 229, 255, 0.025),
-              inset 0 1px 0 rgba(255, 255, 255, 0.14),
-              inset 0 0 60px rgba(255, 255, 255, 0.015)
+              0 4px 50px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              inset 0 0 40px rgba(255, 255, 255, 0.02)
             `,
           }}
         >
           {/* Specular top edge — 1px crisp, color refraction */}
           <div className="absolute top-0 left-0 right-0 h-px" style={{
-            background: 'linear-gradient(90deg, transparent 3%, rgba(255,255,255,0.06) 10%, rgba(255,255,255,0.18) 22%, rgba(255,255,255,0.22) 35%, rgba(0,229,255,0.15) 50%, rgba(255,255,255,0.18) 65%, rgba(255,255,255,0.08) 82%, transparent 97%)',
+            background: 'linear-gradient(90deg, transparent 3%, rgba(255,255,255,0.08) 10%, rgba(255,255,255,0.22) 22%, rgba(255,255,255,0.28) 35%, rgba(0,229,255,0.18) 50%, rgba(255,255,255,0.22) 65%, rgba(255,255,255,0.10) 82%, transparent 97%)',
           }} />
           {/* Left edge highlight */}
           <div className="absolute top-0 left-0 w-px h-full" style={{
@@ -158,7 +157,7 @@ export default function LoginPage({ onAuthSuccess }) {
           }} />
           {/* Inner reflection — subtle, neutral */}
           <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none" style={{
-            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 40%, transparent 100%)',
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 40%, transparent 100%)',
           }} />
 
           <div className="relative p-8">
