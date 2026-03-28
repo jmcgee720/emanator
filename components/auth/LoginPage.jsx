@@ -176,11 +176,11 @@ export default function LoginPage({ onAuthSuccess }) {
               <div className="flex items-center gap-2 mb-3">
                 <Lock className="w-3.5 h-3.5" style={{ color: '#00E5FF', opacity: 0.5 }} />
                 <span className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: '#00E5FF', opacity: 0.5 }}>
-                  Private Access
+                  Secure Login
                 </span>
               </div>
               <h2 className="text-xl font-semibold" style={{ color: '#FFFFFF' }}>Welcome</h2>
-              <p className="text-sm mt-1.5" style={{ color: '#B0B4CC' }}>Sign in with your approved account</p>
+              <p className="text-sm mt-1.5" style={{ color: '#B0B4CC' }}>Sign in to your account</p>
             </div>
 
             {/* Tabs */}
@@ -273,7 +273,7 @@ export default function LoginPage({ onAuthSuccess }) {
                     {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Creating Account...</span> : 'Create Account'}
                   </button>
                   <p className="text-[11px] text-center pt-1" style={{ color: '#8A8EA6' }}>
-                    You need to be on the allowlist to access the platform after signing up.
+                    By signing up you agree to our terms of service.
                   </p>
                 </form>
               </TabsContent>
@@ -284,7 +284,7 @@ export default function LoginPage({ onAuthSuccess }) {
 
       {/* Footer */}
       <p className="relative z-10 text-center text-[11px] mt-10 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
-        Private internal tool — access by invitation only
+        Emanator — AI Builder Platform
       </p>
     </div>
   )
