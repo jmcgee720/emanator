@@ -359,322 +359,261 @@
 
 
 /* ══════════════════════════════════════════════════════
-   AURORA BOREALIS VISUAL ENGINE — Phase H7.1
-   Vertical light curtains with filament texture,
-   organic folding motion, layered density.
+   AURORA BOREALIS VISUAL ENGINE — Phase H8
+   Curtain-fold ribbon structures with arcing sweep,
+   bright inner cores, soft feathered glow, organic motion.
    Brand: cyan, violet, magenta — subtle teal accent.
    ══════════════════════════════════════════════════════ */
 
-/* ── Aurora keyframes: organic, folding, drifting ── */
-@keyframes em-aurora-fold-1 {
-  0%   { transform: translateX(0%) scaleX(1) skewX(0deg); }
-  12%  { transform: translateX(1.2%) scaleX(1.04) skewX(-0.5deg); }
-  28%  { transform: translateX(-0.6%) scaleX(0.97) skewX(0.3deg); }
-  42%  { transform: translateX(1.8%) scaleX(1.02) skewX(-0.7deg); }
-  58%  { transform: translateX(-1.4%) scaleX(0.98) skewX(0.5deg); }
-  72%  { transform: translateX(0.5%) scaleX(1.03) skewX(-0.2deg); }
-  88%  { transform: translateX(-0.8%) scaleX(0.99) skewX(0.4deg); }
-  100% { transform: translateX(0%) scaleX(1) skewX(0deg); }
+/* ── Keyframes: slow drift, arc variation, organic deformation ── */
+@keyframes em-aurora-drift-a {
+  0%   { transform: rotate(var(--au-rot, -4deg)) translate(0, 0) scaleX(1); }
+  18%  { transform: rotate(calc(var(--au-rot, -4deg) + 0.8deg)) translate(1.2%, -0.4%) scaleX(1.03); }
+  38%  { transform: rotate(calc(var(--au-rot, -4deg) - 0.5deg)) translate(-0.8%, 0.3%) scaleX(0.98); }
+  55%  { transform: rotate(calc(var(--au-rot, -4deg) + 1deg)) translate(0.6%, -0.7%) scaleX(1.02); }
+  72%  { transform: rotate(calc(var(--au-rot, -4deg) - 0.3deg)) translate(-0.4%, 0.2%) scaleX(0.99); }
+  88%  { transform: rotate(calc(var(--au-rot, -4deg) + 0.4deg)) translate(0.3%, -0.2%) scaleX(1.01); }
+  100% { transform: rotate(var(--au-rot, -4deg)) translate(0, 0) scaleX(1); }
 }
 
-@keyframes em-aurora-fold-2 {
-  0%   { transform: translateX(0%) scaleX(1) skewX(0deg); }
-  15%  { transform: translateX(-1.5%) scaleX(0.96) skewX(0.6deg); }
-  35%  { transform: translateX(1.1%) scaleX(1.05) skewX(-0.4deg); }
-  50%  { transform: translateX(-0.3%) scaleX(0.98) skewX(0.2deg); }
-  68%  { transform: translateX(1.6%) scaleX(1.03) skewX(-0.6deg); }
-  82%  { transform: translateX(-1.0%) scaleX(0.97) skewX(0.3deg); }
-  100% { transform: translateX(0%) scaleX(1) skewX(0deg); }
+@keyframes em-aurora-drift-b {
+  0%   { transform: rotate(var(--au-rot, 3deg)) translate(0, 0) scaleX(1); }
+  22%  { transform: rotate(calc(var(--au-rot, 3deg) - 0.7deg)) translate(-1%, 0.5%) scaleX(0.97); }
+  42%  { transform: rotate(calc(var(--au-rot, 3deg) + 0.6deg)) translate(0.9%, -0.4%) scaleX(1.04); }
+  62%  { transform: rotate(calc(var(--au-rot, 3deg) - 0.4deg)) translate(-0.5%, 0.3%) scaleX(0.98); }
+  82%  { transform: rotate(calc(var(--au-rot, 3deg) + 0.5deg)) translate(0.4%, -0.3%) scaleX(1.02); }
+  100% { transform: rotate(var(--au-rot, 3deg)) translate(0, 0) scaleX(1); }
 }
 
-@keyframes em-aurora-fold-3 {
-  0%   { transform: translateX(0%) scaleX(1) skewX(0deg) translateY(0); }
-  20%  { transform: translateX(0.8%) scaleX(1.02) skewX(-0.3deg) translateY(-0.5%); }
-  45%  { transform: translateX(-1.3%) scaleX(0.97) skewX(0.5deg) translateY(0.3%); }
-  65%  { transform: translateX(1.0%) scaleX(1.04) skewX(-0.4deg) translateY(-0.8%); }
-  85%  { transform: translateX(-0.5%) scaleX(0.99) skewX(0.2deg) translateY(0.2%); }
-  100% { transform: translateX(0%) scaleX(1) skewX(0deg) translateY(0); }
+@keyframes em-aurora-drift-c {
+  0%   { transform: rotate(var(--au-rot, -1deg)) translate(0, 0) scaleX(1) scaleY(1); }
+  25%  { transform: rotate(calc(var(--au-rot, -1deg) + 0.5deg)) translate(0.6%, -0.3%) scaleX(1.02) scaleY(1.01); }
+  50%  { transform: rotate(calc(var(--au-rot, -1deg) - 0.4deg)) translate(-0.7%, 0.4%) scaleX(0.98) scaleY(0.99); }
+  75%  { transform: rotate(calc(var(--au-rot, -1deg) + 0.3deg)) translate(0.3%, -0.5%) scaleX(1.01) scaleY(1.02); }
+  100% { transform: rotate(var(--au-rot, -1deg)) translate(0, 0) scaleX(1) scaleY(1); }
 }
 
-@keyframes em-aurora-breathe {
-  0%, 100% { opacity: var(--aurora-breathe-lo, 0.5); }
-  30%      { opacity: var(--aurora-breathe-hi, 0.8); }
-  55%      { opacity: var(--aurora-breathe-lo, 0.5); }
-  78%      { opacity: var(--aurora-breathe-hi, 0.8); }
+@keyframes em-aurora-pulse {
+  0%, 100% { opacity: var(--au-lo, 0.6); }
+  28%      { opacity: var(--au-hi, 1); }
+  56%      { opacity: var(--au-lo, 0.6); }
+  80%      { opacity: var(--au-hi, 1); }
 }
 
-@keyframes em-aurora-undulate {
-  0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
-  30%      { transform: translateY(-1.5%) scaleY(1.02) scaleX(0.99); }
-  60%      { transform: translateY(0.5%) scaleY(0.99) scaleX(1.01); }
-  80%      { transform: translateY(-0.8%) scaleY(1.01) scaleX(1); }
-}
 
-@keyframes em-aurora-filament-drift {
-  0%, 100% { background-position: 0px 0px; }
-  40%      { background-position: 1px -5px; }
-  70%      { background-position: 2px -8px; }
-}
-
-/* ── Base aurora void (deeper) ── */
+/* ── Base aurora void ── */
 .em-aurora {
   position: relative;
   overflow: hidden;
   background: #030316;
 }
 
-/* Layer 0: atmospheric depth foundation */
 .em-aurora::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 100% 40% at 50% 110%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 30% at 30% 0%, rgba(0, 229, 255, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse 40% 25% at 75% 0%, rgba(124, 58, 237, 0.025) 0%, transparent 50%),
-    linear-gradient(180deg, #030314 0%, #050520 40%, #06062A 100%);
+    radial-gradient(ellipse 100% 45% at 50% 105%, rgba(124, 58, 237, 0.035) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 25% at 30% 10%, rgba(0, 229, 255, 0.015) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 20% at 72% 8%, rgba(124, 58, 237, 0.015) 0%, transparent 50%),
+    linear-gradient(180deg, #030314 0%, #04041C 35%, #060628 100%);
   z-index: 0;
 }
 
-/* ── VEIL 1: Cyan curtain — left-of-center, with filament texture ── */
+
+/* ═══════════════════════════════════════════
+   VEIL 1 — Cyan aurora formation (left/center sweep)
+   ═══════════════════════════════════════════ */
 .em-aurora-veil-1 {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  mix-blend-mode: screen;
+  /* Broad atmospheric wash behind the curtains */
+  background: radial-gradient(ellipse 65% 40% at 32% 28%, rgba(0, 229, 255, 0.02) 0%, transparent 70%);
 }
 
-/* Primary cyan curtain — broad, with clear filament texture */
+/* Primary cyan curtain cluster — 6 vertical folds arcing left-to-center */
 .em-aurora-veil-1::before {
   content: "";
   position: absolute;
-  top: -35%;
-  left: 15%;
-  width: 20%;
-  height: 170%;
+  top: -5%;
+  left: -5%;
+  width: 72%;
+  height: 80%;
+  border-radius: 30% 50% 45% 35% / 40% 30% 50% 45%;
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      rgba(0, 229, 255, 0.05) 1px,
-      rgba(0, 229, 255, 0.11) 2px,
-      transparent 4px,
-      transparent 8px,
-      rgba(0, 229, 255, 0.04) 9px,
-      transparent 10px,
-      transparent 15px
-    ),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(0, 229, 255, 0.04) 10%,
-      rgba(0, 229, 255, 0.11) 28%,
-      rgba(0, 229, 255, 0.16) 42%,
-      rgba(0, 229, 255, 0.08) 58%,
-      rgba(0, 229, 255, 0.03) 78%,
-      transparent 100%
-    );
-  filter: blur(15px);
+    radial-gradient(ellipse 6% 65% at 12% 38%, rgba(0,229,255,0.20) 0%, rgba(0,229,255,0.03) 55%, transparent 100%),
+    radial-gradient(ellipse 8% 75% at 26% 42%, rgba(0,229,255,0.30) 0%, rgba(0,229,255,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 5% 60% at 38% 36%, rgba(0,229,255,0.16) 0%, rgba(0,229,255,0.02) 55%, transparent 100%),
+    radial-gradient(ellipse 9% 78% at 52% 44%, rgba(0,229,255,0.28) 0%, rgba(0,229,255,0.04) 48%, transparent 100%),
+    radial-gradient(ellipse 5% 58% at 64% 40%, rgba(0,229,255,0.14) 0%, transparent 100%),
+    radial-gradient(ellipse 7% 68% at 78% 43%, rgba(0,229,255,0.18) 0%, rgba(0,229,255,0.02) 55%, transparent 100%),
+    radial-gradient(ellipse 85% 45% at 48% 42%, rgba(0,229,255,0.025) 0%, transparent 65%);
+  filter: blur(12px);
+  --au-rot: -4deg;
   animation:
-    em-aurora-fold-1 26s ease-in-out infinite,
-    em-aurora-breathe 17s ease-in-out infinite;
-  --aurora-breathe-lo: 0.55;
-  --aurora-breathe-hi: 1;
+    em-aurora-drift-a 34s ease-in-out infinite,
+    em-aurora-pulse 20s ease-in-out infinite;
+  --au-lo: 0.6;
+  --au-hi: 1;
   will-change: transform, opacity;
 }
 
-/* Secondary cyan filament — thinner, sharper, offset speed */
+/* Secondary cyan curtain — thinner, lower, offset arc */
 .em-aurora-veil-1::after {
   content: "";
   position: absolute;
-  top: -25%;
-  left: 28%;
-  width: 11%;
-  height: 150%;
+  top: 18%;
+  left: 8%;
+  width: 58%;
+  height: 55%;
+  border-radius: 45% 35% 40% 50% / 35% 45% 40% 30%;
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      rgba(0, 229, 255, 0.07) 1px,
-      transparent 2px,
-      transparent 5px,
-      rgba(0, 229, 255, 0.04) 6px,
-      transparent 7px,
-      transparent 12px
-    ),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(0, 229, 255, 0.03) 18%,
-      rgba(0, 229, 255, 0.12) 40%,
-      rgba(0, 229, 255, 0.07) 60%,
-      rgba(0, 229, 255, 0.02) 80%,
-      transparent 100%
-    );
-  filter: blur(10px);
+    radial-gradient(ellipse 7% 60% at 20% 42%, rgba(0,229,255,0.12) 0%, rgba(0,229,255,0.02) 55%, transparent 100%),
+    radial-gradient(ellipse 5% 55% at 40% 38%, rgba(0,229,255,0.16) 0%, rgba(0,229,255,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 8% 65% at 58% 44%, rgba(0,229,255,0.14) 0%, rgba(0,229,255,0.02) 52%, transparent 100%),
+    radial-gradient(ellipse 6% 52% at 76% 40%, rgba(0,229,255,0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 80% 38% at 50% 42%, rgba(0,229,255,0.015) 0%, transparent 60%);
+  filter: blur(16px);
+  --au-rot: -1.5deg;
   animation:
-    em-aurora-fold-2 31s ease-in-out infinite 2.5s,
-    em-aurora-breathe 22s ease-in-out infinite 4s,
-    em-aurora-filament-drift 14s ease-in-out infinite;
-  --aurora-breathe-lo: 0.35;
-  --aurora-breathe-hi: 0.9;
+    em-aurora-drift-c 42s ease-in-out infinite 3s,
+    em-aurora-pulse 26s ease-in-out infinite 5s;
+  --au-lo: 0.35;
+  --au-hi: 0.8;
   will-change: transform, opacity;
 }
 
-/* ── VEIL 2: Violet curtain — center-right, with filament texture ── */
+
+/* ═══════════════════════════════════════════
+   VEIL 2 — Violet aurora formation (right/center sweep)
+   ═══════════════════════════════════════════ */
 .em-aurora-veil-2 {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse 60% 38% at 68% 26%, rgba(124, 58, 237, 0.018) 0%, transparent 70%);
 }
 
-/* Primary violet curtain — clear filament texture */
+/* Primary violet curtain cluster — folds arcing right-to-center */
 .em-aurora-veil-2::before {
   content: "";
   position: absolute;
-  top: -30%;
-  right: 12%;
-  width: 24%;
-  height: 165%;
+  top: -2%;
+  right: -8%;
+  width: 70%;
+  height: 75%;
+  border-radius: 50% 30% 35% 55% / 35% 45% 35% 40%;
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      rgba(124, 58, 237, 0.04) 1px,
-      rgba(124, 58, 237, 0.09) 2px,
-      transparent 4px,
-      transparent 9px,
-      rgba(124, 58, 237, 0.03) 10px,
-      transparent 11px,
-      transparent 17px
-    ),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(124, 58, 237, 0.03) 8%,
-      rgba(124, 58, 237, 0.10) 25%,
-      rgba(124, 58, 237, 0.15) 45%,
-      rgba(124, 58, 237, 0.10) 60%,
-      rgba(124, 58, 237, 0.04) 78%,
-      rgba(124, 58, 237, 0.01) 90%,
-      transparent 100%
-    );
-  filter: blur(17px);
+    radial-gradient(ellipse 7% 68% at 15% 40%, rgba(124,58,237,0.14) 0%, rgba(124,58,237,0.02) 55%, transparent 100%),
+    radial-gradient(ellipse 9% 76% at 32% 44%, rgba(124,58,237,0.24) 0%, rgba(124,58,237,0.04) 48%, transparent 100%),
+    radial-gradient(ellipse 6% 62% at 48% 38%, rgba(124,58,237,0.18) 0%, rgba(124,58,237,0.03) 52%, transparent 100%),
+    radial-gradient(ellipse 8% 72% at 62% 46%, rgba(124,58,237,0.22) 0%, rgba(124,58,237,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 5% 55% at 75% 42%, rgba(124,58,237,0.12) 0%, transparent 100%),
+    radial-gradient(ellipse 7% 64% at 88% 40%, rgba(124,58,237,0.16) 0%, rgba(124,58,237,0.02) 54%, transparent 100%),
+    radial-gradient(ellipse 82% 42% at 52% 42%, rgba(124,58,237,0.02) 0%, transparent 65%);
+  filter: blur(14px);
+  --au-rot: 3.5deg;
   animation:
-    em-aurora-fold-2 29s ease-in-out infinite 1.5s,
-    em-aurora-breathe 19s ease-in-out infinite 3s;
-  --aurora-breathe-lo: 0.45;
-  --aurora-breathe-hi: 0.95;
+    em-aurora-drift-b 30s ease-in-out infinite 1.5s,
+    em-aurora-pulse 22s ease-in-out infinite 3s;
+  --au-lo: 0.5;
+  --au-hi: 0.95;
   will-change: transform, opacity;
 }
 
-/* Secondary violet filament — thinner, sharper */
+/* Secondary violet curtain — upper arc, thinner */
 .em-aurora-veil-2::after {
   content: "";
   position: absolute;
-  top: -18%;
-  right: 28%;
-  width: 13%;
-  height: 140%;
+  top: -8%;
+  right: 5%;
+  width: 50%;
+  height: 50%;
+  border-radius: 40% 55% 50% 35% / 40% 30% 45% 35%;
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      rgba(124, 58, 237, 0.06) 1px,
-      transparent 2px,
-      transparent 6px,
-      rgba(124, 58, 237, 0.04) 7px,
-      transparent 8px,
-      transparent 14px
-    ),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(124, 58, 237, 0.02) 22%,
-      rgba(124, 58, 237, 0.10) 48%,
-      rgba(124, 58, 237, 0.05) 68%,
-      transparent 100%
-    );
-  filter: blur(12px);
+    radial-gradient(ellipse 6% 58% at 22% 45%, rgba(124,58,237,0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 8% 65% at 45% 40%, rgba(124,58,237,0.14) 0%, rgba(124,58,237,0.02) 52%, transparent 100%),
+    radial-gradient(ellipse 5% 52% at 68% 44%, rgba(124,58,237,0.08) 0%, transparent 100%),
+    radial-gradient(ellipse 7% 60% at 85% 42%, rgba(124,58,237,0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 75% 35% at 55% 44%, rgba(124,58,237,0.012) 0%, transparent 60%);
+  filter: blur(18px);
+  --au-rot: 5deg;
   animation:
-    em-aurora-fold-3 34s ease-in-out infinite,
-    em-aurora-undulate 28s ease-in-out infinite 5s;
+    em-aurora-drift-a 38s ease-in-out infinite 5s,
+    em-aurora-pulse 28s ease-in-out infinite 8s;
+  --au-lo: 0.3;
+  --au-hi: 0.7;
   will-change: transform, opacity;
 }
 
-/* ── VEIL 3: Magenta accent + teal atmosphere ── */
+
+/* ═══════════════════════════════════════════
+   VEIL 3 — Magenta accent + teal atmosphere
+   ═══════════════════════════════════════════ */
 .em-aurora-veil-3 {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse 50% 30% at 50% 32%, rgba(224, 64, 251, 0.008) 0%, transparent 60%);
 }
 
-/* Magenta accent ribbon with filament */
+/* Magenta accent curtain — thinner connecting band */
 .em-aurora-veil-3::before {
   content: "";
   position: absolute;
-  top: -22%;
-  left: 48%;
-  width: 16%;
-  height: 145%;
+  top: 5%;
+  left: 22%;
+  width: 55%;
+  height: 55%;
+  border-radius: 45% 55% 40% 50% / 35% 40% 45% 30%;
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      rgba(224, 64, 251, 0.04) 1px,
-      transparent 3px,
-      transparent 10px,
-      rgba(224, 64, 251, 0.02) 11px,
-      transparent 12px,
-      transparent 20px
-    ),
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(224, 64, 251, 0.02) 15%,
-      rgba(224, 64, 251, 0.08) 38%,
-      rgba(224, 64, 251, 0.06) 55%,
-      rgba(224, 64, 251, 0.02) 72%,
-      transparent 100%
-    );
-  filter: blur(22px);
+    radial-gradient(ellipse 6% 58% at 20% 42%, rgba(224,64,251,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 8% 66% at 42% 46%, rgba(224,64,251,0.12) 0%, rgba(224,64,251,0.02) 52%, transparent 100%),
+    radial-gradient(ellipse 5% 52% at 60% 40%, rgba(224,64,251,0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 7% 60% at 80% 44%, rgba(224,64,251,0.08) 0%, transparent 100%),
+    radial-gradient(ellipse 78% 35% at 50% 44%, rgba(224,64,251,0.01) 0%, transparent 60%);
+  filter: blur(20px);
+  --au-rot: -2deg;
   animation:
-    em-aurora-fold-3 38s ease-in-out infinite 6s,
-    em-aurora-breathe 25s ease-in-out infinite 8s;
-  --aurora-breathe-lo: 0.25;
-  --aurora-breathe-hi: 0.8;
+    em-aurora-drift-c 44s ease-in-out infinite 7s,
+    em-aurora-pulse 30s ease-in-out infinite 10s;
+  --au-lo: 0.25;
+  --au-hi: 0.7;
   will-change: transform, opacity;
 }
 
-/* Subtle teal atmospheric hint — never dominant */
+/* Subtle teal atmospheric mist — very faint, wide */
 .em-aurora-veil-3::after {
   content: "";
   position: absolute;
-  top: -12%;
-  left: 3%;
-  width: 9%;
-  height: 125%;
+  top: 15%;
+  left: -5%;
+  width: 45%;
+  height: 45%;
+  border-radius: 55% 40% 50% 45% / 40% 50% 35% 40%;
   background:
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(0, 204, 153, 0.015) 28%,
-      rgba(0, 204, 153, 0.035) 48%,
-      rgba(0, 204, 153, 0.015) 68%,
-      transparent 100%
-    );
-  filter: blur(30px);
-  animation: em-aurora-fold-1 44s ease-in-out infinite 3s;
-  opacity: 0.5;
+    radial-gradient(ellipse 5% 50% at 30% 45%, rgba(0,204,153,0.025) 0%, transparent 100%),
+    radial-gradient(ellipse 7% 55% at 60% 42%, rgba(0,204,153,0.02) 0%, transparent 100%),
+    radial-gradient(ellipse 70% 40% at 45% 45%, rgba(0,204,153,0.008) 0%, transparent 60%);
+  filter: blur(28px);
+  --au-rot: 1deg;
+  animation: em-aurora-drift-b 50s ease-in-out infinite 4s;
+  opacity: 0.45;
   will-change: transform;
 }
 
-/* ── Atmospheric horizon glow (bottom edge) ── */
+
+/* ── Atmospheric horizon glow ── */
 .em-aurora-horizon {
   position: absolute;
   bottom: 0;
@@ -684,9 +623,9 @@
   pointer-events: none;
   z-index: 1;
   background:
-    radial-gradient(ellipse 80% 40% at 30% 100%, rgba(0, 229, 255, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 35% at 70% 100%, rgba(124, 58, 237, 0.04) 0%, transparent 50%),
-    linear-gradient(0deg, rgba(124, 58, 237, 0.03) 0%, rgba(0, 229, 255, 0.015) 30%, transparent 100%);
+    radial-gradient(ellipse 75% 40% at 30% 100%, rgba(0, 229, 255, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse 55% 35% at 72% 100%, rgba(124, 58, 237, 0.025) 0%, transparent 50%),
+    linear-gradient(0deg, rgba(6, 6, 30, 0.5) 0%, transparent 50%);
 }
 
 /* Noise grain */
@@ -695,79 +634,73 @@
   inset: 0;
   pointer-events: none;
   z-index: 2;
-  opacity: 0.025;
+  opacity: 0.022;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 
-/* ── PAGE VARIANT: Login (most dramatic — bright, wide, vivid filaments) ── */
+/* ── PAGE VARIANT: Login (cinematic — vivid, sharp folds) ── */
 .em-aurora--login .em-aurora-veil-1::before {
-  opacity: 1;
-  width: 26%;
-  filter: blur(16px);
-  --aurora-breathe-lo: 0.7;
-  --aurora-breathe-hi: 1;
+  filter: blur(8px);
+  --au-lo: 0.75;
+  --au-hi: 1;
 }
 .em-aurora--login .em-aurora-veil-1::after {
-  opacity: 1;
-  width: 15%;
-  filter: blur(10px);
+  filter: blur(12px);
+  --au-lo: 0.5;
+  --au-hi: 0.9;
 }
 .em-aurora--login .em-aurora-veil-2::before {
-  opacity: 1;
-  width: 28%;
-  filter: blur(18px);
-  --aurora-breathe-lo: 0.65;
-  --aurora-breathe-hi: 1;
+  filter: blur(10px);
+  --au-lo: 0.65;
+  --au-hi: 1;
 }
 .em-aurora--login .em-aurora-veil-2::after {
-  opacity: 0.9;
-  filter: blur(11px);
+  filter: blur(14px);
+  --au-lo: 0.45;
+  --au-hi: 0.8;
 }
 .em-aurora--login .em-aurora-veil-3::before {
-  opacity: 0.9;
-  width: 20%;
-  filter: blur(18px);
-  --aurora-breathe-lo: 0.5;
-  --aurora-breathe-hi: 1;
-}
-.em-aurora--login .em-aurora-veil-3::after {
-  opacity: 0.45;
+  filter: blur(16px);
+  --au-lo: 0.4;
+  --au-hi: 0.85;
 }
 
 /* ── PAGE VARIANT: Dashboard / Project Bin (welcoming, balanced) ── */
 .em-aurora--dashboard .em-aurora-veil-1::before {
-  opacity: 0.75;
+  --au-lo: 0.55;
+  --au-hi: 0.9;
 }
 .em-aurora--dashboard .em-aurora-veil-1::after {
-  opacity: 0.6;
+  --au-lo: 0.3;
+  --au-hi: 0.7;
 }
 .em-aurora--dashboard .em-aurora-veil-2::before {
-  opacity: 0.7;
+  --au-lo: 0.45;
+  --au-hi: 0.85;
 }
 .em-aurora--dashboard .em-aurora-veil-2::after {
-  opacity: 0.55;
+  --au-lo: 0.25;
+  --au-hi: 0.6;
 }
 .em-aurora--dashboard .em-aurora-veil-3::before {
-  opacity: 0.5;
-}
-.em-aurora--dashboard .em-aurora-veil-3::after {
-  opacity: 0.3;
+  --au-lo: 0.2;
+  --au-hi: 0.55;
 }
 
-/* ── PAGE VARIANT: Workspace (darker, focused — subdued veils) ── */
+/* ── PAGE VARIANT: Workspace (dimmer, focused) ── */
 .em-aurora--focused .em-aurora-veil-1::before {
-  opacity: 0.3;
-  --aurora-breathe-lo: 0.2;
-  --aurora-breathe-hi: 0.4;
+  opacity: 0.35;
+  --au-lo: 0.25;
+  --au-hi: 0.4;
 }
 .em-aurora--focused .em-aurora-veil-1::after {
   opacity: 0.2;
 }
 .em-aurora--focused .em-aurora-veil-2::before {
-  opacity: 0.25;
-  --aurora-breathe-lo: 0.18;
-  --aurora-breathe-hi: 0.35;
+  opacity: 0.3;
+  --au-lo: 0.2;
+  --au-hi: 0.35;
 }
 .em-aurora--focused .em-aurora-veil-2::after {
   opacity: 0.18;
@@ -779,24 +712,21 @@
   opacity: 0.08;
 }
 
-/* ── PAGE VARIANT: Review (energized — faster breathing, brighter) ── */
+/* ── PAGE VARIANT: Review (energized — faster pulse) ── */
 .em-aurora--review .em-aurora-veil-1::before {
-  opacity: 0.85;
-  --aurora-breathe-lo: 0.6;
-  --aurora-breathe-hi: 1;
-  animation-duration: 20s, 10s;
+  --au-lo: 0.6;
+  --au-hi: 1;
+  animation-duration: 26s, 14s;
 }
 .em-aurora--review .em-aurora-veil-2::before {
-  opacity: 0.8;
-  --aurora-breathe-lo: 0.55;
-  --aurora-breathe-hi: 1;
-  animation-duration: 22s, 12s;
+  --au-lo: 0.55;
+  --au-hi: 1;
+  animation-duration: 24s, 16s;
 }
 .em-aurora--review .em-aurora-veil-3::before {
-  opacity: 0.7;
-  --aurora-breathe-lo: 0.4;
-  --aurora-breathe-hi: 0.9;
-  animation-duration: 26s, 14s;
+  --au-lo: 0.35;
+  --au-hi: 0.8;
+  animation-duration: 32s, 18s;
 }
 
 
