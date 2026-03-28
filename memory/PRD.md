@@ -43,7 +43,9 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - `/app/app/globals.css` — Token system + Aurora engine + Glass system + Intensity modifiers
 - `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals + aurora state + credits
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits balance, import, search, aurora intensity, user menu
-- `/app/components/auth/LoginPage.jsx` — Login + clear glass + aurora
+- `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + clear glass + aurora
+- `/app/app/page.js` — Auth flow with OAuth provider detection
+- `/app/app/auth/callback/route.js` — OAuth callback handler
 - `/app/hooks/useAuroraState.js` — Aurora intensity, boost, state mode hook
 - `/app/lib/credits/service.js` — Credits MongoDB service (balance, deduct, add, usage history)
 - `/app/lib/credits/config.js` — Credit cost model and packages
