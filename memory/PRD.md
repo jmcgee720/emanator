@@ -41,13 +41,15 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 
 ## Key Files
 - `/app/app/globals.css` — Token system + Aurora engine + Glass system + Intensity modifiers
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals + aurora state
-- `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, aurora intensity, user menu
+- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals + aurora state + credits
+- `/app/components/dashboard/TopBar.jsx` — Logo, credits balance, import, search, aurora intensity, user menu
 - `/app/components/auth/LoginPage.jsx` — Login + clear glass + aurora
 - `/app/hooks/useAuroraState.js` — Aurora intensity, boost, state mode hook
+- `/app/lib/credits/service.js` — Credits MongoDB service (balance, deduct, add, usage history)
+- `/app/lib/credits/config.js` — Credit cost model and packages
 
 ## Backlog
-- P1: Credits backend integration
 - P2: ChatComposer, ModelSelector, SearchPanel token pass
 - P2: Refactor `lib/ai/service.js`
 - P3: GitHub repository import (Connect Repository)
+- P3: Credits persistence via Stripe/payment integration
