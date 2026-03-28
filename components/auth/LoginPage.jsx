@@ -106,13 +106,15 @@ export default function LoginPage({ onAuthSuccess }) {
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden em-aurora em-aurora--login" data-testid="login-page">
 
       {/* ── AURORA BOREALIS BACKGROUND (dramatic login variant) ── */}
-      <div className="em-aurora-veil-1" />
-      <div className="em-aurora-veil-2" />
-      <div className="em-aurora-veil-3" />
-      <div className="em-aurora-veil-4" />
-      <div className="em-aurora-veil-5" />
-      <div className="em-aurora-veil-6" />
-      <div className="em-aurora-horizon" />
+      <div className="em-aurora-containment">
+        <div className="em-aurora-veil-1" />
+        <div className="em-aurora-veil-2" />
+        <div className="em-aurora-veil-3" />
+        <div className="em-aurora-veil-4" />
+        <div className="em-aurora-veil-5" />
+        <div className="em-aurora-veil-6" />
+        <div className="em-aurora-horizon" />
+      </div>
       <div className="em-aurora-noise" />
 
 
