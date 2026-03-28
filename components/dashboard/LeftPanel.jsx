@@ -340,12 +340,12 @@ export default function LeftPanel({
       >
         <div className="p-3 space-y-4 w-full min-w-0">
           {messages.length === 0 ? (
-            <div className="text-center py-20 relative z-10">
-              <div className="w-11 h-11 mx-auto rounded-lg flex items-center justify-center mb-4 em-glow-cyan" style={{background: 'linear-gradient(135deg, hsl(190 100% 50% / 0.12), hsl(270 70% 55% / 0.08))'}}>
+            <div className="text-center py-20 relative z-10 em-panel-enter">
+              <div className="w-11 h-11 mx-auto rounded-lg flex items-center justify-center mb-4 em-glow-cyan" style={{background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(124,58,237,0.08))'}}>
                 <Zap className="w-5 h-5 text-[#00E5FF]" />
               </div>
-              <p className="text-sm font-medium text-foreground/70 mb-1">Start a conversation</p>
-              <p className="text-[11px] text-muted-foreground/50 max-w-[200px] mx-auto leading-relaxed">
+              <p className="text-sm font-medium em-text-secondary mb-1">Start a conversation</p>
+              <p className="text-[11px] em-text-muted max-w-[200px] mx-auto leading-relaxed">
                 Describe what you want to build and I'll help you create it
               </p>
             </div>
@@ -364,11 +364,11 @@ export default function LeftPanel({
                 <div
                   key={message.id}
                   data-testid={`message-${message.id}`}
-                  className={`flex gap-3 w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}
+                  className={`em-message-enter flex gap-3 w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}
                 >
                   {/* Avatar */}
-                  <div className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5 ${
-                    isUser ? 'bg-[hsl(190_100%_50%/0.1)] border border-[hsl(190_100%_50%/0.15)]' : isProviderError ? 'bg-amber-900/20 border border-amber-500/10' : 'bg-[hsl(270_70%_55%/0.08)] border border-[hsl(270_70%_55%/0.12)]'
+                  <div className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5 transition-all duration-200 ${
+                    isUser ? 'bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.15)]' : isProviderError ? 'bg-amber-900/20 border border-amber-500/10' : `bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.12)] ${isMessageStreaming ? 'em-streaming-breathe em-streaming-glow' : ''}`
                   }`}>
                     {isUser ? (
                       <User className="w-3 h-3 text-[#00E5FF]/70" />
@@ -428,10 +428,10 @@ export default function LeftPanel({
                         </span>
                       </div>
                     )}
-                    <div className={`rounded-lg px-3.5 py-2.5 min-w-0 overflow-hidden ${
+                    <div className={`rounded-xl px-3.5 py-2.5 min-w-0 overflow-hidden transition-all duration-200 ${
                       isUser
-                        ? 'bg-[hsl(190_100%_50%/0.06)] border border-[hsl(190_100%_50%/0.12)] text-foreground max-w-[85%]'
-                        : 'bg-muted/30 border border-border/25 w-full'
+                        ? 'bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.12)] text-[var(--em-text-primary)] max-w-[85%]'
+                        : 'bg-[rgba(20,20,56,0.5)] border border-[rgba(124,58,237,0.1)] w-full'
                     } ${isTemp ? 'opacity-50' : ''}`}>
                       {isUser ? (
                         <div>
@@ -499,13 +499,13 @@ export default function LeftPanel({
                               <>
                                 <MessageRenderer content={message.content} />
                                 {isMessageStreaming && (
-                                  <span className="inline-block w-2 h-4 bg-primary/80 animate-pulse rounded-sm ml-0.5 align-text-bottom" data-testid="streaming-cursor" />
+                                  <span className="em-streaming-cursor" data-testid="streaming-cursor" />
                                 )}
                               </>
                             )
                           })()}
                           {isCollapsed && (
-                            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[hsl(var(--muted)/0.3)] to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[rgba(20,20,56,0.5)] to-transparent" />
                           )}
                         </div>
                         {message.metadata?.proposedPlan && message.metadata?.planStatus !== 'cancelled' && (
@@ -576,20 +576,20 @@ export default function LeftPanel({
 
           {/* Streaming status indicator (non-image generation) */}
           {isStreaming && streamingStatus && !imageGenProgress && (
-            <div className="flex gap-3" data-testid="streaming-indicator">
-              <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20 border-amber-500/20' : 'bg-muted/50 border-border/30'
+            <div className="flex gap-3 em-message-enter" data-testid="streaming-indicator">
+              <div className={`w-6 h-6 rounded-md border flex items-center justify-center em-streaming-breathe ${
+                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20 border-amber-500/20' : 'bg-[rgba(124,58,237,0.08)] border-[rgba(124,58,237,0.12)] em-streaming-glow'
               }`}>
                 {streamingStatus.stage === 'provider_fallback'
                   ? <Clock className="w-3 h-3 text-amber-400" />
-                  : <Zap className="w-3 h-3 text-muted-foreground/50" />}
+                  : <Zap className="w-3 h-3 text-[var(--em-text-muted)]" />}
               </div>
-              <div className={`rounded-lg px-3.5 py-2.5 ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : 'bg-muted/30 border border-border/25'
+              <div className={`rounded-xl px-3.5 py-2.5 transition-all duration-200 ${
+                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : 'bg-[rgba(20,20,56,0.5)] border border-[rgba(124,58,237,0.1)]'
               }`}>
                 <div className="flex items-center gap-2">
-                  <Loader2 className={`w-4 h-4 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-primary'}`} />
-                  <span className={`text-sm ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground'}`}>{streamingStatus.detail || 'Generating...'}</span>
+                  <Loader2 className={`w-4 h-4 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-[var(--em-violet)]'}`} />
+                  <span className={`text-sm ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'em-text-secondary'}`}>{streamingStatus.detail || 'Generating...'}</span>
                 </div>
               </div>
             </div>

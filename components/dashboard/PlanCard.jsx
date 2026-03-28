@@ -30,22 +30,22 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
 
   return (
     <div
-      className={`rounded-lg border overflow-hidden transition-all ${
+      className={`em-panel-enter rounded-xl border overflow-hidden transition-all duration-200 ${
         isExecuted ? 'border-emerald-500/25 bg-emerald-950/8' :
-        isCancelled ? 'border-border/30 bg-muted/15 opacity-60' :
-        'border-[hsl(190_100%_50%/0.2)] bg-[hsl(190_100%_50%/0.03)]'
+        isCancelled ? 'border-[rgba(124,58,237,0.1)] bg-[rgba(20,20,56,0.3)] opacity-60' :
+        'border-[rgba(0,229,255,0.2)] bg-[rgba(0,229,255,0.03)]'
       }`}
       data-testid="plan-card"
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/[0.015] transition-colors"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[rgba(0,229,255,0.02)] transition-colors duration-150"
         onClick={() => setExpanded(e => !e)}
         data-testid="plan-card-header"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            isExecuted ? 'bg-emerald-500/15' : isCancelled ? 'bg-muted/30' : 'bg-[hsl(190_100%_50%/0.12)]'
+            isExecuted ? 'bg-emerald-500/15' : isCancelled ? 'bg-[rgba(20,20,56,0.5)]' : 'bg-[rgba(0,229,255,0.12)]'
           }`}>
             {isExecuted ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -57,13 +57,13 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground truncate">
+              <span className="text-sm font-medium em-text-primary truncate">
                 {isExecuted ? 'Plan Executed' : isCancelled ? 'Plan Cancelled' : 'Implementation Plan'}
               </span>
               <Badge variant="outline" className={`text-[10px] ${
                 isExecuted ? 'text-emerald-400 border-emerald-500/25' :
-                isCancelled ? 'text-muted-foreground border-border/30' :
-                'text-[#00E5FF] border-[hsl(190_100%_50%/0.2)]'
+                isCancelled ? 'em-text-muted border-[rgba(124,58,237,0.15)]' :
+                'text-[#00E5FF] border-[rgba(0,229,255,0.2)]'
               }`}>
                 {plan.intent || 'build'}
               </Badge>
@@ -76,17 +76,17 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
           </div>
         </div>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <ChevronUp className="w-4 h-4 em-text-muted flex-shrink-0" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <ChevronDown className="w-4 h-4 em-text-muted flex-shrink-0" />
         )}
       </div>
 
       {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-border/50 px-4 py-3 space-y-3">
+        <div className="border-t border-[rgba(124,58,237,0.1)] px-4 py-3 space-y-3">
           {/* Summary */}
-          <p className="text-sm text-foreground/80 leading-relaxed">{plan.summary}</p>
+          <p className="text-sm em-text-secondary leading-relaxed">{plan.summary}</p>
 
           {/* File actions list */}
           {fileActions.length > 0 && (
@@ -109,7 +109,7 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
                         </Badge>
                       </div>
                       {action.reason && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{action.reason}</p>
+                        <p className="text-[11px] em-text-muted mt-0.5 leading-snug">{action.reason}</p>
                       )}
                       {action.grounded_on?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1" data-testid={`plan-grounded-on-${i}`}>
@@ -119,7 +119,7 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
                             </span>
                           ))}
                           {action.grounded_on.length > 3 && (
-                            <span className="text-[9px] text-muted-foreground">+{action.grounded_on.length - 3} more</span>
+                            <span className="text-[9px] em-text-muted">+{action.grounded_on.length - 3} more</span>
                           )}
                         </div>
                       )}
@@ -132,16 +132,16 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
 
           {/* Reasoning */}
           {Array.isArray(plan.reasoning) && plan.reasoning.length > 0 ? (
-            <div className="text-xs text-muted-foreground/70 bg-muted/20 rounded-lg px-3 py-2 leading-relaxed space-y-1">
+            <div className="text-xs em-text-muted bg-[rgba(20,20,56,0.5)] rounded-xl px-3 py-2 leading-relaxed space-y-1">
               {plan.reasoning.map((step, i) => (
                 <div key={i} className="flex gap-1.5">
-                  <span className="text-muted-foreground/50 flex-shrink-0">{i + 1}.</span>
+                  <span className="text-[var(--em-text-muted)] flex-shrink-0">{i + 1}.</span>
                   <span>{step}</span>
                 </div>
               ))}
             </div>
           ) : plan.reasoning ? (
-            <div className="text-xs text-muted-foreground/70 bg-muted/20 rounded-lg px-3 py-2 leading-relaxed">
+            <div className="text-xs em-text-muted bg-[rgba(20,20,56,0.5)] rounded-xl px-3 py-2 leading-relaxed">
               {plan.reasoning}
             </div>
           ) : null}
@@ -164,7 +164,7 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
           {/* Design preset */}
           {plan.design_preset && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Design:</span>
+              <span className="text-[10px] em-text-muted">Design:</span>
               <Badge variant="outline" className="text-[10px]">{plan.design_preset.replace(/_/g, ' ')}</Badge>
             </div>
           )}
@@ -200,7 +200,7 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
                 variant="ghost"
                 onClick={onCancel}
                 disabled={executing}
-                className="h-8 gap-1.5 text-muted-foreground hover:text-red-400"
+                className="h-8 gap-1.5 em-text-muted hover:text-red-400 transition-colors duration-150"
                 data-testid="plan-cancel-btn"
               >
                 <X className="w-3.5 h-3.5" /> Cancel
