@@ -1520,7 +1520,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     return (
       <div className="flex-1 overflow-auto relative z-5">
         {/* ── Hero: headline + prompt ── */}
-        <div className="pt-16 pb-8 px-8">
+        <div className="pt-16 pb-12 px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1
               className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight mb-10 leading-tight"
@@ -1548,15 +1548,29 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               ))}
             </div>
 
-            {/* Prompt input */}
-            <div className="em-glass rounded-xl p-1" data-testid="prompt-container">
+            {/* Prompt input — elite hero glass */}
+            <div
+              className="relative rounded-xl overflow-hidden p-1 transition-all duration-200 focus-within:shadow-[0_0_24px_rgba(0,229,255,0.10),0_0_60px_rgba(0,229,255,0.04)]"
+              data-testid="prompt-container"
+              style={{
+                background: 'linear-gradient(170deg, rgba(255,255,255,0.09) 0%, rgba(200,220,255,0.05) 40%, rgba(255,255,255,0.07) 100%)',
+                backdropFilter: 'blur(36px) saturate(1.6) brightness(1.08)',
+                WebkitBackdropFilter: 'blur(36px) saturate(1.6) brightness(1.08)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                boxShadow: '0 16px 70px rgba(0,0,0,0.28), 0 4px 24px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 60px rgba(255,255,255,0.02)',
+              }}
+            >
+              {/* Top specular */}
+              <div className="absolute top-0 left-0 right-0 h-px z-[2]" style={{
+                background: 'linear-gradient(90deg, transparent 2%, rgba(255,255,255,0.12) 10%, rgba(255,255,255,0.45) 25%, rgba(255,255,255,0.65) 40%, rgba(0,229,255,0.30) 55%, rgba(255,255,255,0.35) 72%, rgba(255,255,255,0.10) 90%, transparent 98%)',
+              }} />
               <div className="relative">
                 <textarea
                   value={promptInput}
                   onChange={(e) => setPromptInput(e.target.value)}
                   placeholder="Build me a dashboard for..."
                   rows={2}
-                  className="w-full bg-transparent text-sm text-[var(--em-text-primary)] placeholder:text-[var(--em-text-muted)] outline-none resize-none px-4 py-3"
+                  className="w-full bg-transparent text-sm text-[var(--em-text-primary)] placeholder:text-[var(--em-text-secondary)] placeholder:opacity-60 outline-none resize-none px-4 py-3"
                   data-testid="project-prompt-input"
                 />
               </div>
@@ -1636,7 +1650,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                     setBuilderMode('app')
                     openProjectWorkspace(item)
                   }}
-                  className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.28)] hover:shadow-[0_12px_60px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all duration-200 flex flex-col overflow-hidden"
+                  className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden"
                   data-testid={`project-card-${item.id}`}
                 >
                   {/* Thumbnail area */}
