@@ -128,33 +128,37 @@ export default function LoginPage({ onAuthSuccess }) {
           className="relative rounded-2xl overflow-hidden"
           data-testid="login-card"
           style={{
-            background: 'linear-gradient(170deg, rgba(22, 22, 66, 0.92) 0%, rgba(12, 12, 44, 0.95) 100%)',
-            backdropFilter: 'blur(50px) saturate(1.6)',
-            WebkitBackdropFilter: 'blur(50px) saturate(1.6)',
-            border: '1px solid rgba(124, 58, 237, 0.22)',
+            background: 'linear-gradient(170deg, rgba(22, 22, 72, 0.92) 0%, rgba(16, 16, 54, 0.94) 40%, rgba(12, 12, 46, 0.96) 100%)',
+            backdropFilter: 'blur(54px) saturate(1.7) brightness(1.06)',
+            WebkitBackdropFilter: 'blur(54px) saturate(1.7) brightness(1.06)',
+            border: '1px solid rgba(124, 58, 237, 0.24)',
             boxShadow: `
-              0 25px 80px rgba(0, 0, 0, 0.5),
-              0 0 100px rgba(124, 58, 237, 0.05),
-              0 0 40px rgba(0, 229, 255, 0.03),
-              inset 0 1px 0 rgba(255, 255, 255, 0.08),
-              inset 0 0 60px rgba(0, 229, 255, 0.02)
+              0 20px 100px rgba(0, 0, 0, 0.6),
+              0 4px 50px rgba(0, 0, 0, 0.35),
+              0 0 120px rgba(124, 58, 237, 0.06),
+              0 0 60px rgba(0, 229, 255, 0.035),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12),
+              inset 0 0 80px rgba(0, 229, 255, 0.025),
+              inset 0 0 40px rgba(124, 58, 237, 0.02)
             `,
           }}
         >
-          {/* Top edge glow — luminous */}
-          <div className="absolute top-0 left-0 right-0 h-px" style={{
-            background: 'linear-gradient(90deg, transparent 3%, rgba(0,229,255,0.45) 25%, rgba(124,58,237,0.35) 50%, rgba(224,64,251,0.2) 75%, transparent 97%)',
+          {/* Specular top edge — 2px, bright, color refraction */}
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{
+            background: 'linear-gradient(90deg, transparent 2%, rgba(0,229,255,0.2) 8%, rgba(0,229,255,0.55) 22%, rgba(180,160,255,0.4) 42%, rgba(124,58,237,0.45) 58%, rgba(224,64,251,0.25) 78%, rgba(224,64,251,0.08) 92%, transparent 98%)',
+            filter: 'blur(0.5px)',
           }} />
-          {/* Side edge hints */}
+          {/* Left edge highlight */}
           <div className="absolute top-0 left-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(0,229,255,0.2) 0%, rgba(124,58,237,0.08) 50%, transparent 80%)',
+            background: 'linear-gradient(180deg, rgba(0,229,255,0.25) 0%, rgba(180,160,255,0.1) 30%, rgba(124,58,237,0.08) 60%, transparent 85%)',
           }} />
+          {/* Right edge highlight */}
           <div className="absolute top-0 right-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(224,64,251,0.06) 50%, transparent 80%)',
+            background: 'linear-gradient(180deg, rgba(124,58,237,0.18) 0%, rgba(224,64,251,0.08) 40%, transparent 75%)',
           }} />
-          {/* Inner top gradient highlight — glossy sheen */}
-          <div className="absolute top-0 left-0 right-0 h-28 pointer-events-none" style={{
-            background: 'linear-gradient(180deg, rgba(0, 229, 255, 0.04) 0%, rgba(124, 58, 237, 0.01) 50%, transparent 100%)',
+          {/* Inner reflection — bright, cyan→violet refraction shift */}
+          <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none" style={{
+            background: 'linear-gradient(180deg, rgba(0, 229, 255, 0.05) 0%, rgba(140, 120, 255, 0.025) 35%, rgba(124, 58, 237, 0.01) 65%, transparent 100%)',
           }} />
 
           <div className="relative p-8">
