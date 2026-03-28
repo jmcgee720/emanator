@@ -8,7 +8,7 @@ import ssl
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://blurry-streaks.preview.emergentagent.com"
+BASE_URL = "https://aurora-depth-preview.preview.emergentagent.com"
 TEST_CREDENTIALS = {"email": "testprov@test.com", "password": "password123"}
 
 class VariationStudioBackendTester:

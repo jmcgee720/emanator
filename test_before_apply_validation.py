@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Test-before-apply Validation Gate Testing for MyMergent Sandboxes
-Testing validation gate endpoints at https://blurry-streaks.preview.emergentagent.com
+Testing validation gate endpoints at https://aurora-depth-preview.preview.emergentagent.com
 
 Test Flow (per review request):
 SETUP: 
@@ -29,7 +29,7 @@ from datetime import datetime
 
 class TestBeforeApplyTester:
     def __init__(self):
-        self.base_url = "https://blurry-streaks.preview.emergentagent.com/api"
+        self.base_url = "https://aurora-depth-preview.preview.emergentagent.com/api"
         self.supabase_url = "https://cawmmqakaxbznbelcrwd.supabase.co"
         self.supabase_key = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
         self.test_email = "testprov@test.com"

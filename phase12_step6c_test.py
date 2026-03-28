@@ -15,7 +15,7 @@ import sys
 from urllib.parse import urlparse
 
 # Test configuration
-BASE_URL = "https://blurry-streaks.preview.emergentagent.com"
+BASE_URL = "https://aurora-depth-preview.preview.emergentagent.com"
 TEST_EMAIL = "testprov@test.com"
 TEST_PASSWORD = "password123"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "
