@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://ai-visual-phase.preview.emergentagent.com"
+BASE_URL = "https://blurry-streaks.preview.emergentagent.com"
 AUTH_EMAIL = "testprov@test.com"
 AUTH_PASSWORD = "password123"
 
