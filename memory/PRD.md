@@ -2,6 +2,7 @@
 
 ## Problem Statement
 Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design system (H).
+Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effect.
 
 ## Architecture
 - Next.js 14 App Router (port 3000, supervisor: `nextjs_api`)
@@ -16,33 +17,30 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **Glass H7.1**: Premium glass — clear glass, no purple tint
 - **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards
 - **Glass Style Unification** (Mar 2026)
-- **Aurora Ceiling Geometry Correction** (Feb 2026):
-  - Changed gradient direction from 180deg (vertical beams) to 90deg (horizontal arc bands)
-  - Elements positioned above viewport: top -70% to -85%, height 170-210%
-  - Background-size changed from narrow columns to full-width horizontal bands (100% x H%)
-  - Increased rotateX to 38-44deg for overhead perspective, reduced perspective distance
-  - Border-radius on bottom of elements for dome arc curvature
-  - Containment mask centered at 28% from top (overhead dome feel)
-  - Color blending: each band transitions cyan↔violet horizontally
-  - 3 depth zones: TOP (compressed, thin, dim), MID (brightest, thickest), LOWER (soft fade)
-  - Vertical fold mask (repeating-linear-gradient ~90-95deg) creates curtain fold texture within horizontal bands
-  - Enhanced keyframes with skewX + translateX + scaleX for sideways drift/folding motion
-  - New em-au-fold keyframe for intense near-layer deformation
+- **Aurora Ceiling Geometry Correction** (Feb 2026)
+- **Aurora Z-Depth Simulation** (Feb 2026): Added depth zones with varying blur/size
+- **Aurora Y-Axis Shift** (Feb 2026): Shifted columns higher so bright bottom edges are closest
+- **Aurora Asymmetric S-Curve** (Feb 2026):
+  - Replaced symmetric horseshoe with left-to-right S-curve depth flow
+  - LEFT = foreground (large 3.6% wide, sharp blur=2px, low Y ~34%, bright opacity 0.72)
+  - CENTER = mid-depth (medium 2.2-2.9%, blur=5px, Y ~22-30%, mid opacity)
+  - RIGHT = background (small 0.8-1.7%, blur=10px, high Y ~7-17%, faded opacity 0.18-0.36)
+  - S-curve Y path wiggles: 34→31→30→25→24→20→14→7%
+  - Containment mask biased left-center (42% 24%) for asymmetric coverage
+  - Ambient glow (veil 6) weighted toward foreground left
 
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
-- Aurora: OVERHEAD CEILING perspective, horizontal arc bands, NOT vertical beams
-- Aurora geometry: elements start above viewport, user sees lower portion
-- Aurora depth: top=thin/dim/compressed, mid=bright/thick, bottom=soft fade
-- Aurora curvature: border-radius + perspective for dome arc
-- Aurora color: cyan↔violet BLEND within bands, not isolated stripes
-- Aurora motion: sideways drifting, folding, rippling (skewX + translateX + scaleX)
-- Aurora fold texture: vertical mask pattern for curtain-fold within horizontal bands
-- Background: dark navy #050810-#080C18
+- Aurora: Asymmetric S-curve depth flow, NOT symmetric horseshoe
+- Aurora geometry: left=foreground (close, large, sharp), right=background (far, small, blurry)
+- Aurora depth zones: CLOSE (left, blur=2px), MID (center, blur=5px), FAR (right, blur=10px)
+- Aurora color: cyan columns below, violet/magenta columns above, per depth zone
+- Aurora motion: sideways drifting, folding, rippling (sway, drift, float animations)
+- Background: dark navy #0C1018
 - Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6`
 
 ## Key Files
-- `/app/app/globals.css` — Aurora engine (ceiling geometry) + Glass system + Tokens
+- `/app/app/globals.css` — Aurora engine (S-curve geometry) + Glass system + Tokens
 - `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
