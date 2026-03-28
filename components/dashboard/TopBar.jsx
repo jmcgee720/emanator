@@ -14,18 +14,12 @@ import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={className}>
-      <defs>
-        <linearGradient id="em-logo-grad" x1="0" y1="0" x2="32" y2="32">
-          <stop offset="0%" stopColor="#00E5FF" />
-          <stop offset="50%" stopColor="#7C3AED" />
-          <stop offset="100%" stopColor="#E040FB" />
-        </linearGradient>
-      </defs>
-      <path d="M16 4C16 4 20 10 20 16C20 22 16 28 16 28C16 28 12 22 12 16C12 10 16 4 16 4Z" fill="url(#em-logo-grad)" opacity="0.9"/>
-      <path d="M6.8 22C6.8 22 13.6 20 17.6 14.8C21.6 9.6 22 2.4 22 2.4C22 2.4 15.2 4.4 11.2 9.6C7.2 14.8 6.8 22 6.8 22Z" fill="url(#em-logo-grad)" opacity="0.7"/>
-      <path d="M25.2 22C25.2 22 18.4 20 14.4 14.8C10.4 9.6 10 2.4 10 2.4C10 2.4 16.8 4.4 20.8 9.6C24.8 14.8 25.2 22 25.2 22Z" fill="url(#em-logo-grad)" opacity="0.7"/>
-    </svg>
+    <img
+      src="/emanator-logo.png"
+      alt="Emanator"
+      className={className}
+      draggable={false}
+    />
   )
 }
 
@@ -50,11 +44,11 @@ export default function TopBar({
     'text-muted-foreground bg-muted/30 border-border/30'
 
   return (
-    <div className="h-12 bg-[hsl(var(--em-sidebar))] backdrop-blur-md flex items-center justify-between px-5 em-accent-edge-bottom" data-testid="top-bar">
+    <div className="h-12 em-panel backdrop-blur-md flex items-center justify-between px-5 em-accent-edge-bottom" data-testid="top-bar">
       {/* Brand + breadcrumb */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <EmanatorLogo className="w-6 h-6" />
+          <EmanatorLogo className="w-7 h-7 object-contain" />
           <span className="font-bold text-[13px] tracking-[0.08em] uppercase em-gradient-text select-none" data-testid="brand-name">Emanator</span>
         </div>
         
