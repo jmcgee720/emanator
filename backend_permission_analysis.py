@@ -19,7 +19,7 @@ import requests
 import json
 
 # Test configuration
-BASE_URL = "https://emanator-validate.preview.emergentagent.com/api"
+BASE_URL = "https://fork-endpoint.preview.emergentagent.com/api"
 
 class PermissionAnalysis:
     def __init__(self):
