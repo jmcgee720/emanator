@@ -44,18 +44,18 @@ export default function TopBar({
     'text-muted-foreground bg-muted/30 border-border/30'
 
   return (
-    <div className="h-12 em-panel backdrop-blur-md flex items-center justify-between px-5 em-accent-edge-bottom" data-testid="top-bar">
+    <div className="h-12 em-panel flex items-center justify-between px-5 em-accent-edge-bottom relative z-10" data-testid="top-bar">
       {/* Brand + breadcrumb */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <EmanatorLogo className="w-7 h-7 object-contain" />
           <span className="font-bold text-[13px] tracking-[0.08em] uppercase em-gradient-text select-none" data-testid="brand-name">Emanator</span>
         </div>
         
         {selectedProject && (
           <>
-            <span className="text-muted-foreground/25 text-xs select-none">/</span>
-            <span className="text-xs text-muted-foreground/60 font-medium truncate max-w-[180px]">{selectedProject.name}</span>
+            <span className="em-text-muted text-xs select-none">/</span>
+            <span className="text-xs em-text-secondary font-medium truncate max-w-[180px]">{selectedProject.name}</span>
           </>
         )}
       </div>
@@ -73,7 +73,7 @@ export default function TopBar({
           variant="ghost"
           size="icon"
           onClick={onOpenSearch}
-          className="h-7 w-7 text-muted-foreground/60 hover:text-foreground/80 hover:bg-muted/40 rounded-md"
+          className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200"
           data-testid="search-btn"
         >
           <Search className="w-3.5 h-3.5" />
@@ -84,7 +84,7 @@ export default function TopBar({
             variant="ghost"
             size="icon"
             onClick={onOpenCanvas}
-            className="h-7 w-7 text-muted-foreground/60 hover:text-foreground/80 hover:bg-muted/40 rounded-md"
+            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200"
             title={isMonitored ? 'Restricted for monitored accounts' : 'Project Knowledge Canvas'}
             disabled={isMonitored}
             data-testid="canvas-btn"
@@ -98,7 +98,7 @@ export default function TopBar({
             variant="ghost"
             size="icon"
             onClick={onOpenDesign}
-            className="h-7 w-7 text-muted-foreground/60 hover:text-foreground/80 hover:bg-muted/40 rounded-md"
+            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200"
             title={isMonitored ? 'Restricted for monitored accounts' : 'Design Intelligence'}
             disabled={isMonitored}
             data-testid="design-btn"
@@ -107,13 +107,13 @@ export default function TopBar({
           </Button>
         )}
 
-        <div className="w-px h-4 bg-border/40 mx-1.5" />
+        <div className="w-px h-4 bg-[rgba(124,58,237,0.15)] mx-1.5" />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-7 w-7 rounded-full p-0" data-testid="user-menu-btn">
               <Avatar className="h-6 w-6">
-                <AvatarFallback className="bg-muted/60 text-muted-foreground/70 text-[9px] font-semibold border border-border/40">
+                <AvatarFallback className="bg-[var(--em-surface)] text-[var(--em-text-secondary)] text-[9px] font-semibold border border-[rgba(124,58,237,0.15)]">
                   {initials}
                 </AvatarFallback>
               </Avatar>

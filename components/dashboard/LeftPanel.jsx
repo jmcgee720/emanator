@@ -233,12 +233,12 @@ export default function LeftPanel({
   const ModeIcon = modeIcons[builderMode] || Layers
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(var(--em-sidebar))] min-w-0 overflow-hidden em-aurora" data-testid="left-panel">
+    <div className="h-full flex flex-col em-panel min-w-0 overflow-hidden em-aurora em-accent-edge-right" data-testid="left-panel">
       {/* Compact Header — project + mode in one row */}
-      <div className="flex items-center gap-1.5 h-11 px-3 border-b border-border/40 flex-shrink-0" data-testid="sidebar-header">
+      <div className="flex items-center gap-1.5 h-11 px-3 em-accent-edge-bottom flex-shrink-0" data-testid="sidebar-header">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 flex-1 min-w-0 h-8 px-2 rounded-md hover:bg-muted/30 transition-colors text-left" data-testid="project-selector">
+            <button className="flex items-center gap-1.5 flex-1 min-w-0 h-8 px-2 rounded-lg hover:bg-[rgba(0,229,255,0.06)] transition-colors duration-200 text-left" data-testid="project-selector">
               {selectedProject?.settings?.is_sandbox ? (
                 <FlaskConical className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
               ) : (
@@ -600,18 +600,18 @@ export default function LeftPanel({
       </div>
 
       {/* Quick actions bar */}
-      <div className="flex items-center gap-0.5 px-3 py-1.5 border-t border-border/25" data-testid="quick-actions">
-        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted/20" onClick={onOpenPromptLibrary} data-testid="open-prompt-library">
+      <div className="flex items-center gap-0.5 px-3 py-1.5 em-accent-edge-top" data-testid="quick-actions">
+        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200" onClick={onOpenPromptLibrary} data-testid="open-prompt-library">
           <BookOpen className="w-3 h-3" /> Prompts
         </Button>
-        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted/20" onClick={onOpenBuilderMemory} data-testid="open-builder-memory">
+        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200" onClick={onOpenBuilderMemory} data-testid="open-builder-memory">
           <Brain className="w-3 h-3" /> Memory
         </Button>
         {selectedChat && (
           <Button
             size="sm"
             variant="ghost"
-            className="h-6 text-[10px] gap-1 px-2 text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted/20 ml-auto"
+            className="h-6 text-[10px] gap-1 px-2 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200 ml-auto"
             onClick={async () => {
               setForkingChat(true)
               await onForkChat(selectedChat.id)
