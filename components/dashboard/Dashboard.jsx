@@ -18,6 +18,8 @@ import { SavePromptDialog } from './PromptLibrary'
 import BuilderMemory from './BuilderMemory'
 import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
+import { EMANATOR_HEADLINES } from '@/lib/constants/headlines'
+import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap } from 'lucide-react'
 
 // JSON headers for POST/PUT requests (cookies handle auth automatically)
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -78,6 +80,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [sandboxDiff, setSandboxDiff] = useState(null)
   const [showSandboxDiff, setShowSandboxDiff] = useState(false)
   const [loadingDiff, setLoadingDiff] = useState(false)
+
+  const [showCreditsModal, setShowCreditsModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [projectMode, setProjectMode] = useState('fullstack')
+  const [promptInput, setPromptInput] = useState('')
+  const [headline] = useState(() => EMANATOR_HEADLINES[Math.floor(Math.random() * EMANATOR_HEADLINES.length)])
 
   const streamAbortRef = useRef(null)
   const { toast } = useToast()
@@ -1477,143 +1485,309 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const renderProjectGrid = () => {
     const cards = projects.filter(p => p.type !== 'core')
 
+    const modes = [
+      { key: 'fullstack', label: 'Full Stack App', icon: Monitor },
+      { key: 'mobile', label: 'Mobile App', icon: Smartphone },
+      { key: 'landing', label: 'Landing Page', icon: FileText },
+    ]
+
     return (
-      <div className="flex-1 overflow-auto px-8 py-8 relative z-5">
-        <div className="mx-auto max-w-7xl em-glass-panel em-glass-panel-inner-glow min-h-[calc(100vh-8rem)] rounded-2xl p-8">
-<div className="flex items-center justify-between mb-10">
-  <div className="flex items-center gap-4">
-    <div className="flex flex-col">
-      <h1 className="text-2xl font-semibold em-text-primary tracking-tight">
-        Project Bin
-      </h1>
-      <span className="text-xs em-text-secondary mt-1">
-        Your projects and workspaces
-      </span>
-    </div>
+      <div className="flex-1 overflow-auto relative z-5">
+        {/* ── Hero: headline + prompt ── */}
+        <div className="pt-16 pb-8 px-8">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1
+              className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight mb-10 leading-tight"
+              data-testid="dynamic-headline"
+            >
+              {headline}
+            </h1>
 
-  </div>
-
-  <div className="flex items-center gap-2">
-    {isOwner && (
-      <button
-      onClick={() => {
-  setBuilderMode('core')
-
-  const coreProject =
-    projects.find(p => p.name === 'Emanator Backend') ||
-    projects.find(p => p.name === 'Emanator') ||
-    projects.find(p => p.type === 'core') ||
-    null
-
-  if (coreProject) {
-    openProjectWorkspace(coreProject)
-  }
-}}
-        className="px-3 py-1.5 rounded-lg text-xs border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors duration-200"
-      >
-        Core System
-      </button>
-    )}
-
-    <button
-      onClick={() => setShowNewProjectModal(true)}
-      className="px-3 py-1.5 rounded-lg text-xs em-btn-brand"
-    >
-      New Project
-    </button>
-
-    <button
-      onClick={() => setShowSearch(true)}
-      className="px-3 py-1.5 rounded-lg text-xs em-btn-ghost"
-    >
-      Search
-    </button>
-  </div>
-</div>
-
-{/* Center: subtle glow divider */}
-<div className="flex justify-center mb-12">
-  <div className="h-px w-32 bg-gradient-to-r from-transparent via-[rgba(0,229,255,0.2)] to-transparent" />
-</div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 max-w-5xl mx-auto">
-            {cards.map((item) => {
-              const isCoreCard = item.id === '__core_system__'
-
-              return (
+            {/* Mode toggles */}
+            <div className="flex items-center justify-center gap-2 mb-5" data-testid="mode-toggles">
+              {modes.map(({ key, label, icon: Icon }) => (
                 <button
-                  key={item.id}
-                  onClick={() => {setBuilderMode('app')
-                    openProjectWorkspace(item)
-                  }}
-                  className="aspect-square rounded-xl em-card hover:border-[rgba(0,229,255,0.25)] transition-all duration-200 flex flex-col items-center justify-center p-4 text-center"
+                  key={key}
+                  onClick={() => setProjectMode(key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                    projectMode === key
+                      ? 'border-[var(--em-cyan)] bg-[rgba(0,229,255,0.08)] text-[var(--em-text-primary)]'
+                      : 'border-[rgba(124,58,237,0.15)] text-[var(--em-text-secondary)] hover:border-[rgba(0,229,255,0.2)] hover:bg-[rgba(0,229,255,0.04)]'
+                  }`}
+                  data-testid={`mode-toggle-${key}`}
                 >
-                  <div className="w-16 h-16 rounded-lg border border-[rgba(124,58,237,0.12)] mb-4 flex items-center justify-center text-sm em-text-muted">
-                    {isCoreCard ? '⚙' : '□'}
-                  </div>
-                  <div className="text-sm font-medium em-text-primary">{item.name}</div>
-                  <div className="text-xs em-text-secondary mt-1">
-                    {isCoreCard ? 'Owner only' : item.type || 'project'}
-                  </div>
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
                 </button>
-              )
-            })}
-
-            <button
-              onClick={() => setShowNewProjectModal(true)}
-              className="aspect-square rounded-xl border border-dashed border-[rgba(124,58,237,0.15)] hover:border-[rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 flex items-center justify-center text-3xl em-text-muted"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      {showNewProjectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="em-glass-panel em-glass-panel-inner-glow rounded-2xl p-6 w-[400px]">
-
-            <h2 className="text-sm font-semibold mb-4 em-text-primary">Create Project</h2>
-
-            <input
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              placeholder="Project name"
-              className="w-full mb-3 px-3 py-2 text-sm em-input"
-            />
-
-            <select
-              value={newProjectType}
-              onChange={(e) => setNewProjectType(e.target.value)}
-              className="w-full mb-4 px-3 py-2 text-sm em-input"
-            >
-              <option value="app">App Builder</option>
-              <option value="core">Core System</option>
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowNewProjectModal(false)}
-                className="px-3 py-1.5 text-xs em-btn-ghost"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={() => {
-                  if (!newProjectName.trim()) return
-                  createProject(newProjectName, newProjectType)
-                  setShowNewProjectModal(false)
-                  setNewProjectName('')
-                  setNewProjectType('app')
-                }}
-                className="px-3 py-1.5 text-xs em-btn-brand"
-              >
-                Create
-              </button>
+              ))}
             </div>
 
+            {/* Prompt input */}
+            <div className="em-glass rounded-xl p-1" data-testid="prompt-container">
+              <div className="relative">
+                <textarea
+                  value={promptInput}
+                  onChange={(e) => setPromptInput(e.target.value)}
+                  placeholder="Build me a dashboard for..."
+                  rows={2}
+                  className="w-full bg-transparent text-sm text-[var(--em-text-primary)] placeholder:text-[var(--em-text-muted)] outline-none resize-none px-4 py-3"
+                  data-testid="project-prompt-input"
+                />
+              </div>
+              {/* Prompt controls row */}
+              <div className="flex items-center justify-between px-3 pb-2">
+                <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="model-selector-prompt">
+                    <span>E-1</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  <div className="w-px h-4 bg-[rgba(124,58,237,0.12)]" />
+                  <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="ultra-toggle">
+                    <span className="text-[var(--em-cyan)]">Ultra</span>
+                  </button>
+                  <div className="w-px h-4 bg-[rgba(124,58,237,0.12)]" />
+                  <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="ai-model-selector">
+                    <span>Claude 4.5 Opus</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button className="h-7 w-7 flex items-center justify-center rounded-lg text-[var(--em-text-muted)] hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="voice-input-btn">
+                    <Mic className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    className="h-7 w-7 flex items-center justify-center rounded-lg bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 transition-all"
+                    data-testid="prompt-submit-btn"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* ── Project Grid — no outer panel, cards float on aurora ── */}
+        <div className="px-8 pb-12">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-medium em-text-secondary tracking-wide" data-testid="projects-heading">
+                Your Projects
+              </h2>
+              <div className="flex items-center gap-2">
+                {isOwner && (
+                  <button
+                    onClick={() => {
+                      setBuilderMode('core')
+                      const coreProject =
+                        projects.find(p => p.name === 'Emanator Backend') ||
+                        projects.find(p => p.name === 'Emanator') ||
+                        projects.find(p => p.type === 'core') ||
+                        null
+                      if (coreProject) openProjectWorkspace(coreProject)
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-[11px] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors duration-200"
+                    data-testid="core-system-btn"
+                  >
+                    Core System
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowNewProjectModal(true)}
+                  className="px-3 py-1.5 rounded-lg text-[11px] em-btn-brand"
+                  data-testid="new-project-btn"
+                >
+                  New Project
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5" data-testid="project-grid">
+              {cards.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setBuilderMode('app')
+                    openProjectWorkspace(item)
+                  }}
+                  className="group rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] transition-all duration-200 flex flex-col overflow-hidden"
+                  data-testid={`project-card-${item.id}`}
+                >
+                  {/* Thumbnail area */}
+                  <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(124,58,237,0.08)] flex items-center justify-center">
+                    <span className="text-xs em-text-muted font-medium">Project Thumbnail</span>
+                  </div>
+                  {/* Info */}
+                  <div className="px-3.5 py-3">
+                    <div className="text-sm font-medium em-text-primary truncate">{item.name}</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">{item.type || 'project'}</div>
+                  </div>
+                </button>
+              ))}
+
+              {/* New project card */}
+              <button
+                onClick={() => setShowNewProjectModal(true)}
+                className="rounded-xl border border-dashed border-[rgba(124,58,237,0.15)] hover:border-[rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group"
+                data-testid="add-project-card"
+              >
+                <div className="w-10 h-10 rounded-lg border border-[rgba(124,58,237,0.12)] group-hover:border-[rgba(0,229,255,0.25)] flex items-center justify-center mb-2 transition-colors">
+                  <span className="text-xl em-text-muted group-hover:text-[var(--em-cyan)] transition-colors">+</span>
+                </div>
+                <span className="text-xs em-text-muted group-hover:text-[var(--em-text-secondary)] transition-colors">New Project</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── New Project Modal ── */}
+        {showNewProjectModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="em-glass rounded-2xl p-6 w-[400px] border border-[rgba(124,58,237,0.15)]" data-testid="new-project-modal">
+              <h2 className="text-sm font-semibold mb-4 em-text-primary">Create Project</h2>
+              <input
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="Project name"
+                className="w-full mb-3 px-3 py-2 text-sm em-input"
+                data-testid="new-project-name-input"
+              />
+              <select
+                value={newProjectType}
+                onChange={(e) => setNewProjectType(e.target.value)}
+                className="w-full mb-4 px-3 py-2 text-sm em-input"
+                data-testid="new-project-type-select"
+              >
+                <option value="app">App Builder</option>
+                <option value="core">Core System</option>
+              </select>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowNewProjectModal(false)} className="px-3 py-1.5 text-xs em-btn-ghost" data-testid="cancel-new-project">Cancel</button>
+                <button
+                  onClick={() => {
+                    if (!newProjectName.trim()) return
+                    createProject(newProjectName, newProjectType)
+                    setShowNewProjectModal(false)
+                    setNewProjectName('')
+                    setNewProjectType('app')
+                  }}
+                  className="px-3 py-1.5 text-xs em-btn-brand"
+                  data-testid="create-project-submit"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Credits Modal ── */}
+        {showCreditsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(124,58,237,0.15)]" data-testid="credits-modal">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[var(--em-cyan)]" />
+                  Credits
+                </h2>
+                <button onClick={() => setShowCreditsModal(false)} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="em-glass rounded-xl p-4 mb-5" data-testid="credits-balance">
+                <div className="text-2xl font-bold em-gradient-text mb-1">211.73</div>
+                <div className="text-xs em-text-secondary">Available credits</div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                <div className="flex items-start gap-2">
+                  <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)] mt-0.5 shrink-0" />
+                  <p className="text-xs em-text-secondary">Credits are consumed when you generate code, images, or use AI models.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)] mt-0.5 shrink-0" />
+                  <p className="text-xs em-text-secondary">Different models and operations use varying amounts of credits.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2" data-testid="credits-purchase-options">
+                {[
+                  { amount: 100, price: '$10' },
+                  { amount: 500, price: '$45' },
+                  { amount: 1000, price: '$80' },
+                ].map(({ amount, price }) => (
+                  <button
+                    key={amount}
+                    className="py-3 rounded-xl border border-[rgba(124,58,237,0.15)] hover:border-[rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-center"
+                    data-testid={`buy-credits-${amount}`}
+                  >
+                    <div className="text-sm font-semibold em-text-primary">{amount}</div>
+                    <div className="text-[11px] em-text-secondary">{price}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Import Modal ── */}
+        {showImportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(124,58,237,0.15)]" data-testid="import-modal">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
+                  Import Project
+                </h2>
+                <button onClick={() => setShowImportModal(false)} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3" data-testid="import-options">
+                <button
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(124,58,237,0.12)] hover:border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-left"
+                  data-testid="import-upload"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0">
+                    <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium em-text-primary">Upload Project File</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">Upload a project manifest or config file</div>
+                  </div>
+                </button>
+
+                <button
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(124,58,237,0.12)] hover:border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-left"
+                  data-testid="import-zip"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] flex items-center justify-center shrink-0">
+                    <FolderArchive className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium em-text-primary">Import from Zip</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">Upload a zipped project directory</div>
+                  </div>
+                </button>
+
+                <button
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(124,58,237,0.12)] hover:border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-left"
+                  data-testid="import-repo"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] flex items-center justify-center shrink-0">
+                    <GitBranch className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium em-text-primary">Connect Repository</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">Link an existing GitHub repository</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1877,6 +2051,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         onOpenSearch={() => setShowSearch(true)}
         onOpenCanvas={() => setShowCanvas(true)}
         onOpenDesign={() => setShowDesign(true)}
+        onOpenCredits={() => setShowCreditsModal(true)}
+        onOpenImport={() => setShowImportModal(true)}
         isOwner={isOwner}
         isMonitored={isMonitored}
       />
