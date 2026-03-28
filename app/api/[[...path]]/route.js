@@ -7,6 +7,11 @@ import { SELF_EDIT_PREFIX, getChatType, getUserRole, hasPermission, VALID_ROLES,
 import { handleStreamMessage } from '@/lib/api/stream-handler'
 import JSZip from 'jszip'
 
+// Allow larger body for file uploads (50MB)
+export const config = {
+  api: { bodyParser: { sizeLimit: '50mb' } }
+}
+
 // Helper function to handle CORS
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
@@ -2964,6 +2969,217 @@ async function handleRoute(request, { params }) {
       feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
       return handleCORS(NextResponse.json(feed.slice(0, 100)))
+    }
+
+    // ============ PROJECT IMPORT (ZIP UPLOAD) ============
+
+    if (route === '/import/upload' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      let dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const formData = await request.formData()
+        const file = formData.get('file')
+
+        if (!file || typeof file === 'string') {
+          return handleCORS(NextResponse.json({ error: 'No file uploaded' }, { status: 400 }))
+        }
+
+        const fileName = file.name || 'upload.zip'
+        if (!fileName.endsWith('.zip')) {
+          return handleCORS(NextResponse.json({ error: 'Only .zip files are supported' }, { status: 400 }))
+        }
+
+        const buffer = Buffer.from(await file.arrayBuffer())
+
+        if (buffer.length === 0) {
+          return handleCORS(NextResponse.json({ error: 'Uploaded file is empty' }, { status: 400 }))
+        }
+
+        // Parse ZIP
+        let zip
+        try {
+          zip = await JSZip.loadAsync(buffer)
+        } catch (e) {
+          return handleCORS(NextResponse.json({ error: 'Invalid or corrupted zip file' }, { status: 400 }))
+        }
+
+        const fileEntries = Object.keys(zip.files).filter(name => !zip.files[name].dir)
+
+        if (fileEntries.length === 0) {
+          return handleCORS(NextResponse.json({ error: 'Zip file is empty — no files found' }, { status: 400 }))
+        }
+
+        // Detect common root prefix (e.g., "my-project/src/..." → strip "my-project/")
+        let commonPrefix = ''
+        if (fileEntries.length > 1) {
+          const parts = fileEntries[0].split('/')
+          if (parts.length > 1) {
+            const candidate = parts[0] + '/'
+            const allMatch = fileEntries.every(f => f.startsWith(candidate))
+            if (allMatch) commonPrefix = candidate
+          }
+        }
+
+        // Extract files and detect framework
+        const extractedFiles = []
+        let packageJson = null
+        let entryFile = null
+        let framework = 'unknown'
+        let detectedLanguage = 'javascript'
+        const MAX_FILE_SIZE = 512 * 1024 // 512KB per file
+        const SKIP_PATTERNS = ['node_modules/', '.git/', '.DS_Store', '__MACOSX/', 'dist/', 'build/', '.next/']
+
+        for (const filePath of fileEntries) {
+          // Skip system/build files
+          if (SKIP_PATTERNS.some(p => filePath.includes(p))) continue
+
+          const relativePath = commonPrefix ? filePath.slice(commonPrefix.length) : filePath
+          if (!relativePath) continue
+
+          const zipFile = zip.files[filePath]
+          let content
+          try {
+            const raw = await zipFile.async('uint8array')
+            if (raw.length > MAX_FILE_SIZE) {
+              content = `[file too large: ${(raw.length / 1024).toFixed(0)}KB]`
+            } else {
+              content = new TextDecoder('utf-8', { fatal: false }).decode(raw)
+            }
+          } catch {
+            content = '[binary file — not extracted]'
+          }
+
+          // Detect file type
+          const ext = relativePath.split('.').pop()?.toLowerCase() || 'text'
+          const fileType = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(ext) ? 'image'
+            : ['woff', 'woff2', 'ttf', 'eot'].includes(ext) ? 'font'
+            : 'text'
+
+          extractedFiles.push({ path: relativePath, content, file_type: fileType })
+
+          // Parse package.json for project name and framework detection
+          if (relativePath === 'package.json') {
+            try {
+              packageJson = JSON.parse(content)
+            } catch {}
+          }
+
+          // Detect entry points
+          if (!entryFile) {
+            if (['index.html', 'index.js', 'index.tsx', 'index.ts', 'main.js', 'main.ts', 'app.js', 'app.tsx'].includes(relativePath)) {
+              entryFile = relativePath
+            } else if (relativePath === 'app/page.js' || relativePath === 'app/page.tsx' || relativePath === 'pages/index.js' || relativePath === 'pages/index.tsx' || relativePath === 'src/App.jsx' || relativePath === 'src/App.tsx') {
+              entryFile = relativePath
+            }
+          }
+
+          // Detect TypeScript
+          if (ext === 'ts' || ext === 'tsx') detectedLanguage = 'typescript'
+        }
+
+        if (extractedFiles.length === 0) {
+          return handleCORS(NextResponse.json({ error: 'No supported files found in zip after filtering' }, { status: 400 }))
+        }
+
+        // Framework detection
+        if (packageJson) {
+          const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
+          if (deps['next']) framework = 'nextjs'
+          else if (deps['react']) framework = 'react'
+          else if (deps['vue']) framework = 'vue'
+          else if (deps['svelte'] || deps['@sveltejs/kit']) framework = 'svelte'
+          else if (deps['express'] || deps['fastify'] || deps['koa']) framework = 'node'
+          else framework = 'node'
+        } else if (extractedFiles.some(f => f.path === 'index.html')) {
+          framework = 'static'
+        }
+
+        // Derive project name
+        const projectName = packageJson?.name
+          || fileName.replace('.zip', '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+        // Create project
+        const project = await db.projects.create({
+          user_id: dbUser.id,
+          name: projectName,
+          description: packageJson?.description || `Imported from ${fileName}`,
+          type: 'app',
+          settings: {
+            imported: true,
+            import_source: 'zip',
+            import_filename: fileName,
+            framework,
+            entry_file: entryFile,
+            detected_language: detectedLanguage,
+            file_count: extractedFiles.length,
+            imported_at: new Date().toISOString(),
+          }
+        })
+
+        // Create canvas
+        await db.projectCanvas.create({
+          project_id: project.id,
+          canvas_content: {
+            project_overview: `Imported from ${fileName} (${framework})`,
+            project_goals: [],
+            key_decisions: [],
+            architecture_notes: [`Framework: ${framework}`, `Entry: ${entryFile || 'unknown'}`, `Language: ${detectedLanguage}`],
+            master_prompts: [],
+            working_prompts: [],
+            failed_prompts: [],
+            successful_patterns: [],
+            feature_requirements: [],
+            technical_specs: packageJson ? [`Dependencies: ${Object.keys(packageJson.dependencies || {}).join(', ')}`] : [],
+            constraints: [],
+            open_tasks: [],
+            completed_tasks: []
+          }
+        })
+
+        // Create initial chat
+        const initialChat = await db.chats.create({
+          project_id: project.id,
+          title: 'New Conversation'
+        })
+
+        // Store all extracted files
+        const fileBatch = extractedFiles.map(f => ({
+          project_id: project.id,
+          path: f.path,
+          content: f.content,
+          file_type: f.file_type,
+          version: 1,
+        }))
+
+        if (fileBatch.length > 0) {
+          await db.projectFiles.bulkInsert(fileBatch)
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          project,
+          initialChat,
+          metadata: {
+            framework,
+            entry_file: entryFile,
+            detected_language: detectedLanguage,
+            file_count: extractedFiles.length,
+            project_name: projectName,
+          }
+        }, { status: 201 }))
+
+      } catch (err) {
+        console.error('[Import] Error:', err)
+        return handleCORS(NextResponse.json({ error: `Import failed: ${err.message}` }, { status: 500 }))
+      }
     }
 
     // Route not found
