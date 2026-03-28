@@ -121,43 +121,53 @@ export default function LoginPage({ onAuthSuccess }) {
         className="relative z-10 w-full max-w-[420px] mx-4 em-panel-enter"
         style={{ animationDelay: '60ms' }}
       >
-        {/* Card outer glow */}
-        <div className="absolute -inset-1 rounded-3xl pointer-events-none" style={{
-          background: 'linear-gradient(165deg, rgba(0, 229, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 229, 255, 0.02) 100%)',
-          filter: 'blur(20px)',
+        {/* Card outer glow — soft halo around glass */}
+        <div className="absolute -inset-2 rounded-3xl pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(0, 229, 255, 0.04) 0%, transparent 50%)',
+          filter: 'blur(24px)',
         }} />
 
         <div
           className="relative rounded-2xl overflow-hidden"
           data-testid="login-card"
           style={{
-            background: 'linear-gradient(170deg, rgba(14, 18, 34, 0.91) 0%, rgba(12, 16, 30, 0.93) 40%, rgba(10, 14, 28, 0.94) 100%)',
-            backdropFilter: 'blur(48px) saturate(1.7) brightness(1.12)',
-            WebkitBackdropFilter: 'blur(48px) saturate(1.7) brightness(1.12)',
-            border: '1px solid rgba(255, 255, 255, 0.13)',
+            background: 'linear-gradient(170deg, rgba(255, 255, 255, 0.08) 0%, rgba(200, 220, 255, 0.04) 40%, rgba(255, 255, 255, 0.06) 100%)',
+            backdropFilter: 'blur(32px) saturate(1.4) brightness(1.05)',
+            WebkitBackdropFilter: 'blur(32px) saturate(1.4) brightness(1.05)',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
             boxShadow: `
-              0 20px 100px rgba(0, 0, 0, 0.5),
-              0 4px 50px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.22),
-              inset 0 0 40px rgba(255, 255, 255, 0.02)
+              0 20px 80px rgba(0, 0, 0, 0.25),
+              0 4px 30px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.30),
+              inset 0 0 60px rgba(255, 255, 255, 0.03)
             `,
           }}
         >
-          {/* Specular top edge — 1px crisp, color refraction */}
+          {/* Specular top edge — bright crisp shimmer */}
           <div className="absolute top-0 left-0 right-0 h-px" style={{
-            background: 'linear-gradient(90deg, transparent 3%, rgba(255,255,255,0.08) 10%, rgba(255,255,255,0.22) 22%, rgba(255,255,255,0.28) 35%, rgba(0,229,255,0.18) 50%, rgba(255,255,255,0.22) 65%, rgba(255,255,255,0.10) 82%, transparent 97%)',
+            background: 'linear-gradient(90deg, transparent 2%, rgba(255,255,255,0.15) 8%, rgba(255,255,255,0.45) 20%, rgba(255,255,255,0.6) 32%, rgba(255,255,255,0.5) 50%, rgba(0,229,255,0.3) 60%, rgba(255,255,255,0.35) 75%, rgba(255,255,255,0.12) 90%, transparent 98%)',
           }} />
-          {/* Left edge highlight */}
+          {/* Left edge highlight — bright catch */}
           <div className="absolute top-0 left-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 30%, transparent 70%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.15) 20%, rgba(255,255,255,0.06) 50%, transparent 80%)',
           }} />
           {/* Right edge highlight */}
           <div className="absolute top-0 right-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 40%, transparent 75%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 30%, transparent 65%)',
           }} />
-          {/* Inner reflection — subtle, neutral */}
-          <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none" style={{
-            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 40%, transparent 100%)',
+          {/* Bottom edge subtle shimmer */}
+          <div className="absolute bottom-0 left-0 right-0 h-px" style={{
+            background: 'linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 80%, transparent 95%)',
+          }} />
+          {/* Diagonal gradient shimmer — light refraction across the glass surface */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 30%, transparent 50%, rgba(255,255,255,0.04) 70%, rgba(0,229,255,0.03) 85%, transparent 100%)',
+            borderRadius: 'inherit',
+          }} />
+          {/* Top-left corner light catch — like real glass */}
+          <div className="absolute top-0 left-0 w-32 h-32 pointer-events-none" style={{
+            background: 'radial-gradient(ellipse at 15% 15%, rgba(255,255,255,0.10) 0%, transparent 60%)',
+            borderRadius: 'inherit',
           }} />
 
           <div className="relative p-8">

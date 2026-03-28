@@ -16,7 +16,7 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **Glass H7.1**: Premium glass — clear glass, no purple tint, neutral cool tone
 - **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards on aurora, credits/import UI
 - **Visual Correction Pass** (Mar 2026):
-  - Login panel: crisp glossy glass (bg opacity 0.91-0.94, neutral fill, white specular 0.22)
+  - Login panel: see-through frosted glass (bg rgba 0.04-0.08 white tint, blur 32px, bright edge shimmers, diagonal refraction gradient)
   - TopBar: PNG logo only, removed gradient text
   - Project cards: crisp glossy glass matching global `.em-glass` class
   - All glass: shifted from ghosted/transparent to solid/crisp, neutral cool
