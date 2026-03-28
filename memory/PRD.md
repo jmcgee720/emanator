@@ -15,51 +15,38 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **H10**: Aurora Borealis — Sky-Dome Crown (top-origin perspective, radial ribbons, skewX wave)
 - **Glass H7.1**: Premium glass — clear glass, no purple tint, neutral cool tone
 - **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards on aurora, credits/import UI
-- **Visual Correction Pass** (Mar 2026):
-- **Glass Style Unification** (Mar 2026):
-  - ALL glass elements (login, topbar, sidebar, project cards, prompt bar, modals) now use see-through frosted glass
-  - Replaced opaque dark fills with white-tint transparent backgrounds
-  - Added specular edge shimmers (top/left/right/bottom) and diagonal refraction gradients
-  - Unified button styles: glass ghost buttons (white border) and brand gradient buttons
-  - Removed all violet/purple border references, replaced with neutral white glass borders
-  - Text Crispness Pass: Primary `#FFFFFF`, Secondary `#C0C4D8`, Muted `#8A8EA6`
-- **Aurora Depth & Crispness Overhaul** (Feb 2026):
-  - Added white-hot luminous cores to curtain bands (white → color → transparent gradient stops)
-  - Razor-sharp blur: veil-3 at 1px, veil-5 at 0.5px, login variant at 0px
-  - Bloom layer (veil-2): wide soft glow behind crisp bands for atmospheric depth
-  - Darker base background (#050810) for maximum contrast
-  - Wider containment mask (62%×68% at 50% 36%) showing more aurora
-  - Dimmer far layers (veil-1) creating depth separation from foreground
-  - Login variant: maximum crispness with 0px blur on peaks
+- **Visual Correction Pass** (Mar 2026)
+- **Glass Style Unification** (Mar 2026)
+- **Aurora Structural Correction** (Feb 2026):
+  - Replaced radial-gradient "spotlight" shapes with linear-gradient vertical ribbon strips
+  - Added mask-image (repeating-linear-gradient) on all ribbon layers for irregular edge breaking/filament texture
+  - Each ribbon has unique width (background-size), height, position (background-position), and opacity (non-uniform)
+  - Mid-body brightness: linear-gradient peaks at 50% height, NOT at top
+  - Enhanced keyframes: em-au-curtain, em-au-wave, em-au-drift all include skewX + translateX + scaleX for horizontal wave deformation
+  - New em-au-fold keyframe for intense near-layer deformation (veil-5)
+  - Layer blending: all veils use mix-blend-mode: screen with overlapping ribbons at different animation speeds
+  - Perspective maintained: rotateX + perspective combined with new deformation
 
 ## Design Rules (Phase H5 LOCKED)
 - Glass: see-through frosted, white tint bg `rgba(255,255,255, 0.03-0.06)`, blur 28px, saturate 1.5
 - Hero input: higher glass clarity than cards (0.09 tint, blur 36px, stronger specular)
 - Glass panels MUST be see-through — aurora visible through them
 - Specular: crisp 1px top-edge shimmer (0.60 peak white + cyan accent)
-- Vertical reflection gradient on cards (::after — light top, dark bottom)
 - Card hover: -translate-y-0.5 lift + glow intensify, no harsh scale
 - Borders: `rgba(255,255,255, 0.14)`, hover to 0.24
 - Buttons: glass ghost (white border, backdrop-blur) or brand gradient (purple-magenta)
-- Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
-- Core System button: glass ghost style with teal/cyan text
-- Aurora: TOP-ORIGIN dome with behavior layer (idle/typing/planning/applying/error states)
-- Aurora energy flow: directional surge L->C->R on submit (1.8s)
-- Aurora rays: intermittent vertical filaments (6-14s random interval)
-- Aurora curtains: white-hot luminous cores, razor-sharp blur (0.5-1px), bloom layer behind
+- Aurora: flowing curtain ribbons, NOT spotlights. Linear-gradient strips + mask-image + wave deformation
+- Aurora curtain structure: mid-body brightness, masked edges, non-uniform spacing
+- Aurora keyframes: must include skewX(), translateX(), scaleX() for ripple/folding
 - Background: dark navy #050810
-- Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6` — crisp, NOT ghosted
+- Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6`
 
 ## Key Files
-- `/app/app/globals.css` — Token system + Aurora engine + Glass system + Intensity modifiers
+- `/app/app/globals.css` — Token system + Aurora engine (structural curtains) + Glass system + Intensity modifiers
 - `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals + aurora state + credits
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits balance, import, search, aurora intensity, user menu
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + clear glass + aurora
-- `/app/app/page.js` — Auth flow with OAuth provider detection
-- `/app/app/auth/callback/route.js` — OAuth callback handler
 - `/app/hooks/useAuroraState.js` — Aurora intensity, boost, state mode hook
-- `/app/lib/credits/service.js` — Credits MongoDB service (balance, deduct, add, usage history)
-- `/app/lib/credits/config.js` — Credit cost model and packages
 
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
