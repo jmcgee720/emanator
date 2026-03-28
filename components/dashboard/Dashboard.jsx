@@ -1136,6 +1136,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         setDiffMessageId(null)
         setDiffPlanData(null)
         setPendingPlan(null)
+
+        // Auto-continuation: if server returned a next step, send it after a short delay
+        if (result.continuation?.nextStep) {
+          const { nextStep, remainingSteps, originalTask } = result.continuation
+          addLog('info', `Continuing: ${nextStep}`)
+          toast({
+            title: 'Continuing to next step...',
+            description: nextStep.length > 80 ? nextStep.slice(0, 80) + '...' : nextStep,
+          })
+          setTimeout(() => {
+            sendMessage(`Continue the task: ${originalTask}\n\nNext step: ${nextStep}`, { scope: 'project' })
+          }, 1500)
+        }
       } else {
         addLog('error', `Apply failed: ${result.error}`)
         toast({ title: 'Apply Failed', description: result.error, variant: 'destructive' })
