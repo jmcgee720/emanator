@@ -18,8 +18,34 @@ import { SavePromptDialog } from './PromptLibrary'
 import BuilderMemory from './BuilderMemory'
 import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
-import { EMANATOR_HEADLINES } from '@/lib/constants/headlines'
 import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap } from 'lucide-react'
+
+const EMANATOR_HEADLINES = [
+  "What wants to be built through you today?",
+  "Follow the signal.",
+  "Turn motion into form.",
+  "The next version of this starts now.",
+  "Shape the unseen into the inevitable.",
+  "Your instinct knows the architecture.",
+  "Begin where clarity meets courage.",
+  "What would you build if nothing could fail?",
+  "Trust the direction. Start building.",
+  "Make the invisible visible.",
+  "This is where intention becomes structure.",
+  "The best code starts as a feeling.",
+  "Something is ready to take form.",
+  "Build like no one is watching.",
+  "The signal is clear. Follow it.",
+  "One prompt away from something real.",
+  "Let the work reveal itself.",
+  "Start with what moves you.",
+  "Every great product began as a whisper.",
+  "The blueprint is already inside you.",
+  "Build what is asking to exist.",
+  "Give shape to something real.",
+  "Create what the world needs next.",
+  "From thought to thing.",
+]
 
 // JSON headers for POST/PUT requests (cookies handle auth automatically)
 const JSON_HEADERS = { 'Content-Type': 'application/json' }

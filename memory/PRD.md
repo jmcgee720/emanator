@@ -10,38 +10,33 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 
 ## Completed Phases
 - **A-G5**: Plan validation, Workspaces, Memory, Routing, Multi-Pass, Self-Critique, Autonomous Execution
-- **G6**: Session Forking — `POST /api/chats/:id/fork` + UI Fork button
+- **G6**: Session Forking
 - **H1-H5**: Moodboard, Token System, Shell Refactor, Motion Layer, Login alignment
-- **H10 REBUILT** (Mar 2026): Aurora Borealis — Sky-Dome Crown
-  - top-origin perspective, radial ribbon streaks, skewX wave deformation
-  - 6-layer depth, teal-to-purple two-zone color, dark navy #0C1018
-- **Glass H7.1**: Premium glass — 1px specular edges, blur 48px, saturate 1.6
-- **Project Bin Rebuild** (Mar 2026):
-  - Removed outer container panel — cards float directly on aurora
-  - Dynamic headline system (24 inspirational lines, random on load)
-  - Builder-first hero: prompt input + mode toggles (Full Stack / Mobile / Landing)
-  - TopBar: Credits display (211.73) + Buy Credits button + Import Project button
-  - Credits modal: balance, usage info, purchase tiers (100/500/1000)
-  - Import modal: Upload File, Import from Zip, Connect Repository
-  - All UI-only (no backend logic yet)
+- **H10**: Aurora Borealis — Sky-Dome Crown (top-origin perspective, radial ribbons, skewX wave)
+- **Glass H7.1**: Premium glass — clear glass, no purple tint, neutral cool tone
+- **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards on aurora, credits/import UI
+- **Visual Correction Pass** (Mar 2026):
+  - Login panel: clear glossy glass (bg opacity 0.52, neutral fill, white specular)
+  - TopBar: PNG logo only, removed gradient text
+  - Project cards: highly transparent glass (bg opacity 0.28-0.34), stronger top highlight
+  - All glass: shifted from purple-tinted to neutral cool, white+cyan specular edges
+
+## Design Rules
+- Glass: bg `rgba(14,18,32, 0.28-0.34)`, blur 48px, saturate 1.4, brightness 1.12
+- Borders: `rgba(255,255,255, 0.07-0.08)` — NO purple tint
+- Specular: `rgba(255,255,255, 0.16)` top inset + white-to-cyan gradient line
+- Aurora: TOP-ORIGIN dome, radial ribbon streaks, skewX wave, teal-to-purple
+- Background: dark navy #0C1018
+- Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
+
+## Key Files
+- `/app/app/globals.css` — Token system + Aurora engine + Glass system
+- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals
+- `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, user menu
+- `/app/components/auth/LoginPage.jsx` — Login + clear glass + aurora
 
 ## Backlog
 - P1: H6 — ChatComposer, ModelSelector, SearchPanel token pass
 - P1: Credits backend integration
 - P1: Import Project ingestion logic
 - P2: Refactor `lib/ai/service.js`
-
-## Key Files
-- `/app/app/globals.css` — Token system + Aurora engine + Glass system
-- `/app/lib/constants/headlines.js` — 24 dynamic inspirational headlines
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals
-- `/app/components/dashboard/TopBar.jsx` — Credits, Import, Search, User menu
-- `/app/components/dashboard/RightPanel.jsx` — Shell + Aurora (focused variant)
-- `/app/components/auth/LoginPage.jsx` — Login + Aurora (cinematic variant)
-
-## Design Rules
-- Aurora: TOP-ORIGIN perspective dome, radial ribbon streaks, skewX wave motion
-- Glass: blur 44-54px, saturate 1.5-1.7, 1px crisp specular edges
-- Background: dark navy #0C1018
-- No outer container panels on project grid — cards float on aurora
-- Motion: ease-in-out, perspective-aware keyframes

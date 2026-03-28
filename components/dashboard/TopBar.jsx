@@ -51,7 +51,6 @@ export default function TopBar({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
           <EmanatorLogo className="w-7 h-7 object-contain" />
-          <span className="font-bold text-[13px] tracking-[0.08em] uppercase em-gradient-text select-none" data-testid="brand-name">Emanator</span>
         </div>
         
         {selectedProject && (

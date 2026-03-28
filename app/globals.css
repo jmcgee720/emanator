@@ -317,19 +317,19 @@
 .em-glass {
   background: linear-gradient(
     170deg,
-    rgba(20, 20, 68, 0.90) 0%,
-    rgba(14, 14, 50, 0.92) 40%,
-    rgba(10, 10, 42, 0.94) 100%
+    rgba(14, 18, 32, 0.28) 0%,
+    rgba(12, 15, 28, 0.32) 40%,
+    rgba(10, 13, 26, 0.34) 100%
   );
-  backdrop-filter: blur(48px) saturate(1.6) brightness(1.05);
-  -webkit-backdrop-filter: blur(48px) saturate(1.6) brightness(1.05);
-  border: 1px solid rgba(124, 58, 237, 0.2);
+  backdrop-filter: blur(48px) saturate(1.4) brightness(1.12);
+  -webkit-backdrop-filter: blur(48px) saturate(1.4) brightness(1.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   box-shadow:
-    0 12px 80px rgba(0, 0, 0, 0.4),
-    0 0 60px rgba(124, 58, 237, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 0 40px rgba(0, 229, 255, 0.015);
+    0 12px 80px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(0, 229, 255, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 40px rgba(255, 255, 255, 0.02);
 }
 
 
@@ -808,25 +808,23 @@
   position: relative;
   background: linear-gradient(
     170deg,
-    rgba(20, 20, 68, 0.88) 0%,
-    rgba(14, 14, 50, 0.91) 40%,
-    rgba(10, 10, 42, 0.93) 100%
+    rgba(14, 18, 30, 0.42) 0%,
+    rgba(12, 15, 26, 0.46) 40%,
+    rgba(10, 13, 24, 0.48) 100%
   );
-  backdrop-filter: blur(48px) saturate(1.6) brightness(1.05);
-  -webkit-backdrop-filter: blur(48px) saturate(1.6) brightness(1.05);
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  backdrop-filter: blur(48px) saturate(1.4) brightness(1.08);
+  -webkit-backdrop-filter: blur(48px) saturate(1.4) brightness(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow:
-    0 12px 100px rgba(0, 0, 0, 0.55),
-    0 2px 40px rgba(0, 0, 0, 0.3),
-    0 0 80px rgba(124, 58, 237, 0.05),
-    0 0 40px rgba(0, 229, 255, 0.025),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    inset 0 0 60px rgba(0, 229, 255, 0.02),
-    inset 0 0 30px rgba(124, 58, 237, 0.015);
+    0 12px 100px rgba(0, 0, 0, 0.45),
+    0 2px 40px rgba(0, 0, 0, 0.25),
+    0 0 60px rgba(0, 229, 255, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    inset 0 0 40px rgba(255, 255, 255, 0.01);
   z-index: 5;
 }
 
-/* Specular top-edge highlight: 1px crisp, concentrated, with color refraction */
+/* Specular top-edge highlight: clean, neutral with subtle cyan accent */
 .em-glass-panel::before {
   content: "";
   position: absolute;
@@ -837,19 +835,18 @@
   background: linear-gradient(
     90deg,
     transparent 3%,
-    rgba(0, 229, 255, 0.12) 12%,
-    rgba(0, 229, 255, 0.5) 22%,
-    rgba(0, 229, 255, 0.55) 30%,
-    rgba(180, 160, 255, 0.35) 44%,
-    rgba(124, 58, 237, 0.4) 56%,
-    rgba(224, 64, 251, 0.18) 72%,
-    rgba(224, 64, 251, 0.06) 88%,
+    rgba(255, 255, 255, 0.06) 12%,
+    rgba(255, 255, 255, 0.18) 22%,
+    rgba(255, 255, 255, 0.22) 35%,
+    rgba(0, 229, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.18) 65%,
+    rgba(255, 255, 255, 0.08) 82%,
     transparent 97%
   );
   z-index: 6;
 }
 
-/* Inner reflection gradient — bright, with cyan-to-violet refraction */
+/* Inner reflection gradient — subtle, neutral */
 .em-glass-panel-inner-glow::after {
   content: "";
   position: absolute;
@@ -859,9 +856,8 @@
   height: 100px;
   background: linear-gradient(
     180deg,
-    rgba(0, 229, 255, 0.04) 0%,
-    rgba(140, 120, 255, 0.02) 30%,
-    rgba(124, 58, 237, 0.01) 60%,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.015) 30%,
     transparent 100%
   );
   pointer-events: none;
@@ -874,16 +870,15 @@
   position: relative;
   background: linear-gradient(
     180deg,
-    rgba(16, 16, 54, 0.90) 0%,
-    rgba(12, 12, 44, 0.93) 100%
+    rgba(12, 15, 26, 0.82) 0%,
+    rgba(10, 13, 24, 0.85) 100%
   );
-  backdrop-filter: blur(44px) saturate(1.5) brightness(1.04);
-  -webkit-backdrop-filter: blur(44px) saturate(1.5) brightness(1.04);
+  backdrop-filter: blur(44px) saturate(1.4) brightness(1.06);
+  -webkit-backdrop-filter: blur(44px) saturate(1.4) brightness(1.06);
   box-shadow:
-    0 0 60px rgba(0, 0, 0, 0.35),
+    0 0 60px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 0 40px rgba(0, 229, 255, 0.015),
-    inset 0 0 20px rgba(124, 58, 237, 0.01);
+    inset 0 0 30px rgba(255, 255, 255, 0.01);
   z-index: 5;
 }
 
@@ -892,19 +887,19 @@
   position: relative;
   background: linear-gradient(
     180deg,
-    rgba(18, 18, 58, 0.90) 0%,
-    rgba(14, 14, 48, 0.92) 100%
+    rgba(14, 18, 30, 0.82) 0%,
+    rgba(12, 15, 26, 0.85) 100%
   );
-  backdrop-filter: blur(44px) saturate(1.6) brightness(1.05);
-  -webkit-backdrop-filter: blur(44px) saturate(1.6) brightness(1.05);
+  backdrop-filter: blur(44px) saturate(1.4) brightness(1.06);
+  -webkit-backdrop-filter: blur(44px) saturate(1.4) brightness(1.06);
   box-shadow:
-    0 4px 50px rgba(0, 0, 0, 0.3),
+    0 4px 50px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(124, 58, 237, 0.1);
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
   z-index: 10;
 }
 
-/* TopBar bottom specular edge — crisp 1px */
+/* TopBar bottom specular edge — clean, neutral */
 .em-glass-topbar::after {
   content: "";
   position: absolute;
@@ -915,11 +910,11 @@
   background: linear-gradient(
     90deg,
     transparent 3%,
-    rgba(0, 229, 255, 0.35) 16%,
-    rgba(0, 229, 255, 0.4) 24%,
-    rgba(180, 160, 255, 0.22) 42%,
-    rgba(124, 58, 237, 0.28) 58%,
-    rgba(224, 64, 251, 0.1) 78%,
+    rgba(255, 255, 255, 0.06) 16%,
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(0, 229, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.12) 70%,
+    rgba(255, 255, 255, 0.06) 84%,
     transparent 97%
   );
 }
@@ -934,11 +929,11 @@
   width: 1px;
   background: linear-gradient(
     180deg,
-    rgba(0, 229, 255, 0.18) 0%,
-    rgba(180, 160, 255, 0.14) 25%,
-    rgba(124, 58, 237, 0.2) 50%,
-    rgba(224, 64, 251, 0.08) 75%,
-    rgba(0, 229, 255, 0.06) 100%
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(0, 229, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    rgba(255, 255, 255, 0.02) 100%
   );
   z-index: 6;
 }
