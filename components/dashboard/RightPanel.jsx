@@ -36,6 +36,8 @@ export default function RightPanel({
       <div className="h-full flex items-center justify-center em-aurora em-aurora--focused">
         <div className="em-aurora-veil-1" style={{ opacity: 0.4 }} />
         <div className="em-aurora-veil-2" style={{ opacity: 0.3 }} />
+        <div className="em-aurora-veil-3" style={{ opacity: 0.3 }} />
+        <div className="em-aurora-veil-4" style={{ opacity: 0.25 }} />
         <div className="em-aurora-noise" />
         <div className="text-center relative z-10">
           <FolderOpen className="w-12 h-12 mx-auto em-text-muted mb-4" style={{ opacity: 0.3 }} />
@@ -50,6 +52,8 @@ export default function RightPanel({
     <div className="absolute inset-0 flex flex-col em-aurora em-aurora--focused" data-testid="right-panel">
       <div className="em-aurora-veil-1" style={{ opacity: 0.3 }} />
       <div className="em-aurora-veil-2" style={{ opacity: 0.2 }} />
+      <div className="em-aurora-veil-3" style={{ opacity: 0.2 }} />
+      <div className="em-aurora-veil-4" style={{ opacity: 0.15 }} />
       <div className="em-aurora-noise" />
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col relative z-5">
         <div className="px-4" style={{ borderBottom: '1px solid rgba(0, 229, 255, 0.06)' }}>

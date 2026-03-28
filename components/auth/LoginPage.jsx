@@ -86,6 +86,9 @@ export default function LoginPage({ onAuthSuccess }) {
       <div className="em-aurora-veil-1" />
       <div className="em-aurora-veil-2" />
       <div className="em-aurora-veil-3" />
+      <div className="em-aurora-veil-4" />
+      <div className="em-aurora-veil-5" />
+      <div className="em-aurora-veil-6" />
       <div className="em-aurora-horizon" />
       <div className="em-aurora-noise" />
 
