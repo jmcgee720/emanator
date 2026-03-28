@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T13:30:06.997030",
   "test_suite": "Test-before-apply Validation Gate for MyMergent Sandboxes",
-  "base_url": "https://luminous-workspace.preview.emergentagent.com/api",
+  "base_url": "https://aurora-dome.preview.emergentagent.com/api",
   "iteration": 16,
   "tests": {
     "setup_find_source_project": {
