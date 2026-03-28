@@ -80,44 +80,14 @@ export default function LoginPage({ onAuthSuccess }) {
   const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#444466]"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" data-testid="login-page">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden em-aurora em-aurora--login" data-testid="login-page">
 
-      {/* ── COSMIC BACKGROUND ── */}
-      {/* Base void */}
-      <div className="absolute inset-0" style={{ background: '#04041A' }} />
-
-      {/* Primary sweep: directional cyan energy from top-left */}
-      <div className="absolute inset-0" style={{
-        background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, transparent 40%, transparent 60%, rgba(124, 58, 237, 0.06) 100%)',
-      }} />
-
-      {/* Central radial: deep violet core */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(124, 58, 237, 0.08) 0%, transparent 70%)',
-      }} />
-
-      {/* Top bloom: concentrated cyan light source */}
-      <div className="absolute top-[-15%] left-[30%] w-[600px] h-[500px] pointer-events-none" style={{
-        background: 'radial-gradient(ellipse at center, rgba(0, 229, 255, 0.14) 0%, rgba(0, 229, 255, 0.04) 35%, transparent 65%)',
-        filter: 'blur(50px)',
-      }} />
-
-      {/* Bottom-right magenta accent */}
-      <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] pointer-events-none" style={{
-        background: 'radial-gradient(circle, rgba(224, 64, 251, 0.1) 0%, rgba(124, 58, 237, 0.03) 50%, transparent 70%)',
-        filter: 'blur(60px)',
-      }} />
-
-      {/* Left-side violet energy line */}
-      <div className="absolute top-[20%] left-0 w-[2px] h-[40%] pointer-events-none" style={{
-        background: 'linear-gradient(180deg, transparent, rgba(124, 58, 237, 0.3), rgba(0, 229, 255, 0.15), transparent)',
-        filter: 'blur(1px)',
-      }} />
-
-      {/* Noise grain */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-      }} />
+      {/* ── AURORA BOREALIS BACKGROUND (dramatic login variant) ── */}
+      <div className="em-aurora-veil-1" />
+      <div className="em-aurora-veil-2" />
+      <div className="em-aurora-veil-3" />
+      <div className="em-aurora-horizon" />
+      <div className="em-aurora-noise" />
 
 
       {/* ── BRAND LOCKUP ── */}
@@ -158,31 +128,33 @@ export default function LoginPage({ onAuthSuccess }) {
           className="relative rounded-2xl overflow-hidden"
           data-testid="login-card"
           style={{
-            background: 'linear-gradient(170deg, rgba(22, 22, 62, 0.95) 0%, rgba(12, 12, 40, 0.97) 100%)',
-            backdropFilter: 'blur(40px) saturate(1.5)',
-            WebkitBackdropFilter: 'blur(40px) saturate(1.5)',
-            border: '1px solid rgba(124, 58, 237, 0.18)',
+            background: 'linear-gradient(170deg, rgba(22, 22, 66, 0.92) 0%, rgba(12, 12, 44, 0.95) 100%)',
+            backdropFilter: 'blur(50px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(50px) saturate(1.6)',
+            border: '1px solid rgba(124, 58, 237, 0.22)',
             boxShadow: `
-              0 25px 60px rgba(0, 0, 0, 0.5),
-              0 0 80px rgba(124, 58, 237, 0.04),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05)
+              0 25px 80px rgba(0, 0, 0, 0.5),
+              0 0 100px rgba(124, 58, 237, 0.05),
+              0 0 40px rgba(0, 229, 255, 0.03),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              inset 0 0 60px rgba(0, 229, 255, 0.02)
             `,
           }}
         >
-          {/* Top edge glow — strong */}
+          {/* Top edge glow — luminous */}
           <div className="absolute top-0 left-0 right-0 h-px" style={{
-            background: 'linear-gradient(90deg, transparent 5%, rgba(0,229,255,0.35) 30%, rgba(124,58,237,0.25) 70%, transparent 95%)',
+            background: 'linear-gradient(90deg, transparent 3%, rgba(0,229,255,0.45) 25%, rgba(124,58,237,0.35) 50%, rgba(224,64,251,0.2) 75%, transparent 97%)',
           }} />
           {/* Side edge hints */}
           <div className="absolute top-0 left-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(0,229,255,0.15) 0%, rgba(124,58,237,0.05) 50%, transparent 80%)',
+            background: 'linear-gradient(180deg, rgba(0,229,255,0.2) 0%, rgba(124,58,237,0.08) 50%, transparent 80%)',
           }} />
           <div className="absolute top-0 right-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(124,58,237,0.1) 0%, rgba(224,64,251,0.04) 50%, transparent 80%)',
+            background: 'linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(224,64,251,0.06) 50%, transparent 80%)',
           }} />
-          {/* Inner top gradient highlight */}
-          <div className="absolute top-0 left-0 right-0 h-24 pointer-events-none" style={{
-            background: 'linear-gradient(180deg, rgba(0, 229, 255, 0.03) 0%, transparent 100%)',
+          {/* Inner top gradient highlight — glossy sheen */}
+          <div className="absolute top-0 left-0 right-0 h-28 pointer-events-none" style={{
+            background: 'linear-gradient(180deg, rgba(0, 229, 255, 0.04) 0%, rgba(124, 58, 237, 0.01) 50%, transparent 100%)',
           }} />
 
           <div className="relative p-8">

@@ -1662,12 +1662,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
 
   return (
-    <div className="h-screen flex flex-col relative em-cosmos em-cosmos--dashboard" style={{ color: 'var(--em-text-primary)' }} data-testid="dashboard">
-      {/* Animated cosmic background layers */}
-      <div className="em-cosmos-glow-1" />
-      <div className="em-cosmos-glow-2" />
-      <div className="em-cosmos-glow-3" />
-      <div className="em-cosmos-noise" />
+    <div className="h-screen flex flex-col relative em-aurora em-aurora--dashboard" style={{ color: 'var(--em-text-primary)' }} data-testid="dashboard">
+      {/* Aurora borealis background veils */}
+      <div className="em-aurora-veil-1" />
+      <div className="em-aurora-veil-2" />
+      <div className="em-aurora-veil-3" />
+      <div className="em-aurora-horizon" />
+      <div className="em-aurora-noise" />
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
           Self-Builder Active
