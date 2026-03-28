@@ -12,41 +12,41 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **A-G5**: Plan validation, Workspaces, Memory, Routing, Multi-Pass, Self-Critique, Autonomous Execution
 - **G6**: Session Forking
 - **H1-H5**: Moodboard, Token System, Shell Refactor, Motion Layer, Login alignment
-- **H10**: Aurora Borealis — Sky-Dome Crown (top-origin perspective, radial ribbons, skewX wave)
-- **Glass H7.1**: Premium glass — clear glass, no purple tint, neutral cool tone
-- **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards on aurora, credits/import UI
-- **Visual Correction Pass** (Mar 2026)
+- **H10**: Aurora Borealis — Sky-Dome Crown
+- **Glass H7.1**: Premium glass — clear glass, no purple tint
+- **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards
 - **Glass Style Unification** (Mar 2026)
-- **Aurora Structural Correction** (Feb 2026):
-  - Replaced radial-gradient "spotlight" shapes with linear-gradient vertical ribbon strips
-  - Added mask-image (repeating-linear-gradient) on all ribbon layers for irregular edge breaking/filament texture
-  - Each ribbon has unique width (background-size), height, position (background-position), and opacity (non-uniform)
-  - Mid-body brightness: linear-gradient peaks at 50% height, NOT at top
-  - Enhanced keyframes: em-au-curtain, em-au-wave, em-au-drift all include skewX + translateX + scaleX for horizontal wave deformation
-  - New em-au-fold keyframe for intense near-layer deformation (veil-5)
-  - Layer blending: all veils use mix-blend-mode: screen with overlapping ribbons at different animation speeds
-  - Perspective maintained: rotateX + perspective combined with new deformation
+- **Aurora Ceiling Geometry Correction** (Feb 2026):
+  - Changed gradient direction from 180deg (vertical beams) to 90deg (horizontal arc bands)
+  - Elements positioned above viewport: top -70% to -85%, height 170-210%
+  - Background-size changed from narrow columns to full-width horizontal bands (100% x H%)
+  - Increased rotateX to 38-44deg for overhead perspective, reduced perspective distance
+  - Border-radius on bottom of elements for dome arc curvature
+  - Containment mask centered at 28% from top (overhead dome feel)
+  - Color blending: each band transitions cyan↔violet horizontally
+  - 3 depth zones: TOP (compressed, thin, dim), MID (brightest, thickest), LOWER (soft fade)
+  - Vertical fold mask (repeating-linear-gradient ~90-95deg) creates curtain fold texture within horizontal bands
+  - Enhanced keyframes with skewX + translateX + scaleX for sideways drift/folding motion
+  - New em-au-fold keyframe for intense near-layer deformation
 
-## Design Rules (Phase H5 LOCKED)
-- Glass: see-through frosted, white tint bg `rgba(255,255,255, 0.03-0.06)`, blur 28px, saturate 1.5
-- Hero input: higher glass clarity than cards (0.09 tint, blur 36px, stronger specular)
-- Glass panels MUST be see-through — aurora visible through them
-- Specular: crisp 1px top-edge shimmer (0.60 peak white + cyan accent)
-- Card hover: -translate-y-0.5 lift + glow intensify, no harsh scale
-- Borders: `rgba(255,255,255, 0.14)`, hover to 0.24
-- Buttons: glass ghost (white border, backdrop-blur) or brand gradient (purple-magenta)
-- Aurora: flowing curtain ribbons, NOT spotlights. Linear-gradient strips + mask-image + wave deformation
-- Aurora curtain structure: mid-body brightness, masked edges, non-uniform spacing
-- Aurora keyframes: must include skewX(), translateX(), scaleX() for ripple/folding
-- Background: dark navy #050810
+## Design Rules
+- Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
+- Aurora: OVERHEAD CEILING perspective, horizontal arc bands, NOT vertical beams
+- Aurora geometry: elements start above viewport, user sees lower portion
+- Aurora depth: top=thin/dim/compressed, mid=bright/thick, bottom=soft fade
+- Aurora curvature: border-radius + perspective for dome arc
+- Aurora color: cyan↔violet BLEND within bands, not isolated stripes
+- Aurora motion: sideways drifting, folding, rippling (skewX + translateX + scaleX)
+- Aurora fold texture: vertical mask pattern for curtain-fold within horizontal bands
+- Background: dark navy #050810-#080C18
 - Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6`
 
 ## Key Files
-- `/app/app/globals.css` — Token system + Aurora engine (structural curtains) + Glass system + Intensity modifiers
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals + aurora state + credits
-- `/app/components/dashboard/TopBar.jsx` — Logo, credits balance, import, search, aurora intensity, user menu
-- `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + clear glass + aurora
-- `/app/hooks/useAuroraState.js` — Aurora intensity, boost, state mode hook
+- `/app/app/globals.css` — Aurora engine (ceiling geometry) + Glass system + Tokens
+- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state
+- `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
+- `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
+- `/app/hooks/useAuroraState.js` — Aurora state machine hook
 
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
