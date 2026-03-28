@@ -16,26 +16,26 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **Glass H7.1**: Premium glass — clear glass, no purple tint, neutral cool tone
 - **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards on aurora, credits/import UI
 - **Visual Correction Pass** (Mar 2026):
-  - Login panel: see-through frosted glass (bg rgba 0.04-0.08 white tint, blur 32px, bright edge shimmers, diagonal refraction gradient)
-  - TopBar: PNG logo only, removed gradient text
-  - Project cards: crisp glossy glass matching global `.em-glass` class
-  - All glass: shifted from ghosted/transparent to solid/crisp, neutral cool
-- **Text Crispness Pass** (Mar 2026):
-  - Primary text: `#FFFFFF` (true white, was `#F0F0F8`)
-  - Secondary text: `#C0C4D8` (bright off-white, was `#8888AA` — ghosted)
-  - Muted text: `#8A8EA6` (visible gray, was `#555577` — near-invisible)
-  - All login inline colors updated to match token brightness
-  - Shadcn muted-foreground boosted to 62% lightness (was 48%)
+- **Glass Style Unification** (Mar 2026):
+  - ALL glass elements (login, topbar, sidebar, project cards, prompt bar, modals) now use see-through frosted glass
+  - Replaced opaque dark fills with white-tint transparent backgrounds
+  - Added specular edge shimmers (top/left/right/bottom) and diagonal refraction gradients
+  - Unified button styles: glass ghost buttons (white border) and brand gradient buttons
+  - Removed all violet/purple border references, replaced with neutral white glass borders
+  - Text Crispness Pass: Primary `#FFFFFF`, Secondary `#C0C4D8`, Muted `#8A8EA6`
 
 ## Design Rules
-- Glass: bg `rgba(14,18,34, 0.90-0.94)`, blur 48px, saturate 1.7, brightness 1.12 — CRISP/GLOSSY, NOT ghosted
+- Glass: see-through frosted style with white tint bg `rgba(255,255,255, 0.04-0.08)`, blur 32px, saturate 1.4
+- Glass panels must be SEE-THROUGH (aurora visible), NOT opaque/dark/heavy
+- Specular: bright top-edge shimmer (0.5+ peak white, cyan accent), edge highlights on all sides
+- Diagonal light refraction shimmer overlay (::after pseudo) on all glass
+- Borders: `rgba(255,255,255, 0.18)` — clean white glass edge
+- Buttons: glass ghost (white border, backdrop-blur) or brand gradient (purple-magenta)
 - Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
-- Core System button: teal/cyan style (border + text var(--em-cyan)), NOT yellow/amber
-- Borders: `rgba(255,255,255, 0.13)` — neutral cool, visible edge
-- Specular: `rgba(255,255,255, 0.22)` top inset + white-to-cyan gradient line (0.28 peak)
+- Core System button: glass ghost style with teal/cyan text
 - Aurora: TOP-ORIGIN dome, radial ribbon streaks, skewX wave, teal-to-purple
 - Background: dark navy #0C1018
-- Text Primary: `#FFFFFF` (crisp white), Secondary: `#C0C4D8`, Muted: `#8A8EA6` — ALL text must feel alive, NOT ghosted
+- Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6` — crisp, NOT ghosted
 
 ## Key Files
 - `/app/app/globals.css` — Token system + Aurora engine + Glass system
