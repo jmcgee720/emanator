@@ -233,9 +233,9 @@ export default function LeftPanel({
   const ModeIcon = modeIcons[builderMode] || Layers
 
   return (
-    <div className="h-full flex flex-col em-panel min-w-0 overflow-hidden em-aurora em-accent-edge-right" data-testid="left-panel">
+    <div className="h-full flex flex-col em-glass-sidebar em-glass-sidebar-edge min-w-0 overflow-hidden" data-testid="left-panel">
       {/* Compact Header — project + mode in one row */}
-      <div className="flex items-center gap-1.5 h-11 px-3 em-accent-edge-bottom flex-shrink-0" data-testid="sidebar-header">
+      <div className="flex items-center gap-1.5 h-11 px-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0, 229, 255, 0.06)' }} data-testid="sidebar-header">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-1.5 flex-1 min-w-0 h-8 px-2 rounded-lg hover:bg-[rgba(0,229,255,0.06)] transition-colors duration-200 text-left" data-testid="project-selector">
@@ -600,7 +600,7 @@ export default function LeftPanel({
       </div>
 
       {/* Quick actions bar */}
-      <div className="flex items-center gap-0.5 px-3 py-1.5 em-accent-edge-top" data-testid="quick-actions">
+      <div className="flex items-center gap-0.5 px-3 py-1.5" style={{ borderTop: '1px solid rgba(0, 229, 255, 0.06)' }} data-testid="quick-actions">
         <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200" onClick={onOpenPromptLibrary} data-testid="open-prompt-library">
           <BookOpen className="w-3 h-3" /> Prompts
         </Button>

@@ -204,25 +204,32 @@
    Panel → Card → Input (dark to light layering)
    ══════════════════════════════════════════════════════ */
 
-/* Panel: sidebar / major regions */
+/* Panel: sidebar / major regions — now uses glass */
 .em-panel {
-  background: var(--em-panel);
+  position: relative;
+  background: linear-gradient(180deg, rgba(14, 14, 46, 0.92) 0%, rgba(10, 10, 38, 0.95) 100%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
 }
 
 /* Card: content containers floating on panels/void */
 .em-card {
-  background: rgba(20, 20, 56, 0.85);
+  background: linear-gradient(170deg, rgba(22, 22, 60, 0.85) 0%, rgba(16, 16, 48, 0.88) 100%);
   border-radius: 12px;
   border: 1px solid rgba(124, 58, 237, 0.12);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.04);
+  box-shadow:
+    0 0 20px rgba(0, 229, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
 }
 
 .em-card:hover {
   border-color: rgba(0, 229, 255, 0.2);
   box-shadow:
-    0 0 20px rgba(0, 229, 255, 0.04),
-    inset 0 0 30px rgba(0, 229, 255, 0.04);
+    0 0 30px rgba(0, 229, 255, 0.06),
+    0 0 60px rgba(124, 58, 237, 0.03),
+    inset 0 0 30px rgba(0, 229, 255, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* Input: sunken into surface */
@@ -296,11 +303,15 @@
    ══════════════════════════════════════════════════════ */
 
 .em-glass {
-  background: rgba(13, 13, 43, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(124, 58, 237, 0.12);
+  background: linear-gradient(170deg, rgba(18, 18, 58, 0.92) 0%, rgba(10, 10, 38, 0.95) 100%);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  border: 1px solid rgba(124, 58, 237, 0.15);
   border-radius: 16px;
+  box-shadow:
+    0 0 60px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(124, 58, 237, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 
@@ -330,36 +341,257 @@
 
 
 /* ══════════════════════════════════════════════════════
-   AURORA AMBIENT BACKGROUND
+   AURORA AMBIENT BACKGROUND — Phase H6 Visual Engine
+   Animated cosmic gradient system with page variants
    ══════════════════════════════════════════════════════ */
 
-.em-aurora {
-  position: relative;
+/* ── Drift keyframes ── */
+@keyframes em-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%      { transform: translate(3%, -2%) scale(1.02); }
+  50%      { transform: translate(-2%, 3%) scale(0.98); }
+  75%      { transform: translate(2%, 1%) scale(1.01); }
 }
 
-.em-aurora::before {
+@keyframes em-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-3%, 2%) scale(1.03); }
+  66%      { transform: translate(2%, -3%) scale(0.97); }
+}
+
+@keyframes em-drift-3 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.6; }
+  50%      { transform: translate(-1%, 2%); opacity: 1; }
+}
+
+/* ── Base cosmic void ── */
+.em-cosmos {
+  position: relative;
+  overflow: hidden;
+  background: #04041A;
+}
+
+/* Layer 0: static deep gradient */
+.em-cosmos::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 90% 100%, rgba(0, 229, 255, 0.03) 0%, transparent 70%);
-  pointer-events: none;
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(12, 12, 50, 0.8) 0%, transparent 70%),
+    linear-gradient(180deg, #05051A 0%, #07071E 40%, #0A0A28 100%);
   z-index: 0;
+}
+
+/* Layer 1: animated cyan energy flow */
+.em-cosmos-glow-1 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.em-cosmos-glow-1::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 15%;
+  width: 70%;
+  height: 60%;
+  background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.09) 0%, rgba(0, 229, 255, 0.02) 40%, transparent 70%);
+  filter: blur(40px);
+  animation: em-drift-1 30s ease-in-out infinite;
+  will-change: transform;
+}
+
+.em-cosmos-glow-1::after {
+  content: "";
+  position: absolute;
+  bottom: -10%;
+  left: 5%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.05) 0%, transparent 65%);
+  filter: blur(60px);
+  animation: em-drift-2 35s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Layer 2: animated violet wave */
+.em-cosmos-glow-2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.em-cosmos-glow-2::before {
+  content: "";
+  position: absolute;
+  top: 20%;
+  right: -10%;
+  width: 60%;
+  height: 70%;
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.07) 0%, rgba(124, 58, 237, 0.02) 40%, transparent 65%);
+  filter: blur(50px);
+  animation: em-drift-2 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+.em-cosmos-glow-2::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 30%;
+  width: 40%;
+  height: 40%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.04) 0%, transparent 60%);
+  filter: blur(40px);
+  animation: em-drift-1 40s ease-in-out infinite reverse;
+  will-change: transform;
+}
+
+/* Layer 3: magenta accent glow */
+.em-cosmos-glow-3 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.em-cosmos-glow-3::before {
+  content: "";
+  position: absolute;
+  bottom: 10%;
+  right: 20%;
+  width: 35%;
+  height: 35%;
+  background: radial-gradient(circle, rgba(224, 64, 251, 0.05) 0%, transparent 60%);
+  filter: blur(50px);
+  animation: em-drift-3 28s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Noise grain over cosmos */
+.em-cosmos-noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+
+/* ── PAGE VARIANT: Dashboard (balanced cyan/violet) ── */
+.em-cosmos--dashboard .em-cosmos-glow-1::before {
+  opacity: 0.7;
+}
+
+.em-cosmos--dashboard .em-cosmos-glow-2::before {
+  opacity: 0.8;
+}
+
+/* ── PAGE VARIANT: Editor/Chat (darker, focused) ── */
+.em-cosmos--focused .em-cosmos-glow-1::before {
+  opacity: 0.4;
+}
+
+.em-cosmos--focused .em-cosmos-glow-2::before {
+  opacity: 0.3;
+}
+
+.em-cosmos--focused .em-cosmos-glow-3::before {
+  opacity: 0.2;
 }
 
 
 /* ══════════════════════════════════════════════════════
-   NOISE TEXTURE
+   GLASS PANEL SYSTEM — Phase H6 Visual Engine
+   True luminous floating glass panels
    ══════════════════════════════════════════════════════ */
 
-.em-noise::before {
+.em-glass-panel {
+  position: relative;
+  background: linear-gradient(170deg, rgba(18, 18, 58, 0.88) 0%, rgba(10, 10, 38, 0.92) 100%);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  border: 1px solid rgba(124, 58, 237, 0.14);
+  box-shadow:
+    0 0 60px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(124, 58, 237, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  z-index: 5;
+}
+
+/* Inner top highlight */
+.em-glass-panel::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(0, 229, 255, 0.2) 30%, rgba(124, 58, 237, 0.15) 70%, transparent 95%);
+  z-index: 6;
+}
+
+.em-glass-panel-inner-glow::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.015) 0%, transparent 100%);
   pointer-events: none;
-  z-index: 0;
+  z-index: 6;
+  border-radius: inherit;
+}
+
+/* Sidebar variant: full-bleed, no border-radius */
+.em-glass-sidebar {
+  position: relative;
+  background: linear-gradient(180deg, rgba(14, 14, 46, 0.92) 0%, rgba(10, 10, 38, 0.95) 100%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  z-index: 5;
+}
+
+/* TopBar variant: thinner, with stronger bottom glow */
+.em-glass-topbar {
+  position: relative;
+  background: linear-gradient(180deg, rgba(16, 16, 52, 0.9) 0%, rgba(12, 12, 42, 0.92) 100%);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  box-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(124, 58, 237, 0.06);
+  z-index: 10;
+}
+
+.em-glass-topbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(0, 229, 255, 0.2) 25%, rgba(124, 58, 237, 0.15) 75%, transparent 95%);
+}
+
+/* Sidebar right-edge glow separator */
+.em-glass-sidebar-edge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.08) 0%, rgba(124, 58, 237, 0.12) 50%, rgba(0, 229, 255, 0.04) 100%);
+  z-index: 6;
 }
 
 
