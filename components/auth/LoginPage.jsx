@@ -143,10 +143,9 @@ export default function LoginPage({ onAuthSuccess }) {
             `,
           }}
         >
-          {/* Specular top edge — 2px, bright, color refraction */}
-          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{
-            background: 'linear-gradient(90deg, transparent 2%, rgba(0,229,255,0.2) 8%, rgba(0,229,255,0.55) 22%, rgba(180,160,255,0.4) 42%, rgba(124,58,237,0.45) 58%, rgba(224,64,251,0.25) 78%, rgba(224,64,251,0.08) 92%, transparent 98%)',
-            filter: 'blur(0.5px)',
+          {/* Specular top edge — 1px crisp, color refraction */}
+          <div className="absolute top-0 left-0 right-0 h-px" style={{
+            background: 'linear-gradient(90deg, transparent 3%, rgba(0,229,255,0.15) 10%, rgba(0,229,255,0.55) 22%, rgba(0,229,255,0.58) 30%, rgba(180,160,255,0.38) 44%, rgba(124,58,237,0.45) 56%, rgba(224,64,251,0.2) 74%, rgba(224,64,251,0.06) 90%, transparent 97%)',
           }} />
           {/* Left edge highlight */}
           <div className="absolute top-0 left-0 w-px h-full" style={{
