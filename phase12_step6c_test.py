@@ -15,7 +15,7 @@ import sys
 from urllib.parse import urlparse
 
 # Test configuration
-BASE_URL = "https://aurora-glass-engine.preview.emergentagent.com"
+BASE_URL = "https://ai-visual-phase.preview.emergentagent.com"
 TEST_EMAIL = "testprov@test.com"
 TEST_PASSWORD = "password123"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "

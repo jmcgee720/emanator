@@ -7,7 +7,7 @@ import requests
 import json
 import time
 
-API_URL = "https://aurora-glass-engine.preview.emergentagent.com"
+API_URL = "https://ai-visual-phase.preview.emergentagent.com"
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 CHAT_ID = "36c0d150-2960-4b70-9267-9b6a521893a8"

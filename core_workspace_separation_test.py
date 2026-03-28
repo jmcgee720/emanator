@@ -23,7 +23,7 @@ import os
 import uuid
 
 # Configuration
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://aurora-glass-engine.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://ai-visual-phase.preview.emergentagent.com')
 OWNER_EMAIL = 'testprov@test.com'
 OWNER_PASSWORD = 'password123'
 SELF_EDIT_PREFIX = '⚙ Self-Edit: '  # Unicode U+2699
