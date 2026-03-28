@@ -123,7 +123,7 @@ export default function LoginPage({ onAuthSuccess }) {
       >
         {/* Card outer glow */}
         <div className="absolute -inset-1 rounded-3xl pointer-events-none" style={{
-          background: 'linear-gradient(165deg, rgba(0, 229, 255, 0.06) 0%, rgba(124, 58, 237, 0.04) 50%, rgba(224, 64, 251, 0.03) 100%)',
+          background: 'linear-gradient(165deg, rgba(0, 229, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 229, 255, 0.02) 100%)',
           filter: 'blur(20px)',
         }} />
 
@@ -131,36 +131,34 @@ export default function LoginPage({ onAuthSuccess }) {
           className="relative rounded-2xl overflow-hidden"
           data-testid="login-card"
           style={{
-            background: 'linear-gradient(170deg, rgba(22, 22, 72, 0.92) 0%, rgba(16, 16, 54, 0.94) 40%, rgba(12, 12, 46, 0.96) 100%)',
-            backdropFilter: 'blur(54px) saturate(1.7) brightness(1.06)',
-            WebkitBackdropFilter: 'blur(54px) saturate(1.7) brightness(1.06)',
-            border: '1px solid rgba(124, 58, 237, 0.24)',
+            background: 'linear-gradient(170deg, rgba(14, 18, 30, 0.52) 0%, rgba(12, 15, 26, 0.56) 40%, rgba(10, 13, 24, 0.58) 100%)',
+            backdropFilter: 'blur(54px) saturate(1.5) brightness(1.08)',
+            WebkitBackdropFilter: 'blur(54px) saturate(1.5) brightness(1.08)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: `
-              0 20px 100px rgba(0, 0, 0, 0.6),
-              0 4px 50px rgba(0, 0, 0, 0.35),
-              0 0 120px rgba(124, 58, 237, 0.06),
-              0 0 60px rgba(0, 229, 255, 0.035),
-              inset 0 1px 0 rgba(255, 255, 255, 0.12),
-              inset 0 0 80px rgba(0, 229, 255, 0.025),
-              inset 0 0 40px rgba(124, 58, 237, 0.02)
+              0 20px 100px rgba(0, 0, 0, 0.5),
+              0 4px 50px rgba(0, 0, 0, 0.25),
+              0 0 80px rgba(0, 229, 255, 0.025),
+              inset 0 1px 0 rgba(255, 255, 255, 0.14),
+              inset 0 0 60px rgba(255, 255, 255, 0.015)
             `,
           }}
         >
           {/* Specular top edge — 1px crisp, color refraction */}
           <div className="absolute top-0 left-0 right-0 h-px" style={{
-            background: 'linear-gradient(90deg, transparent 3%, rgba(0,229,255,0.15) 10%, rgba(0,229,255,0.55) 22%, rgba(0,229,255,0.58) 30%, rgba(180,160,255,0.38) 44%, rgba(124,58,237,0.45) 56%, rgba(224,64,251,0.2) 74%, rgba(224,64,251,0.06) 90%, transparent 97%)',
+            background: 'linear-gradient(90deg, transparent 3%, rgba(255,255,255,0.06) 10%, rgba(255,255,255,0.18) 22%, rgba(255,255,255,0.22) 35%, rgba(0,229,255,0.15) 50%, rgba(255,255,255,0.18) 65%, rgba(255,255,255,0.08) 82%, transparent 97%)',
           }} />
           {/* Left edge highlight */}
           <div className="absolute top-0 left-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(0,229,255,0.25) 0%, rgba(180,160,255,0.1) 30%, rgba(124,58,237,0.08) 60%, transparent 85%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 30%, transparent 70%)',
           }} />
           {/* Right edge highlight */}
           <div className="absolute top-0 right-0 w-px h-full" style={{
-            background: 'linear-gradient(180deg, rgba(124,58,237,0.18) 0%, rgba(224,64,251,0.08) 40%, transparent 75%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 40%, transparent 75%)',
           }} />
-          {/* Inner reflection — bright, cyan→violet refraction shift */}
+          {/* Inner reflection — subtle, neutral */}
           <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none" style={{
-            background: 'linear-gradient(180deg, rgba(0, 229, 255, 0.05) 0%, rgba(140, 120, 255, 0.025) 35%, rgba(124, 58, 237, 0.01) 65%, transparent 100%)',
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 40%, transparent 100%)',
           }} />
 
           <div className="relative p-8">
