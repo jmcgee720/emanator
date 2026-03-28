@@ -3,7 +3,7 @@
   "feature": "Promote Sandbox \u2192 Primary",
   "timestamp": "2026-03-19 13:47:41 UTC",
   "auth_user": "REDACTED_LEAKED_USER",
-  "base_url": "https://aurora-glass-engine.preview.emergentagent.com/api",
+  "base_url": "https://ai-visual-phase.preview.emergentagent.com/api",
   "source_project_id": "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd",
   "sandbox_project_id": "64a8bca8-927d-4961-a4e8-50cffd7422b9",
   "test_results": [

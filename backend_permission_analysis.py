@@ -19,7 +19,7 @@ import requests
 import json
 
 # Test configuration
-BASE_URL = "https://aurora-glass-engine.preview.emergentagent.com/api"
+BASE_URL = "https://ai-visual-phase.preview.emergentagent.com/api"
 
 class PermissionAnalysis:
     def __init__(self):
