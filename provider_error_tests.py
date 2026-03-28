@@ -9,7 +9,7 @@ import os
 from urllib.parse import urljoin
 
 # Test configuration
-BASE_URL = "https://aurora-depth-preview.preview.emergentagent.com"
+BASE_URL = "https://ai-aurora-veil.preview.emergentagent.com"
 API_BASE = urljoin(BASE_URL, "/api/")
 
 def test_provider_status_endpoint():

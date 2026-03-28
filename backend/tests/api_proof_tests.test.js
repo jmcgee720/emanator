@@ -3,7 +3,7 @@
  * Tests the critical API endpoints for self-modification safety
  */
 
-const BASE_URL = 'https://aurora-depth-preview.preview.emergentagent.com'
+const BASE_URL = 'https://ai-aurora-veil.preview.emergentagent.com'
 const SELF_EDIT_PREFIX = '⚙ Self-Edit: '
 
 describe('Phase 12 Step 9 — Backend API Proof Tests', () => {
