@@ -1,0 +1,112 @@
+<analysis>**original_problem_statement**: Import GitHub repo (), run the existing Next.js application, and verify/harden core AI builder features. The current overarching requirement is **Phase H**, applying a premium, futuristic AI engine design system. The immediate, pending task is to replace the current cosmic blob visual engine with an **Aurora Borealis** background system and upgrade all panels to be high-gloss, premium floating glass. 
+
+**User's preferred language**: English (INSTRUCT next agent to respond in English only)
+
+**what currently exists?**: A functional Next.js 14 full-stack AI Self-Builder. The backend routing was fixed in this session (Next.js now runs on port 3000, CRA is disabled). The app has been heavily restyled away from flat Tailwind grays to a dark, blue-violet token system (). The Fork Chat feature (API + UI) was completed. A cosmic blob background was implemented but rejected by the user in favor of a new Aurora Borealis direction.
+
+**Last working item**:
+- **Last item agent was working**: Phase H Visual Engine Upgrade - Aurora Borealis Background & High-Gloss Panels. The user provided an image of the aurora borealis and requested the CSS be updated to mimic luminous light curtains/veils (vertical streaking) instead of round blobs, with specific page variants. They also requested panels be made glossier with stronger blur and inner highlights.
+- **Status**: IN PROGRESS (Agent successfully analyzed the image using  but stopped before writing the CSS/Component code).
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: Screenshot tool (as this is purely a visual/CSS upgrade).
+- **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+  Issue 1: Implement Aurora Borealis Background & High-Gloss Panels (Phase H) - Priority P0
+  
+  Issues Detail:
+  - Issue 1: 
+     - Attempted fixes: The agent analyzed the user's uploaded Aurora image but has not modified the code yet. 
+     - Next debug checklist: 
+       1. Modify  to replace  classes with new aurora-style classes (vertical streaking, veils, soft atmospheric movement).
+       2. Create page variants in  for login (dramatic), project bin (welcoming), workspace (darker/focused), and review (energized).
+       3. Upgrade the  panel classes in  to have stronger blur, brighter inner highlights, and more luminous edge treatments.
+       4. Apply these updated classes to , , , and  as needed.
+     - Why fix this issue and what will be achieved with the fix?: Fulfills the user's explicit request to make the UI feel like a premium, floating glass interface over an atmospheric aurora, removing the cheap neon blob look.
+     - Status: IN PROGRESS
+     - Is recurring issue?: N
+     - Should Test frontend/backend/both after fix?: Frontend (Screenshot tool).
+     - Blocked on other issue: None.
+
+**In progress Task List**:
+(See Issue 1 above. All pending work is consolidated under the Aurora visual engine upgrade).
+
+**Upcoming and Future Tasks**:
+- P1: Apply token system pass to , , and  (Phase H6).
+- P2: Refactor  (~2600 lines) into smaller modules.
+
+**Completed work in this session**:
+- Implemented Phase G6 Session Forking endpoint () and data compression logic (DONE).
+- Added Fork UI button to  and wired it to the API (DONE).
+- Created a complete Design Token CSS system in  (colors, glass surfaces, interaction glows) based on user moodboard (DONE).
+- Fixed Preview Routing: Stopped CRA on port 3000, moved Next.js server to port 3000, repointed FastAPI proxy (DONE).
+- Restyled dashboard shell components (, , ) to use dark space/glass tokens (DONE).
+- Added UI Interaction & Motion layer (message sliding, button hover scaling, diff pulse) (DONE).
+- Fully restyled  to match the dark cosmic theme with floating logo wordmark (DONE).
+- Optimized logo file size from 2MB to 11KB and implemented as a text wordmark (DONE).
+
+**Earlier issues found/mentioned but not fixed**:
+- None.
+
+**Known issue recurrence from previous fork**:
+- None.
+
+**Code Architecture**:
+
+
+**Key Technical Concepts**:
+Next.js App Router, CSS Variables/Tokens, Glassmorphism (), CSS Keyframe Animations (for aurora/motion), Server-Sent Events (SSE).
+
+**key DB schema**:
+  - : {id, project_id, title, forked_from}
+  - : {id, chat_id, role, content, metadata}
+
+**changes in tech stack**:
+  - **CRITICAL ROUTING CHANGE:** The Next.js API server was moved from port 3002 to **port 3000**. The old Create-React-App (CRA) frontend that used to run on 3000 has been stopped and bypassed.  now points to .
+
+**All files of reference**:
+  - : Contains all  variables, panel classes, and animations. *Modify this for the Aurora update.*
+  - , , : Main shell components applying the CSS classes.
+  - : The login screen applying the CSS classes.
+
+**Areas that need refactoring**:
+  -  remains extremely large.
+
+**key api endpoints**:
+  -  (New endpoint created this session)
+
+**Critical Info for New Agent**:
+- **Design Rule Constraint:** NO Tailwind grays (, etc.), NO flat backgrounds, NO hard borders (), NO shadows for depth (use glow/blur). Always use the custom  variables and  utility classes. 
+- **Current Task Constraint:** Do NOT redesign the layout or touch authentication/business logic. The current task is *strictly* a CSS/visual engine replacement (Aurora background + Glass upgrades).
+
+**documents and test reports created in this job**:
+  -  (Updated consistently)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. (User) Asked to apply H3 Dashboard Shell component refactoring. (Done)
+2. (User) Asked to apply H4 Interaction + Motion Layer (fades, button hovers). (Done)
+3. (User) Noted preview URL was broken; asked to fix routing so Next.js UI is visible on port 3000. (Done)
+4. (User) Asked to implement the preview routing fix exactly as planned. (Done)
+5. (User) Asked to apply Phase H5 - fix Login/Welcome page to match new design system. (Done)
+6. (User) Gave feedback on Login page: background too flat, logo wrong, card not glossy enough. (Done)
+7. (User) Gave final Login page feedback: larger wordmark, stronger background/glass. (Done)
+8. (User) Asked to upgrade the entire app visual engine to a dynamic cosmic gradient blob system with moving layers. (Done)
+9. **(PENDING HUMAN MESSAGE)**: Ignored previous cosmic blob direction. Wants to use an uploaded **Aurora Borealis** image as the model. Instructed to implement vertical streaking/veils (no blobs), make panels significantly glossier (more blur, inner highlight), and create specific page variants (login, project bin, workspace, diff).
+
+**Project Health Check:**
+Healthy.
+
+**3rd Party Integrations** 
+- OpenAI / Anthropic (Uses User API Key / Env variables)
+
+**Testing status**
+  - Testing agent used after significant changes: NO (Visual CSS changes, screenshot tool heavily utilized).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None this session.
+  - Known regressions: None.
+
+**Credentials to test flow:**
+ / 
+
+**What agent forgot to execute**:
+The agent analyzed the attached Aurora Borealis image but stopped generating before writing the updated CSS in  and applying the updated classes to the React components.</analysis>

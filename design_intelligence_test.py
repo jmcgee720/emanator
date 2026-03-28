@@ -2,7 +2,7 @@
 """
 MyMergent Design Intelligence System Backend Test Suite
 
-Tests the Design Intelligence system at https://fork-endpoint.preview.emergentagent.com
+Tests the Design Intelligence system at https://luminous-workspace.preview.emergentagent.com
 with specific focus on design preferences API endpoints and streaming functionality.
 
 Test Scenarios from Review Request:
@@ -27,7 +27,7 @@ from datetime import datetime
 # Configuration from review request
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-API_URL = "https://fork-endpoint.preview.emergentagent.com"
+API_URL = "https://luminous-workspace.preview.emergentagent.com"
 PROJECT_ID = "be43ac27-901d-46b3-a965-e1ad7e3e7d0a"
 CHAT_ID = "36c0d150-2960-4b70-9267-9b6a521893a8"
 

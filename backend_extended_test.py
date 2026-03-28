@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Base URL from environment
-BASE_URL = "https://fork-endpoint.preview.emergentagent.com/api"
+BASE_URL = "https://luminous-workspace.preview.emergentagent.com/api"
 
 # Test configuration
 HEADERS = {

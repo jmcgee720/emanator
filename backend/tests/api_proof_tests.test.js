@@ -3,7 +3,7 @@
  * Tests the critical API endpoints for self-modification safety
  */
 
-const BASE_URL = 'https://fork-endpoint.preview.emergentagent.com'
+const BASE_URL = 'https://luminous-workspace.preview.emergentagent.com'
 const SELF_EDIT_PREFIX = '⚙ Self-Edit: '
 
 describe('Phase 12 Step 9 — Backend API Proof Tests', () => {
