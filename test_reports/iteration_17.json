@@ -2,7 +2,7 @@
   "timestamp": "2025-01-11T10:45:00Z",
   "test_iteration": 17,
   "test_name": "test-before-apply UI sandbox mode",
-  "app_url": "https://emanator-validate.preview.emergentagent.com",
+  "app_url": "https://fork-endpoint.preview.emergentagent.com",
   "auth_credentials": "testprov@test.com / password123",
   "test_status": "CODE_ANALYSIS_VERIFICATION",
   "browser_automation_issue": "Python syntax errors prevented full UI automation testing",

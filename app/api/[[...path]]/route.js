@@ -1351,6 +1351,82 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true }))
     }
 
+    // ============ SESSION FORKING ============
+
+    // Fork a chat — compress history into a new chat with a single synthetic message
+    if (route.match(/^\/chats\/[^/]+\/fork$/) && method === 'POST') {
+      const chatId = path[1]
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        // 1. Fetch source chat
+        const sourceChat = await db.chats.findById(chatId)
+        if (!sourceChat) {
+          return handleCORS(NextResponse.json({ error: 'Source chat not found' }, { status: 404 }))
+        }
+
+        // 2. Fetch all messages from source chat
+        const messages = await db.messages.findByChatId(chatId)
+
+        // 3. Compress the history
+        const aiService = new AIService()
+        const compressed = aiService.compressContext(messages)
+        const summaryText = compressed.length > 0 && compressed[0].role === 'system'
+          ? compressed[0].content
+          : `[Forked from chat "${sourceChat.title}" with ${messages.length} messages]`
+
+        // 4. Extract latest plan/diff metadata from the most recent assistant message
+        let latestMeta = {}
+        for (let i = messages.length - 1; i >= 0; i--) {
+          const m = messages[i]
+          if (m.role === 'assistant' && m.metadata) {
+            const { proposedPlan, diffStatus, diffFiles, planData, planId } = m.metadata
+            if (proposedPlan || diffFiles || planData) {
+              latestMeta = { proposedPlan, diffStatus, diffFiles, planData, planId }
+              break
+            }
+          }
+        }
+
+        // 5. Create the new forked chat
+        const forkedChat = await db.chats.create({
+          project_id: sourceChat.project_id,
+          title: `Fork of: ${sourceChat.title}`
+        })
+
+        // 6. Seed with a single synthetic message containing the summary + metadata
+        await db.messages.create({
+          chat_id: forkedChat.id,
+          project_id: sourceChat.project_id,
+          role: 'system',
+          content: summaryText,
+          metadata: {
+            forked_from: chatId,
+            original_message_count: messages.length,
+            ...latestMeta
+          }
+        })
+
+        return handleCORS(NextResponse.json({
+          id: forkedChat.id,
+          title: forkedChat.title,
+          project_id: forkedChat.project_id,
+          forked_from: chatId,
+          original_message_count: messages.length
+        }, { status: 201 }))
+      } catch (err) {
+        console.error('[Fork] Error forking chat:', err)
+        return handleCORS(NextResponse.json({ error: 'Failed to fork chat' }, { status: 500 }))
+      }
+    }
+
     // ============ PROJECT FILES ROUTES ============
     
     // Get files for project

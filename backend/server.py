@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-NEXTJS_URL = "http://localhost:3000"
+NEXTJS_URL = "http://localhost:3002"
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy_api(request: Request, path: str):
