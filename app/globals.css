@@ -398,9 +398,9 @@
 
 @keyframes em-aurora-breathe {
   0%, 100% { opacity: var(--aurora-breathe-lo, 0.5); }
-  35%      { opacity: var(--aurora-breathe-hi, 0.8); }
-  65%      { opacity: calc((var(--aurora-breathe-lo, 0.5) + var(--aurora-breathe-hi, 0.8)) / 2); }
-  80%      { opacity: var(--aurora-breathe-hi, 0.8); }
+  30%      { opacity: var(--aurora-breathe-hi, 0.8); }
+  55%      { opacity: var(--aurora-breathe-lo, 0.5); }
+  78%      { opacity: var(--aurora-breathe-hi, 0.8); }
 }
 
 @keyframes em-aurora-undulate {
@@ -411,8 +411,9 @@
 }
 
 @keyframes em-aurora-filament-drift {
-  0%, 100% { background-position: 0 0; }
-  50%      { background-position: 2px -8px; }
+  0%, 100% { background-position: 0px 0px; }
+  40%      { background-position: 1px -5px; }
+  70%      { background-position: 2px -8px; }
 }
 
 /* ── Base aurora void (deeper) ── */
@@ -444,7 +445,7 @@
   overflow: hidden;
 }
 
-/* Primary cyan curtain — broad, soft base */
+/* Primary cyan curtain — broad, with clear filament texture */
 .em-aurora-veil-1::before {
   content: "";
   position: absolute;
@@ -456,25 +457,25 @@
     repeating-linear-gradient(
       90deg,
       transparent 0px,
-      rgba(0, 229, 255, 0.04) 1px,
-      rgba(0, 229, 255, 0.08) 2px,
+      rgba(0, 229, 255, 0.05) 1px,
+      rgba(0, 229, 255, 0.11) 2px,
       transparent 4px,
       transparent 8px,
-      rgba(0, 229, 255, 0.03) 9px,
+      rgba(0, 229, 255, 0.04) 9px,
       transparent 10px,
-      transparent 16px
+      transparent 15px
     ),
     linear-gradient(
       180deg,
       transparent 0%,
       rgba(0, 229, 255, 0.04) 10%,
-      rgba(0, 229, 255, 0.10) 28%,
-      rgba(0, 229, 255, 0.15) 42%,
+      rgba(0, 229, 255, 0.11) 28%,
+      rgba(0, 229, 255, 0.16) 42%,
       rgba(0, 229, 255, 0.08) 58%,
       rgba(0, 229, 255, 0.03) 78%,
       transparent 100%
     );
-  filter: blur(18px);
+  filter: blur(15px);
   animation:
     em-aurora-fold-1 26s ease-in-out infinite,
     em-aurora-breathe 17s ease-in-out infinite;
@@ -495,23 +496,23 @@
     repeating-linear-gradient(
       90deg,
       transparent 0px,
-      rgba(0, 229, 255, 0.06) 1px,
+      rgba(0, 229, 255, 0.07) 1px,
       transparent 2px,
-      transparent 6px,
-      rgba(0, 229, 255, 0.03) 7px,
-      transparent 8px,
-      transparent 13px
+      transparent 5px,
+      rgba(0, 229, 255, 0.04) 6px,
+      transparent 7px,
+      transparent 12px
     ),
     linear-gradient(
       180deg,
       transparent 0%,
       rgba(0, 229, 255, 0.03) 18%,
-      rgba(0, 229, 255, 0.11) 40%,
+      rgba(0, 229, 255, 0.12) 40%,
       rgba(0, 229, 255, 0.07) 60%,
       rgba(0, 229, 255, 0.02) 80%,
       transparent 100%
     );
-  filter: blur(12px);
+  filter: blur(10px);
   animation:
     em-aurora-fold-2 31s ease-in-out infinite 2.5s,
     em-aurora-breathe 22s ease-in-out infinite 4s,
@@ -530,7 +531,7 @@
   overflow: hidden;
 }
 
-/* Primary violet curtain */
+/* Primary violet curtain — clear filament texture */
 .em-aurora-veil-2::before {
   content: "";
   position: absolute;
@@ -542,26 +543,26 @@
     repeating-linear-gradient(
       90deg,
       transparent 0px,
-      rgba(124, 58, 237, 0.03) 1px,
-      rgba(124, 58, 237, 0.07) 2px,
+      rgba(124, 58, 237, 0.04) 1px,
+      rgba(124, 58, 237, 0.09) 2px,
       transparent 4px,
       transparent 9px,
-      rgba(124, 58, 237, 0.02) 10px,
+      rgba(124, 58, 237, 0.03) 10px,
       transparent 11px,
-      transparent 18px
+      transparent 17px
     ),
     linear-gradient(
       180deg,
       transparent 0%,
       rgba(124, 58, 237, 0.03) 8%,
-      rgba(124, 58, 237, 0.09) 25%,
-      rgba(124, 58, 237, 0.14) 45%,
+      rgba(124, 58, 237, 0.10) 25%,
+      rgba(124, 58, 237, 0.15) 45%,
       rgba(124, 58, 237, 0.10) 60%,
       rgba(124, 58, 237, 0.04) 78%,
       rgba(124, 58, 237, 0.01) 90%,
       transparent 100%
     );
-  filter: blur(20px);
+  filter: blur(17px);
   animation:
     em-aurora-fold-2 29s ease-in-out infinite 1.5s,
     em-aurora-breathe 19s ease-in-out infinite 3s;
@@ -582,22 +583,22 @@
     repeating-linear-gradient(
       90deg,
       transparent 0px,
-      rgba(124, 58, 237, 0.05) 1px,
+      rgba(124, 58, 237, 0.06) 1px,
       transparent 2px,
-      transparent 7px,
-      rgba(124, 58, 237, 0.03) 8px,
-      transparent 9px,
-      transparent 15px
+      transparent 6px,
+      rgba(124, 58, 237, 0.04) 7px,
+      transparent 8px,
+      transparent 14px
     ),
     linear-gradient(
       180deg,
       transparent 0%,
       rgba(124, 58, 237, 0.02) 22%,
-      rgba(124, 58, 237, 0.09) 48%,
+      rgba(124, 58, 237, 0.10) 48%,
       rgba(124, 58, 237, 0.05) 68%,
       transparent 100%
     );
-  filter: blur(14px);
+  filter: blur(12px);
   animation:
     em-aurora-fold-3 34s ease-in-out infinite,
     em-aurora-undulate 28s ease-in-out infinite 5s;
@@ -827,27 +828,27 @@
   z-index: 5;
 }
 
-/* Specular top-edge highlight: 2px, bright, with color refraction */
+/* Specular top-edge highlight: 1px crisp, concentrated, with color refraction */
 .em-glass-panel::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 1px;
   background: linear-gradient(
     90deg,
-    transparent 2%,
-    rgba(0, 229, 255, 0.15) 10%,
-    rgba(0, 229, 255, 0.5) 25%,
-    rgba(180, 160, 255, 0.35) 45%,
-    rgba(124, 58, 237, 0.4) 55%,
-    rgba(224, 64, 251, 0.2) 75%,
-    rgba(224, 64, 251, 0.08) 90%,
-    transparent 98%
+    transparent 3%,
+    rgba(0, 229, 255, 0.12) 12%,
+    rgba(0, 229, 255, 0.5) 22%,
+    rgba(0, 229, 255, 0.55) 30%,
+    rgba(180, 160, 255, 0.35) 44%,
+    rgba(124, 58, 237, 0.4) 56%,
+    rgba(224, 64, 251, 0.18) 72%,
+    rgba(224, 64, 251, 0.06) 88%,
+    transparent 97%
   );
   z-index: 6;
-  filter: blur(0.5px);
 }
 
 /* Inner reflection gradient — bright, with cyan-to-violet refraction */
@@ -905,7 +906,7 @@
   z-index: 10;
 }
 
-/* TopBar bottom specular edge */
+/* TopBar bottom specular edge — crisp 1px */
 .em-glass-topbar::after {
   content: "";
   position: absolute;
@@ -915,12 +916,13 @@
   height: 1px;
   background: linear-gradient(
     90deg,
-    transparent 2%,
-    rgba(0, 229, 255, 0.4) 18%,
-    rgba(180, 160, 255, 0.25) 40%,
-    rgba(124, 58, 237, 0.3) 60%,
-    rgba(224, 64, 251, 0.12) 82%,
-    transparent 98%
+    transparent 3%,
+    rgba(0, 229, 255, 0.35) 16%,
+    rgba(0, 229, 255, 0.4) 24%,
+    rgba(180, 160, 255, 0.22) 42%,
+    rgba(124, 58, 237, 0.28) 58%,
+    rgba(224, 64, 251, 0.1) 78%,
+    transparent 97%
   );
 }
 
