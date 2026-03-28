@@ -201,13 +201,23 @@ async function handleRoute(request, { params }) {
     // Auth check route
     if (route === '/auth/check' && method === 'POST') {
       const body = await request.json()
-      const { email } = body
+      const { email, provider } = body
       
       if (!email) {
         return handleCORS(NextResponse.json({ error: 'Email required' }, { status: 400 }))
       }
       
-      const user = await checkAllowlist(email)
+      let user = await checkAllowlist(email)
+
+      // Auto-create user for OAuth providers (Google, etc.)
+      if (!user && provider === 'google') {
+        user = await db.users.create({
+          email,
+          role: 'user',
+          is_allowlisted: true,
+        })
+      }
+
       if (!user) {
         return handleCORS(NextResponse.json({ 
           allowed: false, 

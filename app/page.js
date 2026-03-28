@@ -38,10 +38,13 @@ export default function App() {
         headers['Authorization'] = `Bearer ${accessToken}`
       }
 
+      // Detect OAuth provider from Supabase user metadata
+      const provider = authUser.app_metadata?.provider || authUser.app_metadata?.providers?.[0] || 'email'
+
       const response = await fetch('/api/auth/check', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ email: authUser.email })
+        body: JSON.stringify({ email: authUser.email, provider })
       })
 
       const data = await response.json()
