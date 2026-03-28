@@ -1766,6 +1766,10 @@ async function handleRoute(request, { params }) {
         })
       }).catch(e => console.warn('[changelog] apply logChange failed:', e.message))
 
+      // Build continuation info if plan has next_steps
+      const nextStep = (!results.rolledBack && planData?.next_steps?.length > 0) ? planData.next_steps[0] : null
+      const remainingSteps = (!results.rolledBack && planData?.next_steps?.length > 1) ? planData.next_steps.slice(1) : []
+
       return handleCORS(NextResponse.json({
         success: !results.rolledBack,
         snapshot: results.snapshot ? { id: results.snapshot.id, name: results.snapshot.name } : null,
@@ -1774,6 +1778,7 @@ async function handleRoute(request, { params }) {
         skipped: results.skipped,
         errors: results.errors,
         rolledBack: results.rolledBack || false,
+        continuation: nextStep ? { nextStep, remainingSteps, originalTask: planData?.summary || '' } : null,
       }))
     }
 
