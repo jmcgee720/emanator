@@ -1478,8 +1478,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     const cards = projects.filter(p => p.type !== 'core')
 
     return (
-      <div className="flex-1 overflow-auto px-8 py-8">
-        <div className="mx-auto max-w-7xl border border-[rgba(124,58,237,0.1)] bg-[rgba(20,20,56,0.4)] min-h-[calc(100vh-8rem)] rounded-2xl p-8">
+      <div className="flex-1 overflow-auto px-8 py-8 relative z-5">
+        <div className="mx-auto max-w-7xl em-glass-panel em-glass-panel-inner-glow min-h-[calc(100vh-8rem)] rounded-2xl p-8">
 <div className="flex items-center justify-between mb-10">
   <div className="flex items-center gap-4">
     <div className="flex flex-col">
@@ -1569,7 +1569,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         </div>
       {showNewProjectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="em-glass p-6 w-[400px]">
+          <div className="em-glass-panel em-glass-panel-inner-glow rounded-2xl p-6 w-[400px]">
 
             <h2 className="text-sm font-semibold mb-4 em-text-primary">Create Project</h2>
 
@@ -1619,7 +1619,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const renderWorkspaceTabs = () => (
-    <div className="h-12 em-accent-edge-bottom flex items-center gap-2 px-3 overflow-x-auto" style={{ background: 'var(--em-panel)' }}>
+    <div className="h-12 flex items-center gap-2 px-3 overflow-x-auto relative z-10 em-glass-topbar">
       <button
         onClick={() => {
           setSelectedProject(null)
@@ -1662,7 +1662,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
 
   return (
-    <div className="h-screen flex flex-col relative" style={{ background: 'var(--em-void)', color: 'var(--em-text-primary)' }} data-testid="dashboard">
+    <div className="h-screen flex flex-col relative em-cosmos em-cosmos--dashboard" style={{ color: 'var(--em-text-primary)' }} data-testid="dashboard">
+      {/* Animated cosmic background layers */}
+      <div className="em-cosmos-glow-1" />
+      <div className="em-cosmos-glow-2" />
+      <div className="em-cosmos-glow-3" />
+      <div className="em-cosmos-noise" />
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
           Self-Builder Active

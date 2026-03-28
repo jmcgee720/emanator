@@ -44,7 +44,7 @@ export default function TopBar({
     'text-muted-foreground bg-muted/30 border-border/30'
 
   return (
-    <div className="h-12 em-panel flex items-center justify-between px-5 em-accent-edge-bottom relative z-10" data-testid="top-bar">
+    <div className="h-12 em-glass-topbar flex items-center justify-between px-5" data-testid="top-bar">
       {/* Brand + breadcrumb */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
