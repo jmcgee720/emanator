@@ -40,13 +40,14 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6` — crisp, NOT ghosted
 
 ## Key Files
-- `/app/app/globals.css` — Token system + Aurora engine + Glass system
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals
-- `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, user menu
+- `/app/app/globals.css` — Token system + Aurora engine + Glass system + Intensity modifiers
+- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + headlines + modals + aurora state
+- `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, aurora intensity, user menu
 - `/app/components/auth/LoginPage.jsx` — Login + clear glass + aurora
+- `/app/hooks/useAuroraState.js` — Aurora intensity, boost, state mode hook
 
 ## Backlog
-- P1: H6 — ChatComposer, ModelSelector, SearchPanel token pass
 - P1: Credits backend integration
 - P1: Import Project ingestion logic
+- P2: ChatComposer, ModelSelector, SearchPanel token pass
 - P2: Refactor `lib/ai/service.js`

@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, CreditCard, Upload } from 'lucide-react'
+import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, CreditCard, Upload, Sun } from 'lucide-react'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -35,7 +35,9 @@ export default function TopBar({
   onOpenCredits,
   onOpenImport,
   isOwner,
-  isMonitored
+  isMonitored,
+  auroraIntensity = 'medium',
+  onAuroraIntensityChange,
 }) {
   const initials = user?.email?.slice(0, 2).toUpperCase() || 'U'
   const canViewAdmin = hasPermission(getUserRole(dbUser), 'view_admin')
@@ -88,7 +90,7 @@ export default function TopBar({
         {/* Import Project button */}
         <button
           onClick={onOpenImport}
-          className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[rgba(124,58,237,0.2)] text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] hover:text-[var(--em-text-primary)] hover:border-[rgba(0,229,255,0.25)] transition-all duration-200"
+          className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
           data-testid="import-project-btn"
         >
           <span className="flex items-center gap-1.5">
@@ -97,13 +99,49 @@ export default function TopBar({
           </span>
         </button>
 
-        <div className="w-px h-4 bg-[rgba(124,58,237,0.15)] mx-1" />
+        <div className="w-px h-4 bg-[rgba(255,255,255,0.10)] mx-1" />
+
+        {/* Aurora Intensity Control */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
+              data-testid="aurora-intensity-btn"
+              title="Aurora Intensity"
+            >
+              <Sun className="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-36" align="end" forceMount>
+            <div className="px-2 py-1.5">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">Aurora Intensity</p>
+              <div className="flex gap-1">
+                {['low', 'medium', 'high'].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => onAuroraIntensityChange?.(level)}
+                    className={`flex-1 py-1 rounded-md text-[10px] font-medium capitalize transition-all duration-150 ${
+                      auroraIntensity === level
+                        ? 'bg-[var(--em-cyan)] text-[#0C1018]'
+                        : 'text-muted-foreground hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)]'
+                    }`}
+                    data-testid={`aurora-intensity-${level}`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button
           variant="ghost"
           size="icon"
           onClick={onOpenSearch}
-          className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200"
+          className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
           data-testid="search-btn"
         >
           <Search className="w-3.5 h-3.5" />
@@ -114,7 +152,7 @@ export default function TopBar({
             variant="ghost"
             size="icon"
             onClick={onOpenCanvas}
-            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200"
+            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
             title={isMonitored ? 'Restricted for monitored accounts' : 'Project Knowledge Canvas'}
             disabled={isMonitored}
             data-testid="canvas-btn"
@@ -128,7 +166,7 @@ export default function TopBar({
             variant="ghost"
             size="icon"
             onClick={onOpenDesign}
-            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] rounded-lg transition-colors duration-200"
+            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
             title={isMonitored ? 'Restricted for monitored accounts' : 'Design Intelligence'}
             disabled={isMonitored}
             data-testid="design-btn"
@@ -137,13 +175,13 @@ export default function TopBar({
           </Button>
         )}
 
-        <div className="w-px h-4 bg-[rgba(124,58,237,0.15)] mx-1" />
+        <div className="w-px h-4 bg-[rgba(255,255,255,0.10)] mx-1" />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-7 w-7 rounded-full p-0" data-testid="user-menu-btn">
               <Avatar className="h-6 w-6">
-                <AvatarFallback className="bg-[var(--em-surface)] text-[var(--em-text-secondary)] text-[9px] font-semibold border border-[rgba(124,58,237,0.15)]">
+                <AvatarFallback className="bg-[var(--em-surface)] text-[var(--em-text-secondary)] text-[9px] font-semibold border border-[rgba(255,255,255,0.10)]">
                   {initials}
                 </AvatarFallback>
               </Avatar>
