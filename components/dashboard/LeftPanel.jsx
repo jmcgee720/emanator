@@ -43,7 +43,8 @@ import {
   Settings,
   Shield,
   FlaskConical,
-  Clock
+  Clock,
+  GitFork
 } from 'lucide-react'
 import { BUILDER_MODES, getChatType, CHAT_TYPES, SELF_EDIT_PREFIX, SELF_EDIT_TARGETS } from '@/lib/constants'
 import MessageRenderer from './MessageRenderer'
@@ -62,7 +63,8 @@ const modeIcons = {
   document: FileText
 }
 
-function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, isSelfEdit }) {
+function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, isSelfEdit }) {
+  const [forking, setForking] = useState(false)
   const displayTitle = isSelfEdit ? chat.title.replace(SELF_EDIT_PREFIX, '') : chat.title
   const isActive = selectedChat?.id === chat.id
   return (
@@ -89,6 +91,19 @@ function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, isSelfEdit })
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={async (e) => {
+              e.stopPropagation()
+              setForking(true)
+              await onForkChat(chat.id)
+              setForking(false)
+            }}
+            disabled={forking}
+            data-testid={`fork-chat-${chat.id}`}
+          >
+            {forking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <GitFork className="w-4 h-4 mr-2" />}
+            {forking ? 'Forking...' : 'Fork'}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id) }} className="text-destructive">
             <Trash2 className="w-4 h-4 mr-2" /> Delete
           </DropdownMenuItem>
@@ -109,6 +124,7 @@ export default function LeftPanel({
   onSelectChat,
   onCreateChat,
   onDeleteChat,
+  onForkChat,
   onCreateSelfEditChat,
   selfEditTarget,
   selfEditTargets,
@@ -149,6 +165,7 @@ export default function LeftPanel({
   onCreateSandbox
 }) {
   const [sending, setSending] = useState(false)
+  const [forkingChat, setForkingChat] = useState(false)
   const [collapsedMessages, setCollapsedMessages] = useState({})
   const [convoCollapsed, setConvoCollapsed] = useState(() => {
     try { return localStorage.getItem('mymergent_convo_collapsed') === 'true' } catch { return false }
@@ -590,6 +607,23 @@ export default function LeftPanel({
         <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted/20" onClick={onOpenBuilderMemory} data-testid="open-builder-memory">
           <Brain className="w-3 h-3" /> Memory
         </Button>
+        {selectedChat && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 text-[10px] gap-1 px-2 text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted/20 ml-auto"
+            onClick={async () => {
+              setForkingChat(true)
+              await onForkChat(selectedChat.id)
+              setForkingChat(false)
+            }}
+            disabled={forkingChat}
+            data-testid="fork-chat-btn"
+          >
+            {forkingChat ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitFork className="w-3 h-3" />}
+            {forkingChat ? 'Forking...' : 'Fork'}
+          </Button>
+        )}
       </div>
 
       {/* Composer */}
