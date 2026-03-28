@@ -35,7 +35,9 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - Buttons: glass ghost (white border, backdrop-blur) or brand gradient (purple-magenta)
 - Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
 - Core System button: glass ghost style with teal/cyan text
-- Aurora: TOP-ORIGIN dome, radial ribbon streaks, skewX wave, teal-to-purple
+- Aurora: TOP-ORIGIN dome with behavior layer (idle/typing/planning/applying/error states)
+- Aurora energy flow: directional surge L→C→R on submit (1.8s)
+- Aurora rays: intermittent vertical filaments (6-14s random interval)
 - Background: dark navy #0C1018
 - Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6` — crisp, NOT ghosted
 

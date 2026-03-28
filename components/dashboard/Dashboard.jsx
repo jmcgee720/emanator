@@ -1653,7 +1653,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               <div className="relative">
                 <textarea
                   value={promptInput}
-                  onChange={(e) => { setPromptInput(e.target.value); aurora.triggerBoost(); }}
+                  onChange={(e) => { setPromptInput(e.target.value); aurora.onTyping(); }}
                   placeholder="Build me a dashboard for..."
                   rows={2}
                   className="w-full bg-transparent text-sm text-[var(--em-text-primary)] placeholder:text-[var(--em-text-secondary)] placeholder:opacity-60 outline-none resize-none px-4 py-3"
@@ -1684,7 +1684,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   <button
                     className="h-7 w-7 flex items-center justify-center rounded-lg bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 transition-all shadow-[0_0_12px_rgba(0,229,255,0.2)]"
                     data-testid="prompt-submit-btn"
-                    onClick={aurora.triggerBoost}
+                    onClick={aurora.triggerEnergyFlow}
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
                   </button>
@@ -1738,7 +1738,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                     openProjectWorkspace(item)
                   }}
                   className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden"
-                  onMouseEnter={aurora.triggerBoost}
+                  onMouseEnter={aurora.onTyping}
                   data-testid={`project-card-${item.id}`}
                 >
                   {/* Thumbnail area */}
