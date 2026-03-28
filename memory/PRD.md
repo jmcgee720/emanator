@@ -12,17 +12,15 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **A-G5**: Plan validation, Workspaces, Memory, Routing, Multi-Pass, Self-Critique, Autonomous Execution
 - **G6**: Session Forking — `POST /api/chats/:id/fork` + UI Fork button
 - **H1-H5**: Moodboard, Token System, Shell Refactor, Motion Layer, Login alignment
-- **H7-H8**: Aurora iterations (superseded by H9)
-- **H9**: Aurora Borealis — 6-Layer Depth System (Mar 2026)
-  - 6 veil divs: 2 far + 2 mid + 2 near
-  - FAR (veil-1,2): blur 36-44px, 48-60s cycles, atmospheric washes
-  - MID (veil-3,4): blur 14-20px, 30-38s cycles, main curtain-fold ribbons (7 folds each)
-  - NEAR (veil-5,6): blur 6-12px, 24-30s cycles, sharp bright detail curtains
-  - 5 keyframes: em-au-far, mid-a, mid-b, near-a, near-b (+ pulse)
-  - CSS custom properties: --r (rotation), --lo/--hi (pulse range)
+- **H7-H9**: Aurora iterations (superseded by H10)
+- **H10**: Aurora Borealis — Crown/Dome Formation (Mar 2026)
+  - Crown/dome perspective: CSS `perspective()` + `rotateX()` on all aurora formations
+  - Two-zone color: teal/cyan bottoms (#00CCD0) + purple/magenta tops (#9C32C8)
+  - 10 ray pairs per main formation (teal component + purple component per ray)
+  - 6-layer depth system: 2 far (blur 32-45px) + 2 mid (blur 8-24px) + 2 near (blur 2-10px)
+  - Dark navy background (#0C1018) matching reference
+  - 3 keyframes: em-au-drift, em-au-sway, em-au-glow
   - mix-blend-mode: screen on all veils
-  - ~50 individual curtain fold radial-gradients across all layers
-  - Non-uniform border-radius for organic contour
   - Page variants: login (cinematic), dashboard (balanced), focused (dimmed), review (energized)
 - **Glass H7.1**: Premium glass system — 1px crisp specular edges, blur 48px, saturate 1.6
 
@@ -37,6 +35,7 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - `/app/components/auth/LoginPage.jsx` — Login + Aurora (6 veils, cinematic)
 
 ## Design Rules
-- Aurora: elliptical radial-gradient curtain folds, 3 depth tiers, mix-blend-mode: screen
+- Aurora: perspective dome with teal-bottom/purple-top ray pairs, mix-blend-mode: screen
 - Glass: blur 44-54px, saturate 1.5-1.7, 1px crisp specular edges
-- Motion: ease-in-out only, per-layer speed variation, CSS custom property rotation
+- Background: dark navy #0C1018
+- Motion: ease-in-out only, perspective-aware drift keyframes
