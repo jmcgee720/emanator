@@ -18,12 +18,18 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - **H5**: Login page full token alignment
 - **H7**: Aurora Borealis Visual Engine (Mar 2026)
   - Replaced cosmic blob backgrounds with vertical light curtain/veil system
-  - 4 keyframe animations: `em-aurora-sway`, `em-aurora-sway-reverse`, `em-aurora-breathe`, `em-aurora-rise`
-  - 3 veil layers: cyan curtain, violet curtain, magenta+teal accent
-  - Horizon glow + noise grain layers
-  - Page variants: login (dramatic), dashboard (welcoming), focused (dark), review (energized)
-  - Upgraded all glass panels: blur 20→44px, added inset glows, luminous edges, stronger saturation
-  - Brand palette preserved: cyan, violet, magenta primary — teal only as subtle atmosphere
+  - 5 keyframe animations: `em-aurora-fold-1/2/3` (organic folding with scaleX+skew), `em-aurora-breathe` (asymmetric opacity), `em-aurora-undulate` (vertical)
+  - `em-aurora-filament-drift` for texture micro-motion
+  - Filament textures via repeating-linear-gradient inside each veil
+  - 3 veil layers: cyan curtain, violet curtain, magenta+teal accent — each with primary+secondary filament strips
+  - Horizon glow (dual radial) + noise grain
+  - Page variants: login (dramatic/vivid), dashboard (welcoming), focused (dark), review (energized)
+- **H7.1**: Premium Glass Refinement (Mar 2026)
+  - Specular highlights: 2px top-edge with color refraction (cyan→violet→magenta gradient)
+  - Inner reflection: bright cyan-to-violet refraction shift, 100px depth
+  - Glass panels: blur 48px, saturate 1.6, brightness 1.05
+  - Depth: darker void (#030316), stronger box-shadow (100px outer), inset glows
+  - Color refraction on all edge treatments (sidebar, topbar, panel)
 
 ## Backlog
 - P1: H6 — ChatComposer, ModelSelector, SearchPanel token pass
@@ -31,16 +37,15 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 
 ## Key Files
 - `/app/app/globals.css` — Token system + Aurora engine + Glass system
-- `/app/components/dashboard/Dashboard.jsx` — Shell (H3) + Aurora bg
+- `/app/components/dashboard/Dashboard.jsx` — Shell + Aurora bg (dashboard variant)
 - `/app/components/dashboard/LeftPanel.jsx` — Messages with motion
 - `/app/components/dashboard/RightPanel.jsx` — Shell + Aurora bg (focused variant)
 - `/app/components/auth/LoginPage.jsx` — Login + Aurora bg (dramatic variant)
 - `/app/components/dashboard/TopBar.jsx` — Shell (H3)
-- `/app/components/dashboard/DiffReviewPanel.jsx` — Diff with glow lines
-- `/app/components/dashboard/PlanCard.jsx` — Plan with entrance anim
 
 ## Design Rules
 - NO Tailwind grays, NO flat backgrounds, NO hard borders, NO box-shadow for depth
 - Always use `--em-` variables and `.em-glass`/`.em-aurora` utility classes
-- Glass panels: blur 40-50px, saturate 1.4-1.6, inset highlights, luminous edges
-- Aurora veils: vertical linear-gradient strips with sway+breathe animation
+- Glass panels: blur 44-54px, saturate 1.5-1.7, brightness 1.04-1.06, inset highlights 0.08-0.12 white
+- Aurora veils: repeating-linear-gradient filaments + linear-gradient curtain, fold+breathe animations
+- Specular edges: 2px with cyan→violet→magenta color refraction
