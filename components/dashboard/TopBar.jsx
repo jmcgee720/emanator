@@ -49,9 +49,8 @@ export default function TopBar({
     <div className="h-12 em-glass-topbar flex items-center justify-between px-5" data-testid="top-bar">
       {/* Brand + breadcrumb */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <EmanatorLogo className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]" />
-          <span className="text-sm font-semibold tracking-wide text-white">EMANATOR</span>
+        <div className="flex items-center">
+          <EmanatorLogo className="h-7 w-auto object-contain" />
         </div>
         
         {selectedProject && (
