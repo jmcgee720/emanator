@@ -18,21 +18,21 @@ Import GitHub repo (`https://github.com/jmcgee720/emanator`), run the existing N
 - **Phase E**: Structural Refactor — extracted streaming logic into `/app/lib/api/stream-handler.js`
 - **Phase F**: Multi-Pass Planning, Self-Critique Loop, Retry Learning, Memory Scoring, Novel-Problem Reasoning
 - **Phase G1-G5**: Multi-Step Execution, Goal Persistence, Task Breakdown, Verification Loop, Confidence Scoring
-- **Phase G6**: Session Forking — `POST /api/chats/:id/fork` endpoint (Mar 2026)
-  - Compresses source chat history via `compressContext()`
-  - Creates new chat titled "Fork of: <original>"
-  - Seeds with single synthetic message containing compressed summary + latest plan/diff metadata
+- **Phase G6**: Session Forking (Mar 2026)
+  - Backend: `POST /api/chats/:id/fork` endpoint
+  - Frontend: "Fork" button in quick actions bar (LeftPanel.jsx) + `forkChat` handler in Dashboard.jsx
+  - Compresses source chat history, creates new chat "Fork of: <original>", seeds with synthetic summary + latest plan/diff metadata
   - Tested: title, metadata carryover (proposedPlan, diffStatus, planId), error cases (401, 404), small chat fork
 
 ## Backlog
 - P2: Refactor `lib/ai/service.js` (~2600 lines) into smaller modules
-- P3: Frontend UI for triggering session fork from the dashboard
+- P3: Additional polish/UX for fork feature (e.g., confirmation dialog, fork history)
 
 ## Key Files
-- `/app/app/api/[[...path]]/route.js` — API catch-all (includes fork endpoint at line ~1355)
+- `/app/app/api/[[...path]]/route.js` — API catch-all (fork endpoint at line ~1355)
 - `/app/lib/ai/service.js` — Core AI service with `compressContext()`
 - `/app/lib/api/stream-handler.js` — Extracted SSE streaming logic
-- `/app/lib/self_builder/` — Autonomous agent logic
+- `/app/components/dashboard/Dashboard.jsx` — Main dashboard with `forkChat` handler
+- `/app/components/dashboard/LeftPanel.jsx` — Chat panel with Fork button in quick actions
 - `/app/backend/server.py` — FastAPI proxy (routes to Next.js on port 3002)
 - `/app/tests/test-fork-endpoint.mjs` — Fork endpoint test suite
-- `/app/tests/e2e-plan-apply.test.mjs` — E2E plan-apply test suite

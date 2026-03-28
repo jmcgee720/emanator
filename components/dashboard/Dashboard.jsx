@@ -1208,6 +1208,21 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     await sendMessage(prevUser.content)
   }
 
+  const forkChat = async (chatId) => {
+    try {
+      const response = await authFetch(`/api/chats/${chatId}/fork`, { method: 'POST' })
+      if (!response.ok) throw new Error('Failed to fork chat')
+      const data = await response.json()
+      const newChat = { id: data.id, title: data.title, project_id: data.project_id, chat_type: getChatType({ title: data.title }) }
+      setChats(prev => [...prev, newChat])
+      setSelectedChat(newChat)
+      toast({ title: 'Chat Forked', description: `Created "${data.title}"` })
+    } catch (error) {
+      console.error('Error forking chat:', error)
+      toast({ title: 'Error', description: 'Failed to fork conversation', variant: 'destructive' })
+    }
+  }
+
   const deleteChat = async (chatId) => {
     try {
       await authFetch(`/api/chats/${chatId}`, { method: 'DELETE' })
@@ -1880,6 +1895,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   onSelectChat={handleSelectChat}
                   onCreateChat={createChat}
                   onDeleteChat={deleteChat}
+                  onForkChat={forkChat}
                   onCreateSelfEditChat={createSelfEditChat}
                   selfEditTarget={selfEditTarget}
                   selfEditTargets={SELF_EDIT_TARGETS}
