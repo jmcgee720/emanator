@@ -1,39 +1,37 @@
 # Emanator — AI Self-Builder
 
 ## Problem Statement
-Import GitHub repo (`https://github.com/jmcgee720/emanator`), run the existing Next.js application, and verify/harden core AI builder features. Execute phased hardening (A-G) and design system implementation (H).
+Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design system (H).
 
 ## Architecture
-- **Frontend**: Next.js 14 App Router (port 3002, supervisor: `nextjs_api`)
-- **CRA Stub**: Emergent platform default frontend (port 3000, supervisor: `frontend`)
-- **Backend**: FastAPI reverse proxy (port 8001 -> 3002)
-- **Database**: Supabase (Postgres + RLS)
-- **AI**: OpenAI / Anthropic via user API keys
+- Next.js 14 App Router (port 3002, supervisor: `nextjs_api`)
+- FastAPI reverse proxy (port 8001 -> 3002)
+- Supabase (Postgres + RLS)
 
 ## Completed Phases
-- **Phases A-G5**: Plan validation, Core System Workspaces, Memory, AI Routing, Multi-Pass Planning, Self-Critique, Autonomous Execution
-- **Phase G6**: Session Forking — `POST /api/chats/:id/fork` + UI Fork button
-- **Phase H1**: Moodboard Translation — design-system brief (cosmic dark UI)
-- **Phase H2**: Design Token System — CSS variables, utility classes, brand logo (Mar 2026)
-- **Phase H3**: Component Refactor — Dashboard Shell (Mar 2026)
-  - TopBar: `em-panel` bg, glow-edge bottom, image logo, cyan icon hovers
-  - LeftPanel: `em-panel` bg, `em-accent-edge-right` separator, cyan hover states
-  - RightPanel: `em-void` bg, cyan active tabs
-  - Dashboard wrapper: void bg, glow-edge workspace tabs, `em-card` project cards, `em-glass` modal, `em-btn-brand/ghost` buttons
-  - All gray borders → glow edges, all bg-muted → em-surface/void, all border-border → rgba violet
+- **A-G5**: Plan validation, Workspaces, Memory, Routing, Multi-Pass, Self-Critique, Autonomous Execution
+- **G6**: Session Forking — `POST /api/chats/:id/fork` + UI Fork button
+- **H1**: Moodboard Translation — cosmic dark UI design brief
+- **H2**: Design Token System — CSS variables + utility classes + brand logo
+- **H3**: Shell Refactor — TopBar, LeftPanel, RightPanel, Dashboard wrapper
+- **H4**: Interaction + Motion Layer (Mar 2026)
+  - Messages: `em-message-enter` (fade+slide 180ms), streaming avatar breathe+glow ring, energy-pulse cursor
+  - Buttons: scale 1→1.02 hover, 0.98 active, glow intensify (150ms ease)
+  - Cards/Panels: `em-panel-enter`, hover translateY(-1px) + glow expand, `em-selected` state
+  - Diff: `em-diff-add`/`em-diff-remove` with glow-pulse left edge, fade-in entrance
+  - PlanCard: entrance animation, token surfaces, muted→em-text-muted
+  - Zero remaining `bg-muted` in chat/diff/plan components
 
 ## Backlog
-- P0: Phase H4 — Apply tokens to Chat/Messages, Diff Preview, Memory/Prompts panels
-- P1: Phase H5 — Login page token alignment (currently partially styled)
-- P2: Refactor `lib/ai/service.js` (~2600 lines)
+- P0: H5 — Login page full token alignment
+- P1: H6 — ChatComposer, ModelSelector, SearchPanel token pass
+- P2: Refactor `lib/ai/service.js`
 
 ## Key Files
-- `/app/app/globals.css` — Design token system
-- `/app/public/emanator-logo.png` — Brand mark (256x256)
-- `/app/components/dashboard/TopBar.jsx` — TopBar (H3 patched)
-- `/app/components/dashboard/LeftPanel.jsx` — LeftPanel (H3 patched)
-- `/app/components/dashboard/RightPanel.jsx` — RightPanel (H3 patched)
-- `/app/components/dashboard/Dashboard.jsx` — Dashboard shell (H3 patched)
-- `/app/components/auth/LoginPage.jsx` — Login page (partially styled)
-- `/app/app/api/[[...path]]/route.js` — API catch-all
-- `/app/backend/server.py` — FastAPI proxy (port 3002)
+- `/app/app/globals.css` — Token system + keyframes (H2+H4)
+- `/app/components/dashboard/LeftPanel.jsx` — Messages with motion
+- `/app/components/dashboard/DiffReviewPanel.jsx` — Diff with glow lines
+- `/app/components/dashboard/PlanCard.jsx` — Plan with entrance anim
+- `/app/components/dashboard/TopBar.jsx` — Shell (H3)
+- `/app/components/dashboard/Dashboard.jsx` — Shell (H3)
+- `/app/components/dashboard/RightPanel.jsx` — Shell (H3)

@@ -108,23 +108,23 @@ function DiffFileCard({ diff, selected, onToggle, defaultExpanded }) {
 
   return (
     <div
-      className={`rounded-lg border overflow-hidden transition-all ${
-        selected ? config.border : 'border-border/30 opacity-50'
+      className={`em-panel-enter rounded-xl border overflow-hidden transition-all duration-200 ${
+        selected ? config.border : 'border-[rgba(124,58,237,0.1)] opacity-50'
       }`}
       data-testid={`diff-card-${diff.path.replace(/[/.]/g, '-')}`}
     >
       {/* Header */}
       <div
-        className={`flex items-center gap-2 px-3 py-2 cursor-pointer ${selected ? config.bg : 'bg-muted/15'} hover:bg-white/[0.015]`}
+        className={`flex items-center gap-2 px-3 py-2 cursor-pointer ${selected ? config.bg : 'bg-[rgba(20,20,56,0.3)]'} hover:bg-[rgba(0,229,255,0.02)] transition-colors duration-150`}
         onClick={() => setExpanded(e => !e)}
         data-testid={`diff-card-header-${diff.path.replace(/[/.]/g, '-')}`}
       >
         <button
           onClick={(e) => { e.stopPropagation(); onToggle() }}
-          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
+          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border transition-all duration-150 ${
             selected
-              ? 'bg-[hsl(190_100%_50%)] border-[hsl(190_100%_50%)] text-[hsl(252_40%_5%)]'
-              : 'border-border/50 bg-muted/30 text-muted-foreground/40'
+              ? 'bg-[var(--em-cyan)] border-[var(--em-cyan)] text-[#07071E]'
+              : 'border-[rgba(124,58,237,0.2)] bg-[rgba(20,20,56,0.5)] em-text-muted'
           }`}
           data-testid={`diff-toggle-${diff.path.replace(/[/.]/g, '-')}`}
         >
@@ -133,7 +133,7 @@ function DiffFileCard({ diff, selected, onToggle, defaultExpanded }) {
 
         <Icon className={`w-4 h-4 flex-shrink-0 ${config.color}`} />
 
-        <code className="text-xs font-mono text-foreground/90 truncate flex-1">{diff.path}</code>
+        <code className="text-xs font-mono em-text-primary truncate flex-1">{diff.path}</code>
 
         <Badge variant="outline" className={`text-[9px] ${config.color} border-current/20`}>
           {config.label}
@@ -142,14 +142,14 @@ function DiffFileCard({ diff, selected, onToggle, defaultExpanded }) {
         {stats.adds > 0 && <span className="text-[10px] text-emerald-400 font-mono">+{stats.adds}</span>}
         {stats.removes > 0 && <span className="text-[10px] text-red-400 font-mono">-{stats.removes}</span>}
 
-        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+        {expanded ? <ChevronUp className="w-3.5 h-3.5 em-text-muted" /> : <ChevronDown className="w-3.5 h-3.5 em-text-muted" />}
       </div>
 
       {/* Diff content */}
       {expanded && (
-        <div className="border-t border-border/20 max-h-[300px] overflow-auto">
+        <div className="border-t border-[rgba(124,58,237,0.08)] max-h-[300px] overflow-auto">
           {diff.description && (
-            <div className="px-3 py-1.5 text-[11px] text-muted-foreground border-b border-border/15">
+            <div className="px-3 py-1.5 text-[11px] em-text-muted border-b border-[rgba(124,58,237,0.06)]">
               {diff.description}
             </div>
           )}
@@ -157,8 +157,8 @@ function DiffFileCard({ diff, selected, onToggle, defaultExpanded }) {
             {visibleLines.map((line, i) => {
               if (line.type === 'separator') {
                 return (
-                  <div key={`sep-${i}`} className="px-3 py-0.5 text-muted-foreground/40 bg-muted/15 text-center text-[10px]">
-                    ··· {line.count} unchanged lines ···
+                  <div key={`sep-${i}`} className="px-3 py-0.5 em-text-muted bg-[rgba(20,20,56,0.3)] text-center text-[10px]">
+                    ... {line.count} unchanged lines ...
                   </div>
                 )
               }
@@ -166,16 +166,16 @@ function DiffFileCard({ diff, selected, onToggle, defaultExpanded }) {
                 <div
                   key={i}
                   className={`px-2 flex gap-0 ${
-                    line.type === 'add' ? 'bg-emerald-500/[0.08] text-emerald-300' :
-                    line.type === 'remove' ? 'bg-red-500/[0.08] text-red-300' :
-                    'text-muted-foreground/60'
+                    line.type === 'add' ? 'em-diff-add text-emerald-300' :
+                    line.type === 'remove' ? 'em-diff-remove text-red-300' :
+                    'em-text-muted'
                   }`}
                   data-testid={`diff-line-${i}`}
                 >
-                  <span className="w-8 flex-shrink-0 text-muted-foreground/30 text-right select-none pr-1 border-r border-border/20" data-testid={`diff-line-old-${i}`}>
+                  <span className="w-8 flex-shrink-0 text-[var(--em-text-muted)] text-right select-none pr-1 border-r border-[rgba(124,58,237,0.08)]" data-testid={`diff-line-old-${i}`}>
                     {line.lineOld || ''}
                   </span>
-                  <span className="w-8 flex-shrink-0 text-muted-foreground/30 text-right select-none pr-1 border-r border-border/20" data-testid={`diff-line-new-${i}`}>
+                  <span className="w-8 flex-shrink-0 text-[var(--em-text-muted)] text-right select-none pr-1 border-r border-[rgba(124,58,237,0.08)]" data-testid={`diff-line-new-${i}`}>
                     {line.lineNew || ''}
                   </span>
                   <span className="w-4 flex-shrink-0 text-center select-none ml-1">
@@ -227,18 +227,18 @@ export default function DiffReviewPanel({ diffs, status, onApply, onCancel, appl
 
   return (
     <div
-      className={`rounded-lg border overflow-hidden ${
+      className={`em-panel-enter rounded-xl border overflow-hidden ${
         isApplied ? 'border-emerald-500/20 bg-emerald-950/5' :
-        isCancelled ? 'border-border/30 bg-muted/10 opacity-60' :
-        'border-[hsl(270_70%_55%/0.2)] bg-[hsl(270_70%_55%/0.03)]'
+        isCancelled ? 'border-[rgba(124,58,237,0.1)] bg-[rgba(20,20,56,0.3)] opacity-60' :
+        'border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.03)]'
       }`}
       data-testid="diff-review-panel"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(124,58,237,0.1)]">
         <div className="flex items-center gap-2.5">
           <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-            isApplied ? 'bg-emerald-500/15' : isCancelled ? 'bg-muted/30' : 'bg-[hsl(270_70%_55%/0.15)]'
+            isApplied ? 'bg-emerald-500/15' : isCancelled ? 'bg-[rgba(20,20,56,0.5)]' : 'bg-[rgba(124,58,237,0.15)]'
           }`}>
             {isApplied ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -249,7 +249,7 @@ export default function DiffReviewPanel({ diffs, status, onApply, onCancel, appl
             )}
           </div>
           <div>
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-sm font-medium em-text-primary">
               {isApplied ? 'Changes Applied' : isCancelled ? 'Changes Discarded' : 'Review Changes'}
             </span>
             <div className="flex items-center gap-3 mt-0.5">
@@ -261,10 +261,10 @@ export default function DiffReviewPanel({ diffs, status, onApply, onCancel, appl
         </div>
 
         {isPending && (
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <button onClick={selectAll} className="hover:text-foreground transition-colors">All</button>
+          <div className="flex items-center gap-1.5 text-[10px] em-text-muted">
+            <button onClick={selectAll} className="hover:text-[var(--em-cyan)] transition-colors duration-150">All</button>
             <span>/</span>
-            <button onClick={selectNone} className="hover:text-foreground transition-colors">None</button>
+            <button onClick={selectNone} className="hover:text-[var(--em-cyan)] transition-colors duration-150">None</button>
             <span className="ml-1">({selectedCount}/{diffs.length})</span>
           </div>
         )}
@@ -285,7 +285,7 @@ export default function DiffReviewPanel({ diffs, status, onApply, onCancel, appl
 
       {/* Action buttons */}
       {isPending && (
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-border/20" data-testid="diff-actions">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-[rgba(124,58,237,0.1)]" data-testid="diff-actions">
           <Button
             size="sm"
             onClick={handleApply}
@@ -306,7 +306,7 @@ export default function DiffReviewPanel({ diffs, status, onApply, onCancel, appl
             variant="ghost"
             onClick={onCancel}
             disabled={applying}
-            className="h-8 gap-1.5 text-muted-foreground hover:text-red-400"
+            className="h-8 gap-1.5 em-text-muted hover:text-red-400 transition-colors duration-150"
             data-testid="diff-cancel-btn"
           >
             <X className="w-3.5 h-3.5" /> Discard All
