@@ -23,6 +23,14 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
   - Unified button styles: glass ghost buttons (white border) and brand gradient buttons
   - Removed all violet/purple border references, replaced with neutral white glass borders
   - Text Crispness Pass: Primary `#FFFFFF`, Secondary `#C0C4D8`, Muted `#8A8EA6`
+- **Aurora Depth & Crispness Overhaul** (Feb 2026):
+  - Added white-hot luminous cores to curtain bands (white → color → transparent gradient stops)
+  - Razor-sharp blur: veil-3 at 1px, veil-5 at 0.5px, login variant at 0px
+  - Bloom layer (veil-2): wide soft glow behind crisp bands for atmospheric depth
+  - Darker base background (#050810) for maximum contrast
+  - Wider containment mask (62%×68% at 50% 36%) showing more aurora
+  - Dimmer far layers (veil-1) creating depth separation from foreground
+  - Login variant: maximum crispness with 0px blur on peaks
 
 ## Design Rules (Phase H5 LOCKED)
 - Glass: see-through frosted, white tint bg `rgba(255,255,255, 0.03-0.06)`, blur 28px, saturate 1.5
@@ -36,9 +44,10 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - Headlines: 24 inspirational lines, random on load (inlined in Dashboard.jsx)
 - Core System button: glass ghost style with teal/cyan text
 - Aurora: TOP-ORIGIN dome with behavior layer (idle/typing/planning/applying/error states)
-- Aurora energy flow: directional surge L→C→R on submit (1.8s)
+- Aurora energy flow: directional surge L->C->R on submit (1.8s)
 - Aurora rays: intermittent vertical filaments (6-14s random interval)
-- Background: dark navy #0C1018
+- Aurora curtains: white-hot luminous cores, razor-sharp blur (0.5-1px), bloom layer behind
+- Background: dark navy #050810
 - Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6` — crisp, NOT ghosted
 
 ## Key Files
@@ -53,7 +62,7 @@ Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design s
 - `/app/lib/credits/config.js` — Credit cost model and packages
 
 ## Backlog
-- P2: ChatComposer, ModelSelector, SearchPanel token pass
-- P2: Refactor `lib/ai/service.js`
+- P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
+- P2: Refactor `lib/ai/service.js` (~2600 lines)
 - P3: GitHub repository import (Connect Repository)
 - P3: Credits persistence via Stripe/payment integration
