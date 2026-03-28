@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Versioned Self-Modification Sandbox Backend Testing for MyMergent
-Testing sandbox feature endpoints at https://luminous-workspace.preview.emergentagent.com
+Testing sandbox feature endpoints at https://aurora-dome.preview.emergentagent.com
 
 Test Scenarios:
 1. Get source project (GET /api/projects with Bearer token)
@@ -20,7 +20,7 @@ from datetime import datetime
 
 class SandboxBackendTester:
     def __init__(self):
-        self.base_url = "https://luminous-workspace.preview.emergentagent.com/api"
+        self.base_url = "https://aurora-dome.preview.emergentagent.com/api"
         self.supabase_url = "https://cawmmqakaxbznbelcrwd.supabase.co"
         self.supabase_key = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
         self.test_email = "REDACTED_LEAKED_USER"
