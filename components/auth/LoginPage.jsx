@@ -75,9 +75,10 @@ export default function LoginPage({ onAuthSuccess }) {
     border: '1px solid rgba(124, 58, 237, 0.18)',
     color: '#FFFFFF',
     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+    colorScheme: 'dark',
   }
 
-  const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#7A7E98]"
+  const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#7A7E98] autofill:shadow-[inset_0_0_0_1000px_rgba(5,5,26,0.9)] autofill:[-webkit-text-fill-color:#FFFFFF]"
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden em-aurora em-aurora--login" data-testid="login-page">
