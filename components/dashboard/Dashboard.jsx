@@ -112,6 +112,47 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showImportModal, setShowImportModal] = useState(false)
   const [projectMode, setProjectMode] = useState('fullstack')
   const [promptInput, setPromptInput] = useState('')
+  // ── Credits state ──
+  const [creditsBalance, setCreditsBalance] = useState(null)
+  const [creditsLoading, setCreditsLoading] = useState(false)
+  const [creditsCosts, setCreditsCosts] = useState({})
+
+  const loadCredits = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/credits')
+      if (res?.ok) {
+        const data = await res.json()
+        setCreditsBalance(data.balance)
+        setCreditsCosts(data.costs || {})
+      }
+    } catch {}
+  }, [])
+
+  // Load credits on mount
+  useEffect(() => {
+    loadCredits()
+  }, [loadCredits])
+
+  const handleBuyCredits = async (amount) => {
+    setCreditsLoading(true)
+    try {
+      const res = await authFetch('/api/credits/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      })
+      if (res?.ok) {
+        const data = await res.json()
+        setCreditsBalance(data.balance)
+        toast({ title: 'Credits Added', description: `+${amount} credits added to your account` })
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to add credits', variant: 'destructive' })
+    } finally {
+      setCreditsLoading(false)
+    }
+  }
+
   // ── Import handlers ──
   const [importLoading, setImportLoading] = useState(false)
   const [importError, setImportError] = useState(null)
@@ -1783,18 +1824,21 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               </div>
 
               <div className="em-glass rounded-xl p-4 mb-5" data-testid="credits-balance">
-                <div className="text-2xl font-bold em-gradient-text mb-1">211.73</div>
+                <div className="text-2xl font-bold em-gradient-text mb-1">
+                  {creditsBalance !== null ? creditsBalance.toFixed(2) : '—'}
+                </div>
                 <div className="text-xs em-text-secondary">Available credits</div>
               </div>
 
-              <div className="space-y-2 mb-6">
-                <div className="flex items-start gap-2">
-                  <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)] mt-0.5 shrink-0" />
-                  <p className="text-xs em-text-secondary">Credits are consumed when you generate code, images, or use AI models.</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)] mt-0.5 shrink-0" />
-                  <p className="text-xs em-text-secondary">Different models and operations use varying amounts of credits.</p>
+              <div className="space-y-2 mb-5">
+                <p className="text-[10px] em-text-muted font-medium uppercase tracking-wider mb-2">Cost per action</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {Object.entries(creditsCosts).map(([action, cost]) => (
+                    <div key={action} className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-[rgba(255,255,255,0.03)]">
+                      <span className="em-text-secondary capitalize">{action.replace(/_/g, ' ')}</span>
+                      <span className="em-text-primary font-medium">{cost}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1806,7 +1850,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 ].map(({ amount, price }) => (
                   <button
                     key={amount}
-                    className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center"
+                    onClick={() => handleBuyCredits(amount)}
+                    disabled={creditsLoading}
+                    className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center disabled:opacity-50"
                     data-testid={`buy-credits-${amount}`}
                   >
                     <div className="text-sm font-semibold em-text-primary">{amount}</div>
@@ -2154,6 +2200,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         isMonitored={isMonitored}
         auroraIntensity={aurora.intensity}
         onAuroraIntensityChange={aurora.setIntensity}
+        creditsBalance={creditsBalance}
       />
 
       {!selectedProject ? (

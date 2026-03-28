@@ -38,6 +38,7 @@ export default function TopBar({
   isMonitored,
   auroraIntensity = 'medium',
   onAuroraIntensityChange,
+  creditsBalance,
 }) {
   const initials = user?.email?.slice(0, 2).toUpperCase() || 'U'
   const canViewAdmin = hasPermission(getUserRole(dbUser), 'view_admin')
@@ -75,7 +76,7 @@ export default function TopBar({
         {/* Credits display */}
         <div className="flex items-center gap-1 mr-1" data-testid="credits-display">
           <CreditCard className="w-3 h-3 text-[var(--em-cyan)]" />
-          <span className="text-xs font-semibold text-[var(--em-text-primary)]">211.73</span>
+          <span className="text-xs font-semibold text-[var(--em-text-primary)]">{creditsBalance !== null && creditsBalance !== undefined ? Number(creditsBalance).toFixed(2) : '—'}</span>
         </div>
 
         {/* Buy Credits button */}
