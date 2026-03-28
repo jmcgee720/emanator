@@ -43,7 +43,7 @@ jest.mock('../../lib/supabase/db', () => ({
   }
 }))
 
-const BASE_URL = 'https://fork-endpoint.preview.emergentagent.com'
+const BASE_URL = 'https://luminous-workspace.preview.emergentagent.com'
 
 describe('Phase 12 Step 9 — Self-Modification Safety Proof Tests', () => {
   let testResults = []
