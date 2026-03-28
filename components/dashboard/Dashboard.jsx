@@ -1535,10 +1535,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 <button
                   key={key}
                   onClick={() => setProjectMode(key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium border transition-all duration-200 backdrop-blur-sm ${
                     projectMode === key
-                      ? 'border-[var(--em-cyan)] bg-[rgba(0,229,255,0.08)] text-[var(--em-text-primary)]'
-                      : 'border-[rgba(124,58,237,0.15)] text-[var(--em-text-secondary)] hover:border-[rgba(0,229,255,0.2)] hover:bg-[rgba(0,229,255,0.04)]'
+                      ? 'border-[rgba(255,255,255,0.25)] bg-[rgba(255,255,255,0.10)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_0_12px_rgba(0,229,255,0.08)]'
+                      : 'border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)] text-[var(--em-text-secondary)] hover:border-[rgba(255,255,255,0.18)] hover:bg-[rgba(255,255,255,0.07)]'
                   }`}
                   data-testid={`mode-toggle-${key}`}
                 >
@@ -1563,26 +1563,26 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               {/* Prompt controls row */}
               <div className="flex items-center justify-between px-3 pb-2">
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="model-selector-prompt">
+                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-all" data-testid="model-selector-prompt">
                     <span>E-1</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3 opacity-60" />
                   </button>
-                  <div className="w-px h-4 bg-[rgba(124,58,237,0.12)]" />
-                  <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="ultra-toggle">
-                    <span className="text-[var(--em-cyan)]">Ultra</span>
+                  <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
+                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-cyan)] bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.12)] hover:bg-[rgba(0,229,255,0.10)] transition-all" data-testid="ultra-toggle">
+                    <span>Ultra</span>
                   </button>
-                  <div className="w-px h-4 bg-[rgba(124,58,237,0.12)]" />
-                  <button className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="ai-model-selector">
+                  <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
+                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-all" data-testid="ai-model-selector">
                     <span>Claude 4.5 Opus</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3 opacity-60" />
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button className="h-7 w-7 flex items-center justify-center rounded-lg text-[var(--em-text-muted)] hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.06)] transition-colors" data-testid="voice-input-btn">
+                  <button className="h-7 w-7 flex items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-all" data-testid="voice-input-btn">
                     <Mic className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    className="h-7 w-7 flex items-center justify-center rounded-lg bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 transition-all"
+                    className="h-7 w-7 flex items-center justify-center rounded-lg bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 transition-all shadow-[0_0_12px_rgba(0,229,255,0.2)]"
                     data-testid="prompt-submit-btn"
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
@@ -1612,7 +1612,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                         null
                       if (coreProject) openProjectWorkspace(coreProject)
                     }}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium border border-[rgba(0,229,255,0.2)] text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.08)] hover:border-[rgba(0,229,255,0.35)] transition-all duration-200"
+                    className="px-3.5 py-1.5 rounded-xl text-[11px] font-semibold border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.25)] backdrop-blur-sm transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
                     data-testid="core-system-btn"
                   >
                     Core System
@@ -1620,7 +1620,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 )}
                 <button
                   onClick={() => setShowNewProjectModal(true)}
-                  className="px-3 py-1.5 rounded-lg text-[11px] em-btn-brand"
+                  className="px-3.5 py-1.5 rounded-xl text-[11px] font-semibold em-btn-brand"
                   data-testid="new-project-btn"
                 >
                   New Project
@@ -1636,15 +1636,15 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                     setBuilderMode('app')
                     openProjectWorkspace(item)
                   }}
-                  className="group rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] transition-all duration-200 flex flex-col overflow-hidden"
+                  className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.28)] hover:shadow-[0_12px_60px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all duration-200 flex flex-col overflow-hidden"
                   data-testid={`project-card-${item.id}`}
                 >
                   {/* Thumbnail area */}
-                  <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(124,58,237,0.08)] flex items-center justify-center">
+                  <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
                     <span className="text-xs em-text-muted font-medium">Project Thumbnail</span>
                   </div>
                   {/* Info */}
-                  <div className="px-3.5 py-3">
+                  <div className="px-3.5 py-3 relative z-[2]">
                     <div className="text-sm font-medium em-text-primary truncate">{item.name}</div>
                     <div className="text-[11px] em-text-secondary mt-0.5">{item.type || 'project'}</div>
                   </div>
@@ -1654,13 +1654,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               {/* New project card */}
               <button
                 onClick={() => setShowNewProjectModal(true)}
-                className="rounded-xl border border-dashed border-[rgba(124,58,237,0.15)] hover:border-[rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group"
+                className="rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] backdrop-blur-sm transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group"
                 data-testid="add-project-card"
               >
-                <div className="w-10 h-10 rounded-lg border border-[rgba(124,58,237,0.12)] group-hover:border-[rgba(0,229,255,0.25)] flex items-center justify-center mb-2 transition-colors">
-                  <span className="text-xl em-text-muted group-hover:text-[var(--em-cyan)] transition-colors">+</span>
+                <div className="w-10 h-10 rounded-lg border border-[rgba(255,255,255,0.10)] group-hover:border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center mb-2 transition-all">
+                  <span className="text-xl text-[var(--em-text-secondary)] group-hover:text-white transition-colors">+</span>
                 </div>
-                <span className="text-xs em-text-muted group-hover:text-[var(--em-text-secondary)] transition-colors">New Project</span>
+                <span className="text-xs text-[var(--em-text-secondary)] group-hover:text-white transition-colors">New Project</span>
               </button>
             </div>
           </div>
@@ -1669,7 +1669,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         {/* ── New Project Modal ── */}
         {showNewProjectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="em-glass rounded-2xl p-6 w-[400px] border border-[rgba(124,58,237,0.15)]" data-testid="new-project-modal">
+            <div className="em-glass rounded-2xl p-6 w-[400px] border border-[rgba(255,255,255,0.15)]" data-testid="new-project-modal">
               <h2 className="text-sm font-semibold mb-4 em-text-primary">Create Project</h2>
               <input
                 value={newProjectName}
@@ -1710,7 +1710,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         {/* ── Credits Modal ── */}
         {showCreditsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(124,58,237,0.15)]" data-testid="credits-modal">
+            <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(255,255,255,0.15)]" data-testid="credits-modal">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-[var(--em-cyan)]" />
@@ -1745,7 +1745,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 ].map(({ amount, price }) => (
                   <button
                     key={amount}
-                    className="py-3 rounded-xl border border-[rgba(124,58,237,0.15)] hover:border-[rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-center"
+                    className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center"
                     data-testid={`buy-credits-${amount}`}
                   >
                     <div className="text-sm font-semibold em-text-primary">{amount}</div>
@@ -1760,7 +1760,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         {/* ── Import Modal ── */}
         {showImportModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(124,58,237,0.15)]" data-testid="import-modal">
+            <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(255,255,255,0.15)]" data-testid="import-modal">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
                   <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
@@ -1773,7 +1773,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
               <div className="space-y-3" data-testid="import-options">
                 <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(124,58,237,0.12)] hover:border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-left"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left"
                   data-testid="import-upload"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0">
@@ -1786,10 +1786,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 </button>
 
                 <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(124,58,237,0.12)] hover:border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-left"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left"
                   data-testid="import-zip"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0">
                     <FolderArchive className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
@@ -1799,10 +1799,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 </button>
 
                 <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(124,58,237,0.12)] hover:border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.04)] transition-all duration-200 text-left"
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left"
                   data-testid="import-repo"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.15)] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0">
                     <GitBranch className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
@@ -1829,12 +1829,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setFiles([])
           setCanvas(null)
         }}
-        className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(124,58,237,0.15)] text-sm em-text-secondary hover:bg-[rgba(0,229,255,0.06)] hover:text-[var(--em-text-primary)] hover:border-[rgba(0,229,255,0.2)] transition-all duration-200"
+        className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] text-sm em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
       >
         ← Projects
       </button>
 
-      <div className="w-px h-6 bg-[rgba(124,58,237,0.12)] shrink-0" />
+      <div className="w-px h-6 bg-[rgba(255,255,255,0.10)] shrink-0" />
 
       {openProjectTabs.map((project) => {
         const isActive = selectedProject?.id === project.id
@@ -1842,7 +1842,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           <div
             key={project.id}
             className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-all duration-200 ${
-              isActive ? 'border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.06)] text-[var(--em-text-primary)]' : 'border-[rgba(124,58,237,0.1)] em-text-secondary hover:bg-[rgba(0,229,255,0.04)]'
+              isActive ? 'border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.06)] text-[var(--em-text-primary)]' : 'border-[rgba(255,255,255,0.08)] em-text-secondary hover:bg-[rgba(255,255,255,0.06)]'
             }`}
           >
             <button onClick={() => openProjectWorkspace(project)} className="truncate max-w-[180px] text-left">
@@ -2154,7 +2154,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 />
               </ResizablePanel>
 
-              <ResizableHandle className="w-px bg-[rgba(124,58,237,0.12)] hover:bg-[rgba(0,229,255,0.3)] transition-colors duration-200" />
+              <ResizableHandle className="w-px bg-[rgba(255,255,255,0.10)] hover:bg-[rgba(0,229,255,0.3)] transition-colors duration-200" />
 
               <ResizablePanel defaultSize={65} className="overflow-hidden">
                 <RightPanel
