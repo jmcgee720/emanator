@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle } from 'lucide-react'
+import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, CreditCard, Upload } from 'lucide-react'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -32,6 +32,8 @@ export default function TopBar({
   onOpenSearch,
   onOpenCanvas,
   onOpenDesign,
+  onOpenCredits,
+  onOpenImport,
   isOwner,
   isMonitored
 }) {
@@ -61,13 +63,42 @@ export default function TopBar({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1.5">
         {isMonitored && (
           <div className="flex items-center gap-1 mr-2 px-2 py-0.5 rounded-md bg-red-500/8 border border-red-500/15" data-testid="monitored-indicator">
             <AlertTriangle className="w-3 h-3 text-red-400" />
             <span className="text-[9px] text-red-400 font-medium">Monitored</span>
           </div>
         )}
+
+        {/* Credits display */}
+        <div className="flex items-center gap-1 mr-1" data-testid="credits-display">
+          <CreditCard className="w-3 h-3 text-[var(--em-cyan)]" />
+          <span className="text-xs font-semibold text-[var(--em-text-primary)]">211.73</span>
+        </div>
+
+        {/* Buy Credits button */}
+        <button
+          onClick={onOpenCredits}
+          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 transition-all duration-200"
+          data-testid="buy-credits-btn"
+        >
+          Buy Credits
+        </button>
+
+        {/* Import Project button */}
+        <button
+          onClick={onOpenImport}
+          className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[rgba(124,58,237,0.2)] text-[var(--em-text-secondary)] hover:bg-[rgba(0,229,255,0.06)] hover:text-[var(--em-text-primary)] hover:border-[rgba(0,229,255,0.25)] transition-all duration-200"
+          data-testid="import-project-btn"
+        >
+          <span className="flex items-center gap-1.5">
+            <Upload className="w-3 h-3" />
+            Import
+          </span>
+        </button>
+
+        <div className="w-px h-4 bg-[rgba(124,58,237,0.15)] mx-1" />
 
         <Button
           variant="ghost"
@@ -107,7 +138,7 @@ export default function TopBar({
           </Button>
         )}
 
-        <div className="w-px h-4 bg-[rgba(124,58,237,0.15)] mx-1.5" />
+        <div className="w-px h-4 bg-[rgba(124,58,237,0.15)] mx-1" />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
