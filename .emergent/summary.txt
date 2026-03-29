@@ -1,115 +1,111 @@
-<analysis>**original_problem_statement**: Apply a premium, futuristic AI engine design system. The user requested an overhaul of the visual engine to feature a 3D aurora borealis effect with Z-axis depth. The user explicitly defined the layout as an **asymmetric S-curve** (starts in the foreground on the left, wiggles upward through the center, and recedes into the background on the right), constructed of distinct, thin vertical light columns (cyan/violet/magenta). PRODUCT REQUIREMENTS include dynamic behavior layers for the Aurora (reacting to typing, planning, applying), a functional ZIP Project Import system, a Credits backend integration, and Google Authentication via Supabase.
+<analysis>**original_problem_statement**: Apply a premium, futuristic AI engine design system (specifically a highly customized 3D Aurora Borealis CSS effect). 
+*NEW PRODUCT REQUIREMENT:* Implement feature H7.4 — GitHub Repository Import. The user explicitly wants to bypass GitHub OAuth for now and use a Personal Access Token (PAT) input in the UI. The feature must reuse the existing ZIP import pipeline (project creation, file ingestion, framework detection) and include a basic manual sync capability.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?**: A Next.js 14 full-stack app with a highly customized frosted glass UI. The app has functioning Zip project imports, a Credits system, Google OAuth login, and a dynamic Aurora behavior state machine. The visual implementation of the Aurora in  has been heavily iterated to use thin vertical rays with simulated Z-axis depth (varying blur and scaling), but the shape is currently a symmetric horseshoe. The user just corrected this, providing a visual path showing an asymmetric left-to-right S-curve.
+**what currently exists?** A Next.js 14 full-stack app with a highly customized frosted glass UI. The complex draped curtain 3D Aurora CSS background has been successfully implemented in . The app currently has a functioning ZIP project import pipeline. The GitHub import feature is unstarted, but the foundational database schema (, ) and API structure () used by the ZIP import are ready to be reused.
 
 **Last working item**:
-    - Last item agent was working: Implementing the newly requested **asymmetric S-curve** aurora geometry. The previous agent recognized that the left side must be the foreground (large, sharp, lower Y-axis) and the right side must be the background (small, blurry, higher Y-axis). The agent successfully calculated the new radial-gradient coordinates via bash, but the session ended before replacing the CSS in .
+    - Last item agent was working: Investigating the existing ZIP import pipeline to plan the GitHub Import implementation. The agent reviewed the Import Modal UI in , the API logic for ZIP uploads at  (around line 3074), and the database interface in .
     - Status: IN PROGRESS
-    - Agent Testing Done: N (For this specific final step)
-    - Which testing method agent to use?: Screenshot tool (for visual CSS validation).
+    - Agent Testing Done: N
+    - Which testing method agent to use?: Frontend testing agent (for the new Import Modal UI flow) + Backend testing via curl/manual API tests to ensure GitHub repo fetching and file insertion works.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Implement Asymmetric S-Curve Aurora Depth Flow (P0)
-     - Attempted fixes: The agent previously built a symmetric horseshoe with depth and shifted the Y-axis higher. The user then provided a hand-drawn white path showing the true flow: it must move from the front-left, through the center, to the back-right. The agent generated the new math but hasn't applied it.
-     - Next debug checklist: 
-        1. Review the last bash execution output (Message 132) which contains the generated CSS gradients for the asymmetric layout.
-        2. Apply these new coordinates to the  sections in .
-        3. Ensure the Z-depth properties remain intact (Left = 2-3px blur/large, Right = 10px blur/small).
-        4. Capture a screenshot to verify the shape precisely follows the user's left-to-right receding path.
-     - Why fix this issue and what will be achieved with the fix?: Fulfills the user's explicit and heavily iterated visual requirement, matching their drawn reference path exactly.
-     - Status: IN PROGRESS
-     - Is recurring issue?: N
-     - Should Test frontend/backend/both after fix?: Frontend (Screenshot).
-     - Blocked on other issue: None.
+  *None currently broken, but the primary focus is the new task below.*
 
 **In progress Task List**:
-  Task 1: Aurora S-Curve Visual Implementation & Verification (P0)
-     - Where to resume: Modify  to inject the S-curve gradient calculations from the previous step. Run  to visually verify.
-     - What will be achieved with this?: Completion of the user's visual critique and the complex CSS geometry task.
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix?: Frontend.
-     - Blocked on something: None.
+  Task 1: GitHub Repository Import (Parts 2-5) via PAT (P0)
+     - Where to resume: 
+       1. Update the Import Modal in  to include inputs for a GitHub PAT, Repo URL/Search, and Branch. 
+       2. Create a new API endpoint (e.g., ) in  that mirrors the ZIP import logic.
+       3. Implement GitHub REST API fetching using the provided PAT (ignoring , , build folders).
+     - What will be achieved with this?: Users can import live GitHub repos directly into the builder without requiring full OAuth setup.
+     - Status: IN PROGRESS (Context gathering complete, ready for implementation)
+     - Should Test frontend/backend/both after fix?: Both.
+     - Blocked on something: No.
 
-**Upcoming and Future Tasks**:
-  - P1: Apply design token system pass to , , and .
-  - P2: Refactor  (~2600 lines) into smaller modules.
-  - P3: GitHub repository import logic (UI shell exists, needs  or similar).
-  - P3: Stripe payment integration for real credit purchases.
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Apply design token system pass to , , and .
+    - P2: Refactor  (~2600 lines) into smaller modules.
+    
+    Future Tasks:
+    - P3: GitHub OAuth implementation (deferred by user in favor of PAT for now).
+    - P3: Stripe payment integration for real credit purchases.
 
-**Completed work in this session**:
-  - Added Z-axis depth simulation to the aurora columns by grouping veils into depth zones (varying size and blur from foreground to background).
-  - Shifted the Y-axis positioning of the aurora columns higher so the bright bottom edges represent the closest point to the viewer, mimicking a real aurora borealis.
+**Completed work in this session**
+- Iterate and finalize the 3D Aurora Borealis CSS (). Transitioned from flat radial gradients to perspective-driven, draped curtain formations using a Python script to generate the complex gradients.
+- Added ambient glows, organic height variations, and conic-gradient logic to match the user's reference photos.
 
-**Earlier issues found/mentioned but not fixed**:
+**Earlier issues found/mentioned but not fixed**
+   - Issue 1: Next.js / SWC compiler repeatedly running out of memory (Inherited from previous session).
+     - Debug checklist: Monitor frontend                         FATAL     Exited too quickly (process log may have details). If the app crashes, run nextjs_api: stopped
+nextjs_api: started or frontend: stopped
+frontend: ERROR (spawn error).
+     - Why to solve this issue and what will be achieved with this?: Prevents  or HTTP 500 timeouts.
+     - Should Test frontend/backend/both after fix: N/A (Environment issue)
+     - Is recurring issue?: Y
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Next.js memory limits.
+  - Recurrence count: Multiple
+  - Status: IN PROGRESS / MITIGATED
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+Next.js App Router, GitHub REST API, Supabase Database, React Hooks, File ingestion/parsing, Framework detection.
+
+**key DB schema**
+  - Supabase : {id, user_id, name, framework, repo_url (NEW), branch (NEW), last_commit_sha (NEW)}
+  - Supabase : {id, project_id, path, content}
+
+**changes in tech stack**
   - None.
 
-**Known issue recurrence from previous fork**:
-  - Issue recurrence in previous fork: Next.js / SWC compiler repeatedly running out of memory, causing  or HTTP 500 timeouts on the frontend.
-  - Recurrence count: Multiple times across sessions.
-  - Status: RESOLVED (Temporarily).
-  - Note: If the dashboard fails to load or the screenshot tool times out waiting for selectors, run nextjs_api: stopped
-nextjs_api: started or frontend: stopped
-frontend: started and wait ~15 seconds for the initial Next.js compile.
+**All files of reference**
+  - : Contains the  div. Needs UI elements for PAT, Repo Name, and Branch.
+  - : Contains the ZIP upload logic ( at line ~3074). The GitHub import must reuse the framework detection and DB insertion logic found here.
+  - : Contains  and  which will be used to save the GitHub data.
 
-**Code Architecture**:
-
-
-**Key Technical Concepts**:
-Next.js App Router, Advanced CSS Keyframes, CSS Variables, , , Glassmorphism, React Hooks, CSS Radial Gradients simulating 3D depth.
-
-**key DB schema**:
-  - Supabase : {id, email, role}
-  - MongoDB : {user_id, balance, updated_at}
-  - MongoDB : {id, user_id, action_type, cost, created_at}
-
-**changes in tech stack**:
-  - No changes in this specific session.
-
-**All files of reference**:
-  - : Contains ALL aurora visual structure. Target file for the upcoming CSS geometry replacement.
-  - : Controls the dynamic CSS classes applied to the aurora.
-  - : Project requirements and changelog tracking.
-
-**Areas that need refactoring**:
+**Areas that need refactoring**
   -  (~2600 lines).
 
-**key api endpoints**:
-  -  
-  -  
-  - , , 
+**key api endpoints**
+  -  (Existing ZIP endpoint)
+  -  (To be created)
 
-**Critical Info for New Agent**:
-- **Current Visual Goal:** The aurora shape is **NOT a symmetric horseshoe**. The user just uploaded an image with a white path drawn on it, proving it should be an **asymmetric S-curve**. The left side of the screen is the deep foreground (large columns, sharp blur, low on screen), it wiggles upward through the center, and the right side of the screen is the deep background (small columns, high blur, high up).
-- **Immediate Next Step:** In the final step of the previous session, the agent generated the correct asymmetric math in a bash script (see Message 132 in history). Your first task is to construct and replace the  CSS sections in  with this asymmetric data, take a screenshot, and verify it matches the user's S-curve path.
+**Critical Info for New Agent**
+- **DO NOT implement GitHub OAuth**. The user explicitly commanded: *Proceed with option C for now: use Personal Access Token input... Do not ask more questions. Do not wait for credentials.*
+- **Reuse the ZIP Pipeline:** Study  to see how  and  are called. Replicate this exact database flow for the GitHub files.
+- **File Filtering:** When fetching the repository tree via the GitHub API, explicitly ignore , , and standard build folders.
+- **Manual Sync:** Make sure to save , , and  in the project metadata to support a Pull Latest button later.
 
-**documents and test reports created in this job**:
-  -  (Exists from previous runs)
+**documents and test reports created in this job**
+  -  (Updated in memory, needs actual file write for the new GitHub scope)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. (User) Please use ask_human tool and confirm your plan now. (Done)
-2. (User) [Tool Result]
-3. (User) this referenceshape, and overall look (almost copy it) [Uploaded image] (Done)
-4. (User) [Tool Result]
-5. (User) [Tool Result]
-6. (User) dont you realize your version is all on one plane its flat. teh reference if you look back at it as depth. the line of aurora moves through the Z space (depth) of the background, please add some of that (Done - agent added Z-depth sizing/blur)
-7. (User) [Tool Result]
-8. (User) the columns of light shouldnt go down so far - those liens should be higher in teh space, so the viewers sees the bottom of the columns brithers and cloest, Liek the auroroa boealist! (Done - agent shifted Y-axis up)
-9. (User) [Tool Result]
-10. **(PENDING HUMAN MESSAGE)**: look at this white path i drew on top of the refernce, that shows the flow of the auorora.youre should match that [Uploaded image with S-curve path] (Agent calculated the math for this but session ended before updating ).
+1. (User) the left and ride side columns should be the thinned...
+2. (User) why are teh left and right side columns longer than the middle ones?
+3. (User) does this overlay of what i want the light columns to look like make sense to you [Uploaded Image]
+4. (User) no this is wrong. how can you make it look more like the aurora baurealis, like this reference imagee of 5 differente bourealis's?
+5. (User) We are implementing H7.4 — GitHub Repository Import... [Extensive details provided]
+6. (Agent) [Asked question via ask_human regarding Auth implementation choices]
+7. **(PENDING/LATEST HUMAN MESSAGE)**: Proceed with option C for now: use Personal Access Token input instead of GitHub OAuth. Do not ask more questions. Do not wait for credentials. Scope for this session: build Parts 2–5 only...
 
 **Project Health Check:**
-Broken visually (The CSS for the background is mid-iteration. The logic is generated but not yet written to the CSS file).
+App is functional. Aurora CSS is complete and stable.
 
 **3rd Party Integrations** 
+- GitHub REST API — requires User-provided key (Personal Access Token to be inputted in the UI)
 - Supabase (Auth/PostgreSQL) — uses User configuration
 - MongoDB (Credits Ledger) — Local
-- Google OAuth — uses Supabase Auth
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Visual/CSS changes must be validated via screenshots by the main agent).
+  - Testing agent used after significant changes: NO (Last task was visual CSS).
   - Troubleshoot agent used after agent stuck in loop: NO.
   - Test files created: None.
   - Known regressions: None.
@@ -117,5 +113,5 @@ Broken visually (The CSS for the background is mid-iteration. The logic is gener
 **Credentials to test flow:**
  /  (Check  if needed).
 
-**What agent forgot to execute**:
-The agent perfectly analyzed the final user image (the S-curve path) and executed a bash script to generate the correct asymmetric radial-gradient geometry, but the context window / session ended before the agent could apply those generated values into  and take a verification screenshot.</analysis>
+**What agent forgot to execute**
+The agent was in the middle of exploring the codebase to understand the ZIP import flow. No actual code for the GitHub repo import has been written yet. Start by editing  to add the UI, then move to  for the backend logic.</analysis>

@@ -18,7 +18,7 @@ Test scenarios:
 7. Permission constants verification
 8. getUserRole + hasPermission function verification
 
-Environment: https://ai-aurora-veil.preview.emergentagent.com
+Environment: https://lightwave-import.preview.emergentagent.com
 Auth: testprov@test.com / password123 (owner account)
 """
 
@@ -29,7 +29,7 @@ import os
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://ai-aurora-veil.preview.emergentagent.com/api"
+BASE_URL = "https://lightwave-import.preview.emergentagent.com/api"
 TEST_EMAIL = "testprov@test.com"
 TEST_PASSWORD = "password123"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "

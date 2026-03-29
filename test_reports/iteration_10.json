@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T04:52:11.593011",
   "test_suite": "User Dashboard and Audit Log Viewer",
-  "base_url": "https://ai-aurora-veil.preview.emergentagent.com/api",
+  "base_url": "https://lightwave-import.preview.emergentagent.com/api",
   "tests": {
     "admin_users_with_auth": {
       "passed": true,
