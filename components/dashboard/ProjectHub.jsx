@@ -27,6 +27,7 @@ export default function ProjectHub({
   onBack,
   onDeleteProject,
   onOpenImport,
+  onSyncRepo,
   creditsBalance,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
@@ -34,8 +35,12 @@ export default function ProjectHub({
   const chatCount = chats?.length || 0
   const fileCount = files?.length || 0
   const lastUpdated = project?.updated_at || project?.created_at
-  const framework = project?.framework || project?.type || 'project'
+  const framework = project?.settings?.framework || project?.framework || project?.type || 'project'
   const latestChat = chats?.[0] || null
+  const isGithubProject = project?.settings?.import_source === 'github'
+  const repoUrl = project?.settings?.repo_url || null
+  const commitSha = project?.settings?.last_commit_sha || null
+  const branch = project?.settings?.branch || 'main'
 
   const handleOpenLatestChat = () => {
     if (latestChat) {
@@ -195,16 +200,25 @@ export default function ProjectHub({
                 </button>
 
                 <button
-                  disabled
-                  className="group flex items-center gap-3 p-4 rounded-xl em-glass opacity-50 cursor-not-allowed"
+                  onClick={isGithubProject ? onSyncRepo : undefined}
+                  disabled={!isGithubProject}
+                  className={`group flex items-center gap-3 p-4 rounded-xl em-glass transition-all duration-200 ${
+                    isGithubProject ? 'hover:border-[rgba(168,85,247,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.06)]' : 'opacity-50 cursor-not-allowed'
+                  }`}
                   data-testid="hub-action-pull"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0">
-                    <GitBranch className="w-4 h-4 em-text-secondary" />
+                  <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                    isGithubProject
+                      ? 'bg-[rgba(168,85,247,0.08)] border-[rgba(168,85,247,0.15)] group-hover:border-[rgba(168,85,247,0.30)]'
+                      : 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.12)]'
+                  }`}>
+                    <GitBranch className={`w-4 h-4 ${isGithubProject ? 'text-purple-400' : 'em-text-secondary'}`} />
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">Pull Latest</div>
-                    <div className="text-[10px] em-text-muted mt-0.5">Sync from repository</div>
+                    <div className="text-[10px] em-text-muted mt-0.5">
+                      {isGithubProject ? `Sync from ${repoUrl}` : 'No repository linked'}
+                    </div>
                   </div>
                 </button>
               </div>
@@ -305,6 +319,27 @@ export default function ProjectHub({
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] em-text-muted flex items-center gap-1.5"><GitBranch className="w-3 h-3" /> Repo</span>
                   <span className="text-[10px] font-medium em-text-primary truncate max-w-[120px]">{project.repo_url}</span>
+                </div>
+              )}
+
+              {repoUrl && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] em-text-muted flex items-center gap-1.5"><GitBranch className="w-3 h-3" /> Source</span>
+                  <span className="text-[10px] font-medium text-purple-400 truncate max-w-[120px]">{repoUrl}</span>
+                </div>
+              )}
+
+              {commitSha && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Hash className="w-3 h-3" /> Commit</span>
+                  <span className="text-[10px] font-mono font-medium em-text-primary">{commitSha.slice(0, 8)}</span>
+                </div>
+              )}
+
+              {isGithubProject && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Activity className="w-3 h-3" /> Branch</span>
+                  <span className="text-[10px] font-medium em-text-primary">{branch}</span>
                 </div>
               )}
             </div>

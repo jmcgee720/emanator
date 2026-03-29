@@ -3116,6 +3116,362 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // ============ GITHUB IMPORT (PAT-based) ============
+
+    if (route === '/import/github' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      let dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const body = await request.json()
+        const { pat, repo, branch = 'main' } = body
+
+        if (!pat || !repo) {
+          return handleCORS(NextResponse.json({ error: 'Personal Access Token and repository (owner/repo) are required' }, { status: 400 }))
+        }
+
+        const repoMatch = repo.match(/^([^/]+)\/([^/]+)$/)
+        if (!repoMatch) {
+          return handleCORS(NextResponse.json({ error: 'Repository must be in format owner/repo' }, { status: 400 }))
+        }
+
+        const [, owner, repoName] = repoMatch
+        const ghHeaders = { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Emanator-Import' }
+
+        // 1. Get latest commit
+        const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/commits/${branch}`, { headers: ghHeaders })
+        if (!commitRes.ok) {
+          const errData = await commitRes.json().catch(() => ({}))
+          if (commitRes.status === 401) return handleCORS(NextResponse.json({ error: 'Invalid Personal Access Token' }, { status: 401 }))
+          if (commitRes.status === 404) return handleCORS(NextResponse.json({ error: `Repository or branch not found: ${owner}/${repoName}@${branch}` }, { status: 404 }))
+          return handleCORS(NextResponse.json({ error: errData.message || 'Failed to access GitHub repository' }, { status: commitRes.status }))
+        }
+        const commitData = await commitRes.json()
+        const commitSha = commitData.sha
+        const treeSha = commitData.commit.tree.sha
+
+        // 2. Get full tree recursively
+        const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/git/trees/${treeSha}?recursive=1`, { headers: ghHeaders })
+        if (!treeRes.ok) {
+          return handleCORS(NextResponse.json({ error: 'Failed to fetch repository tree' }, { status: 500 }))
+        }
+        const treeData = await treeRes.json()
+
+        if (treeData.truncated) {
+          console.warn('[GitHub Import] Tree was truncated — very large repo')
+        }
+
+        const SKIP_PATTERNS = ['node_modules/', '.git/', '.DS_Store', '__MACOSX/', 'dist/', 'build/', '.next/', '.cache/', '.turbo/', 'coverage/', '.env']
+        const MAX_FILE_SIZE = 512 * 1024
+        const TEXT_EXTENSIONS = new Set(['js', 'jsx', 'ts', 'tsx', 'json', 'html', 'css', 'scss', 'less', 'md', 'txt', 'yml', 'yaml', 'toml', 'xml', 'svg', 'sh', 'bash', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'hpp', 'php', 'vue', 'svelte', 'astro', 'graphql', 'gql', 'sql', 'prisma', 'env', 'example', 'gitignore', 'npmrc', 'editorconfig', 'eslintrc', 'prettierrc', 'dockerignore', 'Dockerfile', 'Makefile', 'lock', 'map'])
+
+        // Filter blobs (files only, skip large + ignored)
+        const blobs = treeData.tree.filter(item => {
+          if (item.type !== 'blob') return false
+          if (SKIP_PATTERNS.some(p => item.path.includes(p))) return false
+          if (item.size > MAX_FILE_SIZE) return false
+          return true
+        })
+
+        if (blobs.length === 0) {
+          return handleCORS(NextResponse.json({ error: 'No supported files found in repository after filtering' }, { status: 400 }))
+        }
+
+        // 3. Fetch file contents in batches
+        const extractedFiles = []
+        let packageJson = null
+        let entryFile = null
+        let framework = 'unknown'
+        let detectedLanguage = 'javascript'
+        const BATCH_SIZE = 15
+
+        for (let i = 0; i < blobs.length; i += BATCH_SIZE) {
+          const batch = blobs.slice(i, i + BATCH_SIZE)
+          const batchResults = await Promise.all(batch.map(async (blob) => {
+            try {
+              const ext = blob.path.split('.').pop()?.toLowerCase() || ''
+              const isText = TEXT_EXTENSIONS.has(ext) || blob.path.includes('.')  === false
+
+              if (!isText) {
+                return { path: blob.path, content: '[binary file — not extracted]', file_type: 'binary' }
+              }
+
+              const blobRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/git/blobs/${blob.sha}`, { headers: ghHeaders })
+              if (!blobRes.ok) return null
+
+              const blobData = await blobRes.json()
+              let content
+              if (blobData.encoding === 'base64') {
+                content = Buffer.from(blobData.content, 'base64').toString('utf-8')
+              } else {
+                content = blobData.content
+              }
+
+              const fileType = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(ext) ? 'image'
+                : ['woff', 'woff2', 'ttf', 'eot'].includes(ext) ? 'font' : 'text'
+
+              return { path: blob.path, content, file_type: fileType }
+            } catch {
+              return null
+            }
+          }))
+
+          for (const result of batchResults) {
+            if (!result) continue
+            extractedFiles.push(result)
+
+            if (result.path === 'package.json') {
+              try { packageJson = JSON.parse(result.content) } catch {}
+            }
+
+            if (!entryFile) {
+              if (['index.html', 'index.js', 'index.tsx', 'index.ts', 'main.js', 'main.ts', 'app.js', 'app.tsx'].includes(result.path)) {
+                entryFile = result.path
+              } else if (['app/page.js', 'app/page.tsx', 'pages/index.js', 'pages/index.tsx', 'src/App.jsx', 'src/App.tsx'].includes(result.path)) {
+                entryFile = result.path
+              }
+            }
+
+            const ext = result.path.split('.').pop()?.toLowerCase()
+            if (ext === 'ts' || ext === 'tsx') detectedLanguage = 'typescript'
+          }
+        }
+
+        if (extractedFiles.length === 0) {
+          return handleCORS(NextResponse.json({ error: 'No files could be fetched from repository' }, { status: 400 }))
+        }
+
+        // 4. Framework detection (reuse ZIP logic)
+        if (packageJson) {
+          const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
+          if (deps['next']) framework = 'nextjs'
+          else if (deps['react']) framework = 'react'
+          else if (deps['vue']) framework = 'vue'
+          else if (deps['svelte'] || deps['@sveltejs/kit']) framework = 'svelte'
+          else if (deps['express'] || deps['fastify'] || deps['koa']) framework = 'node'
+          else framework = 'node'
+        } else if (extractedFiles.some(f => f.path === 'index.html')) {
+          framework = 'static'
+        }
+
+        // 5. Create project
+        const projectName = packageJson?.name || repoName
+        const project = await db.projects.create({
+          user_id: dbUser.id,
+          name: projectName,
+          description: packageJson?.description || `Imported from github.com/${owner}/${repoName}`,
+          type: 'app',
+          settings: {
+            imported: true,
+            import_source: 'github',
+            repo_url: `${owner}/${repoName}`,
+            branch,
+            last_commit_sha: commitSha,
+            framework,
+            entry_file: entryFile,
+            detected_language: detectedLanguage,
+            file_count: extractedFiles.length,
+            imported_at: new Date().toISOString(),
+          }
+        })
+
+        // 6. Create canvas
+        await db.projectCanvas.create({
+          project_id: project.id,
+          canvas_content: {
+            project_overview: `Imported from github.com/${owner}/${repoName} (${framework})`,
+            project_goals: [],
+            key_decisions: [],
+            architecture_notes: [`Framework: ${framework}`, `Entry: ${entryFile || 'unknown'}`, `Language: ${detectedLanguage}`, `Branch: ${branch}`, `Commit: ${commitSha.slice(0, 8)}`],
+            master_prompts: [],
+            working_prompts: [],
+            failed_prompts: [],
+            successful_patterns: [],
+            feature_requirements: [],
+            technical_specs: packageJson ? [`Dependencies: ${Object.keys(packageJson.dependencies || {}).join(', ')}`] : [],
+            constraints: [],
+            open_tasks: [],
+            completed_tasks: []
+          }
+        })
+
+        // 7. Create initial chat
+        const initialChat = await db.chats.create({
+          project_id: project.id,
+          title: 'New Conversation'
+        })
+
+        // 8. Store files
+        const fileBatch = extractedFiles.map(f => ({
+          project_id: project.id,
+          path: f.path,
+          content: f.content,
+          file_type: f.file_type,
+          version: 1,
+        }))
+
+        if (fileBatch.length > 0) {
+          await db.projectFiles.bulkInsert(fileBatch)
+        }
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          project,
+          initialChat,
+          metadata: {
+            framework,
+            entry_file: entryFile,
+            detected_language: detectedLanguage,
+            file_count: extractedFiles.length,
+            project_name: projectName,
+            repo_url: `${owner}/${repoName}`,
+            branch,
+            commit_sha: commitSha,
+          }
+        }, { status: 201 }))
+
+      } catch (err) {
+        console.error('[GitHub Import] Error:', err)
+        return handleCORS(NextResponse.json({ error: `GitHub import failed: ${err.message}` }, { status: 500 }))
+      }
+    }
+
+    // ============ GITHUB SYNC (Pull Latest) ============
+
+    if (route === '/import/github/sync' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      let dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const body = await request.json()
+        const { project_id, pat } = body
+
+        if (!project_id || !pat) {
+          return handleCORS(NextResponse.json({ error: 'project_id and pat are required' }, { status: 400 }))
+        }
+
+        const project = await db.projects.findById(project_id)
+        if (!project) {
+          return handleCORS(NextResponse.json({ error: 'Project not found' }, { status: 404 }))
+        }
+
+        if (project.user_id !== dbUser.id) {
+          return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+        }
+
+        const settings = project.settings || {}
+        if (settings.import_source !== 'github' || !settings.repo_url) {
+          return handleCORS(NextResponse.json({ error: 'This project was not imported from GitHub' }, { status: 400 }))
+        }
+
+        const repoUrl = settings.repo_url
+        const branch = settings.branch || 'main'
+        const storedSha = settings.last_commit_sha
+
+        const ghHeaders = { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Emanator-Import' }
+
+        // Get latest commit
+        const commitRes = await fetch(`https://api.github.com/repos/${repoUrl}/commits/${branch}`, { headers: ghHeaders })
+        if (!commitRes.ok) {
+          const errData = await commitRes.json().catch(() => ({}))
+          return handleCORS(NextResponse.json({ error: errData.message || 'Failed to fetch latest commit' }, { status: commitRes.status }))
+        }
+        const commitData = await commitRes.json()
+        const latestSha = commitData.sha
+
+        if (latestSha === storedSha) {
+          return handleCORS(NextResponse.json({ success: true, updated: false, message: 'Already up to date', commit_sha: latestSha }))
+        }
+
+        // Fetch full tree
+        const treeSha = commitData.commit.tree.sha
+        const treeRes = await fetch(`https://api.github.com/repos/${repoUrl}/git/trees/${treeSha}?recursive=1`, { headers: ghHeaders })
+        if (!treeRes.ok) {
+          return handleCORS(NextResponse.json({ error: 'Failed to fetch repository tree' }, { status: 500 }))
+        }
+        const treeData = await treeRes.json()
+
+        const SKIP_PATTERNS = ['node_modules/', '.git/', '.DS_Store', '__MACOSX/', 'dist/', 'build/', '.next/', '.cache/', '.turbo/', 'coverage/', '.env']
+        const MAX_FILE_SIZE = 512 * 1024
+
+        const blobs = treeData.tree.filter(item => {
+          if (item.type !== 'blob') return false
+          if (SKIP_PATTERNS.some(p => item.path.includes(p))) return false
+          if (item.size > MAX_FILE_SIZE) return false
+          return true
+        })
+
+        // Fetch and upsert files
+        let updatedCount = 0
+        let createdCount = 0
+        const BATCH_SIZE = 15
+
+        for (let i = 0; i < blobs.length; i += BATCH_SIZE) {
+          const batch = blobs.slice(i, i + BATCH_SIZE)
+          await Promise.all(batch.map(async (blob) => {
+            try {
+              const blobRes = await fetch(`https://api.github.com/repos/${repoUrl}/git/blobs/${blob.sha}`, { headers: ghHeaders })
+              if (!blobRes.ok) return
+
+              const blobData = await blobRes.json()
+              let content
+              if (blobData.encoding === 'base64') {
+                content = Buffer.from(blobData.content, 'base64').toString('utf-8')
+              } else {
+                content = blobData.content
+              }
+
+              const ext = blob.path.split('.').pop()?.toLowerCase() || 'text'
+              const fileType = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(ext) ? 'image'
+                : ['woff', 'woff2', 'ttf', 'eot'].includes(ext) ? 'font' : 'text'
+
+              const result = await db.projectFiles.upsert(project_id, blob.path, content, fileType)
+              if (result.action === 'updated') updatedCount++
+              else if (result.action === 'created') createdCount++
+            } catch {}
+          }))
+        }
+
+        // Update project settings with new commit SHA
+        await db.projects.update(project_id, {
+          settings: {
+            ...settings,
+            last_commit_sha: latestSha,
+            last_synced_at: new Date().toISOString(),
+            file_count: blobs.length,
+          }
+        })
+
+        return handleCORS(NextResponse.json({
+          success: true,
+          updated: true,
+          message: `Synced to ${latestSha.slice(0, 8)}: ${createdCount} new, ${updatedCount} updated files`,
+          commit_sha: latestSha,
+          previous_sha: storedSha,
+          files_created: createdCount,
+          files_updated: updatedCount,
+        }))
+
+      } catch (err) {
+        console.error('[GitHub Sync] Error:', err)
+        return handleCORS(NextResponse.json({ error: `Sync failed: ${err.message}` }, { status: 500 }))
+      }
+    }
+
     // ============ PROJECT IMPORT (ZIP UPLOAD) ============
 
     if (route === '/import/upload' && method === 'POST') {
