@@ -164,6 +164,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef(null)
 
+  // ── GitHub import state ──
+  const [githubPat, setGithubPat] = useState('')
+  const [githubRepo, setGithubRepo] = useState('')
+  const [githubBranch, setGithubBranch] = useState('main')
+  const [githubImportLoading, setGithubImportLoading] = useState(false)
+  const [showGithubForm, setShowGithubForm] = useState(false)
+
   const handleZipImport = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -196,6 +203,105 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     } finally {
       setImportLoading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleGithubImport = async () => {
+    const pat = githubPat.trim()
+    const repo = githubRepo.trim()
+    const branch = githubBranch.trim() || 'main'
+
+    if (!pat || !repo) {
+      setImportError('Personal Access Token and repository (owner/repo) are required')
+      return
+    }
+
+    if (!/^[^/]+\/[^/]+$/.test(repo)) {
+      setImportError('Repository must be in format owner/repo (e.g. facebook/react)')
+      return
+    }
+
+    setGithubImportLoading(true)
+    setImportError(null)
+
+    try {
+      const res = await authFetch('/api/import/github', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ pat, repo, branch }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setImportError(data.error || 'GitHub import failed')
+        return
+      }
+
+      toast({
+        title: 'GitHub Import Successful',
+        description: `${data.metadata.file_count} files imported from ${data.metadata.repo_url}@${data.metadata.branch} (${data.metadata.framework})`
+      })
+      setShowImportModal(false)
+      setShowGithubForm(false)
+      setGithubPat('')
+      setGithubRepo('')
+      setGithubBranch('main')
+
+      // Enter hub mode for the new project
+      hubEntryRef.current = true
+      setSelectedChat(null)
+      setMessages([])
+      setSelectedProject(data.project)
+      loadProjects()
+    } catch (err) {
+      setImportError(err.message || 'GitHub import failed')
+    } finally {
+      setGithubImportLoading(false)
+    }
+  }
+
+  const [syncLoading, setSyncLoading] = useState(false)
+
+  const handleSyncRepo = async () => {
+    if (!selectedProject) return
+
+    const settings = selectedProject.settings || {}
+    if (settings.import_source !== 'github') {
+      toast({ title: 'Not a GitHub project', description: 'This project was not imported from GitHub', variant: 'destructive' })
+      return
+    }
+
+    // Prompt for PAT
+    const pat = window.prompt('Enter your GitHub Personal Access Token to sync:')
+    if (!pat || !pat.trim()) return
+
+    setSyncLoading(true)
+    try {
+      const res = await authFetch('/api/import/github/sync', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ project_id: selectedProject.id, pat: pat.trim() }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast({ title: 'Sync Failed', description: data.error, variant: 'destructive' })
+        return
+      }
+
+      if (!data.updated) {
+        toast({ title: 'Already Up to Date', description: data.message })
+      } else {
+        toast({ title: 'Sync Complete', description: data.message })
+        // Reload project data to reflect updated files
+        loadProjectData(selectedProject.id, true)
+      }
+    } catch (err) {
+      toast({ title: 'Sync Failed', description: err.message, variant: 'destructive' })
+    } finally {
+      setSyncLoading(false)
     }
   }
 
@@ -1979,7 +2085,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
                   Import Project
                 </h2>
-                <button onClick={() => { setShowImportModal(false); setImportError(null) }} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
+                <button onClick={() => { setShowImportModal(false); setImportError(null); setShowGithubForm(false); setGithubPat(''); setGithubRepo(''); setGithubBranch('main') }} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -2020,19 +2126,81 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   </div>
                 </button>
 
+                {/* GitHub Import */}
                 <button
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left opacity-50 cursor-not-allowed"
+                  onClick={() => setShowGithubForm(!showGithubForm)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left ${
+                    showGithubForm
+                      ? 'border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.06)]'
+                      : 'border-[rgba(255,255,255,0.10)] hover:border-[rgba(168,85,247,0.25)] hover:bg-[rgba(255,255,255,0.06)]'
+                  }`}
                   data-testid="import-repo"
-                  disabled
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(168,85,247,0.10)] border border-[rgba(168,85,247,0.20)] flex items-center justify-center shrink-0">
                     <GitBranch className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium em-text-primary">Connect Repository</div>
-                    <div className="text-[11px] em-text-secondary mt-0.5">GitHub integration — coming soon</div>
+                    <div className="text-sm font-medium em-text-primary">Import from GitHub</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">Clone a repository using Personal Access Token</div>
                   </div>
                 </button>
+
+                {/* GitHub Form (expandable) */}
+                {showGithubForm && (
+                  <div className="p-4 rounded-xl border border-[rgba(168,85,247,0.15)] bg-[rgba(168,85,247,0.03)] space-y-3" data-testid="github-import-form">
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Personal Access Token</label>
+                      <input
+                        type="password"
+                        value={githubPat}
+                        onChange={(e) => setGithubPat(e.target.value)}
+                        placeholder="ghp_xxxxxxxxxxxx"
+                        className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
+                        data-testid="github-pat-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Repository</label>
+                      <input
+                        type="text"
+                        value={githubRepo}
+                        onChange={(e) => setGithubRepo(e.target.value)}
+                        placeholder="owner/repo"
+                        className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
+                        data-testid="github-repo-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Branch</label>
+                      <input
+                        type="text"
+                        value={githubBranch}
+                        onChange={(e) => setGithubBranch(e.target.value)}
+                        placeholder="main"
+                        className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
+                        data-testid="github-branch-input"
+                      />
+                    </div>
+                    <button
+                      onClick={handleGithubImport}
+                      disabled={githubImportLoading || !githubPat.trim() || !githubRepo.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                      data-testid="github-import-submit"
+                    >
+                      {githubImportLoading ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <GitBranch className="w-3.5 h-3.5" />
+                          Import Repository
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2330,6 +2498,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           }}
           onDeleteProject={() => setDeleteConfirmProject(selectedProject)}
           onOpenImport={() => setShowImportModal(true)}
+          onSyncRepo={handleSyncRepo}
           creditsBalance={creditsBalance}
         />
       ) : (
