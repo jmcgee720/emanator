@@ -34,7 +34,8 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Workspace tabs: breadcrumb-style "← Projects" | "Project Name" (hub) | "Chat Title"
   - Quick actions: Open Latest Chat, New Chat, Import Files, Pull Latest (placeholder)
   - Right panel: file count, conversation count, last updated, framework, credits, delete action
-  - File: `/app/components/dashboard/ProjectHub.jsx`:
+  - File: `/app/components/dashboard/ProjectHub.jsx`
+  - Bug fix: Hero prompt submit button was non-functional (only triggered aurora animation). Wired `handleHeroPromptSubmit` to create project, added Enter key handler, disabled state when empty/submitting.:
   - Replaced symmetric horseshoe with left-to-right S-curve depth flow
   - LEFT = foreground (large 3.6% wide, sharp blur=2px, low Y ~34%, bright opacity 0.72)
   - CENTER = mid-depth (medium 2.2-2.9%, blur=5px, Y ~22-30%, mid opacity)
