@@ -8,6 +8,7 @@ import { streamMessage } from '@/lib/stream-client'
 import TopBar from './TopBar'
 import LeftPanel from './LeftPanel'
 import RightPanel from './RightPanel'
+import ProjectHub from './ProjectHub'
 import AdminPanel from './AdminPanel'
 import SearchPanel from './SearchPanel'
 import CanvasPanel from './CanvasPanel'
@@ -204,6 +205,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const aurora = useAuroraState(pageVariant)
 
   const streamAbortRef = useRef(null)
+  const hubEntryRef = useRef(false)
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -289,7 +291,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   useEffect(() => {
     if (selectedProject) {
-      loadProjectData(selectedProject.id)
+      const isHubEntry = hubEntryRef.current
+      hubEntryRef.current = false
+      loadProjectData(selectedProject.id, isHubEntry)
       setSandboxTestResult(selectedProject.settings?.last_test_result || null)
     }
   }, [selectedProject?.id])
@@ -333,17 +337,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  const loadProjectData = async (projectId) => {
+  const loadProjectData = async (projectId, skipChatSelect = false) => {
     try {
       const chatsResponse = await authFetch(`/api/projects/${projectId}/chats`)
       const chatsData = await chatsResponse.json()
       const chatList = Array.isArray(chatsData) ? chatsData : []
       setChats(chatList)
 
-      if (chatList.length > 0) {
-        setSelectedChat(chatList[0])
-      } else {
-        await autoCreateChat(projectId)
+      if (!skipChatSelect) {
+        if (chatList.length > 0) {
+          setSelectedChat(chatList[0])
+        } else {
+          await autoCreateChat(projectId)
+        }
       }
     } catch (error) {
       console.error('Error loading chats:', error)
@@ -1787,8 +1793,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   key={item.id}
                   className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer"
                   onClick={() => {
+                    hubEntryRef.current = true
                     setBuilderMode('app')
-                    openProjectWorkspace(item)
+                    setSelectedChat(null)
+                    setMessages([])
+                    setSelectedProject(item)
                   }}
                   onMouseEnter={aurora.onTyping}
                   data-testid={`project-card-${item.id}`}
@@ -1994,105 +2003,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             </div>
           </div>
         )}
-
-        {/* ── Delete Project Confirmation Modal ── */}
-        {deleteConfirmProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="delete-project-overlay">
-            <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(255,80,80,0.20)]" data-testid="delete-project-modal">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[rgba(255,60,60,0.12)] border border-[rgba(255,60,60,0.25)] flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold em-text-primary">Delete Project</h3>
-                  <p className="text-[11px] em-text-secondary mt-0.5">This action cannot be undone</p>
-                </div>
-              </div>
-              <div className="mb-5 p-3 rounded-xl bg-[rgba(255,60,60,0.06)] border border-[rgba(255,60,60,0.12)]">
-                <p className="text-xs em-text-primary mb-1.5">
-                  You are about to permanently delete <span className="font-semibold text-red-400">&ldquo;{deleteConfirmProject.name}&rdquo;</span>.
-                </p>
-                <p className="text-[11px] em-text-secondary leading-relaxed">
-                  This will remove the project and all its conversations, messages, files, canvas, and generation history. This cannot be recovered.
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setDeleteConfirmProject(null)}
-                  className="px-4 py-2 text-xs font-medium rounded-xl border border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.06)] em-text-primary transition-all"
-                  data-testid="delete-project-cancel-btn"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    const projectToDelete = deleteConfirmProject
-                    setDeleteConfirmProject(null)
-                    await deleteProject(projectToDelete.id)
-                  }}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all duration-200 shadow-[0_0_12px_rgba(255,60,60,0.15)]"
-                  data-testid="delete-project-confirm-btn"
-                >
-                  Delete Project
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Account Cleanup Confirmation Modal ── */}
-        {showAccountCleanupModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="account-cleanup-overlay">
-            <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(255,80,80,0.25)]" data-testid="account-cleanup-modal">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.30)] flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-red-400">Delete All Projects & Chats</h3>
-                  <p className="text-[11px] em-text-secondary mt-0.5">Permanent account-wide cleanup</p>
-                </div>
-              </div>
-              <div className="mb-5 p-3 rounded-xl bg-[rgba(255,60,60,0.08)] border border-[rgba(255,60,60,0.15)]">
-                <p className="text-xs em-text-primary mb-2 font-medium">
-                  This will permanently delete ALL {projects.filter(p => p.type !== 'core').length} project(s) from your account.
-                </p>
-                <ul className="text-[11px] em-text-secondary space-y-1 leading-relaxed">
-                  <li>All projects and their conversations</li>
-                  <li>All messages, files, and canvas data</li>
-                  <li>All generation history and memory entries</li>
-                </ul>
-                <p className="text-[11px] text-red-400 font-medium mt-2.5">
-                  This cannot be undone. All data will be permanently lost.
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowAccountCleanupModal(false)}
-                  className="px-4 py-2 text-xs font-medium rounded-xl border border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.06)] em-text-primary transition-all"
-                  data-testid="account-cleanup-cancel-btn"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={deleteAllProjects}
-                  disabled={accountCleanupLoading}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all duration-200 shadow-[0_0_12px_rgba(255,60,60,0.15)] disabled:opacity-50"
-                  data-testid="account-cleanup-confirm-btn"
-                >
-                  {accountCleanupLoading ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Deleting...
-                    </span>
-                  ) : (
-                    'Delete Everything'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -2109,33 +2019,33 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setCanvas(null)
         }}
         className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] text-sm em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
+        data-testid="workspace-back-to-grid"
       >
         ← Projects
       </button>
 
       <div className="w-px h-6 bg-[rgba(255,255,255,0.10)] shrink-0" />
 
-      {openProjectTabs.map((project) => {
-        const isActive = selectedProject?.id === project.id
-        return (
-          <div
-            key={project.id}
-            className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-all duration-200 ${
-              isActive ? 'border-[rgba(0,229,255,0.3)] bg-[rgba(0,229,255,0.06)] text-[var(--em-text-primary)]' : 'border-[rgba(255,255,255,0.08)] em-text-secondary hover:bg-[rgba(255,255,255,0.06)]'
-            }`}
-          >
-            <button onClick={() => openProjectWorkspace(project)} className="truncate max-w-[180px] text-left">
-              {project.name}
-            </button>
-            <button
-              onClick={() => closeProjectWorkspaceTab(project.id)}
-              className="text-xs opacity-70 hover:opacity-100"
-            >
-              ×
-            </button>
-          </div>
-        )
-      })}
+      {/* Hub link — go back to project hub */}
+      <button
+        onClick={() => {
+          setSelectedChat(null)
+          setMessages([])
+        }}
+        className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-sm em-text-secondary hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
+        data-testid="workspace-back-to-hub"
+      >
+        {selectedProject?.name || 'Hub'}
+      </button>
+
+      <div className="w-px h-6 bg-[rgba(255,255,255,0.10)] shrink-0" />
+
+      {/* Current chat indicator */}
+      {selectedChat && (
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(0,229,255,0.25)] bg-[rgba(0,229,255,0.06)] text-sm text-[var(--em-text-primary)]">
+          <span className="truncate max-w-[200px]">{selectedChat.title || 'Chat'}</span>
+        </div>
+      )}
     </div>
   )
 
@@ -2369,6 +2279,25 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
       {!selectedProject ? (
         renderProjectGrid()
+      ) : !selectedChat ? (
+        <ProjectHub
+          project={selectedProject}
+          chats={chats}
+          files={files}
+          onSelectChat={(chat) => handleSelectChat(chat)}
+          onCreateChat={() => createChat()}
+          onBack={() => {
+            setSelectedProject(null)
+            setChats([])
+            setSelectedChat(null)
+            setMessages([])
+            setFiles([])
+            setCanvas(null)
+          }}
+          onDeleteProject={() => setDeleteConfirmProject(selectedProject)}
+          onOpenImport={() => setShowImportModal(true)}
+          creditsBalance={creditsBalance}
+        />
       ) : (
         <>
           {renderWorkspaceTabs()}
@@ -2530,6 +2459,105 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           messageText={savePromptData.text}
           metadata={savePromptData.metadata}
         />
+      )}
+
+      {/* ── Delete Project Confirmation Modal ── */}
+      {deleteConfirmProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="delete-project-overlay">
+          <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(255,80,80,0.20)]" data-testid="delete-project-modal">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[rgba(255,60,60,0.12)] border border-[rgba(255,60,60,0.25)] flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold em-text-primary">Delete Project</h3>
+                <p className="text-[11px] em-text-secondary mt-0.5">This action cannot be undone</p>
+              </div>
+            </div>
+            <div className="mb-5 p-3 rounded-xl bg-[rgba(255,60,60,0.06)] border border-[rgba(255,60,60,0.12)]">
+              <p className="text-xs em-text-primary mb-1.5">
+                You are about to permanently delete <span className="font-semibold text-red-400">&ldquo;{deleteConfirmProject.name}&rdquo;</span>.
+              </p>
+              <p className="text-[11px] em-text-secondary leading-relaxed">
+                This will remove the project and all its conversations, messages, files, canvas, and generation history. This cannot be recovered.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirmProject(null)}
+                className="px-4 py-2 text-xs font-medium rounded-xl border border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.06)] em-text-primary transition-all"
+                data-testid="delete-project-cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const projectToDelete = deleteConfirmProject
+                  setDeleteConfirmProject(null)
+                  await deleteProject(projectToDelete.id)
+                }}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all duration-200 shadow-[0_0_12px_rgba(255,60,60,0.15)]"
+                data-testid="delete-project-confirm-btn"
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Account Cleanup Confirmation Modal ── */}
+      {showAccountCleanupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="account-cleanup-overlay">
+          <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(255,80,80,0.25)]" data-testid="account-cleanup-modal">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.30)] flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-red-400">Delete All Projects & Chats</h3>
+                <p className="text-[11px] em-text-secondary mt-0.5">Permanent account-wide cleanup</p>
+              </div>
+            </div>
+            <div className="mb-5 p-3 rounded-xl bg-[rgba(255,60,60,0.08)] border border-[rgba(255,60,60,0.15)]">
+              <p className="text-xs em-text-primary mb-2 font-medium">
+                This will permanently delete ALL {projects.filter(p => p.type !== 'core').length} project(s) from your account.
+              </p>
+              <ul className="text-[11px] em-text-secondary space-y-1 leading-relaxed">
+                <li>All projects and their conversations</li>
+                <li>All messages, files, and canvas data</li>
+                <li>All generation history and memory entries</li>
+              </ul>
+              <p className="text-[11px] text-red-400 font-medium mt-2.5">
+                This cannot be undone. All data will be permanently lost.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowAccountCleanupModal(false)}
+                className="px-4 py-2 text-xs font-medium rounded-xl border border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.06)] em-text-primary transition-all"
+                data-testid="account-cleanup-cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteAllProjects}
+                disabled={accountCleanupLoading}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all duration-200 shadow-[0_0_12px_rgba(255,60,60,0.15)] disabled:opacity-50"
+                data-testid="account-cleanup-confirm-btn"
+              >
+                {accountCleanupLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete Everything'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
