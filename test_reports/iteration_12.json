@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T12:46:28.334377",
   "test_suite": "Child Monitored Role and Monitored Account Mode",
-  "base_url": "https://lightwave-import.preview.emergentagent.com",
+  "base_url": "https://service-js-repair.preview.emergentagent.com",
   "tests": {
     "create_child_monitored_user": {
       "passed": true,

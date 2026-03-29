@@ -13,7 +13,7 @@ from datetime import datetime
 # Configuration from environment
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-APP_URL = "https://lightwave-import.preview.emergentagent.com"
+APP_URL = "https://service-js-repair.preview.emergentagent.com"
 TEST_EMAIL = "REDACTED_LEAKED_USER"
 TEST_PASSWORD = "TestPass123!"
 
