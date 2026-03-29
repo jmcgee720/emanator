@@ -20,7 +20,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - **Aurora Ceiling Geometry Correction** (Feb 2026)
 - **Aurora Z-Depth Simulation** (Feb 2026): Added depth zones with varying blur/size
 - **Aurora Y-Axis Shift** (Feb 2026): Shifted columns higher so bright bottom edges are closest
-- **Aurora Asymmetric S-Curve** (Feb 2026):
+- **Aurora Asymmetric S-Curve** (Feb 2026)
+- **H7.4: Project / Chat Deletion** (Mar 2026):
+  - Part 1: Project Bin Delete — trash icon on project cards (hover), confirmation modal with cascade info
+  - Part 2: Account Cleanup — "Delete All" button + "Delete Everything" modal with strong warning
+  - Part 3: Safety — all deletes require confirmation, optimistic UI removal, clean error toasts
+  - Backend: `DELETE /api/projects/:id` (with ownership verification), `POST /api/account/cleanup` (bulk)
+  - Supabase ON DELETE CASCADE handles chats, messages, files, canvas, generation_runs, memory, changelog:
   - Replaced symmetric horseshoe with left-to-right S-curve depth flow
   - LEFT = foreground (large 3.6% wide, sharp blur=2px, low Y ~34%, bright opacity 0.72)
   - CENTER = mid-depth (medium 2.2-2.9%, blur=5px, Y ~22-30%, mid opacity)
@@ -41,10 +47,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 
 ## Key Files
 - `/app/app/globals.css` — Aurora engine (S-curve geometry) + Glass system + Tokens
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state
+- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state + delete flows
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
 - `/app/hooks/useAuroraState.js` — Aurora state machine hook
+- `/app/app/api/[[...path]]/route.js` — API routes (project CRUD, delete, account cleanup)
 
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
