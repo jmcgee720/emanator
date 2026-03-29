@@ -8,7 +8,7 @@ import ssl
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://lightwave-import.preview.emergentagent.com"
+BASE_URL = "https://service-js-repair.preview.emergentagent.com"
 TEST_CREDENTIALS = {"email": "testprov@test.com", "password": "password123"}
 
 class VariationStudioBackendTester:

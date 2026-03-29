@@ -23,7 +23,7 @@ import os
 import uuid
 
 # Configuration
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://lightwave-import.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://service-js-repair.preview.emergentagent.com')
 OWNER_EMAIL = 'testprov@test.com'
 OWNER_PASSWORD = 'password123'
 SELF_EDIT_PREFIX = '⚙ Self-Edit: '  # Unicode U+2699
