@@ -105,7 +105,7 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
               </DropdownMenuLabel>
               <DropdownMenuGroup>
                 {prov.models.map((m) => {
-                  const isDisabled = statusKey !== 'ready' && statusKey !== 'unknown'
+                  const isDisabled = statusKey !== 'ready' && statusKey !== 'unknown' && statusKey !== 'billing_issue'
                   return (
                     <DropdownMenuItem
                       key={m.id}

@@ -71,6 +71,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/lib/ai/service.js` — AI pipeline (multi-pass, plan mode, self-critique, streaming)
 - `/app/lib/api/stream-handler.js` — SSE streaming endpoint handler
 
+- **Anthropic Provider Fix** (Mar 2026):
+  - Root cause: Health check misclassified Anthropic billing error (HTTP 400 "credit balance too low") as `auth_issue` because `msg.includes('invalid')` matched `"invalid_request_error"` in the error JSON
+  - Fix 1: `route.js` — Reordered health-check conditions so billing/credit is checked before `invalid` keyword; narrowed auth check to `invalid api key`/`invalid x-api-key`
+  - Fix 2: `ModelSelector.jsx` — Made `billing_issue` selectable (not disabled) since the key IS valid, just low on credits
+  - Files changed: `app/api/[[...path]]/route.js`, `components/dashboard/ModelSelector.jsx`
+
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules

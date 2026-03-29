@@ -180,10 +180,10 @@ async function handleRoute(request, { params }) {
         } catch (err) {
           const msg = (err?.message || '').toLowerCase()
           const status = err?.status || err?.statusCode || null
-          if (status === 401 || msg.includes('invalid') || msg.includes('api key') || msg.includes('authentication')) {
-            results.anthropic = { status: 'auth_issue', detail: 'Invalid or revoked API key' }
-          } else if (status === 402 || msg.includes('billing') || msg.includes('credit') || msg.includes('insufficient')) {
+          if (status === 402 || msg.includes('billing') || msg.includes('credit') || msg.includes('insufficient') || msg.includes('balance is too low')) {
             results.anthropic = { status: 'billing_issue', detail: 'Insufficient billing/credits' }
+          } else if (status === 401 || msg.includes('invalid api key') || msg.includes('invalid x-api-key') || msg.includes('authentication')) {
+            results.anthropic = { status: 'auth_issue', detail: 'Invalid or revoked API key' }
           } else if (status === 429 || msg.includes('rate')) {
             // Rate limit during status check = provider is actually working
             results.anthropic = { status: 'ready' }
