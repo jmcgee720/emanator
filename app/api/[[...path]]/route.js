@@ -548,7 +548,7 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true }))
     }
 
-    // Delete project
+    // Delete project (with ownership check)
     if (route.match(/^\/projects\/[^/]+$/) && method === 'DELETE') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -560,11 +560,58 @@ async function handleRoute(request, { params }) {
       if (!dbUser) {
         return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
       }
-      
-      // Cascade delete is handled by Supabase foreign keys
+
+      // Verify ownership
+      const project = await db.projects.findById(projectId)
+      if (!project) {
+        return handleCORS(NextResponse.json({ error: 'Project not found' }, { status: 404 }))
+      }
+      if (project.user_id !== dbUser.id) {
+        return handleCORS(NextResponse.json({ error: 'You can only delete your own projects' }, { status: 403 }))
+      }
+
+      // Cascade delete is handled by Supabase foreign keys (chats, messages, files, canvas, etc.)
       await db.projects.delete(projectId)
       
-      return handleCORS(NextResponse.json({ success: true }))
+      return handleCORS(NextResponse.json({ success: true, deleted_project_id: projectId }))
+    }
+
+    // Bulk delete all projects for current user (account cleanup)
+    if (route === '/account/cleanup' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      const userProjects = await db.projects.findByUserId(dbUser.id)
+      if (!userProjects || userProjects.length === 0) {
+        return handleCORS(NextResponse.json({ success: true, deleted_count: 0, message: 'No projects to delete' }))
+      }
+
+      let deletedCount = 0
+      const errors = []
+
+      for (const project of userProjects) {
+        try {
+          await db.projects.delete(project.id)
+          deletedCount++
+        } catch (err) {
+          errors.push({ project_id: project.id, name: project.name, error: err.message })
+        }
+      }
+
+      return handleCORS(NextResponse.json({
+        success: errors.length === 0,
+        deleted_count: deletedCount,
+        total_projects: userProjects.length,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Deleted ${deletedCount} of ${userProjects.length} projects and all associated data`,
+      }))
     }
 
     // ============ SANDBOX / WORKSPACE CLONE ============
