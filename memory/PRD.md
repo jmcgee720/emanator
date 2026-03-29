@@ -35,7 +35,14 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Quick actions: Open Latest Chat, New Chat, Import Files, Pull Latest (placeholder)
   - Right panel: file count, conversation count, last updated, framework, credits, delete action
   - File: `/app/components/dashboard/ProjectHub.jsx`
-  - Bug fix: Hero prompt submit button was non-functional (only triggered aurora animation). Wired `handleHeroPromptSubmit` to create project, added Enter key handler, disabled state when empty/submitting.:
+  - Bug fix: Hero prompt submit button was non-functional (only triggered aurora animation). Wired `handleHeroPromptSubmit` to create project, added Enter key handler, disabled state when empty/submitting.
+- **H7.6: GitHub Repository Import — PAT-based** (Mar 2026):
+  - Part 1: Import UI — "Import from GitHub" in modal with PAT, repo (owner/repo), branch fields
+  - Part 2: Backend `POST /api/import/github` fetches repo tree via GitHub REST API, filters node_modules/.git/build
+  - Part 3: Reuses ZIP pipeline — framework detection, file type detection, project creation, canvas, initial chat
+  - Part 4: Stores repo_url, branch, last_commit_sha in project.settings for sync
+  - Part 5: `POST /api/import/github/sync` — Pull Latest compares SHA, upserts changed files
+  - ProjectHub "Pull Latest" button active for GitHub-imported projects, disabled for others:
   - Replaced symmetric horseshoe with left-to-right S-curve depth flow
   - LEFT = foreground (large 3.6% wide, sharp blur=2px, low Y ~34%, bright opacity 0.72)
   - CENTER = mid-depth (medium 2.2-2.9%, blur=5px, Y ~22-30%, mid opacity)
@@ -66,5 +73,5 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2600 lines)
-- P3: GitHub repository import (Connect Repository)
+- P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Credits persistence via Stripe/payment integration
