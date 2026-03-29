@@ -486,26 +486,26 @@ input:-webkit-autofill:active {
 }
 
 
-/* Containment — wide mask covering S-curve band region (Y: 40-85%) */
+/* Containment — centered on 3D horseshoe aurora band (Y:8-30%) */
 .em-aurora-containment {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   -webkit-mask-image: radial-gradient(
-    ellipse 100% 70% at 50% 62%,
+    ellipse 100% 65% at 50% 20%,
     rgba(0,0,0,1) 0%,
     rgba(0,0,0,0.95) 30%,
     rgba(0,0,0,0.60) 55%,
-    rgba(0,0,0,0.20) 80%,
+    rgba(0,0,0,0.18) 80%,
     rgba(0,0,0,0) 100%
   );
   mask-image: radial-gradient(
-    ellipse 100% 70% at 50% 62%,
+    ellipse 100% 65% at 50% 20%,
     rgba(0,0,0,1) 0%,
     rgba(0,0,0,0.95) 30%,
     rgba(0,0,0,0.60) 55%,
-    rgba(0,0,0,0.20) 80%,
+    rgba(0,0,0,0.18) 80%,
     rgba(0,0,0,0) 100%
   );
 }
@@ -520,179 +520,240 @@ input:-webkit-autofill:active {
 .em-aurora-veil-2::before, .em-aurora-veil-2::after { content: none; }
 
 /* ═══════════════════════════════════════════
-   VEIL 3 — FAR ZONE (RIGHT, background)
-   Thin faded pillars, more blur, receding
-   3D perspective: rotateX creates "looking up"
+   VEIL 3 — 3D Horseshoe Aurora
    ═══════════════════════════════════════════ */
 .em-aurora-veil-3 {
   position: absolute; inset: 0;
   pointer-events: none; z-index: 2; overflow: hidden;
   mix-blend-mode: screen;
-  transform: perspective(1200px) rotateX(4.5deg);
-  transform-origin: center 90%;
+  transform: perspective(1200px) rotateX(3.5deg);
+  transform-origin: center 85%;
 }
 
 .em-aurora-veil-3::before {
-  content: "";
-  position: absolute;
-  inset: 0;
+  content: ""; position: absolute; inset: 0;
+  filter: blur(7.3px);
   background:
-    radial-gradient(ellipse 0.30% 20% at 67.1% 55.0%, rgba(0,245,253,0.50) 0%, rgba(0,245,253,0.50) 40%, rgba(0,245,253,0.30) 70%, transparent 100%),
-    radial-gradient(ellipse 0.29% 19% at 70.6% 54.0%, rgba(0,245,253,0.48) 0%, rgba(0,245,253,0.48) 40%, rgba(0,245,253,0.29) 70%, transparent 100%),
-    radial-gradient(ellipse 0.28% 19% at 72.9% 53.2%, rgba(0,245,253,0.47) 0%, rgba(0,245,253,0.47) 40%, rgba(0,245,253,0.28) 70%, transparent 100%),
-    radial-gradient(ellipse 0.27% 18% at 75.5% 52.7%, rgba(0,245,253,0.46) 0%, rgba(0,245,253,0.46) 40%, rgba(0,245,253,0.27) 70%, transparent 100%),
-    radial-gradient(ellipse 0.26% 18% at 78.3% 53.0%, rgba(0,245,253,0.44) 0%, rgba(0,245,253,0.44) 40%, rgba(0,245,253,0.26) 70%, transparent 100%),
-    radial-gradient(ellipse 0.24% 17% at 81.7% 53.4%, rgba(0,245,253,0.42) 0%, rgba(0,245,253,0.42) 40%, rgba(0,245,253,0.25) 70%, transparent 100%),
-    radial-gradient(ellipse 0.23% 16% at 84.3% 53.5%, rgba(0,245,253,0.41) 0%, rgba(0,245,253,0.41) 40%, rgba(0,245,253,0.25) 70%, transparent 100%),
-    radial-gradient(ellipse 0.22% 16% at 87.2% 54.8%, rgba(0,245,253,0.40) 0%, rgba(0,245,253,0.40) 40%, rgba(0,245,253,0.24) 70%, transparent 100%),
-    radial-gradient(ellipse 0.21% 15% at 90.0% 56.7%, rgba(0,245,253,0.38) 0%, rgba(0,245,253,0.38) 40%, rgba(0,245,253,0.23) 70%, transparent 100%),
-    radial-gradient(ellipse 0.20% 15% at 92.6% 57.4%, rgba(0,245,253,0.37) 0%, rgba(0,245,253,0.37) 40%, rgba(0,245,253,0.22) 70%, transparent 100%),
-    radial-gradient(ellipse 0.18% 14% at 95.8% 59.7%, rgba(0,245,253,0.36) 0%, rgba(0,245,253,0.36) 40%, rgba(0,245,253,0.21) 70%, transparent 100%);
-  filter: blur(6px);
+    radial-gradient(ellipse 0.22% 12% at 46.1% 30.2%, rgba(0,245,253,0.27) 0%, rgba(0,245,253,0.27) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 46.9% 30.2%, rgba(0,245,253,0.27) 0%, rgba(0,245,253,0.27) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 45.2% 30.1%, rgba(0,245,253,0.27) 0%, rgba(0,245,253,0.27) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 47.8% 30.2%, rgba(0,245,253,0.27) 0%, rgba(0,245,253,0.27) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 44.4% 30.0%, rgba(0,245,253,0.27) 0%, rgba(0,245,253,0.27) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 48.6% 30.1%, rgba(0,245,253,0.28) 0%, rgba(0,245,253,0.28) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 43.5% 29.7%, rgba(0,245,253,0.28) 0%, rgba(0,245,253,0.28) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.22% 12% at 49.5% 29.9%, rgba(0,245,253,0.28) 0%, rgba(0,245,253,0.28) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.23% 12% at 42.7% 29.4%, rgba(0,245,253,0.28) 0%, rgba(0,245,253,0.28) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.23% 12% at 50.5% 29.7%, rgba(0,245,253,0.28) 0%, rgba(0,245,253,0.28) 35%, rgba(0,240,250,0.15) 65%, transparent 100%),
+    radial-gradient(ellipse 0.23% 12% at 51.4% 29.4%, rgba(0,245,253,0.29) 0%, rgba(0,245,253,0.29) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.23% 12% at 41.8% 29.0%, rgba(0,245,253,0.29) 0%, rgba(0,245,253,0.29) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.23% 12% at 52.3% 29.1%, rgba(0,245,253,0.29) 0%, rgba(0,245,253,0.29) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.24% 12% at 40.9% 28.5%, rgba(0,245,253,0.29) 0%, rgba(0,245,253,0.29) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.24% 12% at 53.3% 28.8%, rgba(0,245,253,0.29) 0%, rgba(0,245,253,0.29) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.24% 13% at 54.3% 28.5%, rgba(0,245,253,0.30) 0%, rgba(0,245,253,0.30) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.24% 13% at 40.0% 27.9%, rgba(0,245,253,0.30) 0%, rgba(0,245,253,0.30) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.24% 13% at 55.2% 28.2%, rgba(0,245,253,0.30) 0%, rgba(0,245,253,0.30) 35%, rgba(0,240,250,0.16) 65%, transparent 100%),
+    radial-gradient(ellipse 0.24% 13% at 56.2% 28.0%, rgba(0,245,253,0.30) 0%, rgba(0,245,253,0.30) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 57.1% 27.7%, rgba(0,245,253,0.30) 0%, rgba(0,245,253,0.30) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 58.0% 27.5%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 39.1% 27.2%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 58.8% 27.3%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 59.6% 27.2%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 60.4% 27.0%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%);
   animation: em-au-sway 52s ease-in-out infinite;
   will-change: transform;
 }
 
 .em-aurora-veil-3::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+  content: ""; position: absolute; inset: 0;
+  filter: blur(7.3px);
   background:
-    radial-gradient(ellipse 0.26% 14% at 67.1% 45.1%, rgba(170,65,235,0.35) 0%, rgba(170,65,235,0.35) 35%, rgba(170,65,235,0.19) 65%, transparent 100%),
-    radial-gradient(ellipse 0.24% 13% at 70.6% 44.5%, rgba(170,65,235,0.34) 0%, rgba(170,65,235,0.34) 35%, rgba(170,65,235,0.18) 65%, transparent 100%),
-    radial-gradient(ellipse 0.24% 13% at 72.9% 43.8%, rgba(170,65,235,0.33) 0%, rgba(170,65,235,0.33) 35%, rgba(170,65,235,0.18) 65%, transparent 100%),
-    radial-gradient(ellipse 0.23% 13% at 75.5% 43.6%, rgba(170,65,235,0.32) 0%, rgba(170,65,235,0.32) 35%, rgba(170,65,235,0.18) 65%, transparent 100%),
-    radial-gradient(ellipse 0.22% 12% at 78.3% 44.1%, rgba(170,65,235,0.31) 0%, rgba(170,65,235,0.31) 35%, rgba(170,65,235,0.17) 65%, transparent 100%),
-    radial-gradient(ellipse 0.21% 12% at 81.7% 44.9%, rgba(170,65,235,0.30) 0%, rgba(170,65,235,0.30) 35%, rgba(170,65,235,0.16) 65%, transparent 100%),
-    radial-gradient(ellipse 0.20% 12% at 84.3% 45.2%, rgba(170,65,235,0.29) 0%, rgba(170,65,235,0.29) 35%, rgba(170,65,235,0.16) 65%, transparent 100%),
-    radial-gradient(ellipse 0.19% 11% at 87.2% 46.9%, rgba(170,65,235,0.28) 0%, rgba(170,65,235,0.28) 35%, rgba(170,65,235,0.15) 65%, transparent 100%),
-    radial-gradient(ellipse 0.18% 11% at 90.0% 49.0%, rgba(170,65,235,0.27) 0%, rgba(170,65,235,0.27) 35%, rgba(170,65,235,0.15) 65%, transparent 100%),
-    radial-gradient(ellipse 0.17% 10% at 92.6% 49.9%, rgba(170,65,235,0.26) 0%, rgba(170,65,235,0.26) 35%, rgba(170,65,235,0.15) 65%, transparent 100%),
-    radial-gradient(ellipse 0.16% 10% at 95.8% 52.6%, rgba(170,65,235,0.25) 0%, rgba(170,65,235,0.25) 35%, rgba(170,65,235,0.14) 65%, transparent 100%);
-  filter: blur(5.5px);
+    radial-gradient(ellipse 0.18% 8% at 46.1% 26.9%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 46.9% 26.9%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 45.2% 26.8%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 47.8% 26.8%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 44.4% 26.6%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 48.6% 26.7%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 43.5% 26.3%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.18% 8% at 49.5% 26.5%, rgba(170,65,235,0.20) 0%, rgba(170,65,235,0.20) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 42.7% 25.9%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 50.5% 26.2%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 51.4% 25.9%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 41.8% 25.5%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 52.3% 25.6%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 40.9% 24.9%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.19% 8% at 53.3% 25.2%, rgba(170,65,235,0.21) 0%, rgba(170,65,235,0.21) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 54.3% 24.9%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 40.0% 24.2%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 55.2% 24.6%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.10) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 56.2% 24.3%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 57.1% 24.0%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 58.0% 23.8%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 39.1% 23.5%, rgba(170,65,235,0.22) 0%, rgba(170,65,235,0.22) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 58.8% 23.5%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.20% 9% at 59.6% 23.4%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 60.4% 23.2%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%);
   animation: em-au-drift 58s ease-in-out infinite 4s;
   will-change: transform;
 }
 
 /* ═══════════════════════════════════════════
-   VEIL 4 — MID ZONE (center)
-   Medium pillars, moderate blur
-   3D perspective: rotateX creates "looking up"
+   VEIL 4 — 3D Horseshoe Aurora
    ═══════════════════════════════════════════ */
 .em-aurora-veil-4 {
   position: absolute; inset: 0;
   pointer-events: none; z-index: 3; overflow: hidden;
   mix-blend-mode: screen;
-  transform: perspective(1200px) rotateX(3deg);
-  transform-origin: center 90%;
+  transform: perspective(1200px) rotateX(2.5deg);
+  transform-origin: center 85%;
 }
 
 .em-aurora-veil-4::before {
-  content: "";
-  position: absolute;
-  inset: 0;
+  content: ""; position: absolute; inset: 0;
+  filter: blur(6.8px);
   background:
-    radial-gradient(ellipse 0.46% 28% at 27.8% 70.9%, rgba(0,245,253,0.69) 0%, rgba(0,245,253,0.69) 40%, rgba(0,245,253,0.41) 70%, transparent 100%),
-    radial-gradient(ellipse 0.45% 27% at 30.8% 69.1%, rgba(0,245,253,0.67) 0%, rgba(0,245,253,0.67) 40%, rgba(0,245,253,0.40) 70%, transparent 100%),
-    radial-gradient(ellipse 0.43% 26% at 33.8% 67.4%, rgba(0,245,253,0.66) 0%, rgba(0,245,253,0.66) 40%, rgba(0,245,253,0.40) 70%, transparent 100%),
-    radial-gradient(ellipse 0.42% 26% at 36.2% 66.9%, rgba(0,245,253,0.65) 0%, rgba(0,245,253,0.65) 40%, rgba(0,245,253,0.39) 70%, transparent 100%),
-    radial-gradient(ellipse 0.41% 25% at 39.2% 65.7%, rgba(0,245,253,0.63) 0%, rgba(0,245,253,0.63) 40%, rgba(0,245,253,0.38) 70%, transparent 100%),
-    radial-gradient(ellipse 0.40% 25% at 42.3% 63.6%, rgba(0,245,253,0.62) 0%, rgba(0,245,253,0.62) 40%, rgba(0,245,253,0.37) 70%, transparent 100%),
-    radial-gradient(ellipse 0.39% 24% at 45.0% 62.6%, rgba(0,245,253,0.60) 0%, rgba(0,245,253,0.60) 40%, rgba(0,245,253,0.36) 70%, transparent 100%),
-    radial-gradient(ellipse 0.38% 24% at 47.6% 63.5%, rgba(0,245,253,0.59) 0%, rgba(0,245,253,0.59) 40%, rgba(0,245,253,0.36) 70%, transparent 100%),
-    radial-gradient(ellipse 0.37% 23% at 50.7% 65.2%, rgba(0,245,253,0.58) 0%, rgba(0,245,253,0.58) 40%, rgba(0,245,253,0.35) 70%, transparent 100%),
-    radial-gradient(ellipse 0.35% 22% at 53.6% 64.4%, rgba(0,245,253,0.56) 0%, rgba(0,245,253,0.56) 40%, rgba(0,245,253,0.34) 70%, transparent 100%),
-    radial-gradient(ellipse 0.35% 22% at 55.8% 61.8%, rgba(0,245,253,0.55) 0%, rgba(0,245,253,0.55) 40%, rgba(0,245,253,0.33) 70%, transparent 100%),
-    radial-gradient(ellipse 0.33% 21% at 59.2% 59.9%, rgba(0,245,253,0.53) 0%, rgba(0,245,253,0.53) 40%, rgba(0,245,253,0.32) 70%, transparent 100%),
-    radial-gradient(ellipse 0.32% 21% at 62.0% 58.1%, rgba(0,245,253,0.52) 0%, rgba(0,245,253,0.52) 40%, rgba(0,245,253,0.31) 70%, transparent 100%),
-    radial-gradient(ellipse 0.31% 20% at 64.5% 56.0%, rgba(0,245,253,0.51) 0%, rgba(0,245,253,0.51) 40%, rgba(0,245,253,0.31) 70%, transparent 100%),
-    radial-gradient(ellipse 0.30% 20% at 67.1% 55.0%, rgba(0,245,253,0.50) 0%, rgba(0,245,253,0.50) 40%, rgba(0,245,253,0.30) 70%, transparent 100%),
-    radial-gradient(ellipse 0.29% 19% at 70.6% 54.0%, rgba(0,245,253,0.48) 0%, rgba(0,245,253,0.48) 40%, rgba(0,245,253,0.29) 70%, transparent 100%);
-  filter: blur(3.5px);
+    radial-gradient(ellipse 0.25% 13% at 61.1% 26.9%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 61.8% 26.7%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.25% 13% at 62.5% 26.5%, rgba(0,245,253,0.31) 0%, rgba(0,245,253,0.31) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.26% 13% at 38.1% 26.5%, rgba(0,245,253,0.32) 0%, rgba(0,245,253,0.32) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.26% 13% at 63.2% 26.3%, rgba(0,245,253,0.32) 0%, rgba(0,245,253,0.32) 35%, rgba(0,240,250,0.17) 65%, transparent 100%),
+    radial-gradient(ellipse 0.26% 14% at 64.0% 26.0%, rgba(0,245,253,0.32) 0%, rgba(0,245,253,0.32) 35%, rgba(0,240,250,0.18) 65%, transparent 100%),
+    radial-gradient(ellipse 0.26% 14% at 64.7% 25.7%, rgba(0,245,253,0.32) 0%, rgba(0,245,253,0.32) 35%, rgba(0,240,250,0.18) 65%, transparent 100%),
+    radial-gradient(ellipse 0.26% 14% at 37.0% 25.7%, rgba(0,245,253,0.33) 0%, rgba(0,245,253,0.33) 35%, rgba(0,240,250,0.18) 65%, transparent 100%),
+    radial-gradient(ellipse 0.27% 14% at 65.5% 25.3%, rgba(0,245,253,0.33) 0%, rgba(0,245,253,0.33) 35%, rgba(0,240,250,0.18) 65%, transparent 100%),
+    radial-gradient(ellipse 0.27% 14% at 36.0% 24.9%, rgba(0,245,253,0.34) 0%, rgba(0,245,253,0.34) 35%, rgba(0,240,250,0.18) 65%, transparent 100%),
+    radial-gradient(ellipse 0.27% 14% at 66.4% 24.8%, rgba(0,245,253,0.34) 0%, rgba(0,245,253,0.34) 35%, rgba(0,240,250,0.18) 65%, transparent 100%),
+    radial-gradient(ellipse 0.28% 15% at 67.4% 24.2%, rgba(0,245,253,0.34) 0%, rgba(0,245,253,0.34) 35%, rgba(0,240,250,0.19) 65%, transparent 100%),
+    radial-gradient(ellipse 0.28% 15% at 34.9% 24.1%, rgba(0,245,253,0.35) 0%, rgba(0,245,253,0.35) 35%, rgba(0,240,250,0.19) 65%, transparent 100%),
+    radial-gradient(ellipse 0.29% 15% at 68.5% 23.6%, rgba(0,245,253,0.35) 0%, rgba(0,245,253,0.35) 35%, rgba(0,240,250,0.19) 65%, transparent 100%),
+    radial-gradient(ellipse 0.29% 15% at 33.8% 23.2%, rgba(0,245,253,0.36) 0%, rgba(0,245,253,0.36) 35%, rgba(0,240,250,0.20) 65%, transparent 100%),
+    radial-gradient(ellipse 0.30% 15% at 69.8% 22.8%, rgba(0,245,253,0.37) 0%, rgba(0,245,253,0.37) 35%, rgba(0,240,250,0.20) 65%, transparent 100%),
+    radial-gradient(ellipse 0.30% 16% at 32.7% 22.4%, rgba(0,245,253,0.37) 0%, rgba(0,245,253,0.37) 35%, rgba(0,240,250,0.20) 65%, transparent 100%),
+    radial-gradient(ellipse 0.31% 16% at 31.5% 21.7%, rgba(0,245,253,0.38) 0%, rgba(0,245,253,0.38) 35%, rgba(0,240,250,0.21) 65%, transparent 100%),
+    radial-gradient(ellipse 0.31% 16% at 71.2% 21.9%, rgba(0,245,253,0.38) 0%, rgba(0,245,253,0.38) 35%, rgba(0,240,250,0.21) 65%, transparent 100%),
+    radial-gradient(ellipse 0.31% 16% at 30.4% 21.0%, rgba(0,245,253,0.39) 0%, rgba(0,245,253,0.39) 35%, rgba(0,240,250,0.21) 65%, transparent 100%),
+    radial-gradient(ellipse 0.32% 17% at 72.8% 20.9%, rgba(0,245,253,0.40) 0%, rgba(0,245,253,0.40) 35%, rgba(0,240,250,0.22) 65%, transparent 100%),
+    radial-gradient(ellipse 0.32% 17% at 29.3% 20.4%, rgba(0,245,253,0.40) 0%, rgba(0,245,253,0.40) 35%, rgba(0,240,250,0.22) 65%, transparent 100%),
+    radial-gradient(ellipse 0.33% 17% at 28.1% 19.9%, rgba(0,245,253,0.40) 0%, rgba(0,245,253,0.40) 35%, rgba(0,240,250,0.22) 65%, transparent 100%),
+    radial-gradient(ellipse 0.33% 17% at 27.0% 19.5%, rgba(0,245,253,0.41) 0%, rgba(0,245,253,0.41) 35%, rgba(0,240,250,0.23) 65%, transparent 100%),
+    radial-gradient(ellipse 0.33% 17% at 74.7% 19.7%, rgba(0,245,253,0.41) 0%, rgba(0,245,253,0.41) 35%, rgba(0,240,250,0.23) 65%, transparent 100%);
   animation: em-au-drift 48s ease-in-out infinite 2s;
   will-change: transform;
 }
 
 .em-aurora-veil-4::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+  content: ""; position: absolute; inset: 0;
+  filter: blur(6.8px);
   background:
-    radial-gradient(ellipse 0.39% 19% at 27.8% 57.2%, rgba(170,65,235,0.48) 0%, rgba(170,65,235,0.48) 35%, rgba(170,65,235,0.26) 65%, transparent 100%),
-    radial-gradient(ellipse 0.38% 19% at 30.8% 55.6%, rgba(170,65,235,0.47) 0%, rgba(170,65,235,0.47) 35%, rgba(170,65,235,0.26) 65%, transparent 100%),
-    radial-gradient(ellipse 0.37% 18% at 33.8% 54.2%, rgba(170,65,235,0.46) 0%, rgba(170,65,235,0.46) 35%, rgba(170,65,235,0.25) 65%, transparent 100%),
-    radial-gradient(ellipse 0.36% 18% at 36.2% 53.9%, rgba(170,65,235,0.45) 0%, rgba(170,65,235,0.45) 35%, rgba(170,65,235,0.25) 65%, transparent 100%),
-    radial-gradient(ellipse 0.35% 18% at 39.2% 53.0%, rgba(170,65,235,0.44) 0%, rgba(170,65,235,0.44) 35%, rgba(170,65,235,0.24) 65%, transparent 100%),
-    radial-gradient(ellipse 0.34% 17% at 42.3% 51.2%, rgba(170,65,235,0.43) 0%, rgba(170,65,235,0.43) 35%, rgba(170,65,235,0.24) 65%, transparent 100%),
-    radial-gradient(ellipse 0.33% 17% at 45.0% 50.5%, rgba(170,65,235,0.42) 0%, rgba(170,65,235,0.42) 35%, rgba(170,65,235,0.23) 65%, transparent 100%),
-    radial-gradient(ellipse 0.32% 17% at 47.6% 51.6%, rgba(170,65,235,0.41) 0%, rgba(170,65,235,0.41) 35%, rgba(170,65,235,0.23) 65%, transparent 100%),
-    radial-gradient(ellipse 0.31% 16% at 50.7% 53.6%, rgba(170,65,235,0.40) 0%, rgba(170,65,235,0.40) 35%, rgba(170,65,235,0.22) 65%, transparent 100%),
-    radial-gradient(ellipse 0.30% 16% at 53.6% 53.2%, rgba(170,65,235,0.39) 0%, rgba(170,65,235,0.39) 35%, rgba(170,65,235,0.22) 65%, transparent 100%),
-    radial-gradient(ellipse 0.29% 15% at 55.8% 50.8%, rgba(170,65,235,0.38) 0%, rgba(170,65,235,0.38) 35%, rgba(170,65,235,0.21) 65%, transparent 100%),
-    radial-gradient(ellipse 0.28% 15% at 59.2% 49.3%, rgba(170,65,235,0.37) 0%, rgba(170,65,235,0.37) 35%, rgba(170,65,235,0.21) 65%, transparent 100%),
-    radial-gradient(ellipse 0.27% 15% at 62.0% 47.6%, rgba(170,65,235,0.36) 0%, rgba(170,65,235,0.36) 35%, rgba(170,65,235,0.20) 65%, transparent 100%),
-    radial-gradient(ellipse 0.26% 14% at 64.5% 45.8%, rgba(170,65,235,0.36) 0%, rgba(170,65,235,0.36) 35%, rgba(170,65,235,0.20) 65%, transparent 100%),
-    radial-gradient(ellipse 0.26% 14% at 67.1% 45.1%, rgba(170,65,235,0.35) 0%, rgba(170,65,235,0.35) 35%, rgba(170,65,235,0.19) 65%, transparent 100%),
-    radial-gradient(ellipse 0.24% 13% at 70.6% 44.5%, rgba(170,65,235,0.34) 0%, rgba(170,65,235,0.34) 35%, rgba(170,65,235,0.18) 65%, transparent 100%);
-  filter: blur(3px);
+    radial-gradient(ellipse 0.21% 9% at 61.1% 23.0%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 61.8% 22.8%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 62.5% 22.6%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 38.1% 22.6%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 63.2% 22.4%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 64.0% 22.1%, rgba(170,65,235,0.23) 0%, rgba(170,65,235,0.23) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.21% 9% at 64.7% 21.7%, rgba(170,65,235,0.24) 0%, rgba(170,65,235,0.24) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.22% 9% at 37.0% 21.7%, rgba(170,65,235,0.24) 0%, rgba(170,65,235,0.24) 30%, rgba(155,55,220,0.11) 58%, transparent 100%),
+    radial-gradient(ellipse 0.22% 9% at 65.5% 21.3%, rgba(170,65,235,0.24) 0%, rgba(170,65,235,0.24) 30%, rgba(155,55,220,0.12) 58%, transparent 100%),
+    radial-gradient(ellipse 0.22% 10% at 36.0% 20.8%, rgba(170,65,235,0.25) 0%, rgba(170,65,235,0.25) 30%, rgba(155,55,220,0.12) 58%, transparent 100%),
+    radial-gradient(ellipse 0.22% 10% at 66.4% 20.7%, rgba(170,65,235,0.25) 0%, rgba(170,65,235,0.25) 30%, rgba(155,55,220,0.12) 58%, transparent 100%),
+    radial-gradient(ellipse 0.23% 10% at 67.4% 20.0%, rgba(170,65,235,0.25) 0%, rgba(170,65,235,0.25) 30%, rgba(155,55,220,0.12) 58%, transparent 100%),
+    radial-gradient(ellipse 0.23% 10% at 34.9% 19.8%, rgba(170,65,235,0.25) 0%, rgba(170,65,235,0.25) 30%, rgba(155,55,220,0.12) 58%, transparent 100%),
+    radial-gradient(ellipse 0.23% 10% at 68.5% 19.2%, rgba(170,65,235,0.26) 0%, rgba(170,65,235,0.26) 30%, rgba(155,55,220,0.12) 58%, transparent 100%),
+    radial-gradient(ellipse 0.24% 10% at 33.8% 18.9%, rgba(170,65,235,0.26) 0%, rgba(170,65,235,0.26) 30%, rgba(155,55,220,0.13) 58%, transparent 100%),
+    radial-gradient(ellipse 0.24% 11% at 69.8% 18.3%, rgba(170,65,235,0.27) 0%, rgba(170,65,235,0.27) 30%, rgba(155,55,220,0.13) 58%, transparent 100%),
+    radial-gradient(ellipse 0.24% 11% at 32.7% 17.9%, rgba(170,65,235,0.27) 0%, rgba(170,65,235,0.27) 30%, rgba(155,55,220,0.13) 58%, transparent 100%),
+    radial-gradient(ellipse 0.25% 11% at 31.5% 17.0%, rgba(170,65,235,0.28) 0%, rgba(170,65,235,0.28) 30%, rgba(155,55,220,0.13) 58%, transparent 100%),
+    radial-gradient(ellipse 0.25% 11% at 71.2% 17.2%, rgba(170,65,235,0.28) 0%, rgba(170,65,235,0.28) 30%, rgba(155,55,220,0.13) 58%, transparent 100%),
+    radial-gradient(ellipse 0.26% 11% at 30.4% 16.2%, rgba(170,65,235,0.28) 0%, rgba(170,65,235,0.28) 30%, rgba(155,55,220,0.14) 58%, transparent 100%),
+    radial-gradient(ellipse 0.26% 11% at 72.8% 16.0%, rgba(170,65,235,0.29) 0%, rgba(170,65,235,0.29) 30%, rgba(155,55,220,0.14) 58%, transparent 100%),
+    radial-gradient(ellipse 0.26% 11% at 29.3% 15.5%, rgba(170,65,235,0.29) 0%, rgba(170,65,235,0.29) 30%, rgba(155,55,220,0.14) 58%, transparent 100%),
+    radial-gradient(ellipse 0.27% 12% at 28.1% 14.9%, rgba(170,65,235,0.30) 0%, rgba(170,65,235,0.30) 30%, rgba(155,55,220,0.14) 58%, transparent 100%),
+    radial-gradient(ellipse 0.27% 12% at 27.0% 14.4%, rgba(170,65,235,0.30) 0%, rgba(170,65,235,0.30) 30%, rgba(155,55,220,0.14) 58%, transparent 100%),
+    radial-gradient(ellipse 0.27% 12% at 74.7% 14.7%, rgba(170,65,235,0.30) 0%, rgba(170,65,235,0.30) 30%, rgba(155,55,220,0.14) 58%, transparent 100%);
   animation: em-au-sway 50s ease-in-out infinite 5s;
   will-change: transform;
 }
 
 /* ═══════════════════════════════════════════
-   VEIL 5 — CLOSE ZONE (LEFT, foreground)
-   Sharp thin pillars, minimal blur, bright
-   3D perspective: rotateX creates "looking up"
+   VEIL 5 — 3D Horseshoe Aurora
    ═══════════════════════════════════════════ */
 .em-aurora-veil-5 {
   position: absolute; inset: 0;
   pointer-events: none; z-index: 4; overflow: hidden;
   mix-blend-mode: screen;
-  transform: perspective(1200px) rotateX(2deg);
-  transform-origin: center 90%;
+  transform: perspective(1200px) rotateX(1.5deg);
+  transform-origin: center 85%;
 }
 
 .em-aurora-veil-5::before {
-  content: "";
-  position: absolute;
-  inset: 0;
+  content: ""; position: absolute; inset: 0;
+  filter: blur(5.6px);
   background:
-    radial-gradient(ellipse 0.55% 32% at 3.1% 62.8%, rgba(0,245,253,0.80) 0%, rgba(0,245,253,0.80) 40%, rgba(0,245,253,0.48) 70%, transparent 100%),
-    radial-gradient(ellipse 0.55% 32% at 5.4% 78.8%, rgba(0,245,253,0.80) 0%, rgba(0,245,253,0.80) 40%, rgba(0,245,253,0.48) 70%, transparent 100%),
-    radial-gradient(ellipse 0.54% 31% at 8.4% 77.9%, rgba(0,245,253,0.78) 0%, rgba(0,245,253,0.78) 40%, rgba(0,245,253,0.47) 70%, transparent 100%),
-    radial-gradient(ellipse 0.53% 31% at 11.2% 76.9%, rgba(0,245,253,0.77) 0%, rgba(0,245,253,0.77) 40%, rgba(0,245,253,0.46) 70%, transparent 100%),
-    radial-gradient(ellipse 0.51% 30% at 14.4% 76.3%, rgba(0,245,253,0.75) 0%, rgba(0,245,253,0.75) 40%, rgba(0,245,253,0.45) 70%, transparent 100%),
-    radial-gradient(ellipse 0.50% 30% at 17.1% 75.2%, rgba(0,245,253,0.74) 0%, rgba(0,245,253,0.74) 40%, rgba(0,245,253,0.44) 70%, transparent 100%),
-    radial-gradient(ellipse 0.49% 29% at 20.1% 73.5%, rgba(0,245,253,0.73) 0%, rgba(0,245,253,0.73) 40%, rgba(0,245,253,0.44) 70%, transparent 100%),
-    radial-gradient(ellipse 0.48% 29% at 22.3% 72.6%, rgba(0,245,253,0.72) 0%, rgba(0,245,253,0.72) 40%, rgba(0,245,253,0.43) 70%, transparent 100%),
-    radial-gradient(ellipse 0.47% 28% at 25.3% 72.0%, rgba(0,245,253,0.70) 0%, rgba(0,245,253,0.70) 40%, rgba(0,245,253,0.42) 70%, transparent 100%),
-    radial-gradient(ellipse 0.46% 28% at 27.8% 70.9%, rgba(0,245,253,0.69) 0%, rgba(0,245,253,0.69) 40%, rgba(0,245,253,0.41) 70%, transparent 100%),
-    radial-gradient(ellipse 0.45% 27% at 30.8% 69.1%, rgba(0,245,253,0.67) 0%, rgba(0,245,253,0.67) 40%, rgba(0,245,253,0.40) 70%, transparent 100%);
-  filter: blur(1.5px);
+    radial-gradient(ellipse 0.34% 18% at 25.8% 19.2%, rgba(0,245,253,0.42) 0%, rgba(0,245,253,0.42) 35%, rgba(0,240,250,0.23) 65%, transparent 100%),
+    radial-gradient(ellipse 0.34% 18% at 24.7% 18.9%, rgba(0,245,253,0.42) 0%, rgba(0,245,253,0.42) 35%, rgba(0,240,250,0.23) 65%, transparent 100%),
+    radial-gradient(ellipse 0.35% 18% at 23.4% 18.7%, rgba(0,245,253,0.43) 0%, rgba(0,245,253,0.43) 35%, rgba(0,240,250,0.24) 65%, transparent 100%),
+    radial-gradient(ellipse 0.35% 18% at 76.7% 18.5%, rgba(0,245,253,0.43) 0%, rgba(0,245,253,0.43) 35%, rgba(0,240,250,0.24) 65%, transparent 100%),
+    radial-gradient(ellipse 0.35% 18% at 22.1% 18.6%, rgba(0,245,253,0.44) 0%, rgba(0,245,253,0.44) 35%, rgba(0,240,250,0.24) 65%, transparent 100%),
+    radial-gradient(ellipse 0.36% 19% at 20.7% 18.4%, rgba(0,245,253,0.44) 0%, rgba(0,245,253,0.44) 35%, rgba(0,240,250,0.24) 65%, transparent 100%),
+    radial-gradient(ellipse 0.36% 19% at 19.2% 18.2%, rgba(0,245,253,0.45) 0%, rgba(0,245,253,0.45) 35%, rgba(0,240,250,0.25) 65%, transparent 100%),
+    radial-gradient(ellipse 0.37% 19% at 79.0% 17.3%, rgba(0,245,253,0.45) 0%, rgba(0,245,253,0.45) 35%, rgba(0,240,250,0.25) 65%, transparent 100%),
+    radial-gradient(ellipse 0.37% 19% at 17.4% 18.0%, rgba(0,245,253,0.46) 0%, rgba(0,245,253,0.46) 35%, rgba(0,240,250,0.25) 65%, transparent 100%),
+    radial-gradient(ellipse 0.38% 20% at 15.5% 17.8%, rgba(0,245,253,0.47) 0%, rgba(0,245,253,0.47) 35%, rgba(0,240,250,0.26) 65%, transparent 100%),
+    radial-gradient(ellipse 0.39% 20% at 81.6% 16.0%, rgba(0,245,253,0.48) 0%, rgba(0,245,253,0.48) 35%, rgba(0,240,250,0.26) 65%, transparent 100%),
+    radial-gradient(ellipse 0.39% 20% at 13.3% 17.4%, rgba(0,245,253,0.48) 0%, rgba(0,245,253,0.48) 35%, rgba(0,240,250,0.26) 65%, transparent 100%),
+    radial-gradient(ellipse 0.40% 21% at 10.9% 17.0%, rgba(0,245,253,0.49) 0%, rgba(0,245,253,0.49) 35%, rgba(0,240,250,0.27) 65%, transparent 100%),
+    radial-gradient(ellipse 0.40% 21% at 84.3% 14.7%, rgba(0,245,253,0.50) 0%, rgba(0,245,253,0.50) 35%, rgba(0,240,250,0.28) 65%, transparent 100%),
+    radial-gradient(ellipse 0.41% 21% at 8.1% 16.5%, rgba(0,245,253,0.51) 0%, rgba(0,245,253,0.51) 35%, rgba(0,240,250,0.28) 65%, transparent 100%),
+    radial-gradient(ellipse 0.42% 22% at 87.3% 13.4%, rgba(0,245,253,0.52) 0%, rgba(0,245,253,0.52) 35%, rgba(0,240,250,0.29) 65%, transparent 100%),
+    radial-gradient(ellipse 0.42% 22% at 5.1% 15.9%, rgba(0,245,253,0.53) 0%, rgba(0,245,253,0.53) 35%, rgba(0,240,250,0.29) 65%, transparent 100%),
+    radial-gradient(ellipse 0.44% 23% at 1.7% 15.2%, rgba(0,245,253,0.54) 0%, rgba(0,245,253,0.54) 35%, rgba(0,240,250,0.30) 65%, transparent 100%),
+    radial-gradient(ellipse 0.44% 23% at 90.4% 12.3%, rgba(0,245,253,0.55) 0%, rgba(0,245,253,0.55) 35%, rgba(0,240,250,0.30) 65%, transparent 100%),
+    radial-gradient(ellipse 0.46% 24% at -2.0% 14.5%, rgba(0,245,253,0.57) 0%, rgba(0,245,253,0.57) 35%, rgba(0,240,250,0.31) 65%, transparent 100%),
+    radial-gradient(ellipse 0.46% 24% at 93.5% 11.4%, rgba(0,245,253,0.57) 0%, rgba(0,245,253,0.57) 35%, rgba(0,240,250,0.31) 65%, transparent 100%),
+    radial-gradient(ellipse 0.47% 25% at 96.6% 10.7%, rgba(0,245,253,0.59) 0%, rgba(0,245,253,0.59) 35%, rgba(0,240,250,0.32) 65%, transparent 100%),
+    radial-gradient(ellipse 0.47% 25% at -5.9% 13.9%, rgba(0,245,253,0.59) 0%, rgba(0,245,253,0.59) 35%, rgba(0,240,250,0.32) 65%, transparent 100%),
+    radial-gradient(ellipse 0.49% 25% at 99.6% 10.3%, rgba(0,245,253,0.60) 0%, rgba(0,245,253,0.60) 35%, rgba(0,240,250,0.33) 65%, transparent 100%),
+    radial-gradient(ellipse 0.49% 26% at 102.3% 10.3%, rgba(0,245,253,0.61) 0%, rgba(0,245,253,0.61) 35%, rgba(0,240,250,0.34) 65%, transparent 100%),
+    radial-gradient(ellipse 0.50% 26% at 104.8% 10.6%, rgba(0,245,253,0.62) 0%, rgba(0,245,253,0.62) 35%, rgba(0,240,250,0.34) 65%, transparent 100%),
+    radial-gradient(ellipse 0.50% 26% at 106.9% 11.2%, rgba(0,245,253,0.62) 0%, rgba(0,245,253,0.62) 35%, rgba(0,240,250,0.34) 65%, transparent 100%);
   animation: em-au-float 38s ease-in-out infinite;
   will-change: transform;
 }
 
 .em-aurora-veil-5::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+  content: ""; position: absolute; inset: 0;
+  filter: blur(5.6px);
   background:
-    radial-gradient(ellipse 0.47% 22% at 3.1% 46.8%, rgba(170,65,235,0.55) 0%, rgba(170,65,235,0.55) 35%, rgba(170,65,235,0.30) 65%, transparent 100%),
-    radial-gradient(ellipse 0.47% 22% at 5.4% 62.8%, rgba(170,65,235,0.55) 0%, rgba(170,65,235,0.55) 35%, rgba(170,65,235,0.30) 65%, transparent 100%),
-    radial-gradient(ellipse 0.46% 22% at 8.4% 62.3%, rgba(170,65,235,0.54) 0%, rgba(170,65,235,0.54) 35%, rgba(170,65,235,0.30) 65%, transparent 100%),
-    radial-gradient(ellipse 0.45% 22% at 11.2% 61.5%, rgba(170,65,235,0.53) 0%, rgba(170,65,235,0.53) 35%, rgba(170,65,235,0.29) 65%, transparent 100%),
-    radial-gradient(ellipse 0.44% 21% at 14.4% 61.3%, rgba(170,65,235,0.52) 0%, rgba(170,65,235,0.52) 35%, rgba(170,65,235,0.29) 65%, transparent 100%),
-    radial-gradient(ellipse 0.43% 21% at 17.1% 60.4%, rgba(170,65,235,0.51) 0%, rgba(170,65,235,0.51) 35%, rgba(170,65,235,0.28) 65%, transparent 100%),
-    radial-gradient(ellipse 0.42% 20% at 20.1% 59.0%, rgba(170,65,235,0.50) 0%, rgba(170,65,235,0.50) 35%, rgba(170,65,235,0.28) 65%, transparent 100%),
-    radial-gradient(ellipse 0.41% 20% at 22.3% 58.2%, rgba(170,65,235,0.49) 0%, rgba(170,65,235,0.49) 35%, rgba(170,65,235,0.27) 65%, transparent 100%),
-    radial-gradient(ellipse 0.40% 20% at 25.3% 58.0%, rgba(170,65,235,0.48) 0%, rgba(170,65,235,0.48) 35%, rgba(170,65,235,0.27) 65%, transparent 100%),
-    radial-gradient(ellipse 0.39% 19% at 27.8% 57.2%, rgba(170,65,235,0.48) 0%, rgba(170,65,235,0.48) 35%, rgba(170,65,235,0.26) 65%, transparent 100%),
-    radial-gradient(ellipse 0.38% 19% at 30.8% 55.6%, rgba(170,65,235,0.47) 0%, rgba(170,65,235,0.47) 35%, rgba(170,65,235,0.26) 65%, transparent 100%);
-  filter: blur(1.5px);
+    radial-gradient(ellipse 0.28% 12% at 25.8% 14.0%, rgba(170,65,235,0.31) 0%, rgba(170,65,235,0.31) 30%, rgba(155,55,220,0.15) 58%, transparent 100%),
+    radial-gradient(ellipse 0.28% 12% at 24.7% 13.7%, rgba(170,65,235,0.31) 0%, rgba(170,65,235,0.31) 30%, rgba(155,55,220,0.15) 58%, transparent 100%),
+    radial-gradient(ellipse 0.29% 12% at 23.4% 13.4%, rgba(170,65,235,0.31) 0%, rgba(170,65,235,0.31) 30%, rgba(155,55,220,0.15) 58%, transparent 100%),
+    radial-gradient(ellipse 0.29% 12% at 76.7% 13.2%, rgba(170,65,235,0.32) 0%, rgba(170,65,235,0.32) 30%, rgba(155,55,220,0.15) 58%, transparent 100%),
+    radial-gradient(ellipse 0.29% 13% at 22.1% 13.2%, rgba(170,65,235,0.32) 0%, rgba(170,65,235,0.32) 30%, rgba(155,55,220,0.15) 58%, transparent 100%),
+    radial-gradient(ellipse 0.29% 13% at 20.7% 13.0%, rgba(170,65,235,0.32) 0%, rgba(170,65,235,0.32) 30%, rgba(155,55,220,0.16) 58%, transparent 100%),
+    radial-gradient(ellipse 0.30% 13% at 19.2% 12.7%, rgba(170,65,235,0.33) 0%, rgba(170,65,235,0.33) 30%, rgba(155,55,220,0.16) 58%, transparent 100%),
+    radial-gradient(ellipse 0.30% 13% at 79.0% 11.7%, rgba(170,65,235,0.33) 0%, rgba(170,65,235,0.33) 30%, rgba(155,55,220,0.16) 58%, transparent 100%),
+    radial-gradient(ellipse 0.30% 13% at 17.4% 12.4%, rgba(170,65,235,0.33) 0%, rgba(170,65,235,0.33) 30%, rgba(155,55,220,0.16) 58%, transparent 100%),
+    radial-gradient(ellipse 0.31% 13% at 15.5% 12.0%, rgba(170,65,235,0.34) 0%, rgba(170,65,235,0.34) 30%, rgba(155,55,220,0.16) 58%, transparent 100%),
+    radial-gradient(ellipse 0.32% 14% at 81.6% 10.1%, rgba(170,65,235,0.35) 0%, rgba(170,65,235,0.35) 30%, rgba(155,55,220,0.17) 58%, transparent 100%),
+    radial-gradient(ellipse 0.32% 14% at 13.3% 11.6%, rgba(170,65,235,0.35) 0%, rgba(170,65,235,0.35) 30%, rgba(155,55,220,0.17) 58%, transparent 100%),
+    radial-gradient(ellipse 0.33% 14% at 10.9% 11.0%, rgba(170,65,235,0.36) 0%, rgba(170,65,235,0.36) 30%, rgba(155,55,220,0.17) 58%, transparent 100%),
+    radial-gradient(ellipse 0.33% 14% at 84.3% 8.5%, rgba(170,65,235,0.37) 0%, rgba(170,65,235,0.37) 30%, rgba(155,55,220,0.18) 58%, transparent 100%),
+    radial-gradient(ellipse 0.34% 15% at 8.1% 10.3%, rgba(170,65,235,0.37) 0%, rgba(170,65,235,0.37) 30%, rgba(155,55,220,0.18) 58%, transparent 100%),
+    radial-gradient(ellipse 0.35% 15% at 87.3% 7.0%, rgba(170,65,235,0.38) 0%, rgba(170,65,235,0.38) 30%, rgba(155,55,220,0.18) 58%, transparent 100%),
+    radial-gradient(ellipse 0.35% 15% at 5.1% 9.5%, rgba(170,65,235,0.38) 0%, rgba(170,65,235,0.38) 30%, rgba(155,55,220,0.18) 58%, transparent 100%),
+    radial-gradient(ellipse 0.36% 16% at 1.7% 8.5%, rgba(170,65,235,0.40) 0%, rgba(170,65,235,0.40) 30%, rgba(155,55,220,0.19) 58%, transparent 100%),
+    radial-gradient(ellipse 0.36% 16% at 90.4% 5.6%, rgba(170,65,235,0.40) 0%, rgba(170,65,235,0.40) 30%, rgba(155,55,220,0.19) 58%, transparent 100%),
+    radial-gradient(ellipse 0.37% 16% at -2.0% 7.6%, rgba(170,65,235,0.41) 0%, rgba(170,65,235,0.41) 30%, rgba(155,55,220,0.20) 58%, transparent 100%),
+    radial-gradient(ellipse 0.38% 16% at 93.5% 4.4%, rgba(170,65,235,0.41) 0%, rgba(170,65,235,0.41) 30%, rgba(155,55,220,0.20) 58%, transparent 100%),
+    radial-gradient(ellipse 0.39% 17% at 96.6% 3.5%, rgba(170,65,235,0.43) 0%, rgba(170,65,235,0.43) 30%, rgba(155,55,220,0.21) 58%, transparent 100%),
+    radial-gradient(ellipse 0.39% 17% at -5.9% 6.6%, rgba(170,65,235,0.43) 0%, rgba(170,65,235,0.43) 30%, rgba(155,55,220,0.21) 58%, transparent 100%),
+    radial-gradient(ellipse 0.40% 17% at 99.6% 3.0%, rgba(170,65,235,0.44) 0%, rgba(170,65,235,0.44) 30%, rgba(155,55,220,0.21) 58%, transparent 100%),
+    radial-gradient(ellipse 0.41% 18% at 102.3% 2.8%, rgba(170,65,235,0.45) 0%, rgba(170,65,235,0.45) 30%, rgba(155,55,220,0.21) 58%, transparent 100%),
+    radial-gradient(ellipse 0.41% 18% at 104.8% 3.0%, rgba(170,65,235,0.45) 0%, rgba(170,65,235,0.45) 30%, rgba(155,55,220,0.22) 58%, transparent 100%),
+    radial-gradient(ellipse 0.41% 18% at 106.9% 3.6%, rgba(170,65,235,0.45) 0%, rgba(170,65,235,0.45) 30%, rgba(155,55,220,0.22) 58%, transparent 100%);
   animation: em-au-sway 42s ease-in-out infinite 3s;
   will-change: transform;
 }
+
 
 /* ═══════════════════════════════════════════
    VEIL 6 — AMBIENT GLOW
@@ -708,12 +769,11 @@ input:-webkit-autofill:active {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 22% 20% at 15% 72%, rgba(60,180,230,0.10) 0%, transparent 100%),
-    radial-gradient(ellipse 20% 18% at 30% 66%, rgba(80,160,220,0.08) 0%, transparent 100%),
-    radial-gradient(ellipse 18% 16% at 48% 60%, rgba(70,140,210,0.07) 0%, transparent 100%),
-    radial-gradient(ellipse 16% 14% at 65% 55%, rgba(100,60,210,0.06) 0%, transparent 100%),
-    radial-gradient(ellipse 14% 12% at 82% 52%, rgba(80,50,180,0.05) 0%, transparent 100%),
-    radial-gradient(ellipse 10% 10% at 92% 56%, rgba(60,40,160,0.03) 0%, transparent 100%);
+    radial-gradient(ellipse 22% 18% at 15% 18%, rgba(60,180,230,0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 18% 16% at 35% 22%, rgba(80,160,220,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 12% at 50% 28%, rgba(100,60,210,0.04) 0%, transparent 100%),
+    radial-gradient(ellipse 18% 16% at 65% 22%, rgba(80,50,180,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 22% 18% at 85% 16%, rgba(60,180,230,0.10) 0%, transparent 100%);
   filter: blur(45px);
   animation: em-au-breathe 30s ease-in-out infinite;
   --lo: 0.88; --hi: 1;
