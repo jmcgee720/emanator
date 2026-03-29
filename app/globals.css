@@ -856,6 +856,96 @@ input:-webkit-autofill:active {
 }
 
 /* ═══════════════════════════════════════════
+   VEIL 2 — CONNECTING GLOW BAND
+   Soft diffuse light linking all columns
+   ═══════════════════════════════════════════ */
+.em-aurora-veil-2 {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 1; overflow: hidden;
+  mix-blend-mode: screen;
+  transform: perspective(1200px) rotateX(2deg);
+  transform-origin: center 85%;
+}
+
+.em-aurora-veil-2::before {
+  content: ""; position: absolute; inset: 0;
+  filter: blur(18px);
+  background:
+    radial-gradient(ellipse 1.9% 12% at 18.8% 28.7%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.0% 12% at 21.2% 27.7%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.0% 12% at 23.0% 26.4%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.1% 12% at 24.2% 24.5%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.3% 12% at 24.9% 22.2%, rgba(0,230,245,0.10) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.5% 12% at 25.0% 19.2%, rgba(0,230,245,0.11) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.8% 14% at 24.8% 15.6%, rgba(0,230,245,0.12) 0%, rgba(0,210,235,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.1% 16% at 24.5% 11.5%, rgba(0,230,245,0.14) 0%, rgba(0,210,235,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.5% 17% at 24.5% 7.3%, rgba(0,230,245,0.15) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 3.8% 19% at 25.5% 3.7%, rgba(0,230,245,0.17) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.0% 20% at 27.9% 1.2%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 21% at 31.6% 0.1%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 21% at 36.4% -0.1%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 21% at 41.7% 0.1%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 20% at 47.2% 0.1%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 20% at 52.8% -0.5%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 21% at 58.3% -1.5%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 21% at 63.6% -2.6%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.1% 21% at 68.4% -2.9%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 4.0% 20% at 72.1% -1.7%, rgba(0,230,245,0.18) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 3.8% 19% at 74.5% 1.2%, rgba(0,230,245,0.17) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 3.5% 17% at 75.5% 5.7%, rgba(0,230,245,0.15) 0%, rgba(0,210,235,0.05) 50%, transparent 100%),
+    radial-gradient(ellipse 3.1% 16% at 75.5% 10.8%, rgba(0,230,245,0.14) 0%, rgba(0,210,235,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 2.8% 14% at 75.2% 15.7%, rgba(0,230,245,0.12) 0%, rgba(0,210,235,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 2.5% 12% at 75.0% 20.0%, rgba(0,230,245,0.11) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.3% 12% at 75.1% 23.4%, rgba(0,230,245,0.10) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.1% 12% at 75.8% 26.0%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.0% 12% at 77.0% 27.9%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.0% 12% at 78.8% 29.1%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 1.9% 12% at 81.2% 29.7%, rgba(0,230,245,0.09) 0%, rgba(0,210,235,0.03) 50%, transparent 100%);
+  animation: em-au-breathe 35s ease-in-out infinite;
+  --lo: 0.85; --hi: 1;
+  will-change: opacity;
+}
+
+.em-aurora-veil-2::after {
+  content: ""; position: absolute; inset: 0;
+  filter: blur(22px);
+  background:
+    radial-gradient(ellipse 1.8% 7% at 18.8% 26.3%, rgba(140,50,210,0.06) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.8% 7% at 21.2% 25.3%, rgba(140,50,210,0.06) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.8% 7% at 23.0% 24.0%, rgba(140,50,210,0.06) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.9% 7% at 24.2% 22.1%, rgba(140,50,210,0.07) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 2.1% 7% at 24.9% 19.8%, rgba(140,50,210,0.07) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 2.2% 7% at 25.0% 16.7%, rgba(140,50,210,0.08) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 2.5% 8% at 24.8% 12.8%, rgba(140,50,210,0.09) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 2.8% 9% at 24.5% 8.4%, rgba(140,50,210,0.10) 0%, rgba(120,40,190,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 3.1% 10% at 24.5% 3.9%, rgba(140,50,210,0.11) 0%, rgba(120,40,190,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 3.4% 11% at 25.5% -0.1%, rgba(140,50,210,0.12) 0%, rgba(120,40,190,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 3.6% 12% at 27.9% -2.8%, rgba(140,50,210,0.12) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 31.6% -4.1%, rgba(140,50,210,0.13) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 36.4% -4.2%, rgba(140,50,210,0.13) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 41.7% -4.0%, rgba(140,50,210,0.13) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 47.2% -4.0%, rgba(140,50,210,0.12) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 52.8% -4.6%, rgba(140,50,210,0.12) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 58.3% -5.6%, rgba(140,50,210,0.13) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 63.6% -6.7%, rgba(140,50,210,0.13) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.7% 12% at 68.4% -7.0%, rgba(140,50,210,0.13) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.6% 12% at 72.1% -5.8%, rgba(140,50,210,0.12) 0%, rgba(120,40,190,0.04) 50%, transparent 100%),
+    radial-gradient(ellipse 3.4% 11% at 74.5% -2.5%, rgba(140,50,210,0.12) 0%, rgba(120,40,190,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 3.1% 10% at 75.5% 2.2%, rgba(140,50,210,0.11) 0%, rgba(120,40,190,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.8% 9% at 75.5% 7.7%, rgba(140,50,210,0.10) 0%, rgba(120,40,190,0.03) 50%, transparent 100%),
+    radial-gradient(ellipse 2.5% 8% at 75.2% 12.9%, rgba(140,50,210,0.09) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 2.2% 7% at 75.0% 17.5%, rgba(140,50,210,0.08) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 2.1% 7% at 75.1% 21.0%, rgba(140,50,210,0.07) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.9% 7% at 75.8% 23.6%, rgba(140,50,210,0.07) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.8% 7% at 77.0% 25.5%, rgba(140,50,210,0.06) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.8% 7% at 78.8% 26.7%, rgba(140,50,210,0.06) 0%, rgba(120,40,190,0.02) 50%, transparent 100%),
+    radial-gradient(ellipse 1.8% 7% at 81.2% 27.3%, rgba(140,50,210,0.06) 0%, rgba(120,40,190,0.02) 50%, transparent 100%);
+  animation: em-au-breathe 40s ease-in-out infinite 3s;
+  --lo: 0.80; --hi: 1;
+  will-change: opacity;
+}
+
+/* ═══════════════════════════════════════════
    VEIL 6 — AMBIENT GLOW
    ═══════════════════════════════════════════ */
 .em-aurora-veil-6 {
