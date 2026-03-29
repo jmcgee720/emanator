@@ -780,18 +780,46 @@ input:-webkit-autofill:active {
 .em-aurora--login .em-aurora-veil-5::after  { filter: blur(2px); --lo: 0.90; --hi: 1; }
 .em-aurora--login .em-aurora-veil-6::before { filter: blur(45px); --lo: 0.88; --hi: 1; }
 
-/* ── PAGE VARIANT: Dashboard (subdued — aurora recedes behind content) ── */
-.em-aurora--dashboard .em-aurora-veil-1::before { opacity: 0.25; }
-.em-aurora--dashboard .em-aurora-veil-1::after  { opacity: 0.18; }
-.em-aurora--dashboard .em-aurora-veil-2::before { opacity: 0.18; }
-.em-aurora--dashboard .em-aurora-veil-2::after  { opacity: 0.12; }
-.em-aurora--dashboard .em-aurora-veil-3::before { opacity: 0.35; --lo: 0.25; --hi: 0.40; }
-.em-aurora--dashboard .em-aurora-veil-3::after  { opacity: 0.20; }
-.em-aurora--dashboard .em-aurora-veil-4::before { opacity: 0.30; --lo: 0.20; --hi: 0.35; }
-.em-aurora--dashboard .em-aurora-veil-4::after  { opacity: 0.18; }
-.em-aurora--dashboard .em-aurora-veil-5::before { opacity: 0.32; --lo: 0.22; --hi: 0.38; }
-.em-aurora--dashboard .em-aurora-veil-5::after  { opacity: 0.20; --lo: 0.14; --hi: 0.25; }
-.em-aurora--dashboard .em-aurora-veil-6::before { opacity: 0.22; --lo: 0.15; --hi: 0.28; }
+/* ── PAGE VARIANT: Dashboard (subdued — each veil breathes independently) ── */
+.em-aurora--dashboard .em-aurora-veil-1::before { opacity: 0.22; }
+.em-aurora--dashboard .em-aurora-veil-1::after  { opacity: 0.15; }
+.em-aurora--dashboard .em-aurora-veil-2::before { opacity: 0.15; }
+.em-aurora--dashboard .em-aurora-veil-2::after  { opacity: 0.10; }
+/* Veil 3 — deep ambient: slow, narrow breathe */
+.em-aurora--dashboard .em-aurora-veil-3::before {
+  opacity: 0.30;
+  animation: em-au-breathe 58s ease-in-out infinite;
+  --lo: 0.27; --hi: 0.33;
+}
+.em-aurora--dashboard .em-aurora-veil-3::after  { opacity: 0.18; }
+/* Veil 4 — violet outer: stacked breathe on top of transform, offset timing */
+.em-aurora--dashboard .em-aurora-veil-4::before {
+  opacity: 0.26;
+  animation: em-au-drift 48s ease-in-out infinite 2s, em-au-breathe 71s ease-in-out infinite 12s;
+  --lo: 0.23; --hi: 0.29;
+}
+.em-aurora--dashboard .em-aurora-veil-4::after  {
+  opacity: 0.16;
+  animation: em-au-sway 50s ease-in-out infinite 5s, em-au-breathe 63s ease-in-out infinite 25s;
+  --lo: 0.14; --hi: 0.18;
+}
+/* Veil 5 — cyan core: stacked breathe, different rhythm */
+.em-aurora--dashboard .em-aurora-veil-5::before {
+  opacity: 0.28;
+  animation: em-au-float 38s ease-in-out infinite, em-au-breathe 52s ease-in-out infinite 7s;
+  --lo: 0.25; --hi: 0.31;
+}
+.em-aurora--dashboard .em-aurora-veil-5::after  {
+  opacity: 0.18;
+  animation: em-au-sway 42s ease-in-out infinite 3s, em-au-breathe 67s ease-in-out infinite 18s;
+  --lo: 0.15; --hi: 0.21;
+}
+/* Veil 6 — ambient glow: slowest cycle, barely perceptible */
+.em-aurora--dashboard .em-aurora-veil-6::before {
+  opacity: 0.20;
+  animation: em-au-breathe 79s ease-in-out infinite 30s;
+  --lo: 0.18; --hi: 0.22;
+}
 
 /* ── PAGE VARIANT: Workspace (dimmed) ── */
 .em-aurora--focused .em-aurora-veil-1::before { opacity: 0.4; }
