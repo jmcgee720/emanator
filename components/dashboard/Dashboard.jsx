@@ -116,6 +116,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [heroSubmitting, setHeroSubmitting] = useState(false)
   const [voiceListening, setVoiceListening] = useState(false)
   const voiceRecognitionRef = useRef(null)
+  const [messagesReadyTick, setMessagesReadyTick] = useState(0)
   // ── Delete / Cleanup state ──
   const [deleteConfirmProject, setDeleteConfirmProject] = useState(null)
   const [showAccountCleanupModal, setShowAccountCleanupModal] = useState(false)
@@ -416,15 +417,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }, [selectedChat?.id])
 
-  // Send pending hero prompt once chat is ready
+  // Send pending hero prompt AFTER messages finish loading (avoids race condition)
   useEffect(() => {
-    if (pendingHeroPromptRef.current && selectedChat && selectedProject) {
+    if (pendingHeroPromptRef.current && selectedChat && selectedProject && !streamingMessageId) {
       const prompt = pendingHeroPromptRef.current
       pendingHeroPromptRef.current = null
-      // Small delay to ensure state is settled
-      setTimeout(() => sendMessage(prompt), 300)
+      sendMessage(prompt)
     }
-  }, [selectedChat?.id])
+  }, [messagesReadyTick])
 
   const loadProjects = async () => {
     try {
@@ -539,6 +539,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     } catch (error) {
       console.error('Error loading messages:', error)
     }
+    setMessagesReadyTick(t => t + 1)
   }
 
   const createProject = async (name, type = 'app') => {
