@@ -113,6 +113,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showImportModal, setShowImportModal] = useState(false)
   const [projectMode, setProjectMode] = useState('fullstack')
   const [promptInput, setPromptInput] = useState('')
+  const [heroSubmitting, setHeroSubmitting] = useState(false)
   // ── Delete / Cleanup state ──
   const [deleteConfirmProject, setDeleteConfirmProject] = useState(null)
   const [showAccountCleanupModal, setShowAccountCleanupModal] = useState(false)
@@ -1439,6 +1440,24 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
+  const handleHeroPromptSubmit = async () => {
+    const text = promptInput.trim()
+    if (!text || heroSubmitting) return
+
+    setHeroSubmitting(true)
+    try {
+      const projectName = text.length > 60 ? text.slice(0, 57) + '...' : text
+      const type = projectMode === 'sandbox' ? 'sandbox' : 'app'
+      await createProject(projectName, type)
+      setPromptInput('')
+      aurora.triggerEnergyFlow?.()
+    } catch (error) {
+      // Already handled inside createProject
+    } finally {
+      setHeroSubmitting(false)
+    }
+  }
+
   const importProject = async (manifest) => {
     try {
       const response = await authFetch('/api/projects/import', {
@@ -1700,6 +1719,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 <textarea
                   value={promptInput}
                   onChange={(e) => { setPromptInput(e.target.value); aurora.onTyping(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleHeroPromptSubmit()
+                    }
+                  }}
                   placeholder="Build me a dashboard for..."
                   rows={2}
                   className="w-full bg-transparent text-sm text-[var(--em-text-primary)] placeholder:text-[var(--em-text-secondary)] placeholder:opacity-60 outline-none resize-none px-4 py-3"
@@ -1728,11 +1753,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                     <Mic className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    className="h-7 w-7 flex items-center justify-center rounded-lg bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 transition-all shadow-[0_0_12px_rgba(0,229,255,0.2)]"
+                    className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${
+                      promptInput.trim() && !heroSubmitting
+                        ? 'bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 shadow-[0_0_12px_rgba(0,229,255,0.2)]'
+                        : 'bg-[rgba(255,255,255,0.08)] text-[var(--em-text-muted)] cursor-not-allowed'
+                    }`}
                     data-testid="prompt-submit-btn"
-                    onClick={aurora.triggerEnergyFlow}
+                    disabled={!promptInput.trim() || heroSubmitting}
+                    onClick={handleHeroPromptSubmit}
                   >
-                    <ArrowUp className="w-3.5 h-3.5" />
+                    {heroSubmitting ? (
+                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    )}
                   </button>
                 </div>
               </div>
