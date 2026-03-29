@@ -486,28 +486,34 @@ input:-webkit-autofill:active {
 }
 
 
-/* Containment — tight vertical ribbon with defined top/bottom edges */
+/* Containment — ribbon fully within viewport, no top bleed */
 .em-aurora-containment {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  -webkit-mask-image: radial-gradient(
-    ellipse 80% 30% at 50% 16%,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,0.95) 35%,
-    rgba(0,0,0,0.55) 60%,
-    rgba(0,0,0,0.15) 82%,
-    rgba(0,0,0,0) 100%
-  );
-  mask-image: radial-gradient(
-    ellipse 80% 30% at 50% 16%,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,0.95) 35%,
-    rgba(0,0,0,0.55) 60%,
-    rgba(0,0,0,0.15) 82%,
-    rgba(0,0,0,0) 100%
-  );
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, black 4%, black 100%),
+    radial-gradient(
+      ellipse 80% 32% at 50% 24%,
+      rgba(0,0,0,1) 0%,
+      rgba(0,0,0,0.95) 35%,
+      rgba(0,0,0,0.50) 62%,
+      rgba(0,0,0,0.12) 84%,
+      rgba(0,0,0,0) 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0%, black 4%, black 100%),
+    radial-gradient(
+      ellipse 80% 32% at 50% 24%,
+      rgba(0,0,0,1) 0%,
+      rgba(0,0,0,0.95) 35%,
+      rgba(0,0,0,0.50) 62%,
+      rgba(0,0,0,0.12) 84%,
+      rgba(0,0,0,0) 100%
+    );
+  mask-composite: intersect;
 }
 
 /* Veils 1 & 2 reserved */
