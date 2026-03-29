@@ -486,26 +486,26 @@ input:-webkit-autofill:active {
 }
 
 
-/* Containment — centered, brightest in middle, fading at edges */
+/* Containment — tight vertical ribbon with defined top/bottom edges */
 .em-aurora-containment {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   -webkit-mask-image: radial-gradient(
-    ellipse 85% 70% at 50% 18%,
+    ellipse 80% 30% at 50% 16%,
     rgba(0,0,0,1) 0%,
-    rgba(0,0,0,0.96) 25%,
-    rgba(0,0,0,0.65) 50%,
-    rgba(0,0,0,0.20) 78%,
+    rgba(0,0,0,0.95) 35%,
+    rgba(0,0,0,0.55) 60%,
+    rgba(0,0,0,0.15) 82%,
     rgba(0,0,0,0) 100%
   );
   mask-image: radial-gradient(
-    ellipse 85% 70% at 50% 18%,
+    ellipse 80% 30% at 50% 16%,
     rgba(0,0,0,1) 0%,
-    rgba(0,0,0,0.96) 25%,
-    rgba(0,0,0,0.65) 50%,
-    rgba(0,0,0,0.20) 78%,
+    rgba(0,0,0,0.95) 35%,
+    rgba(0,0,0,0.55) 60%,
+    rgba(0,0,0,0.15) 82%,
     rgba(0,0,0,0) 100%
   );
 }
