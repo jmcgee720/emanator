@@ -26,7 +26,15 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Part 2: Account Cleanup — "Delete All" button + "Delete Everything" modal with strong warning
   - Part 3: Safety — all deletes require confirmation, optimistic UI removal, clean error toasts
   - Backend: `DELETE /api/projects/:id` (with ownership verification), `POST /api/account/cleanup` (bulk)
-  - Supabase ON DELETE CASCADE handles chats, messages, files, canvas, generation_runs, memory, changelog:
+  - Supabase ON DELETE CASCADE handles chats, messages, files, canvas, generation_runs, memory, changelog
+- **H7.5: Project Workspace Hub** (Mar 2026):
+  - New intermediate view between Project Bin (grid) and chat workspace
+  - 3-panel layout: Left (chat navigation), Center (project overview + quick actions), Right (project details/metadata)
+  - Flow: Project Bin → Hub → Chat workspace (with back-navigation at each level)
+  - Workspace tabs: breadcrumb-style "← Projects" | "Project Name" (hub) | "Chat Title"
+  - Quick actions: Open Latest Chat, New Chat, Import Files, Pull Latest (placeholder)
+  - Right panel: file count, conversation count, last updated, framework, credits, delete action
+  - File: `/app/components/dashboard/ProjectHub.jsx`:
   - Replaced symmetric horseshoe with left-to-right S-curve depth flow
   - LEFT = foreground (large 3.6% wide, sharp blur=2px, low Y ~34%, bright opacity 0.72)
   - CENTER = mid-depth (medium 2.2-2.9%, blur=5px, Y ~22-30%, mid opacity)
@@ -47,7 +55,8 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 
 ## Key Files
 - `/app/app/globals.css` — Aurora engine (S-curve geometry) + Glass system + Tokens
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state + delete flows
+- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state + delete flows + hub routing
+- `/app/components/dashboard/ProjectHub.jsx` — 3-panel workspace hub (chat nav, overview, details)
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
 - `/app/hooks/useAuroraState.js` — Aurora state machine hook
