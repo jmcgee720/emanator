@@ -42,14 +42,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Part 3: Reuses ZIP pipeline — framework detection, file type detection, project creation, canvas, initial chat
   - Part 4: Stores repo_url, branch, last_commit_sha in project.settings for sync
   - Part 5: `POST /api/import/github/sync` — Pull Latest compares SHA, upserts changed files
-  - ProjectHub "Pull Latest" button active for GitHub-imported projects, disabled for others:
-  - Replaced symmetric horseshoe with left-to-right S-curve depth flow
-  - LEFT = foreground (large 3.6% wide, sharp blur=2px, low Y ~34%, bright opacity 0.72)
-  - CENTER = mid-depth (medium 2.2-2.9%, blur=5px, Y ~22-30%, mid opacity)
-  - RIGHT = background (small 0.8-1.7%, blur=10px, high Y ~7-17%, faded opacity 0.18-0.36)
-  - S-curve Y path wiggles: 34→31→30→25→24→20→14→7%
-  - Containment mask biased left-center (42% 24%) for asymmetric coverage
-  - Ambient glow (veil 6) weighted toward foreground left
+  - ProjectHub "Pull Latest" button active for GitHub-imported projects, disabled for others
+- **Aurora UI Polish** (Mar 2026): Dimmed dashboard variant, desynchronized veil animations
+- **Hero Prompt Fix** (Mar 2026): Wired submit, Enter key, voice dictation, messagesReadyTick handoff
+- **BUILD Intent Streaming Fix** (Mar 2026):
+  - Fixed SelfCritique loop: replaced `continue` (wrong loop scope) with inline AI re-call
+  - Fixed PlanValidator rejection: replaced `continue` (wrong loop scope) with inline AI retry
+  - Both fixes ensure rejected/revised plans properly re-call the AI and yield tokens to client
 
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
@@ -69,9 +68,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
 - `/app/hooks/useAuroraState.js` — Aurora state machine hook
 - `/app/app/api/[[...path]]/route.js` — API routes (project CRUD, delete, account cleanup)
+- `/app/lib/ai/service.js` — AI pipeline (multi-pass, plan mode, self-critique, streaming)
+- `/app/lib/api/stream-handler.js` — SSE streaming endpoint handler
 
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
-- P2: Refactor `lib/ai/service.js` (~2600 lines)
+- P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Credits persistence via Stripe/payment integration
