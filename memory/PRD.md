@@ -77,6 +77,15 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Fix 2: `ModelSelector.jsx` — Made `billing_issue` selectable (not disabled) since the key IS valid, just low on credits
   - Files changed: `app/api/[[...path]]/route.js`, `components/dashboard/ModelSelector.jsx`
 
+- **H8.1: Stripe Integration** (Mar 2026):
+  - Server: `POST /api/stripe/checkout` (creates Stripe Checkout session via `emergentintegrations`)
+  - Server: `GET /api/stripe/status/{session_id}` (polls payment, grants credits idempotently)
+  - Server: `POST /api/webhook/stripe` (handles `checkout.session.completed`, grants credits)
+  - Packages: starter ($10→100), pro ($45→500), ultra ($80→1000)
+  - Idempotent: `payment_transactions` collection with unique `session_id` index, `$ne: 'paid'` guard
+  - Frontend: Credits modal buttons redirect to Stripe Checkout, return polling confirms payment
+  - Files: `backend/server.py`, `components/dashboard/Dashboard.jsx`, `backend/.env`
+
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules

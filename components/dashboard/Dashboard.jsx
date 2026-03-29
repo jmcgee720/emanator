@@ -142,25 +142,67 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     loadCredits()
   }, [loadCredits])
 
-  const handleBuyCredits = async (amount) => {
+  const handleBuyCredits = async (packageId) => {
     setCreditsLoading(true)
     try {
-      const res = await authFetch('/api/credits/add', {
+      const res = await authFetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ package_id: packageId, origin_url: window.location.origin }),
       })
       if (res?.ok) {
         const data = await res.json()
-        setCreditsBalance(data.balance)
-        toast({ title: 'Credits Added', description: `+${amount} credits added to your account` })
+        if (data.url) {
+          window.location.href = data.url // Redirect to Stripe Checkout
+          return
+        }
       }
+      const err = await res?.json().catch(() => ({}))
+      toast({ title: 'Error', description: err.error || 'Failed to start checkout', variant: 'destructive' })
     } catch (err) {
-      toast({ title: 'Error', description: 'Failed to add credits', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Failed to start checkout', variant: 'destructive' })
     } finally {
       setCreditsLoading(false)
     }
   }
+
+  // Poll Stripe payment status on return from checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const sessionId = params.get('session_id')
+    const stripeStatus = params.get('stripe_status')
+    if (!sessionId || stripeStatus !== 'success') return
+
+    // Clear URL params
+    window.history.replaceState({}, '', window.location.pathname)
+
+    let cancelled = false
+    const pollStatus = async (attempt = 0) => {
+      if (cancelled || attempt >= 8) {
+        if (attempt >= 8) toast({ title: 'Payment', description: 'Could not confirm payment. It may take a moment to process.', variant: 'default' })
+        return
+      }
+      try {
+        const res = await authFetch(`/api/stripe/status/${sessionId}`)
+        if (res?.ok) {
+          const data = await res.json()
+          if (data.payment_status === 'paid') {
+            toast({ title: 'Payment Successful', description: `+${data.credits} credits added to your account` })
+            loadCredits()
+            return
+          }
+          if (data.status === 'expired') {
+            toast({ title: 'Payment Expired', description: 'Checkout session expired. Please try again.', variant: 'destructive' })
+            return
+          }
+        }
+      } catch {}
+      setTimeout(() => pollStatus(attempt + 1), 2000)
+    }
+    pollStatus()
+
+    return () => { cancelled = true }
+  }, [])
 
   // ── Import handlers ──
   const [importLoading, setImportLoading] = useState(false)
@@ -2134,16 +2176,16 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
               <div className="grid grid-cols-3 gap-2" data-testid="credits-purchase-options">
                 {[
-                  { amount: 100, price: '$10' },
-                  { amount: 500, price: '$45' },
-                  { amount: 1000, price: '$80' },
-                ].map(({ amount, price }) => (
+                  { packageId: 'starter', amount: 100, price: '$10' },
+                  { packageId: 'pro', amount: 500, price: '$45' },
+                  { packageId: 'ultra', amount: 1000, price: '$80' },
+                ].map(({ packageId, amount, price }) => (
                   <button
-                    key={amount}
-                    onClick={() => handleBuyCredits(amount)}
+                    key={packageId}
+                    onClick={() => handleBuyCredits(packageId)}
                     disabled={creditsLoading}
                     className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center disabled:opacity-50"
-                    data-testid={`buy-credits-${amount}`}
+                    data-testid={`buy-credits-${packageId}`}
                   >
                     <div className="text-sm font-semibold em-text-primary">{amount}</div>
                     <div className="text-[11px] em-text-secondary">{price}</div>
