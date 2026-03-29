@@ -1,0 +1,109 @@
+{
+  "timestamp": "2026-01-29T14:00:00.000Z",
+  "iteration": 25,
+  "summary": "Tested hero prompt bug fix. Found CRITICAL BUG: Hero prompt creates project with prompt as title but message is NOT sent to chat. Other features (model selector labels, voice button, submit button states) work correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Dashboard.jsx - Hero Prompt",
+        "issue": "CRITICAL: Hero prompt creates project but message is NOT sent to chat. Chat shows 'Start a conversation' after project creation instead of the user's prompt message.",
+        "selector": "[data-testid='project-prompt-input']",
+        "priority": "CRITICAL",
+        "root_cause": "useEffect at line 420 depends on [selectedChat?.id] but also checks selectedProject. Due to React state batching, selectedProject may not be set when the effect runs, causing the condition to fail.",
+        "affected_lines": "418-427"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Hero prompt submission",
+        "issue": "pendingHeroPromptRef mechanism fails to send message because useEffect dependency array is incomplete",
+        "affected_selectors": ["[data-testid='project-prompt-input']", "[data-testid='prompt-submit-btn']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_results": {
+    "features_tested": [
+      {
+        "feature": "Model selector labels (E-1, Ultra, Claude 4.5 Opus) are div elements, not buttons",
+        "status": "PASS",
+        "notes": "All three model selectors are div elements with correct data-testid attributes"
+      },
+      {
+        "feature": "Voice dictation button has onClick handler (toggleVoiceDictation)",
+        "status": "PASS",
+        "notes": "Voice button is a button element with onclick handler"
+      },
+      {
+        "feature": "Voice button changes visual state when active (red pulse styling)",
+        "status": "PARTIAL",
+        "notes": "Code has correct styling (border-red-500/40 bg-red-500/15 text-red-400 animate-pulse), but browser testing environment may not support Web Speech API"
+      },
+      {
+        "feature": "Submit button is disabled when input is empty",
+        "status": "PASS",
+        "notes": "Submit button correctly disabled when prompt input is empty"
+      },
+      {
+        "feature": "Submit button shows loading spinner during submission",
+        "status": "PASS",
+        "notes": "Loading spinner (animate-spin) appears during submission"
+      },
+      {
+        "feature": "Hero prompt input clears after successful submission",
+        "status": "PASS",
+        "notes": "Input clears and workspace opens after submission"
+      },
+      {
+        "feature": "Enter key in hero prompt textarea submits",
+        "status": "PASS",
+        "notes": "Enter key triggers handleHeroPromptSubmit correctly"
+      },
+      {
+        "feature": "Hero prompt creates project with prompt as title",
+        "status": "PASS",
+        "notes": "Project is created with prompt text as the project name"
+      },
+      {
+        "feature": "Hero prompt sends message to chat after project creation",
+        "status": "FAIL",
+        "notes": "CRITICAL BUG: Message is NOT sent. Chat shows 'Start a conversation' instead of user message. Tested multiple times with different prompts."
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "FIX CRITICAL: useEffect at line 420 in Dashboard.jsx needs selectedProject?.id in dependency array OR restructure to ensure selectedProject is set before checking pendingHeroPromptRef",
+    "Suggested fix: Change line 427 from [selectedChat?.id] to [selectedChat?.id, selectedProject?.id]"
+  ],
+  "critical_code_review_comments": [
+    "Line 420-427: useEffect checks selectedProject but doesn't include it in dependency array - this is a React anti-pattern causing the bug",
+    "The pendingHeroPromptRef mechanism is correct in concept but fails due to state timing issues"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "89% (8/9 features passed, 1 critical failure)"
+  },
+  "test_credentials": "REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD",
+  "seed_data_creation": "Created multiple test projects during testing: 'Build a notes app', 'Build a calculator app', 'Create a weather dashboard app', 'Build me a simple todo app with React', 'Test loading spinner'",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Hero prompt bug confirmed. The useEffect at line 420 in Dashboard.jsx that sends the pending hero prompt message has an incomplete dependency array. It depends on [selectedChat?.id] but also checks selectedProject in its condition. Due to React state batching, selectedProject may not be set when the effect runs after selectedChat changes. Fix: add selectedProject?.id to the dependency array.",
+  "rca_of_the_issue": {
+    "bug_description": "Hero prompt creates project with prompt as title but chat shows empty - prompt must be sent as first message",
+    "root_cause": "useEffect at line 420-427 in Dashboard.jsx has incomplete dependency array. The effect depends on [selectedChat?.id] but the condition also checks selectedProject. When createProject() is called, it sets both selectedProject (via openProjectWorkspace) and selectedChat. Due to React's state batching, when the useEffect runs (triggered by selectedChat?.id change), selectedProject may still be null, causing the condition `pendingHeroPromptRef.current && selectedChat && selectedProject` to fail.",
+    "reproduction_steps": [
+      "1. Login to the app",
+      "2. Type a prompt in the hero prompt input (e.g., 'Build a todo app')",
+      "3. Click submit button or press Enter",
+      "4. Observe: Project is created with prompt as title, workspace opens",
+      "5. Bug: Chat shows 'Start a conversation' instead of the user's prompt message"
+    ],
+    "mitigation": "Add selectedProject?.id to the useEffect dependency array at line 427: [selectedChat?.id, selectedProject?.id]"
+  }
+}

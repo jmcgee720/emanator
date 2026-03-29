@@ -114,6 +114,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [projectMode, setProjectMode] = useState('fullstack')
   const [promptInput, setPromptInput] = useState('')
   const [heroSubmitting, setHeroSubmitting] = useState(false)
+  const [voiceListening, setVoiceListening] = useState(false)
+  const voiceRecognitionRef = useRef(null)
   // ── Delete / Cleanup state ──
   const [deleteConfirmProject, setDeleteConfirmProject] = useState(null)
   const [showAccountCleanupModal, setShowAccountCleanupModal] = useState(false)
@@ -313,6 +315,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   const streamAbortRef = useRef(null)
   const hubEntryRef = useRef(false)
+  const pendingHeroPromptRef = useRef(null)
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -410,6 +413,16 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       loadMessages(selectedChat.id)
     } else {
       setMessages([])
+    }
+  }, [selectedChat?.id])
+
+  // Send pending hero prompt once chat is ready
+  useEffect(() => {
+    if (pendingHeroPromptRef.current && selectedChat && selectedProject) {
+      const prompt = pendingHeroPromptRef.current
+      pendingHeroPromptRef.current = null
+      // Small delay to ensure state is settled
+      setTimeout(() => sendMessage(prompt), 300)
     }
   }, [selectedChat?.id])
 
@@ -1554,14 +1567,72 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     try {
       const projectName = text.length > 60 ? text.slice(0, 57) + '...' : text
       const type = projectMode === 'sandbox' ? 'sandbox' : 'app'
+      pendingHeroPromptRef.current = text
       await createProject(projectName, type)
       setPromptInput('')
       aurora.triggerEnergyFlow?.()
     } catch (error) {
-      // Already handled inside createProject
+      pendingHeroPromptRef.current = null
     } finally {
       setHeroSubmitting(false)
     }
+  }
+
+  const toggleVoiceDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast({ title: 'Not Supported', description: 'Voice input is not supported in this browser.', variant: 'destructive' })
+      return
+    }
+
+    if (voiceListening && voiceRecognitionRef.current) {
+      voiceRecognitionRef.current.stop()
+      setVoiceListening(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+    voiceRecognitionRef.current = recognition
+
+    let finalTranscript = ''
+
+    recognition.onstart = () => setVoiceListening(true)
+
+    recognition.onresult = (event) => {
+      let interim = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript
+        } else {
+          interim += event.results[i][0].transcript
+        }
+      }
+      setPromptInput(prev => {
+        const base = prev.replace(/\u200B.*$/, '')
+        return finalTranscript + (interim ? interim : '')
+      })
+    }
+
+    recognition.onend = () => {
+      setVoiceListening(false)
+      voiceRecognitionRef.current = null
+      if (finalTranscript) {
+        setPromptInput(finalTranscript)
+      }
+    }
+
+    recognition.onerror = (event) => {
+      setVoiceListening(false)
+      voiceRecognitionRef.current = null
+      if (event.error !== 'aborted') {
+        toast({ title: 'Voice Error', description: `Speech recognition error: ${event.error}`, variant: 'destructive' })
+      }
+    }
+
+    recognition.start()
   }
 
   const importProject = async (manifest) => {
@@ -1840,22 +1911,28 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               {/* Prompt controls row */}
               <div className="flex items-center justify-between px-3 pb-2">
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-all" data-testid="model-selector-prompt">
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)]" data-testid="model-selector-prompt">
                     <span>E-1</span>
-                    <ChevronDown className="w-3 h-3 opacity-60" />
-                  </button>
+                  </div>
                   <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
-                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-cyan)] bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.12)] hover:bg-[rgba(0,229,255,0.10)] transition-all" data-testid="ultra-toggle">
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-cyan)] bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.12)]" data-testid="ultra-toggle">
                     <span>Ultra</span>
-                  </button>
+                  </div>
                   <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
-                  <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-all" data-testid="ai-model-selector">
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)]" data-testid="ai-model-selector">
                     <span>Claude 4.5 Opus</span>
-                    <ChevronDown className="w-3 h-3 opacity-60" />
-                  </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button className="h-7 w-7 flex items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-all" data-testid="voice-input-btn">
+                  <button
+                    onClick={toggleVoiceDictation}
+                    className={`h-7 w-7 flex items-center justify-center rounded-lg border transition-all ${
+                      voiceListening
+                        ? 'border-red-500/40 bg-red-500/15 text-red-400 animate-pulse'
+                        : 'border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'
+                    }`}
+                    data-testid="voice-input-btn"
+                  >
                     <Mic className="w-3.5 h-3.5" />
                   </button>
                   <button
