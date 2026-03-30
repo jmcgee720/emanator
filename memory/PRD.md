@@ -107,6 +107,20 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Removed projectSwitchingRef guard (no longer needed)
   - Tile click → ProjectHub; Open Workspace / conversation click → Workspace
   - File: Dashboard.jsx (5 lines changed)
+- **Core System Entry Fix** (Mar 2026):
+  - Added `hubEntryRef=true` + `setSelectedChat(null)` + `setMessages([])` before `openProjectWorkspace(coreProject)`
+  - Core System now opens ProjectHub without auto-selecting "Emanator Backend" chat
+  - File: Dashboard.jsx
+- **Site Map Visualization** (Mar 2026):
+  - Added List/Map toggle to Growth panel sidebar
+  - Map view shows tree hierarchy built from `parent_seed_url` relationship data
+  - Root nodes (seed pages) with violet icon, child count badge
+  - Child nodes indented with CSS connector lines, path-only labels
+  - Clicking any node syncs with the existing page detail panel
+  - SiteMapTree component (100 lines) added to GrowthPanel.jsx
+  - Also refactored page selection into shared `selectPage` helper
+- **Debug Cleanup** (Mar 2026):
+  - Removed 2 diagnostic console.logs and 1 visible "Resolved Preview URL" debug banner from PreviewTab.jsx
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)

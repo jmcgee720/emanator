@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -38,6 +38,7 @@ export default function GrowthPanel({ onClose }) {
   const [crawlMode, setCrawlMode] = useState('single')
   const [maxPages, setMaxPages] = useState(10)
   const [batchSummary, setBatchSummary] = useState(null)
+  const [pagesView, setPagesView] = useState('list') // 'list' | 'map'
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -272,6 +273,35 @@ export default function GrowthPanel({ onClose }) {
     : 0
   const resultTabs = Object.entries(personaResults)
 
+  // Build site tree from flat pages list
+  const siteTree = useMemo(() => {
+    const roots = []
+    const childrenMap = {}
+    for (const page of pages) {
+      if (!page.parent_seed_url || page.url === page.parent_seed_url) {
+        roots.push(page)
+      } else {
+        const key = page.parent_seed_url
+        if (!childrenMap[key]) childrenMap[key] = []
+        childrenMap[key].push(page)
+      }
+    }
+    // Attach children, orphans become roots
+    const orphans = []
+    for (const [seedUrl, children] of Object.entries(childrenMap)) {
+      if (!roots.some(r => r.url === seedUrl)) {
+        orphans.push(...children)
+      }
+    }
+    return [...roots.map(r => ({ ...r, children: childrenMap[r.url] || [] })), ...orphans.map(o => ({ ...o, children: [] }))]
+  }, [pages])
+
+  const selectPage = (page) => {
+    authFetch(`/api/growth/pages/${page.id}`)
+      .then(r => r.json())
+      .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null); loadFeedback(d.page.id) } })
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--em-void)' }} data-testid="growth-panel">
 
@@ -413,8 +443,33 @@ export default function GrowthPanel({ onClose }) {
           {/* Divider */}
           <div className="mx-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,229,255,0.12), rgba(124,58,237,0.08), transparent)' }} />
 
-          {/* Pages List */}
-          <div className="flex-1 overflow-y-auto py-2">
+          {/* Pages Header with View Toggle */}
+          <div className="flex items-center justify-between px-4 py-2">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Pages</span>
+            {pages.length > 1 && (
+              <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                <button
+                  onClick={() => setPagesView('list')}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium transition-colors"
+                  style={{ background: pagesView === 'list' ? 'rgba(0,229,255,0.1)' : 'transparent', color: pagesView === 'list' ? 'var(--em-cyan)' : 'var(--em-text-muted)' }}
+                  data-testid="pages-view-list"
+                >
+                  <List className="w-3 h-3" />List
+                </button>
+                <button
+                  onClick={() => setPagesView('map')}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium transition-colors"
+                  style={{ background: pagesView === 'map' ? 'rgba(124,58,237,0.1)' : 'transparent', color: pagesView === 'map' ? 'var(--em-violet)' : 'var(--em-text-muted)' }}
+                  data-testid="pages-view-map"
+                >
+                  <Network className="w-3 h-3" />Map
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Pages Content */}
+          <div className="flex-1 overflow-y-auto py-1">
             {loadingPages ? (
               <div className="flex flex-col items-center justify-center py-16" data-testid="growth-pages-loading">
                 <Loader2 className="w-5 h-5 animate-spin text-[var(--em-cyan)]" style={{ opacity: 0.5 }} />
@@ -427,6 +482,8 @@ export default function GrowthPanel({ onClose }) {
                 <p className="text-xs text-[var(--em-text-muted)] font-medium">No pages yet</p>
                 <p className="text-[10px] text-[var(--em-text-muted)] mt-1" style={{ opacity: 0.6 }}>Enter a URL above to begin</p>
               </div>
+            ) : pagesView === 'map' ? (
+              <SiteMapTree tree={siteTree} selectedPage={selectedPage} onSelect={selectPage} onDelete={handleDelete} />
             ) : (
               <div data-testid="growth-pages-list">
                 {pages.map((page) => {
@@ -434,11 +491,7 @@ export default function GrowthPanel({ onClose }) {
                   return (
                     <div
                       key={page.id}
-                      onClick={() => {
-                        authFetch(`/api/growth/pages/${page.id}`)
-                          .then(r => r.json())
-                          .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null); loadFeedback(d.page.id) } })
-                      }}
+                      onClick={() => selectPage(page)}
                       className="group relative mx-2 mb-0.5 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
                       style={{
                         background: isActive ? 'rgba(0,229,255,0.06)' : 'transparent',
@@ -1022,3 +1075,101 @@ function FixRow({ label, value, charCount, hint }) {
   )
 }
 
+
+
+// ── Site Map Tree View ──
+function SiteMapTree({ tree, selectedPage, onSelect, onDelete }) {
+  if (!tree.length) return null
+
+  const pathLabel = (url) => {
+    try { return new URL(url).pathname || '/' } catch { return url }
+  }
+
+  return (
+    <div className="px-2 py-1" data-testid="growth-sitemap-tree">
+      {tree.map((root) => {
+        const isRootActive = selectedPage?.id === root.id
+        const hasChildren = root.children?.length > 0
+        return (
+          <div key={root.id} className="mb-3">
+            {/* Root node */}
+            <div
+              onClick={() => onSelect(root)}
+              className="group flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all duration-200"
+              style={{
+                background: isRootActive ? 'rgba(124,58,237,0.1)' : 'rgba(255,255,255,0.03)',
+                border: isRootActive ? '1px solid rgba(124,58,237,0.25)' : '1px solid rgba(255,255,255,0.06)',
+                boxShadow: isRootActive ? '0 0 12px rgba(124,58,237,0.08)' : 'none',
+              }}
+              data-testid={`sitemap-root-${root.id}`}
+            >
+              <div className="flex items-center justify-center w-5 h-5 rounded-md shrink-0" style={{ background: 'rgba(124,58,237,0.15)' }}>
+                <Globe className="w-3 h-3 text-[var(--em-violet)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-[var(--em-text-primary)] truncate">
+                  {root.extracted_data?.title || root.url}
+                </p>
+                <p className="text-[10px] text-[var(--em-text-muted)] truncate">{root.url}</p>
+              </div>
+              {root.opportunities && (
+                <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(52,211,153,0.1)' }}>
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                </div>
+              )}
+              {hasChildren && (
+                <span className="text-[9px] font-bold text-[var(--em-text-muted)] tabular-nums shrink-0" style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 6 }}>
+                  {root.children.length}
+                </span>
+              )}
+            </div>
+
+            {/* Children */}
+            {hasChildren && (
+              <div className="ml-4 mt-0.5 relative" style={{ borderLeft: '1px solid rgba(124,58,237,0.12)' }}>
+                {root.children.map((child, i) => {
+                  const isChildActive = selectedPage?.id === child.id
+                  const isLast = i === root.children.length - 1
+                  return (
+                    <div key={child.id} className="relative pl-4 py-0.5">
+                      {/* Connector line */}
+                      <div className="absolute left-0 top-1/2 w-3.5 h-px" style={{ background: 'rgba(124,58,237,0.12)' }} />
+                      {isLast && <div className="absolute left-[-1px] top-1/2 bottom-0 w-px" style={{ background: 'var(--em-void)' }} />}
+                      <div
+                        onClick={() => onSelect(child)}
+                        className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-200"
+                        style={{
+                          background: isChildActive ? 'rgba(0,229,255,0.06)' : 'transparent',
+                          border: isChildActive ? '1px solid rgba(0,229,255,0.15)' : '1px solid transparent',
+                        }}
+                        data-testid={`sitemap-child-${child.id}`}
+                      >
+                        <ChevronRight className="w-2.5 h-2.5 shrink-0" style={{ color: isChildActive ? 'var(--em-cyan)' : 'var(--em-text-muted)', opacity: 0.5 }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium truncate" style={{ color: isChildActive ? 'var(--em-text-primary)' : 'var(--em-text-secondary)' }}>
+                            {child.extracted_data?.title || pathLabel(child.url)}
+                          </p>
+                          <p className="text-[9px] text-[var(--em-text-muted)] truncate" style={{ opacity: 0.6 }}>{pathLabel(child.url)}</p>
+                        </div>
+                        {child.opportunities && (
+                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDelete(child.id) }}
+                          className="w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(248,113,113,0.12)]"
+                          data-testid={`sitemap-delete-${child.id}`}
+                        >
+                          <Trash2 className="w-2.5 h-2.5 text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
