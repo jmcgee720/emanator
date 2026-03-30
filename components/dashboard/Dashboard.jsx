@@ -9,6 +9,7 @@ import TopBar from './TopBar'
 import LeftPanel from './LeftPanel'
 import RightPanel from './RightPanel'
 import ProjectHub from './ProjectHub'
+import GrowthPanel from './GrowthPanel'
 import AdminPanel from './AdminPanel'
 import SearchPanel from './SearchPanel'
 import CanvasPanel from './CanvasPanel'
@@ -73,6 +74,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showSearch, setShowSearch] = useState(false)
   const [showCanvas, setShowCanvas] = useState(false)
   const [showDesign, setShowDesign] = useState(false)
+  const [showGrowth, setShowGrowth] = useState(false)
 
   const [designPrefs, setDesignPrefs] = useState(getDefaultDesignPrefs())
   const [loading, setLoading] = useState(true)
@@ -1905,6 +1907,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     )
   }
 
+  if (showGrowth) {
+    return (
+      <div className="flex flex-col h-screen em-bg-base">
+        <GrowthPanel onClose={() => setShowGrowth(false)} />
+      </div>
+    )
+  }
+
   const renderProjectGrid = () => {
     const cards = projects.filter(p => p.type !== 'core')
 
@@ -2618,6 +2628,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         onOpenDesign={() => setShowDesign(true)}
         onOpenCredits={() => setShowCreditsModal(true)}
         onOpenImport={() => setShowImportModal(true)}
+        onOpenGrowth={() => setShowGrowth(true)}
         isOwner={isOwner}
         isMonitored={isMonitored}
         auroraIntensity={aurora.intensity}
