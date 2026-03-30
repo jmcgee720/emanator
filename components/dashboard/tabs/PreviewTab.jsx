@@ -565,7 +565,19 @@ export default function PreviewTab({ project, files, onLog }) {
     return () => window.removeEventListener('message', handler)
   }, [onLog])
 
+  // Node project detection — scan FULL file list, not filtered clientFiles
+  const isNodeProject = useMemo(() => {
+    return (files || []).some(f =>
+      f.path === 'package.json' || f.path?.endsWith('/package.json')
+    )
+  }, [files])
+
   const { previewHtml, projectInfo, buildLog } = useMemo(() => {
+    // If node project, skip the srcdoc pipeline entirely
+    if (isNodeProject) {
+      return { previewHtml: null, projectInfo: { type: 'node', files: files || [] }, buildLog: ['Type: node'] }
+    }
+
     const clientFiles = (files || []).filter(f => {
       const p = f.path || ''
       return (
@@ -575,9 +587,7 @@ export default function PreviewTab({ project, files, onLog }) {
         p.endsWith('.tsx') ||
         p.endsWith('.js') ||
         p.endsWith('.css') ||
-        p.endsWith('.html') ||
-        p === 'package.json' ||
-        p.endsWith('/package.json')
+        p.endsWith('.html')
       ) &&
       !p.includes('lib/self_builder') &&
       !p.includes('supabase') &&
@@ -614,7 +624,7 @@ export default function PreviewTab({ project, files, onLog }) {
     if (html) log.push(`Output: ${html.length} chars`)
 
     return { previewHtml: html, projectInfo: info, buildLog: log }
-  }, [files, refreshKey])
+  }, [files, refreshKey, isNodeProject])
 
   const handleRefresh = useCallback(() => {
     setRefreshKey(k => k + 1)
@@ -651,6 +661,7 @@ export default function PreviewTab({ project, files, onLog }) {
   }
 
   // Node project → delegate to runner
+  console.log('[PreviewTab] projectInfo.type:', projectInfo.type, 'isNodeProject:', isNodeProject, 'fileCount:', files?.length)
   if (projectInfo.type === 'node') {
     return <NodePreviewRunner project={project} files={files} onLog={onLog} />
   }
