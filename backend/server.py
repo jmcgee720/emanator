@@ -1362,11 +1362,19 @@ async def preview_status(project_id: str):
                 info['status_ref']['status'] = 'running'
                 status = 'running'
 
-    # Once running, probe for valid base path (only once)
-    if status == 'running' and 'base_path' not in info:
-        info['base_path'] = await _probe_preview_base_path(info['port'])
-        if info['base_path'] != '/':
-            info['logs'].append(f"[emanator] Resolved preview path: {info['base_path']}")
+    # Once running, probe for valid base path (retry up to 5 times if fallback)
+    if status == 'running':
+        bp = info.get('base_path')
+        probe_count = info.get('_probe_count', 0)
+        if bp is None or (bp == '/' and probe_count < 5):
+            result = await _probe_preview_base_path(info['port'])
+            info['_probe_count'] = probe_count + 1
+            if result != '/':
+                info['base_path'] = result
+                info['logs'].append(f"[emanator] Resolved preview path: {result}")
+            elif probe_count >= 4:
+                info['base_path'] = '/'
+                info['logs'].append(f"[emanator] base_path=/ (no alternate path found after {probe_count + 1} probes)")
 
     return JSONResponse({
         "status": status,
