@@ -33,6 +33,7 @@ export default function GrowthPanel({ onClose }) {
   const [selectedPersonaId, setSelectedPersonaId] = useState(null) // null = "Auto"
   const [personaResults, setPersonaResults] = useState({}) // { personaKey: { opportunities, fixes, persona_name } }
   const [activeResultTab, setActiveResultTab] = useState(null) // which result tab is active
+  const [generatingDrafts, setGeneratingDrafts] = useState(false)
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -178,6 +179,31 @@ export default function GrowthPanel({ onClose }) {
       fetchPages()
     } catch {
       // silent
+    }
+  }
+
+  const handleGenerateDrafts = async () => {
+    if (!selectedPage?.id) return
+    setError(null)
+    setGeneratingDrafts(true)
+    try {
+      const payload = { page_id: selectedPage.id }
+      if (selectedPersonaId) payload.persona_id = selectedPersonaId
+      const res = await authFetch('/api/growth/generate-drafts', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify(payload),
+      })
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { setError(text.slice(0, 200) || 'Draft generation failed'); return }
+      if (!res.ok) { setError(data.error || 'Draft generation failed'); return }
+      setSelectedPage(prev => ({ ...prev, drafts: data.drafts }))
+      fetchPages()
+    } catch (err) {
+      setError(err.message || 'Network error')
+    } finally {
+      setGeneratingDrafts(false)
     }
   }
 
@@ -516,7 +542,7 @@ export default function GrowthPanel({ onClose }) {
                   </div>
                   <button
                     onClick={handleAnalyze}
-                    disabled={analyzing}
+                    disabled={analyzing || generatingDrafts}
                     className="shrink-0 em-btn-brand h-9 px-5 rounded-xl text-xs font-semibold flex items-center gap-2 disabled:opacity-40 transition-all duration-300"
                     data-testid="growth-analyze-btn"
                   >
@@ -524,6 +550,23 @@ export default function GrowthPanel({ onClose }) {
                       <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing...</>
                     ) : (
                       <><Sparkles className="w-3.5 h-3.5" />Analyze SEO</>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleGenerateDrafts}
+                    disabled={generatingDrafts || analyzing}
+                    className="shrink-0 h-9 px-5 rounded-xl text-xs font-semibold flex items-center gap-2 disabled:opacity-40 transition-all duration-300"
+                    style={{
+                      background: generatingDrafts ? 'rgba(52,211,153,0.15)' : 'linear-gradient(135deg, rgba(52,211,153,0.12) 0%, rgba(0,229,255,0.1) 100%)',
+                      border: '1px solid rgba(52,211,153,0.25)',
+                      color: '#34D399',
+                    }}
+                    data-testid="growth-generate-drafts-btn"
+                  >
+                    {generatingDrafts ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" />Drafting...</>
+                    ) : (
+                      <><FileSearch className="w-3.5 h-3.5" />Generate Drafts</>
                     )}
                   </button>
                 </div>
@@ -671,9 +714,73 @@ export default function GrowthPanel({ onClose }) {
                   </div>
                 </div>
               )}
+
+              {/* Marketing Drafts */}
+              {selectedPage?.drafts && (
+                <div className="space-y-3" data-testid="growth-drafts">
+                  <h3 className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Marketing Drafts</h3>
+
+                  {/* Social Post */}
+                  {selectedPage.drafts.social_post && (
+                    <DraftCard
+                      title="Social Post"
+                      gradient="linear-gradient(135deg, #7C3AED, #A78BFA)"
+                      fields={[
+                        { label: 'Headline', value: selectedPage.drafts.social_post.headline },
+                        { label: 'Body', value: selectedPage.drafts.social_post.body },
+                        { label: 'CTA', value: selectedPage.drafts.social_post.cta },
+                      ]}
+                    />
+                  )}
+
+                  {/* Search Ad */}
+                  {selectedPage.drafts.search_ad && (
+                    <DraftCard
+                      title="Search Ad"
+                      gradient="linear-gradient(135deg, #0EA5E9, #00E5FF)"
+                      fields={[
+                        { label: 'Headline 1', value: selectedPage.drafts.search_ad.headline_1, hint: 'max 30 chars' },
+                        { label: 'Headline 2', value: selectedPage.drafts.search_ad.headline_2, hint: 'max 30 chars' },
+                        { label: 'Description', value: selectedPage.drafts.search_ad.description, hint: 'max 90 chars' },
+                      ]}
+                    />
+                  )}
+
+                  {/* Email */}
+                  {selectedPage.drafts.email && (
+                    <DraftCard
+                      title="Email"
+                      gradient="linear-gradient(135deg, #F59E0B, #FBBF24)"
+                      fields={[
+                        { label: 'Subject', value: selectedPage.drafts.email.subject },
+                        { label: 'Preview Text', value: selectedPage.drafts.email.preview_text },
+                        { label: 'Body Intro', value: selectedPage.drafts.email.body_intro },
+                      ]}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function DraftCard({ title, gradient, fields }) {
+  return (
+    <div className="em-card overflow-hidden" data-testid={`growth-draft-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: '1px solid rgba(52,211,153,0.08)' }}>
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: gradient }}>
+          <FileSearch className="w-3 h-3 text-white" />
+        </div>
+        <span className="text-xs font-semibold text-[var(--em-text-primary)]">{title}</span>
+      </div>
+      <div className="px-5 py-4 space-y-4">
+        {fields.map(({ label, value, hint }) => (
+          value ? <FixRow key={label} label={label} value={value} charCount={!!hint} hint={hint} /> : null
+        ))}
       </div>
     </div>
   )

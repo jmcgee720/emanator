@@ -781,6 +781,215 @@ Return ONLY the JSON object, no markdown, no explanation."""
         return JSONResponse({"error": f"Analysis failed: {str(e)}"}, status_code=500)
 
 
+@app.post("/api/internal/growth/generate-drafts")
+async def growth_generate_drafts(request: Request):
+    """Generate marketing channel drafts from a stored page. Called internally by Next.js route.js."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    user_id = (body.get('user_id') or '').strip()
+    if not user_id:
+        return JSONResponse({"error": "user_id is required"}, status_code=400)
+
+    page_id = (body.get('page_id') or '').strip()
+    if not page_id:
+        return JSONResponse({"error": "page_id is required"}, status_code=400)
+
+    import json as json_module
+    from bson import ObjectId as BsonObjectId
+    try:
+        oid = BsonObjectId(page_id)
+    except Exception:
+        return JSONResponse({"error": "Invalid page_id"}, status_code=400)
+
+    db = get_db()
+    page = db['growth_pages'].find_one({'_id': oid, 'user_id': user_id})
+    if not page:
+        return JSONResponse({"error": "Page not found"}, status_code=404)
+
+    extracted = page.get('extracted_data', {})
+    opportunities = page.get('opportunities', {})
+    fixes = page.get('fixes', {})
+
+    # Headings
+    headings = extracted.get('headings', {})
+    current_h1 = ''
+    if 'h1' in headings and headings['h1']:
+        current_h1 = headings['h1'][0]
+
+    # Build persona context
+    persona_context = ""
+    persona_id_param = (body.get('persona_id') or '').strip()
+    try:
+        if persona_id_param:
+            from bson import ObjectId as BsonOidP
+            try:
+                p_oid = BsonOidP(persona_id_param)
+            except Exception:
+                return JSONResponse({"error": "Invalid persona_id"}, status_code=400)
+            p_doc = db["persona_profiles"].find_one(
+                {"_id": p_oid, "user_id": user_id},
+                {"_id": 0, "name": 1, "description": 1, "interests": 1, "platforms": 1, "content_types": 1}
+            )
+            if not p_doc:
+                return JSONResponse({"error": "Persona not found"}, status_code=404)
+            personas = [p_doc]
+        else:
+            personas = list(
+                db["persona_profiles"]
+                .find({"user_id": user_id}, {"_id": 0, "name": 1, "description": 1, "interests": 1, "platforms": 1, "content_types": 1})
+                .sort("performance_score", -1)
+                .limit(1)
+            )
+        if personas:
+            p = personas[0]
+            interests_str = ', '.join(p.get('interests', []))
+            platforms_str = ', '.join(p.get('platforms', []))
+            content_str = ', '.join(p.get('content_types', []))
+            persona_context = f"Target audience: {p['name']} — {p.get('description', '')}. Interests: {interests_str}. Platforms: {platforms_str}. Preferred content: {content_str}."
+    except Exception as e:
+        logger.warning(f"[Growth] Drafts persona fetch failed: {e}")
+
+    # Build trend context
+    trend_context = ""
+    try:
+        page_text = (
+            (extracted.get('title') or '') + ' ' +
+            (extracted.get('meta_description') or '') + ' ' +
+            ' '.join(h for hlist in headings.values() for h in hlist)
+        ).lower()
+        page_words = set(page_text.split())
+        recent_trends = list(
+            db["trend_signals"]
+            .find({}, {"_id": 0, "keyword": 1, "source": 1, "score": 1})
+            .sort("created_at", -1)
+            .limit(50)
+        )
+        scored = []
+        for t in recent_trends:
+            kw_words = set(t["keyword"].lower().split())
+            overlap = len(kw_words & page_words)
+            if overlap > 0:
+                scored.append((overlap * t.get("score", 1), t))
+        scored.sort(key=lambda x: -x[0])
+        top_trends = scored[:3]
+        if top_trends:
+            trend_lines = [f"- \"{t['keyword']}\" (score: {t['score']})" for _, t in top_trends]
+            trend_context = "Trending topics to reference if relevant:\n" + "\n".join(trend_lines)
+    except Exception as e:
+        logger.warning(f"[Growth] Drafts trend fetch failed: {e}")
+
+    # Build fixes context
+    fixes_context = ""
+    if fixes:
+        parts = []
+        if fixes.get('improved_title'):
+            parts.append(f"Improved title: {fixes['improved_title']}")
+        if fixes.get('improved_meta_description'):
+            parts.append(f"Improved meta description: {fixes['improved_meta_description']}")
+        if fixes.get('improved_h1'):
+            parts.append(f"Improved H1: {fixes['improved_h1']}")
+        if parts:
+            fixes_context = "SEO-optimized copy to draw from:\n" + "\n".join(parts)
+
+    # Build key issues summary
+    issues_summary = ""
+    if opportunities:
+        recs = opportunities.get('recommendations', [])
+        if recs:
+            issues_summary = "Top recommendations:\n" + "\n".join(f"- {r}" for r in recs[:3])
+
+    prompt = f"""You are a marketing copywriter. Generate marketing channel drafts for the webpage below.
+
+Return ONLY a JSON object with exactly this structure:
+{{
+  "social_post": {{
+    "headline": "short punchy headline (max 80 chars)",
+    "body": "engaging post body (max 280 chars, suitable for Twitter/LinkedIn)",
+    "cta": "call to action (max 40 chars)"
+  }},
+  "search_ad": {{
+    "headline_1": "Google Ads headline 1 (max 30 chars)",
+    "headline_2": "Google Ads headline 2 (max 30 chars)",
+    "description": "Google Ads description (max 90 chars)"
+  }},
+  "email": {{
+    "subject": "email subject line (max 60 chars)",
+    "preview_text": "email preview text (max 90 chars)",
+    "body_intro": "opening paragraph of the email (2-3 sentences)"
+  }}
+}}
+
+Page data:
+- URL: {page.get('url', 'unknown')}
+- Title: {extracted.get('title', 'MISSING')}
+- Meta Description: {extracted.get('meta_description', 'MISSING')}
+- H1: {current_h1 or 'MISSING'}
+- Word Count: {extracted.get('word_count', 0)}
+{persona_context}
+{trend_context}
+{fixes_context}
+{issues_summary}
+
+Rules:
+- Make drafts specific to the page content, not generic
+- Match tone to the audience persona if provided
+- Keep within character limits
+- Return ONLY the JSON object, no markdown, no explanation."""
+
+    try:
+        from emergentintegrations.llm.openai import LlmChat, UserMessage
+        import uuid
+
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            return JSONResponse({"error": "LLM key not configured"}, status_code=500)
+
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=str(uuid.uuid4()),
+            system_message="You are a marketing copywriter. Return only valid JSON, no markdown fences.",
+        )
+        chat = chat.with_model("openai", "gpt-4o")
+        chat = chat.with_params(temperature=0.7)
+
+        raw_text = await chat.send_message(UserMessage(text=prompt))
+        if raw_text.startswith('```'):
+            raw_text = raw_text.split('\n', 1)[-1]
+            if raw_text.endswith('```'):
+                raw_text = raw_text[:-3].strip()
+
+        drafts = json_module.loads(raw_text)
+
+        # Ensure expected shape
+        for key in ('social_post', 'search_ad', 'email'):
+            if key not in drafts:
+                drafts[key] = {}
+
+        # Store drafts on the page
+        db['growth_pages'].update_one(
+            {'_id': oid, 'user_id': user_id},
+            {'$set': {'drafts': drafts, 'drafts_generated_at': datetime.now(timezone.utc).isoformat(), 'updated_at': datetime.now(timezone.utc).isoformat()}}
+        )
+
+        logger.info(f"[Growth] Generated drafts for page {page_id}, user {user_id}")
+
+        return JSONResponse({
+            "success": True,
+            "page_id": page_id,
+            "drafts": drafts,
+        })
+
+    except json_module.JSONDecodeError as e:
+        logger.error(f"[Growth] Drafts AI returned invalid JSON: {e}")
+        return JSONResponse({"error": "AI returned invalid JSON, please retry"}, status_code=502)
+    except Exception as e:
+        logger.error(f"[Growth] Drafts generation error: {e}")
+        return JSONResponse({"error": f"Draft generation failed: {str(e)}"}, status_code=500)
+
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy_api(request: Request, path: str):
     """Proxy all /api/* requests to Next.js"""

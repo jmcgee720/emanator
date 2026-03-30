@@ -3211,6 +3211,43 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    if (route === '/growth/generate-drafts' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const body = await request.json()
+
+        if (body.persona_id) {
+          const { personaDb } = await import('@/lib/growth/service')
+          const personas = await personaDb.getPersonas(dbUser.id)
+          const owned = personas.some(p => p.id === body.persona_id)
+          if (!owned) {
+            return handleCORS(NextResponse.json({ error: 'Persona not found' }, { status: 404 }))
+          }
+        }
+
+        const res = await fetch('http://localhost:8001/api/internal/growth/generate-drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, user_id: dbUser.id }),
+        })
+        const data = await res.json()
+        return handleCORS(NextResponse.json(data, { status: res.status }))
+      } catch (err) {
+        console.error('[Growth] Generate drafts proxy error:', err)
+        return handleCORS(NextResponse.json({ error: 'Draft generation failed' }, { status: 500 }))
+      }
+    }
+
+
+
     if (route === '/growth/pages' && method === 'GET') {
       const authUser = await getAuthUser(request)
       if (!authUser) {
