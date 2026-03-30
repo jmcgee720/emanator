@@ -44,7 +44,8 @@ import {
   Shield,
   FlaskConical,
   Clock,
-  GitFork
+  GitFork,
+  Pencil
 } from 'lucide-react'
 import { BUILDER_MODES, getChatType, CHAT_TYPES, SELF_EDIT_PREFIX, SELF_EDIT_TARGETS } from '@/lib/constants'
 import MessageRenderer from './MessageRenderer'
@@ -63,10 +64,44 @@ const modeIcons = {
   document: FileText
 }
 
-function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, isSelfEdit }) {
+function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, onRenameChat, isSelfEdit }) {
   const [forking, setForking] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const renameRef = useRef(null)
   const displayTitle = isSelfEdit ? chat.title.replace(SELF_EDIT_PREFIX, '') : chat.title
   const isActive = selectedChat?.id === chat.id
+
+  useEffect(() => {
+    if (renaming && renameRef.current) {
+      renameRef.current.focus()
+      renameRef.current.select()
+    }
+  }, [renaming])
+
+  const submitRename = async () => {
+    const trimmed = renameValue.trim()
+    if (trimmed && trimmed !== chat.title) {
+      await onRenameChat(chat.id, trimmed)
+    }
+    setRenaming(false)
+  }
+
+  if (renaming) {
+    return (
+      <div className="flex items-center gap-1 px-2.5 py-1" data-testid={`chat-rename-${chat.id}`}>
+        <input
+          ref={renameRef}
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitRename(); if (e.key === 'Escape') setRenaming(false); }}
+          onBlur={submitRename}
+          className="flex-1 text-[11.5px] bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 outline-none focus:border-primary/40"
+        />
+      </div>
+    )
+  }
+
   return (
     <div
       data-testid={`chat-item-${chat.id}`}
@@ -91,6 +126,16 @@ function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, i
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation()
+              setRenameValue(chat.title)
+              setRenaming(true)
+            }}
+            data-testid={`rename-chat-${chat.id}`}
+          >
+            <Pencil className="w-4 h-4 mr-2" /> Rename
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={async (e) => {
               e.stopPropagation()
@@ -125,6 +170,7 @@ export default function LeftPanel({
   onCreateChat,
   onDeleteChat,
   onForkChat,
+  onRenameChat,
   onCreateSelfEditChat,
   selfEditTarget,
   selfEditTargets,
