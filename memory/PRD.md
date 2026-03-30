@@ -104,9 +104,8 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
-- P2: Refactor `app/api/[[...path]]/route.js` (~3900 lines) into smaller modules
+- P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
-- P3: Growth Engine: Multi-page batch crawl (auto-discover internal links from seed URL)
 
 ## Growth Engine MVP v1 — Backend + API (Mar 2026)
 - `POST /api/growth/crawl` (FastAPI): Accepts `{ url }`, normalizes URL, fetches HTML with 10s timeout, extracts SEO data via BeautifulSoup (title, meta, headings, word count, links, images, OG tags, canonical, robots), stores in MongoDB `growth_pages` with `user_id` from JWT
@@ -189,4 +188,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - **UI**: ThumbsFeedback component (thumbs up green / thumbs down red) on Fixes section header and each DraftCard (Social Post, Search Ad, Email). Persona sidebar items show score/count badges with color coding (green for positive, red for negative).
 - Tested: iteration_32.json (18/18 backend, 12/12 frontend — 100% pass rate)
 - Files: `lib/growth/service.js` (feedbackDb + updatePersonaScore), `route.js` (2 feedback routes), `GrowthPanel.jsx` (ThumbsFeedback + persona scores)
+
+## Multi-Page Batch Crawl v1 (Mar 2026) — COMPLETE
+- **Extended crawl endpoint**: `POST /api/internal/growth/crawl` now accepts `mode` (single|batch) and `max_pages` (1-25, default 10). Default mode=single preserves backward compatibility.
+- **BFS crawler**: Batch mode starts from seed URL, discovers internal links via `<a>` tags, stays on same hostname, skips non-HTML assets (images, PDFs, CSS, JS, etc.), deduplicates URLs (normalized without query/fragment), stops at max_pages, 10s timeout per page, best-effort (continues past failures).
+- **Helper refactor**: Extracted `_crawl_single_page()` async helper for reuse in both modes. Returns `internal_link_urls` for BFS discovery. Stores `crawl_mode` and `parent_seed_url` on each page document.
+- **route.js proxy**: Updated with AbortController — 180s timeout for batch vs 30s for single.
+- **UI**: Mode toggle (Single Page / Batch Crawl), max_pages input (only in batch mode), batch summary banner showing pages_saved/failed/attempted, button text updates per mode.
+- Tested: iteration_33.json (15/15 backend, 12/12 frontend — 100% pass rate)
+- Files: `server.py` (_crawl_single_page helper + batch BFS), `route.js` (timeout extension), `lib/growth/service.js` (projection update), `GrowthPanel.jsx` (mode toggle + summary banner)
 
