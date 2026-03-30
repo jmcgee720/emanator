@@ -160,3 +160,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - Tested: iteration_29.json (15/15 backend, 11/11 frontend — 100% pass rate)
 - Files: `server.py` (auto-seed + analyze injection), `lib/growth/service.js` (personaDb), `route.js` (3 routes), `GrowthPanel.jsx` (UI section)
 
+## Persona Switcher v1 (Mar 2026) — COMPLETE
+- **Analyze extension**: `POST /api/growth/analyze` accepts optional `persona_id`. If provided, fetches that specific persona and injects into AI prompt. If omitted, falls back to auto (highest performance_score).
+- **route.js validation**: Validates `persona_id` ownership (must belong to `dbUser.id`) before proxying to Python backend.
+- **Response**: Analyze response now includes `persona_name` field identifying which persona was used.
+- **UI Persona Dropdown**: Dropdown above Analyze button in GrowthPanel detail view. Shows "Auto (best persona)" + all user personas. Selection sets `persona_id` on analyze call.
+- **Comparison Tabs**: After analyzing with 2+ different personas, tabs appear above SEO Opportunities. Clicking tabs switches displayed opportunities and fixes. Switching pages clears comparison state.
+- Tested: iteration_30.json (11/11 backend, 10/10 frontend — 100% pass rate)
+- Files: `server.py` (persona_id in analyze), `route.js` (ownership validation), `GrowthPanel.jsx` (dropdown + comparison tabs)
+
