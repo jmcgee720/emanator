@@ -169,3 +169,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - Tested: iteration_30.json (11/11 backend, 10/10 frontend — 100% pass rate)
 - Files: `server.py` (persona_id in analyze), `route.js` (ownership validation), `GrowthPanel.jsx` (dropdown + comparison tabs)
 
+## Channel Drafts v1 (Mar 2026) — COMPLETE
+- **Endpoint**: `POST /api/internal/growth/generate-drafts` (Python) — builds rich prompt from page extracted_data + SEO fixes + persona + trends, calls GPT-4o, returns structured JSON
+- **Output structure**: `social_post` (headline, body, cta), `search_ad` (headline_1, headline_2, description), `email` (subject, preview_text, body_intro)
+- **Storage**: Stored as `drafts` + `drafts_generated_at` fields on `growth_pages` MongoDB document
+- **route.js**: `POST /growth/generate-drafts` with auth (getAuthUser + checkAllowlist + dbUser.id), validates persona ownership if persona_id provided
+- **UI**: "Generate Drafts" button next to "Analyze SEO" (green-cyan accent), "Marketing Drafts" section below Fixes with 3 DraftCards (Social Post, Search Ad, Email), each field has Copy button via reused FixRow component
+- **Persona support**: Accepts optional `persona_id` to tailor drafts to specific audience
+- Tested: iteration_31.json (12/12 backend, 12/12 frontend — 100% pass rate)
+- Files: `server.py` (new endpoint), `route.js` (new proxy route), `lib/growth/service.js` (updated projections), `GrowthPanel.jsx` (button + DraftCard + Marketing Drafts section)
+
