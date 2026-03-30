@@ -1219,28 +1219,71 @@ async def preview_start(request: Request):
         except Exception:
             pkg = {}
 
+        # ── Detect package manager from lockfiles ──
+        has_pnpm_lock = os.path.exists(os.path.join(preview_dir, 'pnpm-lock.yaml'))
+        has_yarn_lock = os.path.exists(os.path.join(preview_dir, 'yarn.lock'))
+        pkg_manager_field = pkg.get('packageManager', '')  # e.g. "pnpm@8.6.0"
+
+        if has_pnpm_lock or pkg_manager_field.startswith('pnpm'):
+            pm = 'pnpm'
+        elif has_yarn_lock or pkg_manager_field.startswith('yarn'):
+            pm = 'yarn'
+        else:
+            pm = 'npm'
+
+        # ── Build install command ──
+        if pm == 'pnpm':
+            install_cmd = 'pnpm install --no-frozen-lockfile'
+        elif pm == 'yarn':
+            install_cmd = 'yarn install --no-immutable'
+        else:
+            install_cmd = 'npm install --no-audit --no-fund'
+
+        # ── Build run command ──
         scripts = pkg.get('scripts', {})
         if 'dev' in scripts:
-            run_cmd = 'npm run dev'
+            run_cmd = f'{pm} run dev'
         elif 'start' in scripts:
-            run_cmd = 'npm start'
+            run_cmd = f'{pm} start' if pm == 'npm' else f'{pm} run start'
         elif pkg.get('main'):
             run_cmd = f"node {pkg['main']}"
         else:
             run_cmd = 'node index.js'
 
+        # ── Ensure package manager is available ──
+        ensure_pm = ''
+        if pm == 'pnpm':
+            ensure_pm = 'command -v pnpm >/dev/null 2>&1 || npm install -g pnpm 2>&1 && '
+        elif pm == 'yarn':
+            ensure_pm = 'command -v yarn >/dev/null 2>&1 || npm install -g yarn 2>&1 && '
+
         log_buffer.append(f'[emanator] Node.js project detected')
-        log_buffer.append(f'[emanator] Running: npm install && {run_cmd}')
+        log_buffer.append(f'[emanator] Package manager: {pm}')
+        log_buffer.append(f'[emanator] Install: {install_cmd}')
+        log_buffer.append(f'[emanator] Run: {run_cmd}')
         log_buffer.append(f'[emanator] Port: {port}')
         status_ref['status'] = 'installing'
 
-        cmd = f"cd {preview_dir} && npm install --no-audit --no-fund 2>&1 && PORT={port} {run_cmd} 2>&1"
+        # ── Environment: suppress husky, git hooks, and lifecycle side-effects ──
+        preview_env = {
+            **os.environ,
+            'PORT': str(port),
+            'NODE_ENV': 'development',
+            'HUSKY': '0',                    # husky v9+ skips install when HUSKY=0
+            'HUSKY_SKIP_INSTALL': '1',       # husky v4 compat
+            'CI': 'true',                    # many tools skip interactive/hooks in CI
+            'GIT_DIR': '',                   # prevent git lookups
+            'DISABLE_OPENCOLLECTIVE': 'true',
+            'ADBLOCK': 'true',
+        }
+
+        cmd = f"cd {preview_dir} && {ensure_pm}{install_cmd} --ignore-scripts 2>&1 && PORT={port} {run_cmd} 2>&1"
         try:
             process = subprocess.Popen(
                 cmd, shell=True,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, cwd=preview_dir,
-                env={**os.environ, 'PORT': str(port), 'NODE_ENV': 'development'},
+                env=preview_env,
             )
         except Exception as e:
             shutil.rmtree(preview_dir, ignore_errors=True)
