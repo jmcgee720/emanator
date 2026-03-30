@@ -1241,18 +1241,21 @@ async def preview_start(request: Request):
 
         # ── Build run command ──
         scripts = pkg.get('scripts', {})
-        run_cmd = None
+        # Identify which script was selected
+        selected_script = None
         for candidate in ('dev', 'start', 'preview', 'serve'):
             if candidate in scripts:
-                run_cmd = f'{pm} run {candidate}'
+                selected_script = candidate
                 break
 
-        if not run_cmd:
+        if not selected_script:
             shutil.rmtree(preview_dir, ignore_errors=True)
             return JSONResponse(
                 {"error": "No supported start script found in package.json (need dev, start, preview, or serve)"},
                 status_code=400,
             )
+
+        run_cmd = f'{pm} run {selected_script}'
 
         # ── Ensure package manager is available ──
         ensure_pm = ''
@@ -1263,6 +1266,7 @@ async def preview_start(request: Request):
 
         log_buffer.append(f'[emanator] Node.js project detected')
         log_buffer.append(f'[emanator] Package manager: {pm}')
+        log_buffer.append(f'[emanator] Selected script: {selected_script}')
         log_buffer.append(f'[emanator] Install: {install_cmd}')
         log_buffer.append(f'[emanator] Run: {run_cmd}')
         log_buffer.append(f'[emanator] Port: {port}')
