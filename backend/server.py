@@ -170,7 +170,7 @@ async def stripe_status(request: Request, session_id: str):
         if not txn:
             return JSONResponse({"error": "Transaction not found"}, status_code=404)
 
-        # Idempotent credit grant — only if status changed to paid and not already granted
+        # Idempotent status update — only mark paid, do NOT write credits here (user_id mismatch)
         if status.payment_status == 'paid' and txn.get('payment_status') != 'paid':
             db['payment_transactions'].update_one(
                 {'session_id': session_id, 'payment_status': {'$ne': 'paid'}},
@@ -180,23 +180,15 @@ async def stripe_status(request: Request, session_id: str):
                     'updated_at': datetime.now(timezone.utc).isoformat(),
                 }}
             )
-            # Add credits
-            credits_amount = txn['credits']
-            db['credits_balance'].update_one(
-                {'user_id': txn['user_id']},
-                {
-                    '$inc': {'balance': float(credits_amount)},
-                    '$set': {'updated_at': datetime.now(timezone.utc).isoformat()},
-                    '$setOnInsert': {'user_id': txn['user_id']},
-                },
-                upsert=True
-            )
-            logger.info(f"[Stripe] Credits granted: +{credits_amount} to user {txn['user_id']} (session {session_id})")
+            logger.info(f"[Stripe] Payment confirmed for session {session_id}, credits to grant: {txn['credits']}")
         elif status.status == 'expired':
             db['payment_transactions'].update_one(
                 {'session_id': session_id},
                 {'$set': {'payment_status': 'expired', 'status': 'expired', 'updated_at': datetime.now(timezone.utc).isoformat()}}
             )
+
+        # Tell the frontend whether it needs to call /api/credits/add
+        needs_grant = status.payment_status == 'paid' and not txn.get('credits_granted')
 
         return JSONResponse({
             "status": status.status,
@@ -205,6 +197,7 @@ async def stripe_status(request: Request, session_id: str):
             "currency": status.currency,
             "credits": txn['credits'],
             "granted": status.payment_status == 'paid',
+            "needs_credit_grant": needs_grant,
         })
 
     except Exception as e:
@@ -242,16 +235,7 @@ async def stripe_webhook(request: Request):
                         'updated_at': datetime.now(timezone.utc).isoformat(),
                     }}
                 )
-                db['credits_balance'].update_one(
-                    {'user_id': txn['user_id']},
-                    {
-                        '$inc': {'balance': float(txn['credits'])},
-                        '$set': {'updated_at': datetime.now(timezone.utc).isoformat()},
-                        '$setOnInsert': {'user_id': txn['user_id']},
-                    },
-                    upsert=True
-                )
-                logger.info(f"[Stripe Webhook] Credits granted: +{txn['credits']} to {txn['user_id']}")
+                logger.info(f"[Stripe Webhook] Payment confirmed for session {event.session_id}, credits pending frontend grant: {txn['credits']}")
             else:
                 logger.info(f"[Stripe Webhook] Skipped — already paid or not found")
 
@@ -260,6 +244,24 @@ async def stripe_webhook(request: Request):
     except Exception as e:
         logger.error(f"[Stripe Webhook] Error: {e}")
         return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.post("/api/stripe/confirm-credits/{session_id}")
+async def stripe_confirm_credits(request: Request, session_id: str):
+    """Mark credits as granted for a session (called by frontend after /api/credits/add succeeds)"""
+    user = _extract_user_from_token(request)
+    if not user:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    db = get_db()
+    result = db['payment_transactions'].update_one(
+        {'session_id': session_id, 'credits_granted': {'$ne': True}},
+        {'$set': {'credits_granted': True, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count > 0:
+        logger.info(f"[Stripe] Credits confirmed as granted for session {session_id}")
+    return JSONResponse({"confirmed": True})
+
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy_api(request: Request, path: str):
