@@ -102,9 +102,10 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Applied glass panel treatment (em-panel bg, backdrop-blur, violet borders, deep shadows) to SearchPanel
   - Files changed: `ChatComposer.jsx`, `ModelSelector.jsx`, `SearchPanel.jsx`
 - **Workspace Redirect Flicker Fix** (Mar 2026):
-  - Root cause: Project card `onClick` set `hubEntryRef.current = false`, causing async `loadProjectData` to auto-select a chat AFTER initial render showed ProjectHub (two-frame flicker: Hub → Chat)
-  - Fix: Changed `hubEntryRef.current = false` to `true` in project card click handler (line 2115 of Dashboard.jsx)
-  - Result: Clicking project tile → stable ProjectHub, no redirect. Import flow unaffected (uses separate code path with explicit `hubEntryRef = false`)
+  - Root cause: Click handler batched `setSelectedChat(null)` + `setSelectedProject(item)`, creating a transient render where `selectedProject` was set but `selectedChat` was null — the ternary rendered `<ProjectHub>` for one frame before async `loadProjectData` set the chat
+  - Fix: Added `projectSwitchingRef` guard. Set `true` in click handler, cleared after `loadProjectData` selects chat. Render condition: `!selectedChat && !projectSwitchingRef.current` → `<ProjectHub>`, else `null` during transition. Eliminates the intermediate ProjectHub frame.
+  - File: `Dashboard.jsx` (4 lines added: ref declaration, click handler flag, loadProjectData reset x2, render guard)
+  - Import flow unaffected (separate code path)
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
