@@ -3162,15 +3162,25 @@ async function handleRoute(request, { params }) {
 
       try {
         const body = await request.json()
+        const isBatch = body.mode === 'batch'
+        const controller = new AbortController()
+        const timeoutMs = isBatch ? 180000 : 30000
+        const timer = setTimeout(() => controller.abort(), timeoutMs)
+
         const res = await fetch('http://localhost:8001/api/internal/growth/crawl', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, user_id: dbUser.id }),
+          signal: controller.signal,
         })
+        clearTimeout(timer)
         const data = await res.json()
         return handleCORS(NextResponse.json(data, { status: res.status }))
       } catch (err) {
         console.error('[Growth] Crawl proxy error:', err)
+        if (err.name === 'AbortError') {
+          return handleCORS(NextResponse.json({ error: 'Batch crawl timed out' }, { status: 504 }))
+        }
         return handleCORS(NextResponse.json({ error: 'Crawl failed' }, { status: 500 }))
       }
     }

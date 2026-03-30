@@ -35,6 +35,9 @@ export default function GrowthPanel({ onClose }) {
   const [activeResultTab, setActiveResultTab] = useState(null) // which result tab is active
   const [generatingDrafts, setGeneratingDrafts] = useState(false)
   const [feedbackMap, setFeedbackMap] = useState({}) // { content_type: rating }
+  const [crawlMode, setCrawlMode] = useState('single')
+  const [maxPages, setMaxPages] = useState(10)
+  const [batchSummary, setBatchSummary] = useState(null)
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -112,11 +115,17 @@ export default function GrowthPanel({ onClose }) {
     if (!url.trim()) return
     setError(null)
     setCrawling(true)
+    setBatchSummary(null)
     try {
+      const payload = { url: url.trim() }
+      if (crawlMode === 'batch') {
+        payload.mode = 'batch'
+        payload.max_pages = maxPages
+      }
       const res = await authFetch('/api/growth/crawl', {
         method: 'POST',
         headers: JSON_HEADERS,
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify(payload),
       })
       const text = await res.text()
       let data
@@ -125,7 +134,15 @@ export default function GrowthPanel({ onClose }) {
       setUrl('')
       await fetchPages()
       if (data.seeded_personas && data.seeded_personas.length > 0) fetchPersonas()
-      if (data.page_id) {
+
+      if (data.mode === 'batch') {
+        setBatchSummary({
+          seed_url: data.seed_url,
+          pages_saved: data.pages_saved,
+          pages_failed: data.pages_failed,
+          pages_attempted: data.pages_attempted,
+        })
+      } else if (data.page_id) {
         const pageRes = await authFetch(`/api/growth/pages/${data.page_id}`)
         const pageData = await pageRes.json()
         if (pageData.page) { setSelectedPage(pageData.page); loadFeedback(pageData.page.id) }
@@ -300,29 +317,91 @@ export default function GrowthPanel({ onClose }) {
                 data-testid="growth-url-input"
               />
             </div>
+
+            {/* Crawl Mode Toggle */}
+            <div className="flex items-center gap-2" data-testid="crawl-mode-selector">
+              <button
+                onClick={() => { setCrawlMode('single'); setBatchSummary(null) }}
+                className="flex-1 h-7 rounded-lg text-[10px] font-semibold transition-all duration-200"
+                style={{
+                  background: crawlMode === 'single' ? 'rgba(0,229,255,0.12)' : 'transparent',
+                  border: crawlMode === 'single' ? '1px solid rgba(0,229,255,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                  color: crawlMode === 'single' ? 'var(--em-cyan)' : 'var(--em-text-muted)',
+                }}
+                data-testid="crawl-mode-single"
+              >
+                Single Page
+              </button>
+              <button
+                onClick={() => setCrawlMode('batch')}
+                className="flex-1 h-7 rounded-lg text-[10px] font-semibold transition-all duration-200"
+                style={{
+                  background: crawlMode === 'batch' ? 'rgba(124,58,237,0.12)' : 'transparent',
+                  border: crawlMode === 'batch' ? '1px solid rgba(124,58,237,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                  color: crawlMode === 'batch' ? 'var(--em-violet)' : 'var(--em-text-muted)',
+                }}
+                data-testid="crawl-mode-batch"
+              >
+                Batch Crawl
+              </button>
+            </div>
+
+            {crawlMode === 'batch' && (
+              <div className="flex items-center gap-2" data-testid="batch-max-pages">
+                <span className="text-[10px] text-[var(--em-text-muted)] whitespace-nowrap">Max pages:</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={25}
+                  value={maxPages}
+                  onChange={(e) => setMaxPages(Math.min(25, Math.max(2, parseInt(e.target.value) || 10)))}
+                  className="w-16 bg-transparent text-xs text-[var(--em-text-primary)] outline-none px-2 py-1 rounded-lg text-center"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.12)' }}
+                  data-testid="batch-max-pages-input"
+                />
+              </div>
+            )}
+
             <button
               onClick={handleCrawl}
               disabled={crawling || !url.trim()}
               className="w-full h-9 rounded-xl text-xs font-semibold transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
-                background: crawling ? 'rgba(0,229,255,0.15)' : 'linear-gradient(135deg, rgba(0,229,255,0.15) 0%, rgba(124,58,237,0.12) 100%)',
-                border: '1px solid rgba(0,229,255,0.25)',
-                color: 'var(--em-cyan)',
+                background: crawling ? 'rgba(0,229,255,0.15)' : crawlMode === 'batch'
+                  ? 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(0,229,255,0.12) 100%)'
+                  : 'linear-gradient(135deg, rgba(0,229,255,0.15) 0%, rgba(124,58,237,0.12) 100%)',
+                border: crawlMode === 'batch' ? '1px solid rgba(124,58,237,0.25)' : '1px solid rgba(0,229,255,0.25)',
+                color: crawlMode === 'batch' ? 'var(--em-violet)' : 'var(--em-cyan)',
               }}
               data-testid="growth-crawl-btn"
             >
               {crawling ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Crawling...
+                  {crawlMode === 'batch' ? 'Batch Crawling...' : 'Crawling...'}
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   <Search className="w-3.5 h-3.5" />
-                  Crawl & Extract
+                  {crawlMode === 'batch' ? `Batch Crawl (up to ${maxPages})` : 'Crawl & Extract'}
                 </span>
               )}
             </button>
+
+            {/* Batch Summary Banner */}
+            {batchSummary && (
+              <div className="p-3 rounded-xl space-y-1" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }} data-testid="batch-summary">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[11px] font-semibold text-emerald-300">Batch Crawl Complete</span>
+                </div>
+                <div className="flex gap-4 text-[10px]">
+                  <span className="text-[var(--em-text-muted)]">Saved: <span className="font-bold text-emerald-400">{batchSummary.pages_saved}</span></span>
+                  {batchSummary.pages_failed > 0 && <span className="text-[var(--em-text-muted)]">Failed: <span className="font-bold text-red-400">{batchSummary.pages_failed}</span></span>}
+                  <span className="text-[var(--em-text-muted)]">Attempted: <span className="font-bold text-[var(--em-text-secondary)]">{batchSummary.pages_attempted}</span></span>
+                </div>
+              </div>
+            )}
             {error && (
               <div className="flex items-start gap-2 p-2.5 rounded-lg bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.15)]" data-testid="growth-error">
                 <AlertCircle className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
