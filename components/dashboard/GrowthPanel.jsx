@@ -40,6 +40,7 @@ export default function GrowthPanel({ onClose }) {
   const [batchSummary, setBatchSummary] = useState(null)
   const [pagesView, setPagesView] = useState('list') // 'list' | 'map'
   const [batchProgress, setBatchProgress] = useState(null) // { pages_attempted, pages_saved, pages_failed, max_pages, current_url }
+  const [bulkAnalyzeProgress, setBulkAnalyzeProgress] = useState(null) // { current, total, currentTitle }
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -216,6 +217,23 @@ export default function GrowthPanel({ onClose }) {
     } catch {
       // silent
     }
+  }
+
+  const handleBulkAnalyze = async () => {
+    const unanalyzed = pages.filter(p => !p.opportunities)
+    if (!unanalyzed.length) return
+    setBulkAnalyzeProgress({ current: 0, total: unanalyzed.length, currentTitle: '' })
+    for (let i = 0; i < unanalyzed.length; i++) {
+      const page = unanalyzed[i]
+      setBulkAnalyzeProgress({ current: i + 1, total: unanalyzed.length, currentTitle: page.extracted_data?.title || page.url })
+      try {
+        const payload = { page_id: page.id }
+        if (selectedPersonaId) payload.persona_id = selectedPersonaId
+        await authFetch('/api/growth/analyze', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(payload) })
+      } catch { /* continue on error */ }
+    }
+    await fetchPages()
+    setBulkAnalyzeProgress(null)
   }
 
   const handleGenerateDrafts = async () => {
@@ -477,6 +495,39 @@ export default function GrowthPanel({ onClose }) {
 
           {/* Divider */}
           <div className="mx-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,229,255,0.12), rgba(124,58,237,0.08), transparent)' }} />
+
+          {/* Bulk Analyze */}
+          {pages.length > 1 && !bulkAnalyzeProgress && (() => {
+            const unanalyzed = pages.filter(p => !p.opportunities).length
+            return unanalyzed > 0 ? (
+              <div className="px-4 py-1.5">
+                <button
+                  onClick={handleBulkAnalyze}
+                  disabled={crawling || analyzing}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 disabled:opacity-40"
+                  style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', color: 'var(--em-violet)' }}
+                  data-testid="bulk-analyze-btn"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Analyze All ({unanalyzed} unanalyzed)
+                </button>
+              </div>
+            ) : null
+          })()}
+          {bulkAnalyzeProgress && (
+            <div className="px-4 py-1.5">
+              <div className="p-3 rounded-xl space-y-2" style={{ background: 'rgba(124,58,237,0.04)', border: '1px solid rgba(124,58,237,0.12)' }} data-testid="bulk-analyze-progress">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin text-[var(--em-violet)]" />
+                  <span className="text-[11px] font-semibold text-[var(--em-violet)]">Analyzing {bulkAnalyzeProgress.current} / {bulkAnalyzeProgress.total}</span>
+                </div>
+                <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.round((bulkAnalyzeProgress.current / bulkAnalyzeProgress.total) * 100)}%`, background: 'var(--em-violet)' }} />
+                </div>
+                <p className="text-[9px] text-[var(--em-text-muted)] truncate" style={{ opacity: 0.6 }}>{bulkAnalyzeProgress.currentTitle}</p>
+              </div>
+            </div>
+          )}
 
           {/* Pages Header with View Toggle */}
           <div className="flex items-center justify-between px-4 py-2">
