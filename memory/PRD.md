@@ -36,13 +36,9 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Right panel: file count, conversation count, last updated, framework, credits, delete action
   - File: `/app/components/dashboard/ProjectHub.jsx`
   - Bug fix: Hero prompt submit button was non-functional (only triggered aurora animation). Wired `handleHeroPromptSubmit` to create project, added Enter key handler, disabled state when empty/submitting.
-- **H7.6: GitHub Repository Import — PAT-based** (Mar 2026):
-  - Part 1: Import UI — "Import from GitHub" in modal with PAT, repo (owner/repo), branch fields
-  - Part 2: Backend `POST /api/import/github` fetches repo tree via GitHub REST API, filters node_modules/.git/build
-  - Part 3: Reuses ZIP pipeline — framework detection, file type detection, project creation, canvas, initial chat
-  - Part 4: Stores repo_url, branch, last_commit_sha in project.settings for sync
-  - Part 5: `POST /api/import/github/sync` — Pull Latest compares SHA, upserts changed files
-  - ProjectHub "Pull Latest" button active for GitHub-imported projects, disabled for others
+- **H8.2: GitHub Import (PAT)** (Mar 2026) — COMPLETE
+  - Import UI, backend, branch resolution, response parsing, repo normalization, import button scope fix
+  - Verified: button works from all views, repo parsing, branch resolution, project+files created
 - **Aurora UI Polish** (Mar 2026): Dimmed dashboard variant, desynchronized veil animations
 - **Hero Prompt Fix** (Mar 2026): Wired submit, Enter key, voice dictation, messagesReadyTick handoff
 - **BUILD Intent Streaming Fix** (Mar 2026):
@@ -53,31 +49,8 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Root cause: Health check misclassified Anthropic billing error (HTTP 400 "credit balance too low") as `auth_issue` because `msg.includes('invalid')` matched `"invalid_request_error"` in the error JSON
   - Fix 1: `route.js` — Reordered health-check conditions so billing/credit is checked before `invalid` keyword; narrowed auth check to `invalid api key`/`invalid x-api-key`
   - Fix 2: `ModelSelector.jsx` — Made `billing_issue` selectable (not disabled) since the key IS valid, just low on credits
-- **H8.1: Stripe Integration** (Mar 2026):
-  - Server: `POST /api/stripe/checkout` (creates Stripe Checkout session via `emergentintegrations`)
-  - Server: `GET /api/stripe/status/{session_id}` (polls payment, grants credits idempotently)
-  - Server: `POST /api/webhook/stripe` (handles `checkout.session.completed`, grants credits)
-  - Packages: starter ($10→100), pro ($45→500), ultra ($80→1000)
-  - Idempotent: `payment_transactions` collection with unique `session_id` index, `$ne: 'paid'` guard
-  - Frontend: Credits modal buttons redirect to Stripe Checkout, return polling confirms payment
-- **GitHub Import Branch Resolution Fix** (Mar 2026):
-  - Root cause (import): Old code passed branch name directly to `/git/commits/{branch}` which expects a 40-char SHA
-  - Fix (import): Added `/branches/{name}` API call to resolve branch name → commit SHA before tree fetch; falls back to repo default branch on 404
-  - Root cause (sync): `commitData` referenced on tree fetch line but only defined in SHA else-block; undefined for branch names
-  - Fix (sync): Replaced `commitData.commit.tree.sha` with `syncTreeSha` variable that's set in both code paths
-  - Files changed: `app/api/[[...path]]/route.js`
-- **GitHub Import Response Parsing Fix** (Mar 2026):
-  - Root cause: Frontend called `res.json()` unconditionally; upstream timeouts (Cloudflare/ingress) return HTML error pages, causing `JSON.parse` failure
-  - Fix 1 (frontend): Read response as text first, safe-parse with `JSON.parse`, surface raw text on failure instead of cryptic parse error
-  - Fix 2 (proxy): `server.py` proxy wraps non-JSON upstream responses in JSON error objects; catches `response.json()` failures gracefully
-  - Applied to both import and sync handlers in `Dashboard.jsx`
-  - Files changed: `components/dashboard/Dashboard.jsx`, `backend/server.py`
-- **GitHub Import Repo Parsing Normalization** (Mar 2026):
-  - Root cause: Backend only accepted `owner/repo` format; error handler returned generic "Branch not found" without the actual GitHub API error message, masking auth/permission issues (e.g., 403)
-  - Fix 1 (backend): Added repo normalization — strips `.git`, trailing slash, extracts `owner/repo` from full GitHub URLs
-  - Fix 2 (backend): Error handler now surfaces actual GitHub API error message instead of generic "Branch not found"
-  - Fix 3 (frontend): Relaxed validation regex to accept both `owner/repo` and `https://github.com/owner/repo` formats
-  - Files changed: `app/api/[[...path]]/route.js`, `components/dashboard/Dashboard.jsx`
+- **H8.1: Stripe Integration** (Mar 2026) — COMPLETE
+  - Checkout, status polling, webhook, credit packages, idempotent payments
 
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
@@ -200,13 +173,7 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 
 
 
-## GitHub Import — Import Button Fix (Mar 2026) — COMPLETE
-- **Root cause**: Import Modal JSX was scoped inside `renderProjectGrid()`, only called when `!selectedProject`. In project/chat views, clicking Import toggled state but the modal never mounted.
-- **Fix**: Moved Import Modal to top-level return of Dashboard component so it renders in all views.
-- **File**: `components/dashboard/Dashboard.jsx`
-
-## Deploy Tab Fix (Mar 2026) — COMPLETE
-- **Root cause**: `db.deployments` was referenced in route.js but never defined in `lib/supabase/db.js`. Both GET and POST deployment endpoints crashed, returning error objects that DeployTab rendered as "Invalid Date".
-- **Fix**: Replaced crashing endpoints with safe stubs (GET returns `[]`, POST returns 501). Disabled Vercel deploy button with "Not Yet Available" label. Guarded date rendering with null check. Deploy is clearly marked as Phase 2 placeholder.
-- **Files**: `route.js` (safe deployment stubs), `DeployTab.jsx` (disabled button, date guard)
-- Tested: Screenshot verification — Import modal opens correctly from project/chat view.
+## Deploy Tab Placeholder (Mar 2026)
+- Deploy is Phase 2 — not part of current acceptance
+- Endpoints return safe stubs (GET `[]`, POST 501)
+- UI: Deploy button disabled, labeled "Not Yet Available"
