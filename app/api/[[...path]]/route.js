@@ -3187,6 +3187,17 @@ async function handleRoute(request, { params }) {
 
       try {
         const body = await request.json()
+
+        // Validate persona ownership if persona_id provided
+        if (body.persona_id) {
+          const { personaDb } = await import('@/lib/growth/service')
+          const personas = await personaDb.getPersonas(dbUser.id)
+          const owned = personas.some(p => p.id === body.persona_id)
+          if (!owned) {
+            return handleCORS(NextResponse.json({ error: 'Persona not found' }, { status: 404 }))
+          }
+        }
+
         const res = await fetch('http://localhost:8001/api/internal/growth/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

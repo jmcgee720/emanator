@@ -644,15 +644,34 @@ async def growth_analyze(request: Request):
 
     # Inject persona context
     persona_context = ""
+    persona_name_used = None
+    persona_id_param = (body.get('persona_id') or '').strip()
     try:
-        personas = list(
-            db["persona_profiles"]
-            .find({"user_id": user_id}, {"_id": 0, "name": 1, "description": 1, "interests": 1, "platforms": 1})
-            .sort("performance_score", -1)
-            .limit(1)
-        )
+        if persona_id_param:
+            # Specific persona requested
+            from bson import ObjectId as BsonOidPersona
+            try:
+                p_oid = BsonOidPersona(persona_id_param)
+            except Exception:
+                return JSONResponse({"error": "Invalid persona_id"}, status_code=400)
+            p_doc = db["persona_profiles"].find_one(
+                {"_id": p_oid, "user_id": user_id},
+                {"_id": 0, "name": 1, "description": 1, "interests": 1, "platforms": 1}
+            )
+            if not p_doc:
+                return JSONResponse({"error": "Persona not found"}, status_code=404)
+            personas = [p_doc]
+        else:
+            # Auto: pick highest performance_score
+            personas = list(
+                db["persona_profiles"]
+                .find({"user_id": user_id}, {"_id": 0, "name": 1, "description": 1, "interests": 1, "platforms": 1})
+                .sort("performance_score", -1)
+                .limit(1)
+            )
         if personas:
             p = personas[0]
+            persona_name_used = p['name']
             interests_str = ', '.join(p.get('interests', []))
             platforms_str = ', '.join(p.get('platforms', []))
             persona_context = f"\n\nTarget audience: {p['name']} — {p.get('description', '')}. Interests: {interests_str}. Platforms: {platforms_str}.\nTailor your recommendations to resonate with this audience."
@@ -751,6 +770,7 @@ Return ONLY the JSON object, no markdown, no explanation."""
             "page_id": page_id,
             "opportunities": opportunities,
             "fixes": fixes,
+            "persona_name": persona_name_used,
         })
 
     except json_module.JSONDecodeError as e:
