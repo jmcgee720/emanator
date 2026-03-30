@@ -30,7 +30,7 @@ function classifyProject(files) {
   }
 
   // Check for package.json → Node project requiring execution
-  const hasPackageJson = codeFiles.some(f => f.path === 'package.json')
+  const hasPackageJson = codeFiles.some(f => f.path === 'package.json' || f.path?.endsWith('/package.json'))
   if (hasPackageJson) {
     return { type: 'node', files: codeFiles }
   }
@@ -387,7 +387,7 @@ function NodePreviewRunner({ project, files, onLog }) {
   const isStopped = status === 'stopped'
 
   // Detect framework from package.json
-  const pkgFile = files?.find(f => f.path === 'package.json')
+  const pkgFile = files?.find(f => f.path === 'package.json' || f.path?.endsWith('/package.json'))
   let frameworkLabel = 'Node.js'
   if (pkgFile?.content) {
     try {
@@ -576,7 +576,8 @@ export default function PreviewTab({ project, files, onLog }) {
         p.endsWith('.js') ||
         p.endsWith('.css') ||
         p.endsWith('.html') ||
-        p === 'package.json'
+        p === 'package.json' ||
+        p.endsWith('/package.json')
       ) &&
       !p.includes('lib/self_builder') &&
       !p.includes('supabase') &&
