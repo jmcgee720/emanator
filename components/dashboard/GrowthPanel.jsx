@@ -39,6 +39,7 @@ export default function GrowthPanel({ onClose }) {
   const [maxPages, setMaxPages] = useState(10)
   const [batchSummary, setBatchSummary] = useState(null)
   const [pagesView, setPagesView] = useState('list') // 'list' | 'map'
+  const [batchProgress, setBatchProgress] = useState(null) // { pages_attempted, pages_saved, pages_failed, max_pages, current_url }
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -117,6 +118,20 @@ export default function GrowthPanel({ onClose }) {
     setError(null)
     setCrawling(true)
     setBatchSummary(null)
+    setBatchProgress(null)
+
+    // Start polling for batch mode
+    let pollInterval = null
+    if (crawlMode === 'batch') {
+      pollInterval = setInterval(async () => {
+        try {
+          const r = await authFetch('/api/growth/crawl/progress')
+          const p = await r.json()
+          if (p.active) setBatchProgress(p)
+        } catch { /* ignore */ }
+      }, 1500)
+    }
+
     try {
       const payload = { url: url.trim() }
       if (crawlMode === 'batch') {
@@ -151,7 +166,9 @@ export default function GrowthPanel({ onClose }) {
     } catch (err) {
       setError(err.message || 'Network error')
     } finally {
+      if (pollInterval) clearInterval(pollInterval)
       setCrawling(false)
+      setBatchProgress(null)
     }
   }
 
@@ -417,6 +434,24 @@ export default function GrowthPanel({ onClose }) {
                 </span>
               )}
             </button>
+
+            {/* Live Batch Progress */}
+            {batchProgress && (
+              <div className="p-3 rounded-xl space-y-2" style={{ background: 'rgba(0,229,255,0.04)', border: '1px solid rgba(0,229,255,0.12)' }} data-testid="batch-progress">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin text-[var(--em-cyan)]" />
+                  <span className="text-[11px] font-semibold text-[var(--em-cyan)]">Crawling {batchProgress.pages_attempted} / {batchProgress.max_pages}</span>
+                </div>
+                <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.round((batchProgress.pages_attempted / batchProgress.max_pages) * 100)}%`, background: 'var(--em-cyan)' }} />
+                </div>
+                <div className="flex gap-4 text-[10px]">
+                  <span className="text-[var(--em-text-muted)]">Saved: <span className="font-bold text-emerald-400">{batchProgress.pages_saved}</span></span>
+                  {batchProgress.pages_failed > 0 && <span className="text-[var(--em-text-muted)]">Failed: <span className="font-bold text-red-400">{batchProgress.pages_failed}</span></span>}
+                </div>
+                <p className="text-[9px] text-[var(--em-text-muted)] truncate" style={{ opacity: 0.6 }}>{batchProgress.current_url}</p>
+              </div>
+            )}
 
             {/* Batch Summary Banner */}
             {batchSummary && (

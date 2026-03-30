@@ -121,6 +121,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Also refactored page selection into shared `selectPage` helper
 - **Debug Cleanup** (Mar 2026):
   - Removed 2 diagnostic console.logs and 1 visible "Resolved Preview URL" debug banner from PreviewTab.jsx
+- **Real-time Batch Crawl Progress** (Mar 2026):
+  - Backend: `_crawl_progress` dict updated per-page in BFS loop, GET `/api/internal/growth/crawl/progress` endpoint
+  - Route proxy: `/growth/crawl/progress` GET added in route.js
+  - Frontend: 1.5s poll during batch crawl, progress banner with spinner, X/Y counter, cyan progress bar, saved count, current URL
+  - Auto-clears on completion, replaced by existing "Batch Crawl Complete" summary
+  - Files: server.py, route.js, GrowthPanel.jsx
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
