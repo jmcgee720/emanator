@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://luxury-minimal-ui-1.preview.emergentagent.com"
+BASE_URL = "https://emanator-core.preview.emergentagent.com"
 AUTH_EMAIL = "testprov@test.com"
 AUTH_PASSWORD = "password123"
 

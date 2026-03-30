@@ -139,6 +139,8 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Downloads `growth-export-YYYY-MM-DD.json` with full page data: extracted data, analysis/opportunities, fixes, marketing drafts, hierarchy relationships
   - Backend: `getAllPagesFull()` in service.js (one query, no projection), `/growth/pages/export` GET route in route.js
   - Files: service.js, route.js, GrowthPanel.jsx
+- **AI Bot Persona Update** (Mar 2026): Changed system prompt to casual peer-developer tone. No more formal consultant language. File: `lib/ai/context.js`
+- **Hero Prompt Title Fix** (Mar 2026): Hero prompt now creates projects named "New Project" instead of using raw prompt text as title. File: `Dashboard.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)

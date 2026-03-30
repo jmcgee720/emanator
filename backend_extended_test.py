@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Base URL from environment
-BASE_URL = "https://luxury-minimal-ui-1.preview.emergentagent.com/api"
+BASE_URL = "https://emanator-core.preview.emergentagent.com/api"
 
 # Test configuration
 HEADERS = {

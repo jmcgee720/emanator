@@ -1658,10 +1658,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     setHeroSubmitting(true)
     try {
-      const projectName = text.length > 60 ? text.slice(0, 57) + '...' : text
       const type = projectMode === 'sandbox' ? 'sandbox' : 'app'
       pendingHeroPromptRef.current = text
-      await createProject(projectName, type)
+      await createProject('New Project', type)
       setPromptInput('')
       aurora.triggerEnergyFlow?.()
     } catch (error) {
