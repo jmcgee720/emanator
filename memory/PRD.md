@@ -101,6 +101,10 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Applied `em-elevated-interactive` to SearchPanel result cards
   - Applied glass panel treatment (em-panel bg, backdrop-blur, violet borders, deep shadows) to SearchPanel
   - Files changed: `ChatComposer.jsx`, `ModelSelector.jsx`, `SearchPanel.jsx`
+- **Workspace Redirect Flicker Fix** (Mar 2026):
+  - Root cause: Project card `onClick` set `hubEntryRef.current = false`, causing async `loadProjectData` to auto-select a chat AFTER initial render showed ProjectHub (two-frame flicker: Hub → Chat)
+  - Fix: Changed `hubEntryRef.current = false` to `true` in project card click handler (line 2115 of Dashboard.jsx)
+  - Result: Clicking project tile → stable ProjectHub, no redirect. Import flow unaffected (uses separate code path with explicit `hubEntryRef = false`)
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
