@@ -141,6 +141,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Files: service.js, route.js, GrowthPanel.jsx
 - **AI Bot Persona Update** (Mar 2026): Changed system prompt to casual peer-developer tone. No more formal consultant language. File: `lib/ai/context.js`
 - **Hero Prompt Title Fix** (Mar 2026): Hero prompt now creates projects named "New Project" instead of using raw prompt text as title. File: `Dashboard.jsx`
+- **ProjectHub UI Cleanup** (Mar 2026):
+  - Tech badge: "node" now displays as "Node.js"
+  - Removed Credits section from right details panel
+  - Reduced emphasis on "Created X ago" secondary text (smaller size, lower opacity, tighter spacing)
+  - Normalized quick action card icons (w-8 h-8 containers, w-3.5 h-3.5 icons), consistent Aurora glass hover (cyan border, subtle lift + glow)
+  - Style-only; no logic changes. File: `ProjectHub.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)

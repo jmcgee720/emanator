@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, Layers, ArrowLeft, ChevronRight, FolderOpen, GitBranch, Zap, Hash, Calendar, Code2, Activity, Trash2, Pencil } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, Layers, ArrowLeft, ChevronRight, FolderOpen, GitBranch, Hash, Calendar, Code2, Activity, Trash2, Pencil } from 'lucide-react'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -29,7 +29,6 @@ export default function ProjectHub({
   onOpenImport,
   onSyncRepo,
   onRenameChat,
-  creditsBalance,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
   const [renamingId, setRenamingId] = useState(null)
@@ -77,7 +76,7 @@ export default function ProjectHub({
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm font-medium em-text-primary truncate" data-testid="hub-project-name">{project?.name}</span>
           <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[rgba(0,229,255,0.08)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.15)] shrink-0">
-            {framework}
+            {framework === 'node' ? 'Node.js' : framework}
           </span>
         </div>
       </div>
@@ -165,20 +164,20 @@ export default function ProjectHub({
         <div className="flex-1 overflow-y-auto" data-testid="hub-center-panel">
           <div className="max-w-2xl mx-auto px-8 py-8">
             {/* Project Title */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-semibold em-text-primary tracking-tight mb-2" data-testid="hub-title">
+            <div className="mb-6">
+              <h1 className="text-2xl font-semibold em-text-primary tracking-tight mb-1.5" data-testid="hub-title">
                 {project?.name}
               </h1>
               <div className="flex items-center gap-3">
                 <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[rgba(0,229,255,0.08)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.12)]">
-                  {framework}
+                  {framework === 'node' ? 'Node.js' : framework}
                 </span>
                 {project?.settings?.is_sandbox && (
                   <span className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     Sandbox
                   </span>
                 )}
-                <span className="text-[11px] em-text-muted">
+                <span className="text-[10px] em-text-muted opacity-70">
                   Created {formatRelativeTime(project?.created_at)}
                 </span>
               </div>
@@ -190,11 +189,11 @@ export default function ProjectHub({
               <div className="grid grid-cols-2 gap-3" data-testid="hub-quick-actions">
                 <button
                   onClick={handleOpenLatestChat}
-                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] hover:shadow-[0_0_20px_rgba(0,229,255,0.06)] transition-all duration-200"
+                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] hover:shadow-[0_4px_24px_rgba(0,229,255,0.08)] hover:-translate-y-px transition-all duration-200"
                   data-testid="hub-action-open-chat"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0 group-hover:border-[rgba(0,229,255,0.30)] transition-all">
-                    <MessageSquare className="w-4 h-4 text-[var(--em-cyan)]" />
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0 group-hover:border-[rgba(0,229,255,0.30)] transition-all">
+                    <MessageSquare className="w-3.5 h-3.5 text-[var(--em-cyan)]" />
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">Open Workspace</div>
@@ -206,11 +205,11 @@ export default function ProjectHub({
 
                 <button
                   onClick={onCreateChat}
-                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(255,255,255,0.22)] transition-all duration-200"
+                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] hover:shadow-[0_4px_24px_rgba(0,229,255,0.08)] hover:-translate-y-px transition-all duration-200"
                   data-testid="hub-action-new-chat"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0 group-hover:border-[rgba(255,255,255,0.22)] transition-all">
-                    <Plus className="w-4 h-4 em-text-secondary" />
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0 group-hover:border-[rgba(0,229,255,0.20)] group-hover:bg-[rgba(0,229,255,0.06)] transition-all">
+                    <Plus className="w-3.5 h-3.5 em-text-secondary group-hover:text-[var(--em-cyan)] transition-colors" />
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">New Chat</div>
@@ -220,11 +219,11 @@ export default function ProjectHub({
 
                 <button
                   onClick={onOpenImport}
-                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(255,255,255,0.22)] transition-all duration-200"
+                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] hover:shadow-[0_4px_24px_rgba(0,229,255,0.08)] hover:-translate-y-px transition-all duration-200"
                   data-testid="hub-action-import"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0 group-hover:border-[rgba(255,255,255,0.22)] transition-all">
-                    <FolderOpen className="w-4 h-4 em-text-secondary" />
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center shrink-0 group-hover:border-[rgba(0,229,255,0.20)] group-hover:bg-[rgba(0,229,255,0.06)] transition-all">
+                    <FolderOpen className="w-3.5 h-3.5 em-text-secondary group-hover:text-[var(--em-cyan)] transition-colors" />
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">Import Files</div>
@@ -236,16 +235,16 @@ export default function ProjectHub({
                   onClick={isGithubProject ? onSyncRepo : undefined}
                   disabled={!isGithubProject}
                   className={`group flex items-center gap-3 p-4 rounded-xl em-glass transition-all duration-200 ${
-                    isGithubProject ? 'hover:border-[rgba(168,85,247,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.06)]' : 'opacity-50 cursor-not-allowed'
+                    isGithubProject ? 'hover:border-[rgba(168,85,247,0.25)] hover:shadow-[0_4px_24px_rgba(168,85,247,0.08)] hover:-translate-y-px' : 'opacity-50 cursor-not-allowed'
                   }`}
                   data-testid="hub-action-pull"
                 >
-                  <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                  <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
                     isGithubProject
                       ? 'bg-[rgba(168,85,247,0.08)] border-[rgba(168,85,247,0.15)] group-hover:border-[rgba(168,85,247,0.30)]'
                       : 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.12)]'
                   }`}>
-                    <GitBranch className={`w-4 h-4 ${isGithubProject ? 'text-purple-400' : 'em-text-secondary'}`} />
+                    <GitBranch className={`w-3.5 h-3.5 ${isGithubProject ? 'text-purple-400' : 'em-text-secondary'}`} />
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">Pull Latest</div>
@@ -354,7 +353,7 @@ export default function ProjectHub({
 
               <div className="flex items-center justify-between">
                 <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Code2 className="w-3 h-3" /> Framework</span>
-                <span className="text-[10px] font-medium em-text-primary">{framework}</span>
+                <span className="text-[10px] font-medium em-text-primary">{framework === 'node' ? 'Node.js' : framework}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -397,21 +396,6 @@ export default function ProjectHub({
                 </div>
               )}
             </div>
-
-            {/* Divider */}
-            <div className="h-px bg-[rgba(255,255,255,0.06)] mb-4" />
-
-            {/* Credits */}
-            {creditsBalance !== null && (
-              <div className="mb-5">
-                <h4 className="text-[9px] font-semibold uppercase tracking-wider em-text-muted mb-2">Credits</h4>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)]" />
-                  <span className="text-sm font-semibold em-gradient-text">{creditsBalance?.toFixed?.(2) ?? '—'}</span>
-                  <span className="text-[9px] em-text-muted">available</span>
-                </div>
-              </div>
-            )}
 
             {/* Divider */}
             <div className="h-px bg-[rgba(255,255,255,0.06)] mb-4" />
