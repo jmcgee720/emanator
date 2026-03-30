@@ -179,3 +179,14 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - Tested: iteration_31.json (12/12 backend, 12/12 frontend — 100% pass rate)
 - Files: `server.py` (new endpoint), `route.js` (new proxy route), `lib/growth/service.js` (updated projections), `GrowthPanel.jsx` (button + DraftCard + Marketing Drafts section)
 
+## Performance Scoring v1 (Mar 2026) — COMPLETE
+- **MongoDB collection**: `growth_feedback` — user_id, page_id, persona_id (nullable), content_type (seo_analysis|fixes|social_post|search_ad|email), rating (+1/-1), created_at. Unique compound index on (user_id, page_id, content_type, persona_id) for upsert.
+- **Routes** (route.js):
+  - `POST /api/growth/feedback` — Submit thumbs up/down, validates content_type and rating, upserts feedback, updates persona performance_score atomically via $inc
+  - `GET /api/growth/feedback/:page_id` — Returns all feedback for a page
+- **Service** (lib/growth/service.js): `feedbackDb.submitFeedback()` (upsert with delta calc), `feedbackDb.getFeedback()`, `personaDb.updatePersonaScore()` (atomic $inc on performance_score + feedback_count)
+- **Auto mode integration**: Analyze and generate-drafts already sort personas by performance_score desc — highest-scoring persona is preferred in Auto mode
+- **UI**: ThumbsFeedback component (thumbs up green / thumbs down red) on Fixes section header and each DraftCard (Social Post, Search Ad, Email). Persona sidebar items show score/count badges with color coding (green for positive, red for negative).
+- Tested: iteration_32.json (18/18 backend, 12/12 frontend — 100% pass rate)
+- Files: `lib/growth/service.js` (feedbackDb + updatePersonaScore), `route.js` (2 feedback routes), `GrowthPanel.jsx` (ThumbsFeedback + persona scores)
+
