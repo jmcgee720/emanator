@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, CreditCard, Upload, Sun, BarChart3 } from 'lucide-react'
+import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3 } from 'lucide-react'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -51,18 +51,9 @@ export default function TopBar({
 
   return (
     <div className="h-12 em-glass-topbar flex items-center justify-between px-5" data-testid="top-bar">
-      {/* Brand + breadcrumb */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center">
-          <EmanatorLogo className="h-7 w-auto object-contain" />
-        </div>
-        
-        {selectedProject && (
-          <>
-            <span className="em-text-muted text-xs select-none">/</span>
-            <span className="text-xs em-text-secondary font-medium truncate max-w-[180px]">{selectedProject.name}</span>
-          </>
-        )}
+      {/* Brand */}
+      <div className="flex items-center">
+        <EmanatorLogo className="h-7 w-auto object-contain" />
       </div>
 
       {/* Actions */}
@@ -75,9 +66,9 @@ export default function TopBar({
         )}
 
         {/* Credits display */}
-        <div className="flex items-center gap-1 mr-1" data-testid="credits-display">
-          <CreditCard className="w-3 h-3 text-[var(--em-cyan)]" />
-          <span className="text-xs font-semibold text-[var(--em-text-primary)]">{creditsBalance !== null && creditsBalance !== undefined ? Number(creditsBalance).toFixed(2) : '—'}</span>
+        <div className="flex items-center gap-1.5 mr-1" data-testid="credits-display" style={{ filter: 'drop-shadow(0 0 6px rgba(0,229,255,0.25))' }}>
+          <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)]" />
+          <span className="text-sm font-bold em-gradient-text">{creditsBalance !== null && creditsBalance !== undefined ? Number(creditsBalance).toFixed(2) : '—'}</span>
         </div>
 
         {/* Buy Credits button */}

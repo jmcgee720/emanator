@@ -147,6 +147,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Reduced emphasis on "Created X ago" secondary text (smaller size, lower opacity, tighter spacing)
   - Normalized quick action card icons (w-8 h-8 containers, w-3.5 h-3.5 icons), consistent Aurora glass hover (cyan border, subtle lift + glow)
   - Style-only; no logic changes. File: `ProjectHub.jsx`
+- **TopBar Header Cleanup** (Mar 2026):
+  - Removed project name breadcrumb (`/ Project Name`) from main header — logo only on the left
+  - Credits display restyled: Zap icon + Aurora gradient text (`em-gradient-text`) + cyan drop-shadow glow
+  - Buy Credits button unchanged; no other header items modified
+  - Style-only; no logic changes. File: `TopBar.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
