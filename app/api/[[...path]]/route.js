@@ -3116,6 +3116,76 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // ============ GROWTH ENGINE CRUD ============
+
+    if (route === '/growth/pages' && method === 'GET') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const { growthDb } = await import('@/lib/growth/service')
+        const pages = await growthDb.getPages(authUser.id)
+        return handleCORS(NextResponse.json({ pages }))
+      } catch (err) {
+        console.error('[Growth] List pages error:', err)
+        return handleCORS(NextResponse.json({ error: 'Failed to list pages' }, { status: 500 }))
+      }
+    }
+
+    if (route.match(/^\/growth\/pages\/[^/]+$/) && method === 'GET') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      const pageId = route.split('/').pop()
+      try {
+        const { growthDb } = await import('@/lib/growth/service')
+        const page = await growthDb.getPage(pageId, authUser.id)
+        if (!page) {
+          return handleCORS(NextResponse.json({ error: 'Page not found' }, { status: 404 }))
+        }
+        return handleCORS(NextResponse.json({ page }))
+      } catch (err) {
+        console.error('[Growth] Get page error:', err)
+        return handleCORS(NextResponse.json({ error: 'Failed to get page' }, { status: 500 }))
+      }
+    }
+
+    if (route.match(/^\/growth\/pages\/[^/]+$/) && method === 'DELETE') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      const pageId = route.split('/').pop()
+      try {
+        const { growthDb } = await import('@/lib/growth/service')
+        const deleted = await growthDb.deletePage(pageId, authUser.id)
+        if (!deleted) {
+          return handleCORS(NextResponse.json({ error: 'Page not found' }, { status: 404 }))
+        }
+        return handleCORS(NextResponse.json({ success: true }))
+      } catch (err) {
+        console.error('[Growth] Delete page error:', err)
+        return handleCORS(NextResponse.json({ error: 'Failed to delete page' }, { status: 500 }))
+      }
+    }
+
     // ============ GITHUB IMPORT (PAT-based) ============
 
     if (route === '/import/github' && method === 'POST') {
