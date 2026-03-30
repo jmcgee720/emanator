@@ -14,7 +14,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cawmmqakaxbznbelcrwd.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22'
-const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://luxury-minimal-ui-1.preview.emergentagent.com'
+const API_BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://emanator-core.preview.emergentagent.com'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 

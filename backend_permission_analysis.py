@@ -19,7 +19,7 @@ import requests
 import json
 
 # Test configuration
-BASE_URL = "https://luxury-minimal-ui-1.preview.emergentagent.com/api"
+BASE_URL = "https://emanator-core.preview.emergentagent.com/api"
 
 class PermissionAnalysis:
     def __init__(self):
