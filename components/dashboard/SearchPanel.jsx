@@ -68,10 +68,10 @@ export default function SearchPanel({ onClose, onSelectProject, onSelectChat }) 
     (results.files?.length || 0) : 0
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed inset-x-0 top-0 bg-background border-b border-border/50 shadow-xl shadow-black/20 max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-[rgba(7,7,30,0.85)] backdrop-blur-xl">
+      <div className="fixed inset-x-0 top-0 bg-[var(--em-panel)] backdrop-blur-[32px] border-b border-[rgba(124,58,237,0.15)] shadow-[0_12px_80px_rgba(0,0,0,0.25),0_2px_30px_rgba(0,0,0,0.15)] max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-border/40">
+        <div className="p-4 border-b border-[rgba(124,58,237,0.12)]">
           <div className="flex items-center gap-3">
             <Search className="w-5 h-5 text-muted-foreground" />
             <Input
@@ -79,7 +79,7 @@ export default function SearchPanel({ onClose, onSelectProject, onSelectChat }) 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1 bg-muted/50"
+              className="flex-1 em-input"
               autoFocus
             />
             <Button onClick={handleSearch} disabled={searching || query.length < 2}>
@@ -131,7 +131,7 @@ export default function SearchPanel({ onClose, onSelectProject, onSelectChat }) 
                       {results.projects.map((project) => (
                         <div
                           key={project.id}
-                          className="p-3 rounded-lg bg-muted/20 hover:bg-muted/35 cursor-pointer transition-colors"
+                          className="p-3 rounded-lg em-elevated-interactive cursor-pointer"
                           data-testid={`search-project-${project.id}`}
                           onClick={() => onSelectProject(project)}
                         >
@@ -156,7 +156,7 @@ export default function SearchPanel({ onClose, onSelectProject, onSelectChat }) 
                         return (
                           <div
                             key={chat.id}
-                            className="p-3 rounded-lg bg-muted/20 hover:bg-muted/35 cursor-pointer transition-colors"
+                            className="p-3 rounded-lg em-elevated-interactive cursor-pointer"
                             data-testid={`search-chat-${chat.id}`}
                             onClick={() => onSelectChat?.(chat, proj)}
                           >
@@ -196,7 +196,7 @@ export default function SearchPanel({ onClose, onSelectProject, onSelectChat }) 
                         return (
                           <div
                             key={message.id}
-                            className="p-3 rounded-lg bg-muted/20 hover:bg-muted/35 cursor-pointer transition-colors"
+                            className="p-3 rounded-lg em-elevated-interactive cursor-pointer"
                             data-testid={`search-message-${message.id}`}
                             onClick={() => proj && onSelectProject(proj)}
                           >
@@ -236,7 +236,7 @@ export default function SearchPanel({ onClose, onSelectProject, onSelectChat }) 
                         return (
                           <div
                             key={file.id}
-                            className="p-3 rounded-lg bg-muted/20 hover:bg-muted/35 cursor-pointer transition-colors"
+                            className="p-3 rounded-lg em-elevated-interactive cursor-pointer"
                             data-testid={`search-file-${file.id}`}
                             onClick={() => proj && onSelectProject(proj)}
                           >

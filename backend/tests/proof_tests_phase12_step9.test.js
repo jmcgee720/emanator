@@ -15,7 +15,7 @@
  *   /app/components/dashboard/BuilderMemory.jsx
  *
  * Test Environment:
- *   URL: https://project-runner-48.preview.emergentagent.com
+ *   URL: https://luxury-minimal-ui-1.preview.emergentagent.com
  *   Auth: testprov@test.com / password123  (Supabase)
  */
 
@@ -33,7 +33,7 @@ jest.mock('../../lib/supabase/db', () => ({
 }))
 
 /* ──────────────────────── constants ──────────────────────── */
-const BASE_URL       = 'https://project-runner-48.preview.emergentagent.com'
+const BASE_URL       = 'https://luxury-minimal-ui-1.preview.emergentagent.com'
 const SUPABASE_URL   = 'https://cawmmqakaxbznbelcrwd.supabase.co'
 const SUPABASE_KEY   = 'sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22'
 const TEST_EMAIL     = 'testprov@test.com'

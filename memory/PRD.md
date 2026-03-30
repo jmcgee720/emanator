@@ -95,7 +95,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/backend/server.py` — FastAPI reverse proxy, Stripe, Growth, Preview runner
 
 ## Backlog
-- P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
+- **P1 DONE: Aurora Design Tokens on Core UI** (Mar 2026):
+  - Applied `em-input` to ChatComposer textarea and SearchPanel search input
+  - Applied `em-btn-ghost` glass-morphism to ModelSelector trigger button
+  - Applied `em-elevated-interactive` to SearchPanel result cards
+  - Applied glass panel treatment (em-panel bg, backdrop-blur, violet borders, deep shadows) to SearchPanel
+  - Files changed: `ChatComposer.jsx`, `ModelSelector.jsx`, `SearchPanel.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
