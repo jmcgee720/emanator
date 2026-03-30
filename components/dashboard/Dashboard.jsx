@@ -314,9 +314,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setGithubRepo('')
       setGithubBranch('main')
 
-      // Go directly to workspace for the new project (skip hub)
-      hubEntryRef.current = false
-      importChatTitleRef.current = 'Imported Project'
+      // Go to project hub for the imported project
+      hubEntryRef.current = true
       setSelectedChat(null)
       setMessages([])
       setSelectedProject(data.project)
@@ -390,7 +389,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const hubEntryRef = useRef(false)
   const importChatTitleRef = useRef(null)
   const pendingHeroPromptRef = useRef(null)
-  const projectSwitchingRef = useRef(false)
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -547,9 +545,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           await autoCreateChat(projectId, chatTitle)
         }
       }
-      projectSwitchingRef.current = false
     } catch (error) {
-      projectSwitchingRef.current = false
       console.error('Error loading chats:', error)
       addLog('error', `Failed to load chats: ${error.message}`)
     }
@@ -2115,8 +2111,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   key={item.id}
                   className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer"
                   onClick={() => {
-                    hubEntryRef.current = false
-                    projectSwitchingRef.current = true
+                    hubEntryRef.current = true
                     setBuilderMode('app')
                     setSelectedChat(null)
                     setMessages([])
@@ -2548,7 +2543,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       {!selectedProject ? (
         renderProjectGrid()
       ) : !selectedChat ? (
-        projectSwitchingRef.current ? null : <ProjectHub
+        <ProjectHub
           project={selectedProject}
           chats={chats}
           files={files}
