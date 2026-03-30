@@ -3116,7 +3116,57 @@ async function handleRoute(request, { params }) {
       }
     }
 
-    // ============ GROWTH ENGINE CRUD ============
+    // ============ GROWTH ENGINE ============
+
+    if (route === '/growth/crawl' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const body = await request.json()
+        const res = await fetch('http://localhost:8001/api/internal/growth/crawl', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, user_id: dbUser.id }),
+        })
+        const data = await res.json()
+        return handleCORS(NextResponse.json(data, { status: res.status }))
+      } catch (err) {
+        console.error('[Growth] Crawl proxy error:', err)
+        return handleCORS(NextResponse.json({ error: 'Crawl failed' }, { status: 500 }))
+      }
+    }
+
+    if (route === '/growth/analyze' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) {
+        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      }
+
+      try {
+        const body = await request.json()
+        const res = await fetch('http://localhost:8001/api/internal/growth/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, user_id: dbUser.id }),
+        })
+        const data = await res.json()
+        return handleCORS(NextResponse.json(data, { status: res.status }))
+      } catch (err) {
+        console.error('[Growth] Analyze proxy error:', err)
+        return handleCORS(NextResponse.json({ error: 'Analysis failed' }, { status: 500 }))
+      }
+    }
 
     if (route === '/growth/pages' && method === 'GET') {
       const authUser = await getAuthUser(request)
@@ -3130,7 +3180,7 @@ async function handleRoute(request, { params }) {
 
       try {
         const { growthDb } = await import('@/lib/growth/service')
-        const pages = await growthDb.getPages(authUser.id)
+        const pages = await growthDb.getPages(dbUser.id)
         return handleCORS(NextResponse.json({ pages }))
       } catch (err) {
         console.error('[Growth] List pages error:', err)
@@ -3151,7 +3201,7 @@ async function handleRoute(request, { params }) {
       const pageId = route.split('/').pop()
       try {
         const { growthDb } = await import('@/lib/growth/service')
-        const page = await growthDb.getPage(pageId, authUser.id)
+        const page = await growthDb.getPage(pageId, dbUser.id)
         if (!page) {
           return handleCORS(NextResponse.json({ error: 'Page not found' }, { status: 404 }))
         }
@@ -3175,7 +3225,7 @@ async function handleRoute(request, { params }) {
       const pageId = route.split('/').pop()
       try {
         const { growthDb } = await import('@/lib/growth/service')
-        const deleted = await growthDb.deletePage(pageId, authUser.id)
+        const deleted = await growthDb.deletePage(pageId, dbUser.id)
         if (!deleted) {
           return handleCORS(NextResponse.json({ error: 'Page not found' }, { status: 404 }))
         }
