@@ -102,6 +102,16 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/backend/server.py` — FastAPI reverse proxy & Stripe endpoints
 
 ## Backlog
+- P0: Growth Engine UI (GrowthPanel component wired to Dashboard)
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
+
+## Growth Engine MVP v1 — Backend + API (Mar 2026)
+- `POST /api/growth/crawl` (FastAPI): Accepts `{ url }`, normalizes URL, fetches HTML with 10s timeout, extracts SEO data via BeautifulSoup (title, meta, headings, word count, links, images, OG tags, canonical, robots), stores in MongoDB `growth_pages` with `user_id` from JWT
+- `POST /api/growth/analyze` (FastAPI): Accepts `{ page_id }`, fetches stored page, sends extracted data to GPT-4o via Emergent LLM Key (LlmChat), returns structured opportunities `{ title_issues, meta_issues, content_issues, structure_issues, recommendations }`, stores result in MongoDB
+- `GET /api/growth/pages` (Next.js route.js): Lists user's crawled pages with auth (getAuthUser + checkAllowlist), uses `authUser.id` (Supabase auth UUID) to match MongoDB `user_id`
+- `GET /api/growth/pages/:id` (Next.js route.js): Returns single page with full extracted_data + opportunities, ownership enforced
+- `DELETE /api/growth/pages/:id` (Next.js route.js): Deletes page, ownership enforced
+- MongoDB service: `lib/growth/service.js` — savePage, getPages, getPage, saveOpportunities, deletePage
+- Key detail: `user_id` uses Supabase auth UUID (JWT `sub`), NOT `public.users.id` — these differ. Python endpoints and JS CRUD routes both use `authUser.id`/JWT `sub` for consistency.
