@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -81,7 +81,7 @@ export default function GrowthPanel({ onClose }) {
       let data
       try { data = JSON.parse(text) } catch { setError(text.slice(0, 200) || 'Analysis failed'); return }
       if (!res.ok) { setError(data.error || 'Analysis failed'); return }
-      setSelectedPage(prev => ({ ...prev, opportunities: data.opportunities }))
+      setSelectedPage(prev => ({ ...prev, opportunities: data.opportunities, fixes: data.fixes }))
       fetchPages()
     } catch (err) {
       setError(err.message || 'Network error')
@@ -386,6 +386,32 @@ export default function GrowthPanel({ onClose }) {
                   </p>
                 </div>
               )}
+
+              {/* Fixes */}
+              {selectedPage.fixes && Object.keys(selectedPage.fixes).length > 0 && (
+                <div className="space-y-3" data-testid="growth-fixes">
+                  <h3 className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Ready-to-Use Fixes</h3>
+                  <div className="em-card overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: '1px solid rgba(0,229,255,0.08)' }}>
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #00E5FF, #34D399)' }}>
+                        <Sparkles className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-xs font-semibold text-[var(--em-text-primary)]">AI-Generated Improvements</span>
+                    </div>
+                    <div className="px-5 py-4 space-y-4">
+                      {selectedPage.fixes.improved_title && (
+                        <FixRow label="Improved Title" value={selectedPage.fixes.improved_title} charCount hint="50-60 chars" />
+                      )}
+                      {selectedPage.fixes.improved_meta_description && (
+                        <FixRow label="Improved Meta Description" value={selectedPage.fixes.improved_meta_description} charCount hint="140-160 chars" />
+                      )}
+                      {selectedPage.fixes.improved_h1 && (
+                        <FixRow label="Improved H1" value={selectedPage.fixes.improved_h1} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -418,3 +444,57 @@ function MetaRow({ label, value, length, ideal }) {
     </div>
   )
 }
+
+function FixRow({ label, value, charCount, hint }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea')
+      ta.value = value
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div data-testid={`growth-fix-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-widest font-semibold text-[var(--em-text-muted)]">{label}</span>
+          {charCount && (
+            <span className="text-[10px] tabular-nums text-[var(--em-text-muted)]" style={{ opacity: 0.5 }}>
+              {value.length} chars {hint && `(ideal: ${hint})`}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all duration-200"
+          style={{
+            background: copied ? 'rgba(52,211,153,0.1)' : 'rgba(0,229,255,0.06)',
+            border: `1px solid ${copied ? 'rgba(52,211,153,0.2)' : 'rgba(0,229,255,0.12)'}`,
+            color: copied ? '#34D399' : 'var(--em-cyan)',
+          }}
+          data-testid={`growth-copy-${label.toLowerCase().replace(/\s+/g, '-')}`}
+        >
+          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <div className="p-3 rounded-lg" style={{ background: 'rgba(0,229,255,0.03)', border: '1px solid rgba(0,229,255,0.08)' }}>
+        <p className="text-xs text-[var(--em-text-primary)] leading-relaxed">{value}</p>
+      </div>
+    </div>
+  )
+}
+
