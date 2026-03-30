@@ -1366,3 +1366,45 @@ input:-webkit-autofill:active {
 .canvas-item {
   @apply bg-muted/40 rounded-lg p-3 mb-2;
 }
+
+
+
+/* ══════════════════════════════════════════════════════
+   GROWTH ENGINE — Luxury Minimal AI
+   ══════════════════════════════════════════════════════ */
+
+.growth-metric-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.growth-metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.2) 30%,
+    rgba(124, 58, 237, 0.15) 70%,
+    transparent
+  );
+}
+
+.growth-icon-glow {
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.08);
+}
+
+.growth-issue-section {
+  transition: border-color 250ms ease, box-shadow 250ms ease;
+}
+
+.growth-issue-section:hover {
+  border-color: rgba(0, 229, 255, 0.18);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.2),
+    0 0 30px rgba(0, 229, 255, 0.03);
+}
