@@ -3137,9 +3137,16 @@ async function handleRoute(request, { params }) {
           return handleCORS(NextResponse.json({ error: 'Personal Access Token and repository (owner/repo) are required' }, { status: 400 }))
         }
 
-        const repoMatch = repo.match(/^([^/]+)\/([^/]+)$/)
+        // Normalize repo input: support full URLs and shorthand
+        let normalizedRepo = repo.trim()
+          .replace(/\.git$/, '')
+          .replace(/\/$/, '')
+        const urlMatch = normalizedRepo.match(/^https?:\/\/github\.com\/([^/]+\/[^/]+)/)
+        if (urlMatch) normalizedRepo = urlMatch[1]
+
+        const repoMatch = normalizedRepo.match(/^([^/]+)\/([^/]+)$/)
         if (!repoMatch) {
-          return handleCORS(NextResponse.json({ error: 'Repository must be in format owner/repo' }, { status: 400 }))
+          return handleCORS(NextResponse.json({ error: 'Repository must be in format owner/repo or a GitHub URL' }, { status: 400 }))
         }
 
         const [, owner, repoName] = repoMatch
@@ -3163,7 +3170,8 @@ async function handleRoute(request, { params }) {
             branchRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/branches/${resolvedBranch}`, { headers: ghHeaders })
           }
           if (!branchRes.ok) {
-            return handleCORS(NextResponse.json({ error: `Branch not found: ${owner}/${repoName}@${resolvedBranch}` }, { status: 404 }))
+            const errBody = await branchRes.json().catch(() => ({}))
+            return handleCORS(NextResponse.json({ error: errBody.message || `Branch not found: ${owner}/${repoName}@${resolvedBranch}` }, { status: branchRes.status }))
           }
           const branchData = await branchRes.json()
           commitSha = branchData.commit.sha

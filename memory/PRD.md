@@ -72,6 +72,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Fix 2 (proxy): `server.py` proxy wraps non-JSON upstream responses in JSON error objects; catches `response.json()` failures gracefully
   - Applied to both import and sync handlers in `Dashboard.jsx`
   - Files changed: `components/dashboard/Dashboard.jsx`, `backend/server.py`
+- **GitHub Import Repo Parsing Normalization** (Mar 2026):
+  - Root cause: Backend only accepted `owner/repo` format; error handler returned generic "Branch not found" without the actual GitHub API error message, masking auth/permission issues (e.g., 403)
+  - Fix 1 (backend): Added repo normalization — strips `.git`, trailing slash, extracts `owner/repo` from full GitHub URLs
+  - Fix 2 (backend): Error handler now surfaces actual GitHub API error message instead of generic "Branch not found"
+  - Fix 3 (frontend): Relaxed validation regex to accept both `owner/repo` and `https://github.com/owner/repo` formats
+  - Files changed: `app/api/[[...path]]/route.js`, `components/dashboard/Dashboard.jsx`
 
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
