@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -25,6 +25,45 @@ export default function GrowthPanel({ onClose }) {
   const [error, setError] = useState(null)
   const [trends, setTrends] = useState([])
   const [fetchingTrends, setFetchingTrends] = useState(false)
+  const [personas, setPersonas] = useState([])
+  const [showPersonaForm, setShowPersonaForm] = useState(false)
+  const [newPersonaName, setNewPersonaName] = useState('')
+  const [newPersonaDesc, setNewPersonaDesc] = useState('')
+  const [creatingPersona, setCreatingPersona] = useState(false)
+
+  const fetchPersonas = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/personas')
+      const data = await res.json()
+      if (data.personas) setPersonas(data.personas)
+    } catch {}
+  }, [])
+
+  const handleCreatePersona = async () => {
+    if (!newPersonaName.trim()) return
+    setCreatingPersona(true)
+    try {
+      const res = await authFetch('/api/personas/create', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ name: newPersonaName.trim(), description: newPersonaDesc.trim() }),
+      })
+      if (res.ok) {
+        setNewPersonaName('')
+        setNewPersonaDesc('')
+        setShowPersonaForm(false)
+        fetchPersonas()
+      }
+    } catch {}
+    setCreatingPersona(false)
+  }
+
+  const handleDeletePersona = async (personaId) => {
+    try {
+      await authFetch(`/api/personas/${personaId}`, { method: 'DELETE' })
+      fetchPersonas()
+    } catch {}
+  }
 
   const fetchPages = useCallback(async () => {
     setLoadingPages(true)
@@ -40,6 +79,8 @@ export default function GrowthPanel({ onClose }) {
   }, [])
 
   useEffect(() => { fetchPages() }, [fetchPages])
+
+  useEffect(() => { fetchPersonas() }, [fetchPersonas])
 
   useEffect(() => {
     authFetch('/api/trends')
@@ -78,6 +119,7 @@ export default function GrowthPanel({ onClose }) {
       if (!res.ok) { setError(data.error || 'Crawl failed'); return }
       setUrl('')
       await fetchPages()
+      if (data.seeded_personas && data.seeded_personas.length > 0) fetchPersonas()
       if (data.page_id) {
         const pageRes = await authFetch(`/api/growth/pages/${data.page_id}`)
         const pageData = await pageRes.json()
@@ -270,6 +312,92 @@ export default function GrowthPanel({ onClose }) {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Divider */}
+          <div className="mx-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.12), rgba(0,229,255,0.08), transparent)' }} />
+
+          {/* Personas Section */}
+          <div className="shrink-0 border-t border-[rgba(255,255,255,0.06)]">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <Users className="w-3 h-3 text-[var(--em-violet)]" style={{ opacity: 0.6 }} />
+                <span className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Personas</span>
+                {personas.length > 0 && (
+                  <span className="text-[9px] font-bold tabular-nums rounded px-1 py-0.5" style={{ background: 'rgba(124,58,237,0.1)', color: 'var(--em-violet)' }}>
+                    {personas.length}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowPersonaForm(prev => !prev)}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md transition-all duration-200 hover:bg-[rgba(124,58,237,0.08)]"
+                style={{ color: 'var(--em-violet)', opacity: 0.7 }}
+                data-testid="persona-add-btn"
+              >
+                {showPersonaForm ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+              </button>
+            </div>
+
+            {showPersonaForm && (
+              <div className="px-3 pb-2 space-y-2" data-testid="persona-form">
+                <input
+                  type="text"
+                  value={newPersonaName}
+                  onChange={(e) => setNewPersonaName(e.target.value)}
+                  placeholder="Persona name..."
+                  className="w-full bg-transparent text-xs text-[var(--em-text-primary)] placeholder:text-[var(--em-text-muted)] outline-none px-3 py-2 rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.12)' }}
+                  data-testid="persona-name-input"
+                />
+                <input
+                  type="text"
+                  value={newPersonaDesc}
+                  onChange={(e) => setNewPersonaDesc(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreatePersona()}
+                  placeholder="Description (optional)..."
+                  className="w-full bg-transparent text-xs text-[var(--em-text-primary)] placeholder:text-[var(--em-text-muted)] outline-none px-3 py-2 rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.12)' }}
+                  data-testid="persona-desc-input"
+                />
+                <button
+                  onClick={handleCreatePersona}
+                  disabled={creatingPersona || !newPersonaName.trim()}
+                  className="w-full h-7 rounded-lg text-[10px] font-semibold transition-all duration-200 disabled:opacity-30"
+                  style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.2)', color: 'var(--em-violet)' }}
+                  data-testid="persona-create-btn"
+                >
+                  {creatingPersona ? 'Creating...' : 'Create Persona'}
+                </button>
+              </div>
+            )}
+
+            <div className="px-3 pb-3 space-y-1 max-h-36 overflow-y-auto" data-testid="persona-list">
+              {personas.length === 0 ? (
+                <p className="text-[10px] text-[var(--em-text-muted)] text-center py-2" style={{ opacity: 0.5 }}>
+                  Personas auto-created on first crawl
+                </p>
+              ) : (
+                personas.map((p) => (
+                  <div key={p.id} className="group flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }} data-testid={`persona-item-${p.id}`}>
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: 'rgba(124,58,237,0.1)' }}>
+                      <Users className="w-2.5 h-2.5 text-[var(--em-violet)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-medium text-[var(--em-text-secondary)] truncate">{p.name}</p>
+                      {p.description && <p className="text-[9px] text-[var(--em-text-muted)] truncate" style={{ opacity: 0.6 }}>{p.description}</p>}
+                    </div>
+                    <button
+                      onClick={() => handleDeletePersona(p.id)}
+                      className="flex items-center justify-center w-4 h-4 rounded opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-[rgba(248,113,113,0.12)]"
+                      data-testid={`persona-delete-${p.id}`}
+                    >
+                      <Trash2 className="w-2.5 h-2.5 text-red-400" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Trending Now */}

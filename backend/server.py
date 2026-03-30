@@ -40,6 +40,7 @@ def get_db():
         _mongo_client = MongoClient(MONGO_URL)
         _mongo_db = _mongo_client[DB_NAME]
         _mongo_db['payment_transactions'].create_index('session_id', unique=True)
+        _mongo_db['persona_profiles'].create_index([('user_id', 1), ('created_at', -1)])
     return _mongo_db
 
 # ── Stripe packages (server-side only — never accept amounts from frontend) ──
@@ -237,7 +238,7 @@ async def stripe_webhook(request: Request):
                 )
                 logger.info(f"[Stripe Webhook] Payment confirmed for session {event.session_id}, credits pending frontend grant: {txn['credits']}")
             else:
-                logger.info(f"[Stripe Webhook] Skipped — already paid or not found")
+                logger.info("[Stripe Webhook] Skipped — already paid or not found")
 
         return JSONResponse({"received": True})
 
@@ -349,6 +350,72 @@ async def trends_list(request: Request):
 
 
 # ── Growth Engine routes (BEFORE the catch-all proxy) ──
+
+# Persona seed templates keyed by detected site type
+_PERSONA_TEMPLATES = {
+    'ecommerce': [
+        {'name': 'Impulse Buyer', 'description': 'Makes quick purchase decisions based on deals and social proof. Responds to urgency, discounts, and trending products.', 'interests': ['deals', 'trending products', 'reviews'], 'platforms': ['instagram', 'tiktok', 'google shopping'], 'content_types': ['product pages', 'landing pages', 'ads']},
+        {'name': 'Trend Follower', 'description': 'Stays current with latest styles and products. Influenced by social media and influencer recommendations.', 'interests': ['fashion', 'new releases', 'influencers'], 'platforms': ['instagram', 'pinterest', 'youtube'], 'content_types': ['lookbooks', 'collections', 'social posts']},
+        {'name': 'Bargain Hunter', 'description': 'Compares prices across sites. Motivated by value, coupons, and clearance. Reads reviews thoroughly.', 'interests': ['price comparison', 'coupons', 'sales'], 'platforms': ['google', 'reddit', 'deal sites'], 'content_types': ['comparison pages', 'review roundups', 'deal posts']},
+    ],
+    'content': [
+        {'name': 'Curiosity Seeker', 'description': 'Browses widely, clicks on intriguing headlines. Short attention span but high discovery intent.', 'interests': ['news', 'how-to', 'explainers'], 'platforms': ['google', 'twitter', 'reddit'], 'content_types': ['articles', 'guides', 'listicles']},
+        {'name': 'Deep Researcher', 'description': 'Reads long-form content thoroughly. Values data, citations, and expert analysis. Bookmarks and shares quality pieces.', 'interests': ['analysis', 'data', 'expert opinions'], 'platforms': ['google', 'linkedin', 'newsletters'], 'content_types': ['whitepapers', 'case studies', 'long-form articles']},
+        {'name': 'Social Sharer', 'description': 'Consumes content primarily to share it. Looks for quotable insights, infographics, and hot takes.', 'interests': ['viral content', 'infographics', 'opinions'], 'platforms': ['twitter', 'linkedin', 'facebook'], 'content_types': ['social snippets', 'thread starters', 'visual content']},
+    ],
+    'app': [
+        {'name': 'Casual Player', 'description': 'Uses the app occasionally for quick tasks. Values simplicity and speed over advanced features.', 'interests': ['ease of use', 'quick results', 'mobile'], 'platforms': ['app store', 'google', 'social'], 'content_types': ['tutorials', 'quick start guides', 'feature highlights']},
+        {'name': 'Power User', 'description': 'Explores every feature deeply. Wants integrations, customization, and advanced workflows.', 'interests': ['advanced features', 'integrations', 'automation'], 'platforms': ['google', 'reddit', 'forums'], 'content_types': ['docs', 'API references', 'changelog']},
+        {'name': 'Decision Maker', 'description': 'Evaluates the app for team adoption. Cares about pricing, security, and ROI.', 'interests': ['pricing', 'security', 'comparison'], 'platforms': ['google', 'g2', 'linkedin'], 'content_types': ['pricing pages', 'case studies', 'comparisons']},
+    ],
+    'generic': [
+        {'name': 'First-Time Visitor', 'description': 'Landed from search or social. Needs clear value proposition and easy navigation to stay.', 'interests': ['clarity', 'value', 'trust signals'], 'platforms': ['google', 'social media'], 'content_types': ['homepage', 'about page', 'key landing pages']},
+        {'name': 'Return Visitor', 'description': 'Familiar with the site. Looking for new content, updates, or to complete a previous task.', 'interests': ['updates', 'new content', 'task completion'], 'platforms': ['direct', 'email', 'bookmarks'], 'content_types': ['blog', 'product updates', 'dashboards']},
+        {'name': 'Referral Visitor', 'description': 'Arrived via recommendation. Has moderate trust but needs validation. Compares with alternatives.', 'interests': ['social proof', 'reviews', 'credibility'], 'platforms': ['referral links', 'social', 'word of mouth'], 'content_types': ['testimonials', 'case studies', 'feature pages']},
+    ],
+}
+
+def _infer_site_type(extracted_data):
+    """Infer site type from page data."""
+    title = (extracted_data.get('title') or '').lower()
+    meta = (extracted_data.get('meta_description') or '').lower()
+    url = (extracted_data.get('final_url') or '').lower()
+    headings_text = ' '.join(h for hlist in (extracted_data.get('headings') or {}).values() for h in hlist).lower()
+    combined = f"{title} {meta} {url} {headings_text}"
+
+    ecommerce_signals = ['shop', 'store', 'buy', 'cart', 'product', 'price', 'shipping', 'checkout', 'order', 'sale', 'discount', 'add to cart', 'ecommerce', 'shopify']
+    app_signals = ['app', 'login', 'sign up', 'dashboard', 'saas', 'platform', 'tool', 'software', 'api', 'integration', 'pricing', 'free trial', 'demo']
+    content_signals = ['blog', 'article', 'post', 'news', 'story', 'read', 'guide', 'how to', 'tutorial', 'learn', 'magazine', 'publish']
+
+    scores = {
+        'ecommerce': sum(1 for s in ecommerce_signals if s in combined),
+        'app': sum(1 for s in app_signals if s in combined),
+        'content': sum(1 for s in content_signals if s in combined),
+    }
+    best = max(scores, key=scores.get)
+    return best if scores[best] >= 2 else 'generic'
+
+def _auto_seed_personas(db, user_id, extracted_data):
+    """Create 3 starter personas based on detected site type."""
+    site_type = _infer_site_type(extracted_data)
+    templates = _PERSONA_TEMPLATES.get(site_type, _PERSONA_TEMPLATES['generic'])
+    docs = []
+    for t in templates:
+        doc = {
+            'user_id': user_id,
+            'project_id': None,
+            'name': t['name'],
+            'description': t['description'],
+            'interests': t['interests'],
+            'platforms': t['platforms'],
+            'content_types': t['content_types'],
+            'performance_score': 0,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+        }
+        docs.append(doc)
+    if docs:
+        db['persona_profiles'].insert_many(docs)
+    return [{'name': d['name'], 'description': d['description']} for d in docs]
 
 @app.post("/api/internal/growth/crawl")
 async def growth_crawl(request: Request):
@@ -481,11 +548,22 @@ async def growth_crawl(request: Request):
 
         logger.info(f"[Growth] Crawled {raw_url} for user {user_id}, page_id={page_id}")
 
+        # ── Auto-seed personas on first Growth usage ──
+        seeded_personas = []
+        try:
+            existing_count = db['persona_profiles'].count_documents({'user_id': user_id})
+            if existing_count == 0:
+                seeded_personas = _auto_seed_personas(db, user_id, extracted_data)
+                logger.info(f"[Growth] Auto-seeded {len(seeded_personas)} personas for user {user_id}")
+        except Exception as e:
+            logger.warning(f"[Growth] Persona auto-seed failed: {e}")
+
         return JSONResponse({
             "success": True,
             "page_id": page_id,
             "url": raw_url,
             "extracted_data": extracted_data,
+            "seeded_personas": seeded_personas,
         }, status_code=201)
 
     except httpx.TimeoutException:
@@ -564,6 +642,23 @@ async def growth_analyze(request: Request):
     except Exception as e:
         logger.warning(f"[Growth] Trend matching failed: {e}")
 
+    # Inject persona context
+    persona_context = ""
+    try:
+        personas = list(
+            db["persona_profiles"]
+            .find({"user_id": user_id}, {"_id": 0, "name": 1, "description": 1, "interests": 1, "platforms": 1})
+            .sort("performance_score", -1)
+            .limit(1)
+        )
+        if personas:
+            p = personas[0]
+            interests_str = ', '.join(p.get('interests', []))
+            platforms_str = ', '.join(p.get('platforms', []))
+            persona_context = f"\n\nTarget audience: {p['name']} — {p.get('description', '')}. Interests: {interests_str}. Platforms: {platforms_str}.\nTailor your recommendations to resonate with this audience."
+    except Exception as e:
+        logger.warning(f"[Growth] Persona injection failed: {e}")
+
     prompt = f"""Analyze this webpage's SEO and return ONLY a JSON object with exactly these keys:
 
 ANALYSIS (arrays of strings):
@@ -592,6 +687,7 @@ Page data:
 - Images: {extracted.get('total_images', 0)} total, {extracted.get('images_with_alt', 0)} with alt text
 - Meta Robots: {extracted.get('meta_robots', 'not set')}
 {trend_context}
+{persona_context}
 
 Return ONLY the JSON object, no markdown, no explanation."""
 
