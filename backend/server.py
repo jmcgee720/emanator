@@ -417,34 +417,16 @@ def _auto_seed_personas(db, user_id, extracted_data):
         db['persona_profiles'].insert_many(docs)
     return [{'name': d['name'], 'description': d['description']} for d in docs]
 
-@app.post("/api/internal/growth/crawl")
-async def growth_crawl(request: Request):
-    """Crawl a URL and extract SEO-relevant data. Called internally by Next.js route.js."""
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
-    user_id = (body.get('user_id') or '').strip()
-    if not user_id:
-        return JSONResponse({"error": "user_id is required"}, status_code=400)
-
-    raw_url = (body.get('url') or '').strip()
-    if not raw_url:
-        return JSONResponse({"error": "url is required"}, status_code=400)
-
-    # Normalize URL
-    if not raw_url.startswith(('http://', 'https://')):
-        raw_url = 'https://' + raw_url
-    raw_url = raw_url.rstrip('/')
+async def _crawl_single_page(raw_url, user_id, db, parent_seed_url=None, crawl_mode='single'):
+    """Crawl a single URL and store result. Returns dict with page_id/extracted_data or error."""
+    from bs4 import BeautifulSoup
+    from urllib.parse import urlparse, urljoin
 
     try:
-        from bs4 import BeautifulSoup
-        from urllib.parse import urlparse, urljoin
-
         parsed = urlparse(raw_url)
         if not parsed.netloc:
-            return JSONResponse({"error": "Invalid URL"}, status_code=400)
+            return {'error': 'Invalid URL: missing domain', 'status': 400}
 
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(raw_url, headers={
@@ -453,33 +435,28 @@ async def growth_crawl(request: Request):
             })
 
         if resp.status_code >= 400:
-            return JSONResponse({"error": f"URL returned HTTP {resp.status_code}"}, status_code=422)
+            return {'error': f'URL returned HTTP {resp.status_code}', 'status': 422}
 
         content_type = resp.headers.get('content-type', '')
         if 'text/html' not in content_type and 'application/xhtml' not in content_type:
-            return JSONResponse({"error": f"Not an HTML page (content-type: {content_type})"}, status_code=422)
+            return {'error': f'Not an HTML page (content-type: {content_type})', 'status': 422}
 
         html = resp.text
         soup = BeautifulSoup(html, 'lxml')
 
-        # Extract title
         title_tag = soup.find('title')
         title = title_tag.get_text(strip=True) if title_tag else None
 
-        # Extract meta description
         meta_desc_tag = soup.find('meta', attrs={'name': 'description'})
         meta_description = meta_desc_tag.get('content', '').strip() if meta_desc_tag else None
 
-        # Extract canonical
         canonical_tag = soup.find('link', attrs={'rel': 'canonical'})
         canonical = canonical_tag.get('href', '').strip() if canonical_tag else None
 
-        # Extract OG tags
         og_tags = {}
         for og in soup.find_all('meta', attrs={'property': lambda v: v and v.startswith('og:')}):
             og_tags[og.get('property')] = og.get('content', '')
 
-        # Extract headings hierarchy
         headings = {}
         for level in range(1, 7):
             tag_name = f'h{level}'
@@ -487,14 +464,9 @@ async def growth_crawl(request: Request):
             if found:
                 headings[tag_name] = [h.get_text(strip=True)[:200] for h in found[:10]]
 
-        # Word count (visible text)
-        for tag in soup(['script', 'style', 'noscript', 'header', 'footer', 'nav']):
-            tag.decompose()
-        visible_text = soup.get_text(separator=' ', strip=True)
-        word_count = len(visible_text.split())
-
-        # Links
+        # Collect internal link URLs BEFORE decomposing nav/footer
         base_domain = parsed.netloc.lower()
+        internal_link_urls = []
         internal_links = 0
         external_links = 0
         for a in soup.find_all('a', href=True):
@@ -503,17 +475,23 @@ async def growth_crawl(request: Request):
             link_parsed = urlparse(abs_url)
             if link_parsed.netloc.lower() == base_domain:
                 internal_links += 1
+                clean_link = f"{link_parsed.scheme}://{link_parsed.netloc}{link_parsed.path}".rstrip('/')
+                if clean_link and clean_link not in internal_link_urls:
+                    internal_link_urls.append(clean_link)
             elif link_parsed.scheme in ('http', 'https'):
                 external_links += 1
 
-        # Image alt coverage
         images = soup.find_all('img')
         total_images = len(images)
         images_with_alt = sum(1 for img in images if img.get('alt', '').strip())
 
-        # Meta robots
         robots_tag = soup.find('meta', attrs={'name': 'robots'})
         meta_robots = robots_tag.get('content', '').strip() if robots_tag else None
+
+        for tag in soup(['script', 'style', 'noscript', 'header', 'footer', 'nav']):
+            tag.decompose()
+        visible_text = soup.get_text(separator=' ', strip=True)
+        word_count = len(visible_text.split())
 
         extracted_data = {
             'title': title,
@@ -533,46 +511,150 @@ async def growth_crawl(request: Request):
             'status_code': resp.status_code,
         }
 
-        # Store in MongoDB
-        db = get_db()
         doc = {
             'user_id': user_id,
             'url': raw_url,
             'extracted_data': extracted_data,
             'opportunities': None,
+            'crawl_mode': crawl_mode,
             'created_at': datetime.now(timezone.utc).isoformat(),
             'updated_at': datetime.now(timezone.utc).isoformat(),
         }
+        if parent_seed_url:
+            doc['parent_seed_url'] = parent_seed_url
+
         result = db['growth_pages'].insert_one(doc)
         page_id = str(result.inserted_id)
-
         logger.info(f"[Growth] Crawled {raw_url} for user {user_id}, page_id={page_id}")
 
-        # ── Auto-seed personas on first Growth usage ──
+        return {'page_id': page_id, 'extracted_data': extracted_data, 'internal_link_urls': internal_link_urls}
+
+    except httpx.TimeoutException:
+        return {'error': f'Timeout: {raw_url} did not respond within 10 seconds', 'status': 504}
+    except httpx.RequestError as e:
+        return {'error': f'Request failed: {str(e)}', 'status': 502}
+    except Exception as e:
+        logger.error(f"[Growth] Crawl error for {raw_url}: {e}")
+        return {'error': f'Crawl failed: {str(e)}', 'status': 500}
+
+@app.post("/api/internal/growth/crawl")
+async def growth_crawl(request: Request):
+    """Crawl a URL (single or batch mode) and extract SEO-relevant data."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    user_id = (body.get('user_id') or '').strip()
+    if not user_id:
+        return JSONResponse({"error": "user_id is required"}, status_code=400)
+
+    raw_url = (body.get('url') or '').strip()
+    if not raw_url:
+        return JSONResponse({"error": "url is required"}, status_code=400)
+
+    mode = (body.get('mode') or 'single').strip().lower()
+    if mode not in ('single', 'batch'):
+        return JSONResponse({"error": "mode must be 'single' or 'batch'"}, status_code=400)
+
+    max_pages = min(max(int(body.get('max_pages', 10)), 1), 25)
+
+    # Normalize URL
+    if not raw_url.startswith(('http://', 'https://')):
+        raw_url = 'https://' + raw_url
+    raw_url = raw_url.rstrip('/')
+
+    db = get_db()
+
+    if mode == 'single':
+        result = await _crawl_single_page(raw_url, user_id, db, crawl_mode='single')
+        if result.get('error'):
+            return JSONResponse({"error": result['error']}, status_code=result.get('status', 500))
+
         seeded_personas = []
         try:
-            existing_count = db['persona_profiles'].count_documents({'user_id': user_id})
-            if existing_count == 0:
-                seeded_personas = _auto_seed_personas(db, user_id, extracted_data)
-                logger.info(f"[Growth] Auto-seeded {len(seeded_personas)} personas for user {user_id}")
+            if db['persona_profiles'].count_documents({'user_id': user_id}) == 0:
+                seeded_personas = _auto_seed_personas(db, user_id, result['extracted_data'])
         except Exception as e:
             logger.warning(f"[Growth] Persona auto-seed failed: {e}")
 
         return JSONResponse({
             "success": True,
-            "page_id": page_id,
+            "page_id": result['page_id'],
             "url": raw_url,
-            "extracted_data": extracted_data,
+            "extracted_data": result['extracted_data'],
             "seeded_personas": seeded_personas,
         }, status_code=201)
 
-    except httpx.TimeoutException:
-        return JSONResponse({"error": f"Timeout: {raw_url} did not respond within 10 seconds"}, status_code=504)
-    except httpx.RequestError as e:
-        return JSONResponse({"error": f"Request failed: {str(e)}"}, status_code=502)
-    except Exception as e:
-        logger.error(f"[Growth] Crawl error: {e}")
-        return JSONResponse({"error": f"Crawl failed: {str(e)}"}, status_code=500)
+    # ── Batch mode: BFS crawl ──
+    from urllib.parse import urlparse
+    from collections import deque
+
+    parsed_seed = urlparse(raw_url)
+    seed_hostname = parsed_seed.netloc.lower()
+
+    skip_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico', '.pdf',
+                       '.zip', '.tar', '.gz', '.mp3', '.mp4', '.avi', '.mov', '.wmv',
+                       '.css', '.js', '.woff', '.woff2', '.ttf', '.eot', '.xml', '.json',
+                       '.csv', '.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx'}
+
+    visited = set()
+    queue = deque([raw_url])
+    page_ids = []
+    pages_attempted = 0
+    pages_failed = 0
+    first_extracted = None
+
+    while queue and len(page_ids) < max_pages:
+        current_url = queue.popleft()
+        norm = current_url.rstrip('/').split('#')[0].split('?')[0].lower()
+        if norm in visited:
+            continue
+        visited.add(norm)
+
+        pages_attempted += 1
+        result = await _crawl_single_page(current_url, user_id, db, parent_seed_url=raw_url, crawl_mode='batch')
+
+        if result.get('error'):
+            pages_failed += 1
+            logger.info(f"[Growth][Batch] Failed {current_url}: {result['error']}")
+            continue
+
+        page_ids.append(result['page_id'])
+        if first_extracted is None:
+            first_extracted = result['extracted_data']
+
+        for link_url in result.get('internal_link_urls', []):
+            link_parsed = urlparse(link_url)
+            if link_parsed.netloc.lower() != seed_hostname:
+                continue
+            path_lower = link_parsed.path.lower()
+            if any(path_lower.endswith(ext) for ext in skip_extensions):
+                continue
+            link_norm = link_url.rstrip('/').split('#')[0].split('?')[0].lower()
+            if link_norm not in visited:
+                queue.append(link_url)
+
+    seeded_personas = []
+    if first_extracted:
+        try:
+            if db['persona_profiles'].count_documents({'user_id': user_id}) == 0:
+                seeded_personas = _auto_seed_personas(db, user_id, first_extracted)
+        except Exception as e:
+            logger.warning(f"[Growth] Persona auto-seed failed: {e}")
+
+    logger.info(f"[Growth][Batch] {raw_url}: {len(page_ids)} saved, {pages_failed} failed, {pages_attempted} attempted")
+
+    return JSONResponse({
+        "success": True,
+        "seed_url": raw_url,
+        "mode": "batch",
+        "pages_attempted": pages_attempted,
+        "pages_saved": len(page_ids),
+        "pages_failed": pages_failed,
+        "page_ids": page_ids,
+        "seeded_personas": seeded_personas,
+    }, status_code=201)
 
 
 @app.post("/api/internal/growth/analyze")
