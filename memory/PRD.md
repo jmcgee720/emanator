@@ -102,10 +102,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/backend/server.py` — FastAPI reverse proxy & Stripe endpoints
 
 ## Backlog
-- P0: Growth Engine UI (GrowthPanel component wired to Dashboard)
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
+- P2: Refactor `app/api/[[...path]]/route.js` (~3900 lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
+- P3: Growth Engine: Multi-page batch crawl (auto-discover internal links from seed URL)
 
 ## Growth Engine MVP v1 — Backend + API (Mar 2026)
 - `POST /api/growth/crawl` (FastAPI): Accepts `{ url }`, normalizes URL, fetches HTML with 10s timeout, extracts SEO data via BeautifulSoup (title, meta, headings, word count, links, images, OG tags, canonical, robots), stores in MongoDB `growth_pages` with `user_id` from JWT
@@ -137,3 +138,25 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - UI: "Ready-to-Use Fixes" card below SEO Opportunities with per-field Copy button (clipboard API with fallback)
   - GET /growth/pages/:id now returns `fixes` field
   - Files: `server.py` (updated prompt + response parser), `GrowthPanel.jsx` (added FixRow component), `lib/growth/service.js` (added fixes to projection)
+
+## Trend Engine v1 (Mar 2026) — COMPLETE
+- `POST /api/internal/trends/fetch` (Python): Fetches Google Trends RSS + Hacker News top stories, stores in `trend_signals` MongoDB collection
+- `GET /api/internal/trends/list` (Python): Returns recent 50 trend signals sorted by created_at desc
+- Next.js route.js proxies: `POST /trends/fetch` and `GET /trends` with auth
+- AI analyze prompt injection: Matches page keywords against trending topics, injects top 3 relevant trends
+- UI: "Trending Now" section at bottom of GrowthPanel sidebar with top 5 trends, source badges (Google/HN), refresh button
+- Tested: iteration_28.json (100% pass rate)
+
+## Persona Engine v1 (Mar 2026) — COMPLETE
+- **MongoDB collection**: `persona_profiles` — user_id, project_id (nullable), name, description, interests[], platforms[], content_types[], performance_score, created_at
+- **Routes** (route.js):
+  - `POST /api/personas/create` — Create persona with name/description (auth required)
+  - `GET /api/personas` — List user's personas sorted by performance_score desc (auth required)
+  - `DELETE /api/personas/:id` — Delete persona with ownership check (auth required)
+- **Service** (lib/growth/service.js): `personaDb.createPersona()`, `personaDb.getPersonas()`, `personaDb.deletePersona()`
+- **Auto-seed**: On first crawl (0 existing personas), infers site type (ecommerce/content/app/generic) from page signals and creates 3 starter personas. Idempotent — skips if personas already exist.
+- **Analyze integration**: Fetches user's top persona by performance_score, injects "Target audience: [name] — [description]. Interests/Platforms." into the AI SEO analysis prompt
+- **UI**: Personas section in GrowthPanel sidebar (between pages list and trending). Shows count badge, persona list with name/description, + button to create, trash to delete, form with name/desc inputs.
+- Tested: iteration_29.json (15/15 backend, 11/11 frontend — 100% pass rate)
+- Files: `server.py` (auto-seed + analyze injection), `lib/growth/service.js` (personaDb), `route.js` (3 routes), `GrowthPanel.jsx` (UI section)
+
