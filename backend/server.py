@@ -1362,12 +1362,44 @@ async def preview_status(project_id: str):
                 info['status_ref']['status'] = 'running'
                 status = 'running'
 
+    # Once running, probe for valid base path (only once)
+    if status == 'running' and 'base_path' not in info:
+        info['base_path'] = await _probe_preview_base_path(info['port'])
+        if info['base_path'] != '/':
+            info['logs'].append(f"[emanator] Resolved preview path: {info['base_path']}")
+
     return JSONResponse({
         "status": status,
         "type": info['type'],
         "port": info['port'],
+        "base_path": info.get('base_path', '/'),
         "logs": list(info['logs'])[-100:],
     })
+
+
+async def _probe_preview_base_path(port):
+    """Probe the preview server to find a path that returns real content, not a directory listing."""
+    candidates = ['/', '/index.html', '/public', '/public/index.html', '/dist', '/dist/index.html', '/build', '/build/index.html', '/app']
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            for path in candidates:
+                try:
+                    resp = await client.get(f"http://127.0.0.1:{port}{path}", follow_redirects=True)
+                    if resp.status_code != 200:
+                        continue
+                    ct = resp.headers.get('content-type', '')
+                    body = resp.text[:2000]
+                    # Skip directory listings
+                    if 'Index of' in body:
+                        continue
+                    # Accept HTML pages
+                    if 'text/html' in ct or '<html' in body.lower() or '<!doctype' in body.lower():
+                        return path
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    return '/'
 
 
 @app.post("/api/preview/stop/{project_id}")

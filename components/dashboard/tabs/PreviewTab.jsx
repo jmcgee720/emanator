@@ -291,6 +291,7 @@ function NodePreviewRunner({ project, files, onLog }) {
   const [status, setStatus] = useState('idle') // idle | starting | installing | running | failed | stopped
   const [logs, setLogs] = useState([])
   const [port, setPort] = useState(null)
+  const [basePath, setBasePath] = useState('/')
   const pollingRef = useRef(null)
   const logsEndRef = useRef(null)
 
@@ -321,6 +322,7 @@ function NodePreviewRunner({ project, files, onLog }) {
         setLogs(data.logs || [])
         if (data.status === 'running') {
           setPort(data.port)
+          if (data.base_path) setBasePath(data.base_path)
           onLog?.('success', 'Preview server is running')
         }
         if (data.status === 'failed' || data.status === 'stopped' || data.status === 'none') {
@@ -343,6 +345,7 @@ function NodePreviewRunner({ project, files, onLog }) {
     setStatus('starting')
     setLogs(['[emanator] Restart requested — creating fresh preview session...'])
     setPort(null)
+    setBasePath('/')
     onLog?.('info', 'Starting preview...')
 
     try {
@@ -388,7 +391,7 @@ function NodePreviewRunner({ project, files, onLog }) {
     onLog?.('info', 'Preview stopped')
   }
 
-  const previewUrl = port ? `${backendUrl}/api/preview/serve/${project.id}/` : null
+  const previewUrl = port ? `${backendUrl}/api/preview/serve/${project.id}${basePath}` : null
   const isLoading = status === 'starting' || status === 'installing'
   const isRunning = status === 'running'
   const isFailed = status === 'failed'
