@@ -3316,6 +3316,63 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // ============ GROWTH FEEDBACK ============
+
+    if (route === '/growth/feedback' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+
+      try {
+        const body = await request.json()
+        if (!body.page_id || !body.content_type || body.rating === undefined) {
+          return handleCORS(NextResponse.json({ error: 'page_id, content_type, and rating are required' }, { status: 400 }))
+        }
+        const validTypes = ['seo_analysis', 'fixes', 'social_post', 'search_ad', 'email']
+        if (!validTypes.includes(body.content_type)) {
+          return handleCORS(NextResponse.json({ error: `content_type must be one of: ${validTypes.join(', ')}` }, { status: 400 }))
+        }
+        if (![1, -1].includes(body.rating)) {
+          return handleCORS(NextResponse.json({ error: 'rating must be 1 (thumbs up) or -1 (thumbs down)' }, { status: 400 }))
+        }
+
+        const { feedbackDb, personaDb } = await import('@/lib/growth/service')
+        const result = await feedbackDb.submitFeedback(dbUser.id, body)
+
+        // Update persona score if persona_id provided
+        if (body.persona_id) {
+          const scoreDelta = body.rating - (result.old_rating || 0)
+          if (scoreDelta !== 0) {
+            await personaDb.updatePersonaScore(body.persona_id, dbUser.id, scoreDelta)
+          }
+        }
+
+        return handleCORS(NextResponse.json({ success: true, rating: body.rating }, { status: 201 }))
+      } catch (err) {
+        console.error('[Feedback] Submit error:', err)
+        return handleCORS(NextResponse.json({ error: 'Failed to submit feedback' }, { status: 500 }))
+      }
+    }
+
+    if (route.match(/^\/growth\/feedback\/[^/]+$/) && method === 'GET') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+
+      const pageId = route.split('/').pop()
+      try {
+        const { feedbackDb } = await import('@/lib/growth/service')
+        const feedback = await feedbackDb.getFeedback(dbUser.id, pageId)
+        return handleCORS(NextResponse.json({ feedback }))
+      } catch (err) {
+        console.error('[Feedback] Get error:', err)
+        return handleCORS(NextResponse.json({ error: 'Failed to get feedback' }, { status: 500 }))
+      }
+    }
+
+
     // ============ PERSONA PROFILES ============
 
     if (route === '/personas/create' && method === 'POST') {

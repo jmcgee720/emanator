@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -34,6 +34,7 @@ export default function GrowthPanel({ onClose }) {
   const [personaResults, setPersonaResults] = useState({}) // { personaKey: { opportunities, fixes, persona_name } }
   const [activeResultTab, setActiveResultTab] = useState(null) // which result tab is active
   const [generatingDrafts, setGeneratingDrafts] = useState(false)
+  const [feedbackMap, setFeedbackMap] = useState({}) // { content_type: rating }
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -127,7 +128,7 @@ export default function GrowthPanel({ onClose }) {
       if (data.page_id) {
         const pageRes = await authFetch(`/api/growth/pages/${data.page_id}`)
         const pageData = await pageRes.json()
-        if (pageData.page) setSelectedPage(pageData.page)
+        if (pageData.page) { setSelectedPage(pageData.page); loadFeedback(pageData.page.id) }
       }
     } catch (err) {
       setError(err.message || 'Network error')
@@ -208,6 +209,40 @@ export default function GrowthPanel({ onClose }) {
   }
 
   const ext = selectedPage?.extracted_data
+
+  const loadFeedback = async (pageId) => {
+    setFeedbackMap({})
+    try {
+      const res = await authFetch(`/api/growth/feedback/${pageId}`)
+      const data = await res.json()
+      if (data.feedback) {
+        const map = {}
+        data.feedback.forEach(f => { map[f.content_type] = f.rating })
+        setFeedbackMap(map)
+      }
+    } catch {}
+  }
+
+  const handleFeedback = async (contentType, rating) => {
+    if (!selectedPage?.id) return
+    const current = feedbackMap[contentType]
+    const newRating = current === rating ? 0 : rating // toggle off if same
+    if (newRating === 0) return // can't remove for now, just toggle
+    setFeedbackMap(prev => ({ ...prev, [contentType]: newRating }))
+    try {
+      await authFetch('/api/growth/feedback', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({
+          page_id: selectedPage.id,
+          content_type: contentType,
+          rating: newRating,
+          persona_id: selectedPersonaId || null,
+        }),
+      })
+      fetchPersonas() // refresh scores
+    } catch {}
+  }
 
   // Active comparison result (from persona results map or fallback to selectedPage)
   const activeResult = activeResultTab && personaResults[activeResultTab]
@@ -323,7 +358,7 @@ export default function GrowthPanel({ onClose }) {
                       onClick={() => {
                         authFetch(`/api/growth/pages/${page.id}`)
                           .then(r => r.json())
-                          .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null) } })
+                          .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null); loadFeedback(d.page.id) } })
                       }}
                       className="group relative mx-2 mb-0.5 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
                       style={{
@@ -434,7 +469,17 @@ export default function GrowthPanel({ onClose }) {
                       <Users className="w-2.5 h-2.5 text-[var(--em-violet)]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-medium text-[var(--em-text-secondary)] truncate">{p.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[11px] font-medium text-[var(--em-text-secondary)] truncate">{p.name}</p>
+                        {(p.performance_score !== 0 || p.feedback_count > 0) && (
+                          <span className="text-[8px] font-bold tabular-nums shrink-0 px-1 rounded" style={{
+                            background: p.performance_score > 0 ? 'rgba(52,211,153,0.1)' : p.performance_score < 0 ? 'rgba(248,113,113,0.1)' : 'rgba(255,255,255,0.05)',
+                            color: p.performance_score > 0 ? '#34D399' : p.performance_score < 0 ? '#F87171' : 'var(--em-text-muted)',
+                          }} data-testid={`persona-score-${p.id}`}>
+                            {p.performance_score > 0 ? '+' : ''}{p.performance_score || 0} / {p.feedback_count || 0}
+                          </span>
+                        )}
+                      </div>
                       {p.description && <p className="text-[9px] text-[var(--em-text-muted)] truncate" style={{ opacity: 0.6 }}>{p.description}</p>}
                     </div>
                     <button
@@ -699,6 +744,7 @@ export default function GrowthPanel({ onClose }) {
                         <Sparkles className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-xs font-semibold text-[var(--em-text-primary)]">AI-Generated Improvements</span>
+                      <ThumbsFeedback contentType="fixes" currentRating={feedbackMap.fixes} onFeedback={handleFeedback} />
                     </div>
                     <div className="px-5 py-4 space-y-4">
                       {displayFixes.improved_title && (
@@ -730,6 +776,7 @@ export default function GrowthPanel({ onClose }) {
                         { label: 'Body', value: selectedPage.drafts.social_post.body },
                         { label: 'CTA', value: selectedPage.drafts.social_post.cta },
                       ]}
+                      feedbackProps={{ contentType: 'social_post', currentRating: feedbackMap.social_post, onFeedback: handleFeedback }}
                     />
                   )}
 
@@ -743,6 +790,7 @@ export default function GrowthPanel({ onClose }) {
                         { label: 'Headline 2', value: selectedPage.drafts.search_ad.headline_2, hint: 'max 30 chars' },
                         { label: 'Description', value: selectedPage.drafts.search_ad.description, hint: 'max 90 chars' },
                       ]}
+                      feedbackProps={{ contentType: 'search_ad', currentRating: feedbackMap.search_ad, onFeedback: handleFeedback }}
                     />
                   )}
 
@@ -756,6 +804,7 @@ export default function GrowthPanel({ onClose }) {
                         { label: 'Preview Text', value: selectedPage.drafts.email.preview_text },
                         { label: 'Body Intro', value: selectedPage.drafts.email.body_intro },
                       ]}
+                      feedbackProps={{ contentType: 'email', currentRating: feedbackMap.email, onFeedback: handleFeedback }}
                     />
                   )}
                 </div>
@@ -768,7 +817,7 @@ export default function GrowthPanel({ onClose }) {
   )
 }
 
-function DraftCard({ title, gradient, fields }) {
+function DraftCard({ title, gradient, fields, feedbackProps }) {
   return (
     <div className="em-card overflow-hidden" data-testid={`growth-draft-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: '1px solid rgba(52,211,153,0.08)' }}>
@@ -776,12 +825,42 @@ function DraftCard({ title, gradient, fields }) {
           <FileSearch className="w-3 h-3 text-white" />
         </div>
         <span className="text-xs font-semibold text-[var(--em-text-primary)]">{title}</span>
+        {feedbackProps && <ThumbsFeedback {...feedbackProps} />}
       </div>
       <div className="px-5 py-4 space-y-4">
         {fields.map(({ label, value, hint }) => (
           value ? <FixRow key={label} label={label} value={value} charCount={!!hint} hint={hint} /> : null
         ))}
       </div>
+    </div>
+  )
+}
+
+function ThumbsFeedback({ contentType, currentRating, onFeedback }) {
+  return (
+    <div className="ml-auto flex items-center gap-1" data-testid={`feedback-${contentType}`}>
+      <button
+        onClick={() => onFeedback(contentType, 1)}
+        className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150"
+        style={{
+          background: currentRating === 1 ? 'rgba(52,211,153,0.15)' : 'transparent',
+          border: currentRating === 1 ? '1px solid rgba(52,211,153,0.3)' : '1px solid transparent',
+        }}
+        data-testid={`feedback-up-${contentType}`}
+      >
+        <ThumbsUp className="w-3 h-3" style={{ color: currentRating === 1 ? '#34D399' : 'var(--em-text-muted)', opacity: currentRating === 1 ? 1 : 0.4 }} />
+      </button>
+      <button
+        onClick={() => onFeedback(contentType, -1)}
+        className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150"
+        style={{
+          background: currentRating === -1 ? 'rgba(248,113,113,0.15)' : 'transparent',
+          border: currentRating === -1 ? '1px solid rgba(248,113,113,0.3)' : '1px solid transparent',
+        }}
+        data-testid={`feedback-down-${contentType}`}
+      >
+        <ThumbsDown className="w-3 h-3" style={{ color: currentRating === -1 ? '#F87171' : 'var(--em-text-muted)', opacity: currentRating === -1 ? 1 : 0.4 }} />
+      </button>
     </div>
   )
 }
