@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Base URL from environment
-BASE_URL = "https://trend-signal-labs.preview.emergentagent.com/api"
+BASE_URL = "https://project-runner-48.preview.emergentagent.com/api"
 
 # Test configuration
 HEADERS = {

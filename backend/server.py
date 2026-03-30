@@ -1,10 +1,16 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, Response
 from starlette.middleware.cors import CORSMiddleware
 import httpx
 import os
 import logging
 import jwt
+import shutil
+import socket
+import subprocess
+import threading
+import json as json_module
+from collections import deque
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -1070,6 +1076,272 @@ Rules:
     except Exception as e:
         logger.error(f"[Growth] Drafts generation error: {e}")
         return JSONResponse({"error": f"Draft generation failed: {str(e)}"}, status_code=500)
+
+
+# ── Preview Runner ──────────────────────────────────────────────────
+
+_preview_processes = {}  # project_id -> {process, port, type, logs, status_ref, dir, thread}
+_preview_lock = threading.Lock()
+
+
+def _find_available_port(start=9000, end=9100):
+    for port in range(start, end + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('127.0.0.1', port))
+                return port
+            except OSError:
+                continue
+    return None
+
+
+def _stop_preview(project_id):
+    info = _preview_processes.pop(project_id, None)
+    if not info:
+        return
+    proc = info.get('process')
+    if proc and proc.poll() is None:
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+    preview_dir = info.get('dir', '')
+    if preview_dir and os.path.exists(preview_dir):
+        try:
+            shutil.rmtree(preview_dir)
+        except Exception:
+            pass
+
+
+def _capture_output(process, log_buffer, status_ref):
+    try:
+        for line in iter(process.stdout.readline, ''):
+            if not line:
+                break
+            log_buffer.append(line.rstrip('\n'))
+            lower = line.lower()
+            if any(kw in lower for kw in [
+                'listening on', 'started server', 'ready on', 'compiled',
+                'available on', 'server running', 'local:', 'http://localhost',
+            ]):
+                status_ref['status'] = 'running'
+        rc = process.wait()
+        if status_ref['status'] not in ('running', 'stopped'):
+            status_ref['status'] = 'failed' if rc != 0 else 'stopped'
+    except Exception as exc:
+        log_buffer.append(f'[emanator] Output capture error: {exc}')
+        status_ref['status'] = 'failed'
+
+
+@app.post("/api/preview/start")
+async def preview_start(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    project_id = (body.get('project_id') or '').strip()
+    files = body.get('files', [])
+
+    if not project_id:
+        return JSONResponse({"error": "project_id required"}, status_code=400)
+    if not files:
+        return JSONResponse({"error": "files required"}, status_code=400)
+
+    with _preview_lock:
+        # Enforce 1 concurrent preview
+        for old_id in list(_preview_processes.keys()):
+            _stop_preview(old_id)
+        if project_id in _preview_processes:
+            _stop_preview(project_id)
+
+    preview_dir = f"/tmp/preview_{project_id}"
+    if os.path.exists(preview_dir):
+        shutil.rmtree(preview_dir)
+    os.makedirs(preview_dir, exist_ok=True)
+
+    written = 0
+    for f in files:
+        fpath = f.get('path', '')
+        content = f.get('content')
+        if not fpath or content is None:
+            continue
+        safe = os.path.normpath(fpath).lstrip('/')
+        if safe.startswith('..'):
+            continue
+        full = os.path.join(preview_dir, safe)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, 'w', encoding='utf-8') as fh:
+            fh.write(content)
+        written += 1
+
+    if written == 0:
+        shutil.rmtree(preview_dir, ignore_errors=True)
+        return JSONResponse({"error": "No files written"}, status_code=400)
+
+    pkg_path = os.path.join(preview_dir, 'package.json')
+    idx_path = os.path.join(preview_dir, 'index.html')
+    has_pkg = os.path.exists(pkg_path)
+    has_idx = os.path.exists(idx_path)
+
+    port = _find_available_port()
+    if not port:
+        shutil.rmtree(preview_dir, ignore_errors=True)
+        return JSONResponse({"error": "No available port (9000-9100)"}, status_code=503)
+
+    log_buffer = deque(maxlen=500)
+    status_ref = {'status': 'starting'}
+
+    if has_pkg:
+        project_type = 'node'
+        try:
+            with open(pkg_path, 'r') as pf:
+                pkg = json_module.loads(pf.read())
+        except Exception:
+            pkg = {}
+
+        scripts = pkg.get('scripts', {})
+        if 'dev' in scripts:
+            run_cmd = 'npm run dev'
+        elif 'start' in scripts:
+            run_cmd = 'npm start'
+        elif pkg.get('main'):
+            run_cmd = f"node {pkg['main']}"
+        else:
+            run_cmd = 'node index.js'
+
+        log_buffer.append(f'[emanator] Node.js project detected')
+        log_buffer.append(f'[emanator] Running: npm install && {run_cmd}')
+        log_buffer.append(f'[emanator] Port: {port}')
+        status_ref['status'] = 'installing'
+
+        cmd = f"cd {preview_dir} && npm install --no-audit --no-fund 2>&1 && PORT={port} {run_cmd} 2>&1"
+        try:
+            process = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, cwd=preview_dir,
+                env={**os.environ, 'PORT': str(port), 'NODE_ENV': 'development'},
+            )
+        except Exception as e:
+            shutil.rmtree(preview_dir, ignore_errors=True)
+            return JSONResponse({"error": f"Failed to start: {e}"}, status_code=500)
+
+    elif has_idx:
+        project_type = 'static'
+        log_buffer.append(f'[emanator] Static HTML project detected')
+        log_buffer.append(f'[emanator] Serving on port {port}')
+        status_ref['status'] = 'running'
+
+        try:
+            process = subprocess.Popen(
+                ['python3', '-m', 'http.server', str(port), '--directory', preview_dir],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            )
+        except Exception as e:
+            shutil.rmtree(preview_dir, ignore_errors=True)
+            return JSONResponse({"error": f"Failed to start: {e}"}, status_code=500)
+    else:
+        shutil.rmtree(preview_dir, ignore_errors=True)
+        return JSONResponse({"error": "No package.json or index.html found in project files"}, status_code=400)
+
+    thread = threading.Thread(target=_capture_output, args=(process, log_buffer, status_ref), daemon=True)
+    thread.start()
+
+    with _preview_lock:
+        _preview_processes[project_id] = {
+            'process': process, 'port': port, 'type': project_type,
+            'logs': log_buffer, 'status_ref': status_ref,
+            'dir': preview_dir, 'thread': thread,
+        }
+
+    logger.info(f"[Preview] Started {project_type} for project {project_id} on port {port}")
+    return JSONResponse({"status": status_ref['status'], "type": project_type, "port": port, "project_id": project_id})
+
+
+@app.get("/api/preview/status/{project_id}")
+async def preview_status(project_id: str):
+    info = _preview_processes.get(project_id)
+    if not info:
+        return JSONResponse({"status": "none", "logs": []})
+
+    status = info['status_ref']['status']
+    proc = info.get('process')
+
+    if proc and proc.poll() is not None and status not in ('failed', 'stopped'):
+        info['status_ref']['status'] = 'failed' if proc.returncode != 0 else 'stopped'
+        status = info['status_ref']['status']
+
+    if status in ('installing', 'starting'):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('127.0.0.1', info['port'])) == 0:
+                info['status_ref']['status'] = 'running'
+                status = 'running'
+
+    return JSONResponse({
+        "status": status,
+        "type": info['type'],
+        "port": info['port'],
+        "logs": list(info['logs'])[-100:],
+    })
+
+
+@app.post("/api/preview/stop/{project_id}")
+async def preview_stop(project_id: str):
+    with _preview_lock:
+        if project_id not in _preview_processes:
+            return JSONResponse({"status": "not_running"})
+        _stop_preview(project_id)
+    logger.info(f"[Preview] Stopped preview for {project_id}")
+    return JSONResponse({"status": "stopped"})
+
+
+@app.get("/api/preview/serve/{project_id}")
+async def preview_serve_root(request: Request, project_id: str):
+    return await _proxy_to_preview(request, project_id, "")
+
+
+@app.api_route("/api/preview/serve/{project_id}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+async def preview_serve(request: Request, project_id: str, path: str = ""):
+    return await _proxy_to_preview(request, project_id, path)
+
+
+async def _proxy_to_preview(request: Request, project_id: str, path: str):
+    info = _preview_processes.get(project_id)
+    if not info:
+        return JSONResponse({"error": "No preview running for this project"}, status_code=404)
+
+    port = info['port']
+    target = f"http://127.0.0.1:{port}/{path}"
+    if str(request.query_params):
+        target += f"?{request.query_params}"
+
+    headers = dict(request.headers)
+    headers.pop('host', None)
+    body = await request.body()
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.request(
+                method=request.method, url=target,
+                headers=headers, content=body,
+            )
+        resp_headers = {
+            k: v for k, v in resp.headers.items()
+            if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding')
+        }
+        return Response(
+            content=resp.content,
+            status_code=resp.status_code,
+            headers=resp_headers,
+            media_type=resp.headers.get('content-type', 'application/octet-stream'),
+        )
+    except httpx.RequestError as e:
+        return JSONResponse({"error": f"Preview not responding: {e}"}, status_code=502)
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])

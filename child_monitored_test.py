@@ -12,7 +12,7 @@ from datetime import datetime
 
 class MyMergentChildMonitoredTester:
     def __init__(self):
-        self.base_url = "https://trend-signal-labs.preview.emergentagent.com"
+        self.base_url = "https://project-runner-48.preview.emergentagent.com"
         self.supabase_url = "https://cawmmqakaxbznbelcrwd.supabase.co"
         self.supabase_anon_key = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
         self.test_email = "REDACTED_LEAKED_USER"
@@ -331,7 +331,7 @@ def save_test_report(test_results):
     report = {
         "timestamp": datetime.now().isoformat(),
         "test_suite": "Child Monitored Role and Monitored Account Mode",
-        "base_url": "https://trend-signal-labs.preview.emergentagent.com",
+        "base_url": "https://project-runner-48.preview.emergentagent.com",
         "tests": {},
         "summary": {
             "total": len(test_results),

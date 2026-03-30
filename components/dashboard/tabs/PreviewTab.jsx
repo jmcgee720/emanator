@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
+import { authFetch } from '@/lib/auth-fetch'
 import {
   RefreshCw, AlertTriangle, MonitorSmartphone, Tablet, Monitor,
-  Loader2, FileCode, AlertCircle, Terminal
+  Loader2, FileCode, AlertCircle, Terminal, Play, Square, RotateCcw
 } from 'lucide-react'
 
 // ─── Project classifier ────────────────────────────────────────────
@@ -26,6 +27,12 @@ function classifyProject(files) {
       return { type: 'assets-only', assetCount, files }
     }
     return { type: 'empty', files: [] }
+  }
+
+  // Check for package.json → Node project requiring execution
+  const hasPackageJson = codeFiles.some(f => f.path === 'package.json')
+  if (hasPackageJson) {
+    return { type: 'node', files: codeFiles }
   }
 
   const htmlFiles = codeFiles.filter(f => f.path?.match(/\.html?$/i) && f.content)
@@ -133,7 +140,6 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
   })
 
   const reactJsFiles = (jsFiles || []).filter(f => {
-    const p = normalizePreviewPath(f.path)
     const c = f.content || ''
     return (
       c.includes('React') ||
@@ -277,8 +283,241 @@ window.addEventListener('unhandledrejection', function(e) {
   return `<!DOCTYPE html><html><head>${errorScript}</head><body>${html}</body></html>`
 }
 
+
 // ═══════════════════════════════════════════════════════════════════
-// Component
+// Node Preview Runner UI
+// ═══════════════════════════════════════════════════════════════════
+function NodePreviewRunner({ project, files, onLog }) {
+  const [status, setStatus] = useState('idle') // idle | starting | installing | running | failed | stopped
+  const [logs, setLogs] = useState([])
+  const [port, setPort] = useState(null)
+  const pollingRef = useRef(null)
+  const logsEndRef = useRef(null)
+
+  const backendUrl = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_APP_URL || process.env.REACT_APP_BACKEND_URL || '')
+    : ''
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs])
+
+  // Clean up on unmount or project change
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current)
+    }
+  }, [project?.id])
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current)
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await authFetch(`/api/preview/status/${project.id}`)
+        if (!res.ok) return
+        const data = await res.json()
+        setStatus(data.status)
+        setLogs(data.logs || [])
+        if (data.status === 'running') {
+          setPort(data.port)
+          onLog?.('success', 'Preview server is running')
+        }
+        if (data.status === 'failed' || data.status === 'stopped' || data.status === 'none') {
+          clearInterval(pollingRef.current)
+          pollingRef.current = null
+        }
+      } catch { /* ignore */ }
+    }, 2000)
+  }, [project?.id, onLog])
+
+  const handleStart = async () => {
+    setStatus('starting')
+    setLogs(['[emanator] Starting preview...'])
+    setPort(null)
+    onLog?.('info', 'Starting preview...')
+
+    try {
+      const res = await authFetch('/api/preview/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: project.id,
+          files: files.filter(f => f.content != null).map(f => ({ path: f.path, content: f.content })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setStatus('failed')
+        setLogs(prev => [...prev, `[error] ${data.error}`])
+        onLog?.('error', `Preview start failed: ${data.error}`)
+        return
+      }
+      setStatus(data.status)
+      setPort(data.port)
+      if (data.status === 'running') {
+        onLog?.('success', 'Preview server started')
+      } else {
+        startPolling()
+      }
+    } catch (err) {
+      setStatus('failed')
+      setLogs(prev => [...prev, `[error] ${err.message}`])
+      onLog?.('error', `Preview error: ${err.message}`)
+    }
+  }
+
+  const handleStop = async () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    try {
+      await authFetch(`/api/preview/stop/${project.id}`, { method: 'POST' })
+    } catch { /* ignore */ }
+    setStatus('stopped')
+    setPort(null)
+    onLog?.('info', 'Preview stopped')
+  }
+
+  const previewUrl = port ? `${backendUrl}/api/preview/serve/${project.id}/` : null
+  const isLoading = status === 'starting' || status === 'installing'
+  const isRunning = status === 'running'
+  const isFailed = status === 'failed'
+  const isStopped = status === 'stopped'
+
+  // Detect framework from package.json
+  const pkgFile = files?.find(f => f.path === 'package.json')
+  let frameworkLabel = 'Node.js'
+  if (pkgFile?.content) {
+    try {
+      const pkg = JSON.parse(pkgFile.content)
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
+      if (deps.next) frameworkLabel = 'Next.js'
+      else if (deps['react-scripts']) frameworkLabel = 'Create React App'
+      else if (deps.vite) frameworkLabel = 'Vite'
+      else if (deps.express) frameworkLabel = 'Express'
+      else if (deps.react) frameworkLabel = 'React'
+    } catch { /* ignore */ }
+  }
+
+  // Idle state — show start button
+  if (!isLoading && !isRunning && !isFailed && !isStopped) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center bg-background text-muted-foreground gap-4" data-testid="preview-node-idle">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+          <Play className="w-7 h-7 text-emerald-400" />
+        </div>
+        <div className="text-center max-w-sm">
+          <p className="text-sm font-medium text-foreground" data-testid="preview-framework-label">{frameworkLabel} Project</p>
+          <p className="text-xs mt-1.5 opacity-70 leading-relaxed">
+            This project requires <code className="text-[10px] bg-muted/60 px-1 py-0.5 rounded">npm install</code> and a dev server to preview.
+            Click below to start.
+          </p>
+        </div>
+        <Button
+          onClick={handleStart}
+          className="gap-2"
+          data-testid="preview-start-btn"
+        >
+          <Play className="w-4 h-4" /> Start Preview
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full flex flex-col bg-background" data-testid="preview-node-runner">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded ${
+            isRunning ? 'bg-emerald-500/15 text-emerald-400' :
+            isLoading ? 'bg-amber-500/15 text-amber-400' :
+            isFailed ? 'bg-red-500/15 text-red-400' :
+            'bg-muted/40 text-muted-foreground'
+          }`} data-testid="preview-runner-status">
+            {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+            {isRunning && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+            {isFailed && <AlertCircle className="w-3 h-3" />}
+            {status === 'installing' ? 'Installing...' :
+             status === 'starting' ? 'Starting...' :
+             status === 'running' ? `Running (${frameworkLabel})` :
+             status === 'failed' ? 'Failed' : 'Stopped'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {isRunning && (
+            <Button size="sm" variant="ghost" className="h-7 gap-1.5"
+              onClick={() => {
+                const iframe = document.querySelector('[data-testid="preview-node-iframe"]')
+                if (iframe) iframe.src = iframe.src
+              }}
+              data-testid="preview-node-refresh">
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </Button>
+          )}
+          {(isRunning || isLoading) && (
+            <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-red-400 hover:text-red-300"
+              onClick={handleStop} data-testid="preview-stop-btn">
+              <Square className="w-3.5 h-3.5" /> Stop
+            </Button>
+          )}
+          {(isFailed || isStopped) && (
+            <Button size="sm" variant="ghost" className="h-7 gap-1.5"
+              onClick={handleStart} data-testid="preview-restart-btn">
+              <RotateCcw className="w-3.5 h-3.5" /> Restart
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      {isRunning && previewUrl ? (
+        <div className="flex-1 overflow-hidden bg-white">
+          <iframe
+            src={previewUrl}
+            title="Node Preview"
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+            data-testid="preview-node-iframe"
+          />
+        </div>
+      ) : (
+        <div className="flex-1" />
+      )}
+
+      {/* Build Logs */}
+      <div className="border-t border-border/40 bg-muted/20 max-h-52 min-h-[80px] overflow-auto" data-testid="preview-build-logs">
+        <div className="flex items-center justify-between px-3 py-1 border-b border-border/30">
+          <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5">
+            <Terminal className="w-3 h-3" /> Build Output
+            {logs.length > 0 && <span className="opacity-50">({logs.length} lines)</span>}
+          </span>
+        </div>
+        <div className="px-3 py-1 font-mono text-[10px] space-y-0 leading-relaxed">
+          {logs.length === 0 ? (
+            <div className="py-2 text-muted-foreground/50">No output yet</div>
+          ) : (
+            logs.map((line, i) => (
+              <div key={i} className={
+                line.includes('[error]') || line.includes('ERR!') || line.includes('Error:') ? 'text-red-400' :
+                line.includes('[warn') || line.includes('WARN') ? 'text-yellow-400' :
+                line.startsWith('[emanator]') ? 'text-blue-400' :
+                'text-muted-foreground'
+              }>{line}</div>
+            ))
+          )}
+          <div ref={logsEndRef} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
 export default function PreviewTab({ project, files, onLog }) {
   const [viewportSize, setViewportSize] = useState('desktop')
@@ -336,7 +575,8 @@ export default function PreviewTab({ project, files, onLog }) {
         p.endsWith('.tsx') ||
         p.endsWith('.js') ||
         p.endsWith('.css') ||
-        p.endsWith('.html')
+        p.endsWith('.html') ||
+        p === 'package.json'
       ) &&
       !p.includes('lib/self_builder') &&
       !p.includes('supabase') &&
@@ -407,6 +647,11 @@ export default function PreviewTab({ project, files, onLog }) {
         </div>
       </div>
     )
+  }
+
+  // Node project → delegate to runner
+  if (projectInfo.type === 'node') {
+    return <NodePreviewRunner project={project} files={files} onLog={onLog} />
   }
 
   if (projectInfo.type === 'empty') {
@@ -530,7 +775,7 @@ export default function PreviewTab({ project, files, onLog }) {
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10" data-testid="preview-loading">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Loading preview…</span>
+              <span className="text-xs text-muted-foreground">Loading preview...</span>
             </div>
           </div>
         )}
