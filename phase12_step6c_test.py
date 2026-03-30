@@ -15,7 +15,7 @@ import sys
 from urllib.parse import urlparse
 
 # Test configuration
-BASE_URL = "https://ai-builder-hub-47.preview.emergentagent.com"
+BASE_URL = "https://trend-signal-labs.preview.emergentagent.com"
 TEST_EMAIL = "REDACTED_LEAKED_USER"
 TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "

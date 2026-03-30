@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T04:52:11.593011",
   "test_suite": "User Dashboard and Audit Log Viewer",
-  "base_url": "https://ai-builder-hub-47.preview.emergentagent.com/api",
+  "base_url": "https://trend-signal-labs.preview.emergentagent.com/api",
   "tests": {
     "admin_users_with_auth": {
       "passed": true,
