@@ -389,7 +389,6 @@ function NodePreviewRunner({ project, files, onLog }) {
   }
 
   const previewUrl = port ? `${backendUrl}/api/preview/serve/${project.id}${basePath}` : null
-  console.log('[PreviewTab] iframe src:', previewUrl, 'basePath:', basePath, 'status:', status)
   const isLoading = status === 'starting' || status === 'installing'
   const isRunning = status === 'running'
   const isFailed = status === 'failed'
@@ -484,9 +483,6 @@ function NodePreviewRunner({ project, files, onLog }) {
       {/* Content */}
       {isRunning && previewUrl ? (
         <div className="flex-1 overflow-hidden bg-white flex flex-col">
-          <div className="px-2 py-0.5 bg-blue-950/60 text-[10px] font-mono text-blue-300 truncate" data-testid="preview-debug-url">
-            Resolved Preview URL: {previewUrl}
-          </div>
           <iframe
             key={previewUrl}
             src={previewUrl}
@@ -674,7 +670,6 @@ export default function PreviewTab({ project, files, onLog }) {
   }
 
   // Node project → delegate to runner
-  console.log('[PreviewTab] projectInfo.type:', projectInfo.type, 'isNodeProject:', isNodeProject, 'fileCount:', files?.length)
   if (projectInfo.type === 'node') {
     return <NodePreviewRunner project={project} files={files} onLog={onLog} />
   }
