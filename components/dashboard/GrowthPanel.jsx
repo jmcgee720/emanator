@@ -30,6 +30,9 @@ export default function GrowthPanel({ onClose }) {
   const [newPersonaName, setNewPersonaName] = useState('')
   const [newPersonaDesc, setNewPersonaDesc] = useState('')
   const [creatingPersona, setCreatingPersona] = useState(false)
+  const [selectedPersonaId, setSelectedPersonaId] = useState(null) // null = "Auto"
+  const [personaResults, setPersonaResults] = useState({}) // { personaKey: { opportunities, fixes, persona_name } }
+  const [activeResultTab, setActiveResultTab] = useState(null) // which result tab is active
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -137,15 +140,28 @@ export default function GrowthPanel({ onClose }) {
     setError(null)
     setAnalyzing(true)
     try {
+      const payload = { page_id: selectedPage.id }
+      if (selectedPersonaId) payload.persona_id = selectedPersonaId
       const res = await authFetch('/api/growth/analyze', {
         method: 'POST',
         headers: JSON_HEADERS,
-        body: JSON.stringify({ page_id: selectedPage.id }),
+        body: JSON.stringify(payload),
       })
       const text = await res.text()
       let data
       try { data = JSON.parse(text) } catch { setError(text.slice(0, 200) || 'Analysis failed'); return }
       if (!res.ok) { setError(data.error || 'Analysis failed'); return }
+
+      // Store result in comparison map
+      const resultKey = selectedPersonaId || '_auto'
+      const resultLabel = data.persona_name || 'Auto'
+      setPersonaResults(prev => ({
+        ...prev,
+        [resultKey]: { opportunities: data.opportunities, fixes: data.fixes, persona_name: resultLabel },
+      }))
+      setActiveResultTab(resultKey)
+
+      // Also update selectedPage for backward compat
       setSelectedPage(prev => ({ ...prev, opportunities: data.opportunities, fixes: data.fixes }))
       fetchPages()
     } catch (err) {
@@ -166,9 +182,17 @@ export default function GrowthPanel({ onClose }) {
   }
 
   const ext = selectedPage?.extracted_data
-  const totalIssues = selectedPage?.opportunities
-    ? Object.values(selectedPage.opportunities).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
+
+  // Active comparison result (from persona results map or fallback to selectedPage)
+  const activeResult = activeResultTab && personaResults[activeResultTab]
+    ? personaResults[activeResultTab]
+    : null
+  const displayOpportunities = activeResult?.opportunities || selectedPage?.opportunities
+  const displayFixes = activeResult?.fixes || selectedPage?.fixes
+  const totalIssues = displayOpportunities
+    ? Object.values(displayOpportunities).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
     : 0
+  const resultTabs = Object.entries(personaResults)
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--em-void)' }} data-testid="growth-panel">
@@ -273,7 +297,7 @@ export default function GrowthPanel({ onClose }) {
                       onClick={() => {
                         authFetch(`/api/growth/pages/${page.id}`)
                           .then(r => r.json())
-                          .then(d => { if (d.page) setSelectedPage(d.page) })
+                          .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null) } })
                       }}
                       className="group relative mx-2 mb-0.5 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
                       style={{
@@ -454,34 +478,55 @@ export default function GrowthPanel({ onClose }) {
             <div className="p-8 max-w-4xl mx-auto space-y-8">
 
               {/* Page header */}
-              <div className="flex items-start justify-between gap-6">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-xl font-bold text-[var(--em-text-primary)] leading-tight tracking-tight">
-                    {ext?.title || 'Untitled Page'}
-                  </h2>
-                  <a
-                    href={selectedPage.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-[var(--em-text-muted)] hover:text-[var(--em-cyan)] transition-colors duration-200"
-                    data-testid="growth-page-url-link"
-                  >
-                    {selectedPage.url}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-6">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xl font-bold text-[var(--em-text-primary)] leading-tight tracking-tight">
+                      {ext?.title || 'Untitled Page'}
+                    </h2>
+                    <a
+                      href={selectedPage.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs text-[var(--em-text-muted)] hover:text-[var(--em-cyan)] transition-colors duration-200"
+                      data-testid="growth-page-url-link"
+                    >
+                      {selectedPage.url}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
-                <button
-                  onClick={handleAnalyze}
-                  disabled={analyzing}
-                  className="shrink-0 em-btn-brand h-9 px-5 rounded-xl text-xs font-semibold flex items-center gap-2 disabled:opacity-40 transition-all duration-300"
-                  data-testid="growth-analyze-btn"
-                >
-                  {analyzing ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing...</>
-                  ) : (
-                    <><Sparkles className="w-3.5 h-3.5" />Analyze SEO</>
-                  )}
-                </button>
+
+                {/* Persona selector + Analyze */}
+                <div className="flex items-center gap-3" data-testid="persona-switcher">
+                  <div className="flex items-center gap-2 flex-1">
+                    <Users className="w-3.5 h-3.5 text-[var(--em-violet)]" style={{ opacity: 0.6 }} />
+                    <select
+                      value={selectedPersonaId || ''}
+                      onChange={(e) => setSelectedPersonaId(e.target.value || null)}
+                      className="flex-1 bg-transparent text-xs text-[var(--em-text-primary)] outline-none px-3 py-2 rounded-lg appearance-none cursor-pointer"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.15)', maxWidth: 260 }}
+                      data-testid="persona-select"
+                    >
+                      <option value="" style={{ background: '#1a1a2e' }}>Auto (best persona)</option>
+                      {personas.map(p => (
+                        <option key={p.id} value={p.id} style={{ background: '#1a1a2e' }}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={analyzing}
+                    className="shrink-0 em-btn-brand h-9 px-5 rounded-xl text-xs font-semibold flex items-center gap-2 disabled:opacity-40 transition-all duration-300"
+                    data-testid="growth-analyze-btn"
+                  >
+                    {analyzing ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analyzing...</>
+                    ) : (
+                      <><Sparkles className="w-3.5 h-3.5" />Analyze SEO</>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Metrics grid */}
@@ -530,8 +575,32 @@ export default function GrowthPanel({ onClose }) {
                 </div>
               )}
 
+              {/* Comparison Tabs */}
+              {resultTabs.length > 1 && (
+                <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(124,58,237,0.1)' }} data-testid="persona-comparison-tabs">
+                  {resultTabs.map(([key, result]) => {
+                    const isActive = activeResultTab === key
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setActiveResultTab(key)}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200"
+                        style={{
+                          background: isActive ? 'rgba(124,58,237,0.15)' : 'transparent',
+                          color: isActive ? 'var(--em-violet)' : 'var(--em-text-muted)',
+                          border: isActive ? '1px solid rgba(124,58,237,0.2)' : '1px solid transparent',
+                        }}
+                        data-testid={`persona-tab-${key}`}
+                      >
+                        {result.persona_name}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
               {/* SEO Opportunities */}
-              {selectedPage.opportunities ? (
+              {displayOpportunities ? (
                 <div className="space-y-4" data-testid="growth-opportunities">
                   <div className="flex items-center justify-between">
                     <h3 className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">SEO Opportunities</h3>
@@ -540,7 +609,7 @@ export default function GrowthPanel({ onClose }) {
                     </span>
                   </div>
                   {ISSUE_SECTIONS.map(({ key, label, icon: Icon, gradient }) => {
-                    const items = selectedPage.opportunities[key]
+                    const items = displayOpportunities[key]
                     if (!items || items.length === 0) return null
                     return (
                       <div key={key} className="growth-issue-section em-card overflow-hidden" data-testid={`growth-section-${key}`}>
@@ -578,7 +647,7 @@ export default function GrowthPanel({ onClose }) {
               )}
 
               {/* Fixes */}
-              {selectedPage.fixes && Object.keys(selectedPage.fixes).length > 0 && (
+              {displayFixes && Object.keys(displayFixes).length > 0 && (
                 <div className="space-y-3" data-testid="growth-fixes">
                   <h3 className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Ready-to-Use Fixes</h3>
                   <div className="em-card overflow-hidden">
@@ -589,14 +658,14 @@ export default function GrowthPanel({ onClose }) {
                       <span className="text-xs font-semibold text-[var(--em-text-primary)]">AI-Generated Improvements</span>
                     </div>
                     <div className="px-5 py-4 space-y-4">
-                      {selectedPage.fixes.improved_title && (
-                        <FixRow label="Improved Title" value={selectedPage.fixes.improved_title} charCount hint="50-60 chars" />
+                      {displayFixes.improved_title && (
+                        <FixRow label="Improved Title" value={displayFixes.improved_title} charCount hint="50-60 chars" />
                       )}
-                      {selectedPage.fixes.improved_meta_description && (
-                        <FixRow label="Improved Meta Description" value={selectedPage.fixes.improved_meta_description} charCount hint="140-160 chars" />
+                      {displayFixes.improved_meta_description && (
+                        <FixRow label="Improved Meta Description" value={displayFixes.improved_meta_description} charCount hint="140-160 chars" />
                       )}
-                      {selectedPage.fixes.improved_h1 && (
-                        <FixRow label="Improved H1" value={selectedPage.fixes.improved_h1} />
+                      {displayFixes.improved_h1 && (
+                        <FixRow label="Improved H1" value={displayFixes.improved_h1} />
                       )}
                     </div>
                   </div>
