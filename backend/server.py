@@ -1243,17 +1243,28 @@ async def preview_start(request: Request):
 
         # ── Build run command ──
         scripts = pkg.get('scripts', {})
-        # Identify which script was selected
+        script_names = list(scripts.keys())
+
+        # Pick the best runnable script — prefer dev-like over production start
         selected_script = None
-        for candidate in ('dev', 'start', 'preview', 'serve'):
+        for candidate in ('dev', 'develop', 'start', 'preview', 'serve'):
             if candidate in scripts:
+                # Skip start if it references a build artifact that doesn't exist
+                if candidate == 'start':
+                    start_val = scripts['start']
+                    # Extract the file path from commands like "node ./build/main.js"
+                    parts = start_val.split()
+                    if len(parts) >= 2 and parts[0] == 'node':
+                        target = os.path.join(preview_dir, parts[1].lstrip('./'))
+                        if not os.path.exists(target):
+                            continue  # skip — build artifact missing
                 selected_script = candidate
                 break
 
         if not selected_script:
             shutil.rmtree(preview_dir, ignore_errors=True)
             return JSONResponse(
-                {"error": "No supported start script found in package.json (need dev, start, preview, or serve)"},
+                {"error": f"No runnable script found in package.json. Available: {script_names}"},
                 status_code=400,
             )
 
@@ -1268,6 +1279,7 @@ async def preview_start(request: Request):
 
         log_buffer.append(f'[emanator] Node.js project detected')
         log_buffer.append(f'[emanator] Package manager: {pm}')
+        log_buffer.append(f'[emanator] Available scripts: {", ".join(script_names)}')
         log_buffer.append(f'[emanator] Selected script: {selected_script}')
         log_buffer.append(f'[emanator] Install: {install_cmd}')
         log_buffer.append(f'[emanator] Run: {run_cmd}')
