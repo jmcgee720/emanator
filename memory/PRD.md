@@ -134,6 +134,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Respects persona selection (uses selectedPersonaId if set)
   - Auto-refreshes pages list on completion; single-page analyze unchanged
   - File: GrowthPanel.jsx only (no backend changes)
+- **Export Crawl Data** (Mar 2026):
+  - "Export" button in Growth header bar (next to page count)
+  - Downloads `growth-export-YYYY-MM-DD.json` with full page data: extracted data, analysis/opportunities, fixes, marketing drafts, hierarchy relationships
+  - Backend: `getAllPagesFull()` in service.js (one query, no projection), `/growth/pages/export` GET route in route.js
+  - Files: service.js, route.js, GrowthPanel.jsx
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)

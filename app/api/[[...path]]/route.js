@@ -3283,6 +3283,21 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    if (route === '/growth/pages/export' && method === 'GET') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      try {
+        const { growthDb } = await import('@/lib/growth/service')
+        const pages = await growthDb.getAllPagesFull(dbUser.id)
+        return handleCORS(NextResponse.json({ exported_at: new Date().toISOString(), total_pages: pages.length, pages }))
+      } catch (err) {
+        console.error('[Growth] Export error:', err)
+        return handleCORS(NextResponse.json({ error: 'Export failed' }, { status: 500 }))
+      }
+    }
+
     if (route.match(/^\/growth\/pages\/[^/]+$/) && method === 'GET') {
       const authUser = await getAuthUser(request)
       if (!authUser) {

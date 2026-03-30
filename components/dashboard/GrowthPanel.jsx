@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List, Download } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -337,6 +337,20 @@ export default function GrowthPanel({ onClose }) {
       .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null); loadFeedback(d.page.id) } })
   }
 
+  const handleExport = async () => {
+    try {
+      const res = await authFetch('/api/growth/pages/export')
+      const data = await res.json()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `growth-export-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* silent */ }
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--em-void)' }} data-testid="growth-panel">
 
@@ -356,9 +370,19 @@ export default function GrowthPanel({ onClose }) {
           <span className="em-gradient-text text-sm font-bold tracking-wide">Growth Engine</span>
         </div>
         {pages.length > 0 && (
-          <span className="ml-auto text-[11px] text-[var(--em-text-muted)] font-medium tabular-nums">
-            {pages.length} page{pages.length !== 1 ? 's' : ''} crawled
-          </span>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-[11px] text-[var(--em-text-muted)] font-medium tabular-nums">
+              {pages.length} page{pages.length !== 1 ? 's' : ''} crawled
+            </span>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-secondary)' }}
+              data-testid="growth-export-btn"
+            >
+              <Download className="w-3 h-3" />Export
+            </button>
+          </div>
         )}
       </div>
 
