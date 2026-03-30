@@ -332,8 +332,16 @@ function NodePreviewRunner({ project, files, onLog }) {
   }, [project?.id, onLog])
 
   const handleStart = async () => {
+    // Stop any existing preview first (full cleanup)
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    try { await authFetch(`/api/preview/stop/${project.id}`, { method: 'POST' }) } catch { /* ignore */ }
+
+    // Reset all frontend state
     setStatus('starting')
-    setLogs(['[emanator] Starting preview...'])
+    setLogs(['[emanator] Restart requested — creating fresh preview session...'])
     setPort(null)
     onLog?.('info', 'Starting preview...')
 
@@ -349,7 +357,7 @@ function NodePreviewRunner({ project, files, onLog }) {
       const data = await res.json()
       if (!res.ok) {
         setStatus('failed')
-        setLogs(prev => [...prev, `[error] ${data.error}`])
+        setLogs(['[emanator] Restart requested — creating fresh preview session...', `[error] ${data.error}`])
         onLog?.('error', `Preview start failed: ${data.error}`)
         return
       }
@@ -362,7 +370,7 @@ function NodePreviewRunner({ project, files, onLog }) {
       }
     } catch (err) {
       setStatus('failed')
-      setLogs(prev => [...prev, `[error] ${err.message}`])
+      setLogs(['[emanator] Restart requested — creating fresh preview session...', `[error] ${err.message}`])
       onLog?.('error', `Preview error: ${err.message}`)
     }
   }

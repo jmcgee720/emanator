@@ -1162,7 +1162,9 @@ async def preview_start(request: Request):
     preview_dir = f"/tmp/preview_{project_id}"
     if os.path.exists(preview_dir):
         shutil.rmtree(preview_dir)
+        logger.info(f"[Preview] Deleted old preview dir: {preview_dir}")
     os.makedirs(preview_dir, exist_ok=True)
+    logger.info(f"[Preview] Fresh preview session for {project_id}")
 
     # Normalize paths: strip common directory prefix so package.json lands at root
     raw_paths = [os.path.normpath(f.get('path', '')).lstrip('/') for f in files if f.get('path')]
