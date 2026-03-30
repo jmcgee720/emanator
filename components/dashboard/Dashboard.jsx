@@ -2232,135 +2232,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           </div>
         )}
 
-        {/* ── Import Modal ── */}
-        {showImportModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(255,255,255,0.15)]" data-testid="import-modal">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
-                  <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
-                  Import Project
-                </h2>
-                <button onClick={() => { setShowImportModal(false); setImportError(null); setShowGithubForm(false); setGithubPat(''); setGithubRepo(''); setGithubBranch('main') }} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {importError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs" data-testid="import-error">
-                  {importError}
-                </div>
-              )}
-
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".zip"
-                className="hidden"
-                onChange={handleZipImport}
-                data-testid="import-file-input"
-              />
-
-              <div className="space-y-3" data-testid="import-options">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={importLoading}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left disabled:opacity-50"
-                  data-testid="import-zip"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0">
-                    {importLoading ? (
-                      <div className="w-4 h-4 border-2 border-[var(--em-cyan)] border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <FolderArchive className="w-4 h-4 text-[var(--em-cyan)]" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium em-text-primary">{importLoading ? 'Importing...' : 'Import from Zip'}</div>
-                    <div className="text-[11px] em-text-secondary mt-0.5">Upload a zipped project directory (.zip)</div>
-                  </div>
-                </button>
-
-                {/* GitHub Import */}
-                <button
-                  onClick={() => setShowGithubForm(!showGithubForm)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left ${
-                    showGithubForm
-                      ? 'border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.06)]'
-                      : 'border-[rgba(255,255,255,0.10)] hover:border-[rgba(168,85,247,0.25)] hover:bg-[rgba(255,255,255,0.06)]'
-                  }`}
-                  data-testid="import-repo"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(168,85,247,0.10)] border border-[rgba(168,85,247,0.20)] flex items-center justify-center shrink-0">
-                    <GitBranch className="w-4 h-4 text-purple-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium em-text-primary">Import from GitHub</div>
-                    <div className="text-[11px] em-text-secondary mt-0.5">Clone a repository using Personal Access Token</div>
-                  </div>
-                </button>
-
-                {/* GitHub Form (expandable) */}
-                {showGithubForm && (
-                  <div className="p-4 rounded-xl border border-[rgba(168,85,247,0.15)] bg-[rgba(168,85,247,0.03)] space-y-3" data-testid="github-import-form">
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Personal Access Token</label>
-                      <input
-                        type="password"
-                        value={githubPat}
-                        onChange={(e) => setGithubPat(e.target.value)}
-                        placeholder="ghp_xxxxxxxxxxxx"
-                        className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
-                        data-testid="github-pat-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Repository</label>
-                      <input
-                        type="text"
-                        value={githubRepo}
-                        onChange={(e) => setGithubRepo(e.target.value)}
-                        placeholder="owner/repo"
-                        className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
-                        data-testid="github-repo-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Branch</label>
-                      <input
-                        type="text"
-                        value={githubBranch}
-                        onChange={(e) => setGithubBranch(e.target.value)}
-                        placeholder="main"
-                        className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
-                        data-testid="github-branch-input"
-                      />
-                    </div>
-                    <button
-                      onClick={handleGithubImport}
-                      disabled={githubImportLoading || !githubPat.trim() || !githubRepo.trim()}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                      data-testid="github-import-submit"
-                    >
-                      {githubImportLoading ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Importing...
-                        </>
-                      ) : (
-                        <>
-                          <GitBranch className="w-3.5 h-3.5" />
-                          Import Repository
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -2915,6 +2786,133 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   'Delete Everything'
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import Modal (top-level so it works in all views) ── */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(255,255,255,0.15)]" data-testid="import-modal">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
+                <Upload className="w-4 h-4 text-[var(--em-cyan)]" />
+                Import Project
+              </h2>
+              <button onClick={() => { setShowImportModal(false); setImportError(null); setShowGithubForm(false); setGithubPat(''); setGithubRepo(''); setGithubBranch('main') }} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {importError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs" data-testid="import-error">
+                {importError}
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={handleZipImport}
+              data-testid="import-file-input"
+            />
+
+            <div className="space-y-3" data-testid="import-options">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importLoading}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.22)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-left disabled:opacity-50"
+                data-testid="import-zip"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] flex items-center justify-center shrink-0">
+                  {importLoading ? (
+                    <div className="w-4 h-4 border-2 border-[var(--em-cyan)] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <FolderArchive className="w-4 h-4 text-[var(--em-cyan)]" />
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm font-medium em-text-primary">{importLoading ? 'Importing...' : 'Import from Zip'}</div>
+                  <div className="text-[11px] em-text-secondary mt-0.5">Upload a zipped project directory (.zip)</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowGithubForm(!showGithubForm)}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left ${
+                  showGithubForm
+                    ? 'border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.06)]'
+                    : 'border-[rgba(255,255,255,0.10)] hover:border-[rgba(168,85,247,0.25)] hover:bg-[rgba(255,255,255,0.06)]'
+                }`}
+                data-testid="import-repo"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[rgba(168,85,247,0.10)] border border-[rgba(168,85,247,0.20)] flex items-center justify-center shrink-0">
+                  <GitBranch className="w-4 h-4 text-purple-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium em-text-primary">Import from GitHub</div>
+                  <div className="text-[11px] em-text-secondary mt-0.5">Clone a repository using Personal Access Token</div>
+                </div>
+              </button>
+
+              {showGithubForm && (
+                <div className="p-4 rounded-xl border border-[rgba(168,85,247,0.15)] bg-[rgba(168,85,247,0.03)] space-y-3" data-testid="github-import-form">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Personal Access Token</label>
+                    <input
+                      type="password"
+                      value={githubPat}
+                      onChange={(e) => setGithubPat(e.target.value)}
+                      placeholder="ghp_xxxxxxxxxxxx"
+                      className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
+                      data-testid="github-pat-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Repository</label>
+                    <input
+                      type="text"
+                      value={githubRepo}
+                      onChange={(e) => setGithubRepo(e.target.value)}
+                      placeholder="owner/repo"
+                      className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
+                      data-testid="github-repo-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-1 block">Branch</label>
+                    <input
+                      type="text"
+                      value={githubBranch}
+                      onChange={(e) => setGithubBranch(e.target.value)}
+                      placeholder="main"
+                      className="w-full px-3 py-2 rounded-lg text-xs em-text-primary bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.12)] focus:border-[rgba(168,85,247,0.40)] focus:outline-none transition-colors placeholder:text-[var(--em-text-muted)]"
+                      data-testid="github-branch-input"
+                    />
+                  </div>
+                  <button
+                    onClick={handleGithubImport}
+                    disabled={githubImportLoading || !githubPat.trim() || !githubRepo.trim()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                    data-testid="github-import-submit"
+                  >
+                    {githubImportLoading ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <GitBranch className="w-3.5 h-3.5" />
+                        Import Repository
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -198,3 +198,10 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - Tested: iteration_33.json (15/15 backend, 12/12 frontend — 100% pass rate)
 - Files: `server.py` (_crawl_single_page helper + batch BFS), `route.js` (timeout extension), `lib/growth/service.js` (projection update), `GrowthPanel.jsx` (mode toggle + summary banner)
 
+
+
+## GitHub Import — Import Button Fix (Mar 2026) — COMPLETE
+- **Root cause**: Import Modal JSX was scoped inside `renderProjectGrid()`, only called when `!selectedProject`. In project/chat views, clicking Import toggled state but the modal never mounted.
+- **Fix**: Moved Import Modal to top-level return of Dashboard component so it renders in all views.
+- **File**: `components/dashboard/Dashboard.jsx`
+- Tested: Screenshot verification — Import modal opens correctly from project/chat view.
