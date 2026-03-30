@@ -265,17 +265,17 @@ async def stripe_confirm_credits(request: Request, session_id: str):
 
 # ── Growth Engine routes (BEFORE the catch-all proxy) ──
 
-@app.post("/api/growth/crawl")
+@app.post("/api/internal/growth/crawl")
 async def growth_crawl(request: Request):
-    """Crawl a URL and extract SEO-relevant data"""
-    user = _extract_user_from_token(request)
-    if not user:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-
+    """Crawl a URL and extract SEO-relevant data. Called internally by Next.js route.js."""
     try:
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    user_id = (body.get('user_id') or '').strip()
+    if not user_id:
+        return JSONResponse({"error": "user_id is required"}, status_code=400)
 
     raw_url = (body.get('url') or '').strip()
     if not raw_url:
@@ -384,7 +384,7 @@ async def growth_crawl(request: Request):
         # Store in MongoDB
         db = get_db()
         doc = {
-            'user_id': user['user_id'],
+            'user_id': user_id,
             'url': raw_url,
             'extracted_data': extracted_data,
             'opportunities': None,
@@ -394,7 +394,7 @@ async def growth_crawl(request: Request):
         result = db['growth_pages'].insert_one(doc)
         page_id = str(result.inserted_id)
 
-        logger.info(f"[Growth] Crawled {raw_url} for user {user['user_id']}, page_id={page_id}")
+        logger.info(f"[Growth] Crawled {raw_url} for user {user_id}, page_id={page_id}")
 
         return JSONResponse({
             "success": True,
@@ -412,17 +412,17 @@ async def growth_crawl(request: Request):
         return JSONResponse({"error": f"Crawl failed: {str(e)}"}, status_code=500)
 
 
-@app.post("/api/growth/analyze")
+@app.post("/api/internal/growth/analyze")
 async def growth_analyze(request: Request):
-    """Run first-pass SEO analysis on a stored page using AI"""
-    user = _extract_user_from_token(request)
-    if not user:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-
+    """Run first-pass SEO analysis on a stored page using AI. Called internally by Next.js route.js."""
     try:
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    user_id = (body.get('user_id') or '').strip()
+    if not user_id:
+        return JSONResponse({"error": "user_id is required"}, status_code=400)
 
     page_id = (body.get('page_id') or '').strip()
     if not page_id:
@@ -436,7 +436,7 @@ async def growth_analyze(request: Request):
         return JSONResponse({"error": "Invalid page_id"}, status_code=400)
 
     db = get_db()
-    page = db['growth_pages'].find_one({'_id': oid, 'user_id': user['user_id']})
+    page = db['growth_pages'].find_one({'_id': oid, 'user_id': user_id})
     if not page:
         return JSONResponse({"error": "Page not found"}, status_code=404)
 
@@ -498,11 +498,11 @@ Return ONLY the JSON object, no markdown, no explanation."""
 
         # Store opportunities
         db['growth_pages'].update_one(
-            {'_id': oid, 'user_id': user['user_id']},
+            {'_id': oid, 'user_id': user_id},
             {'$set': {'opportunities': opportunities, 'updated_at': datetime.now(timezone.utc).isoformat()}}
         )
 
-        logger.info(f"[Growth] Analyzed page {page_id} for user {user['user_id']}")
+        logger.info(f"[Growth] Analyzed page {page_id} for user {user_id}")
 
         return JSONResponse({
             "success": True,
