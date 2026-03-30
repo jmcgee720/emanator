@@ -273,8 +273,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       return
     }
 
-    if (!/^[^/]+\/[^/]+$/.test(repo)) {
-      setImportError('Repository must be in format owner/repo (e.g. facebook/react)')
+    if (!/^[^/]+\/[^/]+$/.test(repo) && !/^https?:\/\/github\.com\/[^/]+\/[^/]+/.test(repo)) {
+      setImportError('Repository must be in format owner/repo or a GitHub URL')
       return
     }
 
