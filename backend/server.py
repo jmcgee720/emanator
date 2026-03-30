@@ -543,6 +543,19 @@ async def _crawl_single_page(raw_url, user_id, db, parent_seed_url=None, crawl_m
         logger.error(f"[Growth] Crawl error for {raw_url}: {e}")
         return {'error': f'Crawl failed: {str(e)}', 'status': 500}
 
+# ── Growth crawl progress tracking ──
+_crawl_progress = {}  # keyed by user_id
+
+
+@app.get("/api/internal/growth/crawl/progress")
+async def growth_crawl_progress(request: Request):
+    user_id = request.query_params.get('user_id', '')
+    entry = _crawl_progress.get(user_id)
+    if not entry:
+        return JSONResponse({"active": False})
+    return JSONResponse({"active": True, **entry})
+
+
 @app.post("/api/internal/growth/crawl")
 async def growth_crawl(request: Request):
     """Crawl a URL (single or batch mode) and extract SEO-relevant data."""
@@ -611,6 +624,8 @@ async def growth_crawl(request: Request):
     pages_failed = 0
     first_extracted = None
 
+    _crawl_progress[user_id] = {"pages_attempted": 0, "pages_saved": 0, "pages_failed": 0, "max_pages": max_pages, "current_url": raw_url}
+
     while queue and len(page_ids) < max_pages:
         current_url = queue.popleft()
         norm = current_url.rstrip('/').split('#')[0].split('?')[0].lower()
@@ -619,6 +634,7 @@ async def growth_crawl(request: Request):
         visited.add(norm)
 
         pages_attempted += 1
+        _crawl_progress[user_id] = {"pages_attempted": pages_attempted, "pages_saved": len(page_ids), "pages_failed": pages_failed, "max_pages": max_pages, "current_url": current_url}
         result = await _crawl_single_page(current_url, user_id, db, parent_seed_url=raw_url, crawl_mode='batch')
 
         if result.get('error'):
@@ -642,6 +658,7 @@ async def growth_crawl(request: Request):
                 queue.append(link_url)
 
     seeded_personas = []
+    _crawl_progress.pop(user_id, None)
     if first_extracted:
         try:
             if db['persona_profiles'].count_documents({'user_id': user_id}) == 0:

@@ -3176,6 +3176,20 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    if (route === '/growth/crawl/progress' && method === 'GET') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+      try {
+        const res = await fetch(`http://localhost:8001/api/internal/growth/crawl/progress?user_id=${dbUser.id}`)
+        const data = await res.json()
+        return handleCORS(NextResponse.json(data))
+      } catch {
+        return handleCORS(NextResponse.json({ active: false }))
+      }
+    }
+
     if (route === '/growth/analyze' && method === 'POST') {
       const authUser = await getAuthUser(request)
       if (!authUser) {
