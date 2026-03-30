@@ -483,12 +483,15 @@ function NodePreviewRunner({ project, files, onLog }) {
 
       {/* Content */}
       {isRunning && previewUrl ? (
-        <div className="flex-1 overflow-hidden bg-white">
+        <div className="flex-1 overflow-hidden bg-white flex flex-col">
+          <div className="px-2 py-0.5 bg-blue-950/60 text-[10px] font-mono text-blue-300 truncate" data-testid="preview-debug-url">
+            Resolved Preview URL: {previewUrl}
+          </div>
           <iframe
             key={previewUrl}
             src={previewUrl}
             title="Node Preview"
-            className="w-full h-full border-0"
+            className="flex-1 w-full border-0"
             sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
             data-testid="preview-node-iframe"
           />
