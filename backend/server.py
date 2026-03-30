@@ -1241,14 +1241,18 @@ async def preview_start(request: Request):
 
         # ── Build run command ──
         scripts = pkg.get('scripts', {})
-        if 'dev' in scripts:
-            run_cmd = f'{pm} run dev'
-        elif 'start' in scripts:
-            run_cmd = f'{pm} start' if pm == 'npm' else f'{pm} run start'
-        elif pkg.get('main'):
-            run_cmd = f"node {pkg['main']}"
-        else:
-            run_cmd = 'node index.js'
+        run_cmd = None
+        for candidate in ('dev', 'start', 'preview', 'serve'):
+            if candidate in scripts:
+                run_cmd = f'{pm} run {candidate}'
+                break
+
+        if not run_cmd:
+            shutil.rmtree(preview_dir, ignore_errors=True)
+            return JSONResponse(
+                {"error": "No supported start script found in package.json (need dev, start, preview, or serve)"},
+                status_code=400,
+            )
 
         # ── Ensure package manager is available ──
         ensure_pm = ''
