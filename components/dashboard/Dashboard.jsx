@@ -2561,6 +2561,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           onDeleteProject={() => setDeleteConfirmProject(selectedProject)}
           onOpenImport={() => setShowImportModal(true)}
           onSyncRepo={handleSyncRepo}
+          onRenameChat={renameChat}
           creditsBalance={creditsBalance}
         />
       ) : (
