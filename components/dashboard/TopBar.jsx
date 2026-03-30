@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, CreditCard, Upload, Sun } from 'lucide-react'
+import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, CreditCard, Upload, Sun, BarChart3 } from 'lucide-react'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -34,6 +34,7 @@ export default function TopBar({
   onOpenDesign,
   onOpenCredits,
   onOpenImport,
+  onOpenGrowth,
   isOwner,
   isMonitored,
   auroraIntensity = 'medium',
@@ -100,9 +101,19 @@ export default function TopBar({
           </span>
         </button>
 
-        <div className="w-px h-4 bg-[rgba(255,255,255,0.10)] mx-1" />
+        {/* Growth Engine button */}
+        <button
+          onClick={onOpenGrowth}
+          className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
+          data-testid="growth-btn"
+        >
+          <span className="flex items-center gap-1.5">
+            <BarChart3 className="w-3 h-3" />
+            Growth
+          </span>
+        </button>
 
-        {/* Aurora Intensity Control */}
+        <div className="w-px h-4 bg-[rgba(255,255,255,0.10)] mx-1" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
