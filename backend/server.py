@@ -299,8 +299,16 @@ async def proxy_api(request: Request, path: str):
                 )
             
             # Regular response
+            content_type_header = response.headers.get('content-type', '')
+            if content_type_header.startswith('application/json'):
+                try:
+                    body = response.json()
+                except Exception:
+                    body = {"error": response.text[:500] or "Empty response from upstream"}
+            else:
+                body = {"error": response.text[:500]} if response.status_code >= 400 else response.text
             return JSONResponse(
-                content=response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text,
+                content=body,
                 status_code=response.status_code,
                 headers={k: v for k, v in response.headers.items() if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding')}
             )
