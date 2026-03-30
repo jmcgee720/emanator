@@ -1164,6 +1164,17 @@ async def preview_start(request: Request):
         shutil.rmtree(preview_dir)
     os.makedirs(preview_dir, exist_ok=True)
 
+    # Normalize paths: strip common directory prefix so package.json lands at root
+    raw_paths = [os.path.normpath(f.get('path', '')).lstrip('/') for f in files if f.get('path')]
+    valid_paths = [p for p in raw_paths if p and not p.startswith('..')]
+    common_prefix = ''
+    if valid_paths:
+        parts_list = [p.split('/') for p in valid_paths]
+        if all(len(pp) > 1 for pp in parts_list):
+            candidate = parts_list[0][0]
+            if all(pp[0] == candidate for pp in parts_list):
+                common_prefix = candidate + '/'
+
     written = 0
     for f in files:
         fpath = f.get('path', '')
@@ -1172,6 +1183,10 @@ async def preview_start(request: Request):
             continue
         safe = os.path.normpath(fpath).lstrip('/')
         if safe.startswith('..'):
+            continue
+        if common_prefix and safe.startswith(common_prefix):
+            safe = safe[len(common_prefix):]
+        if not safe:
             continue
         full = os.path.join(preview_dir, safe)
         os.makedirs(os.path.dirname(full), exist_ok=True)
