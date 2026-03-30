@@ -442,21 +442,34 @@ async def growth_analyze(request: Request):
 
     extracted = page.get('extracted_data', {})
 
-    # Build prompt for SEO analysis
+    # Build prompt for SEO analysis + fixes
+    current_h1 = ''
+    headings = extracted.get('headings', {})
+    if 'h1' in headings and headings['h1']:
+        current_h1 = headings['h1'][0]
+
     prompt = f"""Analyze this webpage's SEO and return ONLY a JSON object with exactly these keys:
-- title_issues: array of strings (problems with the page title)
-- meta_issues: array of strings (problems with meta description, robots, canonical, OG tags)
-- content_issues: array of strings (problems with word count, content quality signals)
-- structure_issues: array of strings (problems with heading hierarchy, links, images)
-- recommendations: array of strings (top actionable improvements, prioritized)
+
+ANALYSIS (arrays of strings):
+- title_issues: problems with the page title
+- meta_issues: problems with meta description, robots, canonical, OG tags
+- content_issues: problems with word count, content quality signals
+- structure_issues: problems with heading hierarchy, links, images
+- recommendations: top actionable improvements, prioritized
+
+FIXES (strings):
+- improved_title: a better page title (50-60 chars, include primary keyword if detectable, no clickbait)
+- improved_meta_description: a better meta description (140-160 chars, include benefit + CTA tone)
+- improved_h1: a better H1 heading (clear, human, not keyword-stuffed). Omit this key if the current H1 is already good.
 
 Page data:
 - URL: {page.get('url', 'unknown')}
 - Title: {extracted.get('title', 'MISSING')} ({extracted.get('title_length', 0)} chars)
 - Meta Description: {extracted.get('meta_description', 'MISSING')} ({extracted.get('meta_description_length', 0)} chars)
+- H1: {current_h1 or 'MISSING'}
 - Canonical: {extracted.get('canonical', 'MISSING')}
 - OG Tags: {extracted.get('og_tags', {})}
-- Headings: {extracted.get('headings', {})}
+- Headings: {headings}
 - Word Count: {extracted.get('word_count', 0)}
 - Internal Links: {extracted.get('internal_links', 0)}
 - External Links: {extracted.get('external_links', 0)}
@@ -490,16 +503,32 @@ Return ONLY the JSON object, no markdown, no explanation."""
 
         opportunities = json_module.loads(raw_text)
 
-        # Ensure expected shape
+        # LLM may return nested {ANALYSIS: {...}, FIXES: {...}} or flat keys
+        if 'ANALYSIS' in opportunities and isinstance(opportunities['ANALYSIS'], dict):
+            analysis = opportunities['ANALYSIS']
+            fixes_raw = opportunities.get('FIXES', {})
+            opportunities = analysis
+        else:
+            fixes_raw = {}
+
+        # Extract fixes from flat keys (if LLM used flat structure)
+        fixes = {}
+        for fix_key in ('improved_title', 'improved_meta_description', 'improved_h1'):
+            if fix_key in opportunities:
+                fixes[fix_key] = opportunities.pop(fix_key)
+            elif fix_key in fixes_raw:
+                fixes[fix_key] = fixes_raw[fix_key]
+
+        # Ensure expected opportunity shape
         expected_keys = ['title_issues', 'meta_issues', 'content_issues', 'structure_issues', 'recommendations']
         for key in expected_keys:
             if key not in opportunities:
                 opportunities[key] = []
 
-        # Store opportunities
+        # Store opportunities + fixes
         db['growth_pages'].update_one(
             {'_id': oid, 'user_id': user_id},
-            {'$set': {'opportunities': opportunities, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+            {'$set': {'opportunities': opportunities, 'fixes': fixes, 'updated_at': datetime.now(timezone.utc).isoformat()}}
         )
 
         logger.info(f"[Growth] Analyzed page {page_id} for user {user_id}")
@@ -508,6 +537,7 @@ Return ONLY the JSON object, no markdown, no explanation."""
             "success": True,
             "page_id": page_id,
             "opportunities": opportunities,
+            "fixes": fixes,
         })
 
     except json_module.JSONDecodeError as e:
