@@ -122,3 +122,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Features: crawl URL, list pages, view page detail, run AI analysis, view structured SEO opportunities (5 sections), delete pages, back navigation
   - Loading/empty/error states for all async operations
   - Files: `components/dashboard/GrowthPanel.jsx` (created), `Dashboard.jsx` (updated), `TopBar.jsx` (updated)
+- **Growth Engine Visual Polish** (Mar 2026):
+  - Direction: Luxury Minimal AI — dark UI, glass panels, gradient accents, cinematic spacing
+  - Reused existing tokens: `em-glass-topbar`, `em-glass-sidebar`, `em-card`, `em-input`, `em-btn-brand`, `em-gradient-text`
+  - Added Growth-specific CSS: `growth-metric-card` (gradient top edge), `growth-icon-glow`, `growth-issue-section` (hover glow)
+  - Metric cards: 4-column grid with colored labels and large tabular numbers
+  - Meta section: consolidated card with dividers, char counts, ideal ranges, checkmark indicators
+  - SEO sections: icon-badged headers with gradient fills, hover glow transitions, item counts
+  - Files: `GrowthPanel.jsx` (rewritten), `globals.css` (appended)
