@@ -366,11 +366,8 @@ function NodePreviewRunner({ project, files, onLog }) {
       }
       setStatus(data.status)
       setPort(data.port)
-      if (data.status === 'running') {
-        onLog?.('success', 'Preview server started')
-      } else {
-        startPolling()
-      }
+      // Always poll — base_path is only available from the status endpoint
+      startPolling()
     } catch (err) {
       setStatus('failed')
       setLogs(['[emanator] Restart requested — creating fresh preview session...', `[error] ${err.message}`])
@@ -392,6 +389,7 @@ function NodePreviewRunner({ project, files, onLog }) {
   }
 
   const previewUrl = port ? `${backendUrl}/api/preview/serve/${project.id}${basePath}` : null
+  console.log('[PreviewTab] iframe src:', previewUrl, 'basePath:', basePath, 'status:', status)
   const isLoading = status === 'starting' || status === 'installing'
   const isRunning = status === 'running'
   const isFailed = status === 'failed'
@@ -487,6 +485,7 @@ function NodePreviewRunner({ project, files, onLog }) {
       {isRunning && previewUrl ? (
         <div className="flex-1 overflow-hidden bg-white">
           <iframe
+            key={previewUrl}
             src={previewUrl}
             title="Node Preview"
             className="w-full h-full border-0"
