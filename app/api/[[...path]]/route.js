@@ -2742,38 +2742,13 @@ async function handleRoute(request, { params }) {
     
     // Get deployments for project
     if (route.match(/^\/projects\/[^/]+\/deployments$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const deployments = await db.deployments.findByProjectId(projectId)
-      return handleCORS(NextResponse.json(deployments))
+      // Deployment system not yet implemented — return empty list
+      return handleCORS(NextResponse.json([]))
     }
 
-    // Create deployment (placeholder)
+    // Create deployment (not implemented)
     if (route.match(/^\/projects\/[^/]+\/deployments$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const body = await request.json()
-      const { platform = 'vercel' } = body
-      
-      const deployment = await db.deployments.create({
-        project_id: projectId,
-        platform,
-        status: 'pending',
-        metadata: {
-          created_by: authUser.email,
-          note: 'Deployment integration will be implemented in next phase'
-        }
-      })
-      
-      return handleCORS(NextResponse.json(deployment, { status: 201 }))
+      return handleCORS(NextResponse.json({ error: 'Deployment not yet implemented. Coming in Phase 2.' }, { status: 501 }))
     }
 
     // ============ GENERATION LOGS ROUTES ============
