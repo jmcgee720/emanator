@@ -1,154 +1,230 @@
 <analysis>**original_problem_statement**: 
-The user requested continuous hardening and feature additions for the Emanator AI Builder platform. Key requirements included:
-1. Fixing GitHub import bugs (branch resolution, shorthand repo parsing, response parsing errors).
-2. Building a Growth Engine MVP (URL intake, crawl, normalization, SEO opportunity generation).
-3. Applying a Luxury Minimal AI visual polish to the Growth Engine UI.
-4. Adding Fix It AI generation for SEO improvements (improved title, meta description, H1).
-5. Building a Trend Engine v1 (ingesting from Google Trends and Hacker News) to augment the SEO analysis prompt.
+The user wants to continuously harden the Emanator AI Builder core system. The immediate focus has shifted entirely back to the **Core System** (specifically finishing the end-to-end GitHub import flow). 
+PRODUCT REQUIREMENTS: 
+- Fix the Preview system to execute imported projects correctly based on their framework.
+- Detect project types (Node, Next.js, static HTML).
+- For Node projects: execute 
+added 33 packages, removed 20 packages, changed 12 packages, and audited 684 packages in 5s
 
-PRODUCT REQUIREMENTS:
-- Use existing FastAPI backend for Python crawling (BeautifulSoup/lxml).
-- Store Growth data in MongoDB (, ).
-- Align Growth Engine identity to use  (proxied through Next.js ).
-- Maintain existing Luxury Minimal AI design tokens in UI components.
-- Do not use paid APIs for the Trend Engine.
+163 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (3 moderate, 3 high, 2 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details. and 
+> mymergent@2.0.0 dev
+> NODE_OPTIONS='--max-old-space-size=512' next dev --hostname 0.0.0.0 --port 3000
+
+[?25h or 
+> mymergent@2.0.0 start
+> next start, capture output, and expose via preview URL/iframe.
+- For static projects: serve  directly.
+- Add logs if the preview fails (show build/runtime errors in the Preview panel).
+- Allow previews for imported projects (replacing the Preview Disabled placeholder), blocking only the core Emanator system itself.
+- Scope: Minimal viable execution. Do NOT use external hosting.
+- **CRITICAL PIVOT**: The user explicitly instructed to Ignore ALL growth, crawl, SEO, sitemap, or analytics features going forward.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A Next.js 14 App Router full-stack application backed by Supabase (users/projects) and MongoDB (credits/transactions/growth), with a FastAPI reverse proxy. Features include highly robust AI code-generation via SSE, Stripe Checkout, GitHub import, and a newly integrated Growth Engine that crawls URLs, analyzes SEO using GPT-4o (via Emergent LLM Key), generates fixes, and incorporates daily trending data from Google Trends and Hacker News.
+A Next.js 14 App Router full-stack application backed by Supabase and MongoDB with a FastAPI proxy. Extensive Growth Engine features were added successfully. The GitHub PAT import system UI and backend logic are functional (repo parsing, branch resolution, and file fetching work). However, the  currently only shows static HTML or a generic placeholder and lacks the ability to run actual Node.js/React imported projects. 
 
 **Last working item**:
-    - Last item agent was working: Building and testing Trend Engine v1. The agent successfully built the ingestion pipeline (Google Trends RSS + HN API), stored trends in MongoDB, injected them into the AI SEO analysis prompt, and added a Trending Now section to .
-    - Status: TESTING PENDING
-    - Agent Testing Done: Y (Called testing agent, but session ended before reviewing results)
-    - Which testing method agent to use? NA (Testing agent  was already executed; next agent must read  to review results and fix any potential bugs).
+    - Last item agent was working: Fixing the Preview system to run imported projects dynamically (detecting framework, running npm commands, capturing logs). The agent was just exploring the  and backend project files structure but had not made any code changes yet.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? Both (Frontend and Backend testing agent is highly recommended for project execution logic, plus screenshot tool to verify the iframe/logs). 
     - User Testing Done: N
 
-**All Pending/In progress Issue list**:
-  Issue 1: Review Trend Engine Test Results & Finalize (P0)
-     - Attempted fixes: Agent finished implementing the Trend Engine and called , but the session abruptly ended.
-     - Next debug checklist: Read . If bugs exist, fix them. If tests passed perfectly, conclude the task using the  tool.
-     - Why fix this issue and what will be achieved with the fix? Ensures the newly added Trend Engine is stable and officially closes out the active requirement.
-     - Status: TESTING PENDING
+**All Pending/In progress Issue list**: 
+  Issue 1: Preview system cannot run imported Node/Next.js projects (P0)
+     - Attempted fixes: Agent investigated  and  architecture, but no implementation started.
+     - Next debug checklist: 
+        - Update  to handle loading states and log outputs for active executions.
+        - Create a backend mechanism (likely in  or ) to inspect the project files (look for ).
+        - Implement secure/isolated minimal execution (
+up to date, audited 684 packages in 2s
+
+163 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (3 moderate, 3 high, 2 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> mymergent@2.0.0 dev
+> NODE_OPTIONS='--max-old-space-size=512' next dev --hostname 0.0.0.0 --port 3000
+
+[?25h) and capture the port/URL for the iframe.
+        - Surface build/runtime errors to the Preview tab logs.
+     - Why fix this issue and what will be achieved with the fix? Completes the GitHub import end-to-end flow, allowing users to actually see and interact with the code they imported.
+     - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? NA (Testing already done, act on report).
+     - Should Test frontend/backend/both after fix? Both
      - Blocked on other issue: None
 
 **In progress Task List**:
-  Task 1: Trend Engine Verification
-     - Where to resume: Read the test report at . Handle any action items from the subagent. Update  and officially  the task.
-     - What will be achieved with this? Completion of the Trend Engine v1 task.
+  Task 1: Detect framework and execute project for Preview
+     - Where to resume: Implement the execution endpoint. Read project files, detect  vs static . Spawns a background process for npm tasks, captures stdout/stderr, and returns a local proxy URL to embed in the  iframe.
+     - What will be achieved with this? Functional live preview for imported GitHub repositories.
      - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix? Both (If fixes are required based on the report).
+     - Should Test frontend/backend/both after fix? Both
      - Blocked on something: None
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Apply design token system pass to , , and  (Align with Aurora UI).
+    - P1: Apply design tokens to , , and  (Align with Aurora UI).
     - P2: Refactor  (~2800 lines) into smaller, modular files.
-    - P2: Refactor  (currently ~3800 lines).
+    - P2: Refactor  (currently ~4000 lines).
 
     Future Tasks:
-    - P3: GitHub OAuth implementation (to replace PAT-based import).
-    - Growth Engine: Multi-page batch crawl (crawl internal links automatically from seed URL).
+    - Phase 2: Deploy integration (Vercel/Netlify) — currently mocked with Coming Soon.
 
 **Completed work in this session**
-- GitHub Import Branch Resolution: Verified and fixed  to correctly resolve branch SHAs (DONE).
-- GitHub Import Response Parsing: Hardened frontend to safely parse non-JSON timeout responses, and hardened backend to strictly return JSON (DONE).
-- GitHub Import Repo Parsing: Added support for shorthand , full URLs, and stripped trailing slashes/ (DONE).
-- Growth Engine Backend MVP: Created Python endpoints for crawling (BeautifulSoup) and AI analysis, stored in Mongo (DONE).
-- Growth Engine Identity Alignment: Refactored Growth Python endpoints to be internal-only, routed via Next.js to ensure strict usage of  over JWT  (DONE).
-- Growth UI Shell: Built  and wired it to  and  (DONE).
-- Growth UI Visual Polish: Applied Luxury Minimal AI design tokens, glass sidebar, and glowing metrics (DONE).
-- Growth Fix It Generation: Extended AI analysis to output , , and , visible in UI with copy buttons (DONE).
-- Trend Engine Backend & UI: Added HN/Google Trends fetching and UI integration (IMPLEMENTED, PENDING TEST REVIEW).
+- Persona Engine v1 (CRUD, Auto-seed based on site type) (DONE)
+- Persona Switcher v1 (Dropdown, comparison tabs) (DONE)
+- Channel Drafts v1 (AI-generated social, search, and email copy) (DONE)
+- Performance Scoring v1 (Thumbs up/down feedback loop driving persona priority) (DONE)
+- Growth Multi-Page Batch Crawl v1 (BFS link discovery up to max pages) (DONE)
+- Fixed Import Button UI Bug: Moved  out of the conditionally rendered  so the modal works globally inside chat/project views (DONE)
+- Fixed Deploy Tab crashes: Removed missing  calls, returning safe empty states and disabling the UI Deploy button as a placeholder (DONE)
 
 **Earlier issues found/mentioned but not fixed**
    - Issue 1: Next.js / SWC compiler out of memory / WatchFiles crash.
-   - Debug checklist: Monitor nextjs_api                       RUNNING   pid 50, uptime 0:00:04 and .
-   - Why to solve this issue and what will be achieved with this? Prevents hot-reload and proxy failures during development.
-   - Should Test frontend/backend/both after fix: NA (Environment quirk)
+   - Debug checklist: Monitor nextjs_api                       RUNNING   pid 51, uptime 0:00:28 and restart if it hangs (nextjs_api: stopped
+nextjs_api: started).
+   - Why to solve this issue and what will be achieved with this? Fixes dev server crashes during heavy file edits.
+   - Should Test frontend/backend/both after fix: NA (Environment management)
    - Is recurring issue? Y
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Next.js memory limits / Dev server crashing.
-  - Recurrence count: Multiple (Occurred during this session, fixed via supervisor restart).
-  - Status: MITIGATED
+  - Issue recurrence in previous fork: Next.js memory thrashing / OOM.
+  - Recurrence count: 3+
+  - Status: MITIGATED (Agent actively cleared cache and restarted the supervisor process successfully).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-Next.js App Router, Supabase PostgreSQL (users/projects), MongoDB (credits/growth_pages/trend_signals), FastAPI proxy.
-*Important Auth Pattern*: FastAPI endpoints for Growth/Trends are . They do NOT use JWT auth. External requests hit Next.js , which authenticates, extracts , and proxies the call to Python over localhost.
+Next.js App Router for frontend and main API routing, Supabase for relational data (projects, chats, files), and FastAPI for proxy/heavy Python tasks. The Preview system currently uses simple static rendering or mock responses and needs to be upgraded to spawn actual child processes (npm <command>
+
+Usage:
+
+npm install        install all the dependencies in your project
+npm install <foo>  add the <foo> dependency to your project
+npm test           run this project's tests
+npm run <foo>      run the script named <foo>
+npm <command> -h   quick help on <command>
+npm -l             display usage info for all commands
+npm help <term>    search for help on <term>
+npm help npm       more involved overview
+
+All commands:
+
+    access, adduser, audit, bugs, cache, ci, completion,
+    config, dedupe, deprecate, diff, dist-tag, docs, doctor,
+    edit, exec, explain, explore, find-dupes, fund, get, help,
+    help-search, hook, init, install, install-ci-test,
+    install-test, link, ll, login, logout, ls, org, outdated,
+    owner, pack, ping, pkg, prefix, profile, prune, publish,
+    query, rebuild, repo, restart, root, run-script, sbom,
+    search, set, shrinkwrap, star, stars, start, stop, team,
+    test, token, uninstall, unpublish, unstar, update, version,
+    view, whoami
+
+Specify configs in the ini-formatted file:
+    /root/.npmrc
+or on the command line via: npm <command> --key=value
+
+More configuration info: npm help config
+Configuration fields: npm help 7 config
+
+npm@10.8.2 /usr/lib/node_modules/npm) for imported code.
 
 **key DB schema**
-  -  (Supabase): {id (UUID), email}
-  -  (MongoDB): {user_id (matches Supabase id), url, extracted_data, opportunities, fixes, created_at}
-  -  (MongoDB): {keyword, source, score, created_at}
+  -  (Supabase): {id, name, type}
+  -  (Supabase): {id, project_id, path, content}
 
 **changes in tech stack**
-  - Added Python dependencies: ,  for web scraping.
+  - None this session.
 
 **All files of reference** 
-- : Added Growth internal endpoints and BeautifulSoup logic.
-- : Added Growth & Trend API auth gateways.
-- : Brand new UI component.
-- : Brand new MongoDB integration service.
-- : Added new design tokens (, ).
+- : Target file for updating preview UI, logs, and iframe.
+- : Needs new logic to trigger project builds/execution.
+- : Edited to hoist the Import Modal.
+- : Edited to gracefully handle unimplemented features.
+- : Updated checklist status.
 
 **Areas that need refactoring**: 
--  (~2800 lines): Slated for module breakdown (P2).
--  (~3800 lines): Becoming monolithic, risk of fragility.
+- : Very large (~4000 lines).
+- : Extremely large, needs module breakdown.
 
-**key api endpoints**
--  (Next.js) -> proxies to  (Python)
--  (Next.js) -> proxies to  (Python)
--  (Next.js) -> proxies to  (Python)
--  (Next.js) -> proxies to  (Python)
+**Critical Info for New Agent** 
+- **STRICT SCOPE PIVOT**: The user explicitly stated: We are continuing EMANATOR CORE SYSTEM work only. Ignore ALL growth, crawl, SEO, sitemap, or analytics features. Do NOT work on or suggest features related to the Growth Engine.
+- **Preview System Goal**: You must implement a way to execute user-imported code (Node.js/Next.js) directly on the backend and proxy it to the  iframe. This involves reading , writing them to a temporary execution directory (or handling it virtually if supported), running 
+up to date, audited 684 packages in 2s
 
-**Critical Info for New Agent**
-- **Growth Identity Pattern**: Never attach Supabase JWT Auth directly to Python backend for Growth features. The  in the JWT does not match the  used across the app's database. Always route through  which derives the correct  and passes it to Python internally.
-- **Trend Engine Review**: You MUST read  as your very first action to see if the testing agent found any issues with the Trend Engine build.
+163 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (3 moderate, 3 high, 2 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> mymergent@2.0.0 dev
+> NODE_OPTIONS='--max-old-space-size=512' next dev --hostname 0.0.0.0 --port 3000
+
+[?25h, capturing output logs, and mapping a dynamic port. Do not use external hosting services like Vercel/Netlify.
 
 **documents and test reports created in this job**
-  -  (Updated)
-  -  (Growth MVP - Passed)
-  -  (Growth Polish - Passed)
-  -  (Trend Engine - Needs Review)
+  - 
+  -  through  (All Growth engine tests, 100% passed).
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. Approve P0 only (Verify GitHub import branch resolution).
-2. Fix GitHub import response parsing (prevent JSON parse crashes).
-3. Fix GitHub import repo parsing for shorthand input ( vs full URL).
-4. Verify current file access limitations (Agent confirmed full access).
-5. Plan Growth Engine MVP v1.
-6. Approve Growth Engine MVP backend (API/MongoDB only, no UI).
-7. Verification pass on identity consistency (Agent found identity mismatch and fixed it).
-8. Approve Growth Engine UI shell inside dashboard.
-9. Apply Growth Engine Visual Polish (Luxury Minimal AI design).
-10. Add Fix It generation to Growth Engine.
-11. Build Trend Engine v1 (Google Trends + Hacker News).
-*(Pending Task: Agent ran testing agent but didn't finish the Trend Engine task).*
+1. Next task: Persona Engine v1
+2. Next task: Persona Switcher v1
+3. Next task: Channel Drafts v1
+4. Next task: Performance Scoring v1
+5. Next task: Growth Multi-Page Batch Crawl v1
+6. We are continuing EMANATOR CORE SYSTEM work only. Ignore ALL growth... Fix the top bar Import button so it is clickable in all frontend app contexts
+7. Fix Deploy system metadata and date handling.
+8. Update project status: Mark H8.2 GitHub Import (PAT) as COMPLETE.
+9. Fix Preview system to run imported projects correctly. (PENDING INSTRUCTION)
 
 **Project Health Check:**
 Healthy.
 
 **3rd Party Integrations** 
-  • OpenAI GPT-4o (Analysis/Fixes) — uses Emergent LLM Key (via proxy)
-  • Stripe (Payments) — uses Emergent Test Key (configured in backend/.env)
+  • OpenAI GPT-4o — uses Emergent LLM Key
+  • Stripe (Payments) — uses Emergent Test Key (in backend/.env)
   • GitHub API — requires User-provided PAT
-  • Google Trends RSS & Hacker News API — Free/Unauthenticated
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Iterations 26, 27, 28)
+  - Testing agent used after significant changes: YES (Iterations 29-33)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
-  - Known regressions: None known, pending review of iteration 28.
+  - Test files created:  (latest)
+  - Known regressions: None.
 
 **Credentials to test flow:**
-Available in  (e.g.,  / )
+Available in 
 
 **What agent forgot to execute**
-The agent called  for the Trend Engine implementation (resulting in ), but the context window filled/session ended before the agent could read the results, act on potential feedback, and call the  tool.</analysis>
+The agent just received the prompt to build the Preview Execution system but reached the context limit before beginning implementation. Implementation and testing of the Preview framework detection + execution logic are pending.</analysis>

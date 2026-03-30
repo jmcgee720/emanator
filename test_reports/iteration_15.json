@@ -1,7 +1,7 @@
 {
   "test_report": {
     "title": "Sandbox/Workspace Clone UI Testing - MyMergent",
-    "url": "https://trend-signal-labs.preview.emergentagent.com",
+    "url": "https://project-runner-48.preview.emergentagent.com",
     "credentials": "testprov@test.com / password123",
     "test_date": "2026-01-19",
     "status": "PASSED",

@@ -52,6 +52,25 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - **H8.1: Stripe Integration** (Mar 2026) — COMPLETE
   - Checkout, status polling, webhook, credit packages, idempotent payments
 
+## Preview Execution System (Mar 2026) — COMPLETE
+- **Root cause of limitation**: PreviewTab.jsx only assembled file contents into iframe `srcDoc` via Babel — no mechanism to run `npm install`/`npm start` for Node.js projects
+- **Backend endpoints** (server.py):
+  - `POST /api/preview/start` — Receives project_id + files array, writes to `/tmp/preview_{id}/`, detects type (package.json → Node, index.html → static), starts process on ports 9000-9100
+  - `GET /api/preview/status/{project_id}` — Returns status (installing/running/failed/stopped), type, port, last 100 log lines
+  - `POST /api/preview/stop/{project_id}` — Kills process, cleans up temp directory
+  - `GET /api/preview/serve/{project_id}/{path}` — Proxies all HTTP requests to the running preview process port
+- **Node.js execution**: Parses package.json scripts → `npm install --no-audit --no-fund && npm run dev/start`, sets PORT env var, captures stdout/stderr in deque buffer, background thread monitors output for "ready" indicators
+- **Static HTML execution**: Serves via `python3 -m http.server` on assigned port
+- **Concurrency**: Max 1 concurrent preview enforced (new start stops old)
+- **Frontend** (PreviewTab.jsx):
+  - `classifyProject()` detects 'node' type when files include `package.json`
+  - `NodePreviewRunner` component: Start Preview button → POST files → poll status → show build logs → embed iframe when running → Stop button
+  - Framework label detection: reads package.json deps to show Next.js/CRA/Vite/Express/React
+  - Core system projects remain blocked from self-preview
+  - Static HTML/React/JS projects continue using existing srcdoc mechanism
+- **Manual preview flow**: User clicks "Start Preview" → files sent to backend → npm install → dev server starts → iframe loads proxied URL → build logs shown → user can stop/restart
+- Tested: 14/14 backend tests passed (pytest), frontend verified via Playwright
+
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
 - Aurora: Asymmetric S-curve depth flow, NOT symmetric horseshoe
@@ -67,111 +86,20 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state + delete flows + hub routing
 - `/app/components/dashboard/ProjectHub.jsx` — 3-panel workspace hub (chat nav, overview, details)
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
+- `/app/components/dashboard/tabs/PreviewTab.jsx` — Preview execution system (Node runner + static + srcdoc)
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
 - `/app/hooks/useAuroraState.js` — Aurora state machine hook
 - `/app/app/api/[[...path]]/route.js` — API routes (project CRUD, delete, account cleanup, GitHub import)
 - `/app/lib/ai/service.js` — AI pipeline (multi-pass, plan mode, self-critique, streaming)
 - `/app/lib/api/stream-handler.js` — SSE streaming endpoint handler
-- `/app/backend/server.py` — FastAPI reverse proxy & Stripe endpoints
+- `/app/backend/server.py` — FastAPI reverse proxy, Stripe, Growth, Preview runner
 
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
-
-## Growth Engine MVP v1 — Backend + API (Mar 2026)
-- `POST /api/growth/crawl` (FastAPI): Accepts `{ url }`, normalizes URL, fetches HTML with 10s timeout, extracts SEO data via BeautifulSoup (title, meta, headings, word count, links, images, OG tags, canonical, robots), stores in MongoDB `growth_pages` with `user_id` from JWT
-- `POST /api/growth/analyze` (FastAPI): Accepts `{ page_id }`, fetches stored page, sends extracted data to GPT-4o via Emergent LLM Key (LlmChat), returns structured opportunities `{ title_issues, meta_issues, content_issues, structure_issues, recommendations }`, stores result in MongoDB
-- `GET /api/growth/pages` (Next.js route.js): Lists user's crawled pages with auth (getAuthUser + checkAllowlist), uses `authUser.id` (Supabase auth UUID) to match MongoDB `user_id`
-- `GET /api/growth/pages/:id` (Next.js route.js): Returns single page with full extracted_data + opportunities, ownership enforced
-- `DELETE /api/growth/pages/:id` (Next.js route.js): Deletes page, ownership enforced
-- MongoDB service: `lib/growth/service.js` — savePage, getPages, getPage, saveOpportunities, deletePage
-- Key detail: `user_id` uses Supabase `public.users.id` (via `dbUser.id`), matching all other features (projects, credits). Python endpoints are internal-only at `/api/internal/growth/*`, called by Next.js route.js which handles auth.
-- **Growth Engine UI Shell** (Mar 2026):
-  - `GrowthPanel.jsx`: Full-view panel (AdminPanel pattern) with left sidebar (URL input, crawl button, pages list) and right detail area (extracted data summary, meta details, SEO opportunities)
-  - TopBar: Added "Growth" button with BarChart3 icon
-  - Dashboard: `showGrowth` state, early return for GrowthPanel
-  - Features: crawl URL, list pages, view page detail, run AI analysis, view structured SEO opportunities (5 sections), delete pages, back navigation
-  - Loading/empty/error states for all async operations
-  - Files: `components/dashboard/GrowthPanel.jsx` (created), `Dashboard.jsx` (updated), `TopBar.jsx` (updated)
-- **Growth Engine Visual Polish** (Mar 2026):
-  - Direction: Luxury Minimal AI — dark UI, glass panels, gradient accents, cinematic spacing
-  - Reused existing tokens: `em-glass-topbar`, `em-glass-sidebar`, `em-card`, `em-input`, `em-btn-brand`, `em-gradient-text`
-  - Added Growth-specific CSS: `growth-metric-card` (gradient top edge), `growth-icon-glow`, `growth-issue-section` (hover glow)
-  - Metric cards: 4-column grid with colored labels and large tabular numbers
-  - Meta section: consolidated card with dividers, char counts, ideal ranges, checkmark indicators
-  - SEO sections: icon-badged headers with gradient fills, hover glow transitions, item counts
-  - Files: `GrowthPanel.jsx` (rewritten), `globals.css` (appended)
-- **Growth Engine "Fix It" Generation** (Mar 2026):
-  - Extended analyze endpoint to also generate `improved_title`, `improved_meta_description`, `improved_h1` in same LLM call
-  - Handles both flat and nested (`ANALYSIS`/`FIXES`) LLM response structures
-  - Stored as `fixes` field in `growth_pages` MongoDB collection
-  - UI: "Ready-to-Use Fixes" card below SEO Opportunities with per-field Copy button (clipboard API with fallback)
-  - GET /growth/pages/:id now returns `fixes` field
-  - Files: `server.py` (updated prompt + response parser), `GrowthPanel.jsx` (added FixRow component), `lib/growth/service.js` (added fixes to projection)
-
-## Trend Engine v1 (Mar 2026) — COMPLETE
-- `POST /api/internal/trends/fetch` (Python): Fetches Google Trends RSS + Hacker News top stories, stores in `trend_signals` MongoDB collection
-- `GET /api/internal/trends/list` (Python): Returns recent 50 trend signals sorted by created_at desc
-- Next.js route.js proxies: `POST /trends/fetch` and `GET /trends` with auth
-- AI analyze prompt injection: Matches page keywords against trending topics, injects top 3 relevant trends
-- UI: "Trending Now" section at bottom of GrowthPanel sidebar with top 5 trends, source badges (Google/HN), refresh button
-- Tested: iteration_28.json (100% pass rate)
-
-## Persona Engine v1 (Mar 2026) — COMPLETE
-- **MongoDB collection**: `persona_profiles` — user_id, project_id (nullable), name, description, interests[], platforms[], content_types[], performance_score, created_at
-- **Routes** (route.js):
-  - `POST /api/personas/create` — Create persona with name/description (auth required)
-  - `GET /api/personas` — List user's personas sorted by performance_score desc (auth required)
-  - `DELETE /api/personas/:id` — Delete persona with ownership check (auth required)
-- **Service** (lib/growth/service.js): `personaDb.createPersona()`, `personaDb.getPersonas()`, `personaDb.deletePersona()`
-- **Auto-seed**: On first crawl (0 existing personas), infers site type (ecommerce/content/app/generic) from page signals and creates 3 starter personas. Idempotent — skips if personas already exist.
-- **Analyze integration**: Fetches user's top persona by performance_score, injects "Target audience: [name] — [description]. Interests/Platforms." into the AI SEO analysis prompt
-- **UI**: Personas section in GrowthPanel sidebar (between pages list and trending). Shows count badge, persona list with name/description, + button to create, trash to delete, form with name/desc inputs.
-- Tested: iteration_29.json (15/15 backend, 11/11 frontend — 100% pass rate)
-- Files: `server.py` (auto-seed + analyze injection), `lib/growth/service.js` (personaDb), `route.js` (3 routes), `GrowthPanel.jsx` (UI section)
-
-## Persona Switcher v1 (Mar 2026) — COMPLETE
-- **Analyze extension**: `POST /api/growth/analyze` accepts optional `persona_id`. If provided, fetches that specific persona and injects into AI prompt. If omitted, falls back to auto (highest performance_score).
-- **route.js validation**: Validates `persona_id` ownership (must belong to `dbUser.id`) before proxying to Python backend.
-- **Response**: Analyze response now includes `persona_name` field identifying which persona was used.
-- **UI Persona Dropdown**: Dropdown above Analyze button in GrowthPanel detail view. Shows "Auto (best persona)" + all user personas. Selection sets `persona_id` on analyze call.
-- **Comparison Tabs**: After analyzing with 2+ different personas, tabs appear above SEO Opportunities. Clicking tabs switches displayed opportunities and fixes. Switching pages clears comparison state.
-- Tested: iteration_30.json (11/11 backend, 10/10 frontend — 100% pass rate)
-- Files: `server.py` (persona_id in analyze), `route.js` (ownership validation), `GrowthPanel.jsx` (dropdown + comparison tabs)
-
-## Channel Drafts v1 (Mar 2026) — COMPLETE
-- **Endpoint**: `POST /api/internal/growth/generate-drafts` (Python) — builds rich prompt from page extracted_data + SEO fixes + persona + trends, calls GPT-4o, returns structured JSON
-- **Output structure**: `social_post` (headline, body, cta), `search_ad` (headline_1, headline_2, description), `email` (subject, preview_text, body_intro)
-- **Storage**: Stored as `drafts` + `drafts_generated_at` fields on `growth_pages` MongoDB document
-- **route.js**: `POST /growth/generate-drafts` with auth (getAuthUser + checkAllowlist + dbUser.id), validates persona ownership if persona_id provided
-- **UI**: "Generate Drafts" button next to "Analyze SEO" (green-cyan accent), "Marketing Drafts" section below Fixes with 3 DraftCards (Social Post, Search Ad, Email), each field has Copy button via reused FixRow component
-- **Persona support**: Accepts optional `persona_id` to tailor drafts to specific audience
-- Tested: iteration_31.json (12/12 backend, 12/12 frontend — 100% pass rate)
-- Files: `server.py` (new endpoint), `route.js` (new proxy route), `lib/growth/service.js` (updated projections), `GrowthPanel.jsx` (button + DraftCard + Marketing Drafts section)
-
-## Performance Scoring v1 (Mar 2026) — COMPLETE
-- **MongoDB collection**: `growth_feedback` — user_id, page_id, persona_id (nullable), content_type (seo_analysis|fixes|social_post|search_ad|email), rating (+1/-1), created_at. Unique compound index on (user_id, page_id, content_type, persona_id) for upsert.
-- **Routes** (route.js):
-  - `POST /api/growth/feedback` — Submit thumbs up/down, validates content_type and rating, upserts feedback, updates persona performance_score atomically via $inc
-  - `GET /api/growth/feedback/:page_id` — Returns all feedback for a page
-- **Service** (lib/growth/service.js): `feedbackDb.submitFeedback()` (upsert with delta calc), `feedbackDb.getFeedback()`, `personaDb.updatePersonaScore()` (atomic $inc on performance_score + feedback_count)
-- **Auto mode integration**: Analyze and generate-drafts already sort personas by performance_score desc — highest-scoring persona is preferred in Auto mode
-- **UI**: ThumbsFeedback component (thumbs up green / thumbs down red) on Fixes section header and each DraftCard (Social Post, Search Ad, Email). Persona sidebar items show score/count badges with color coding (green for positive, red for negative).
-- Tested: iteration_32.json (18/18 backend, 12/12 frontend — 100% pass rate)
-- Files: `lib/growth/service.js` (feedbackDb + updatePersonaScore), `route.js` (2 feedback routes), `GrowthPanel.jsx` (ThumbsFeedback + persona scores)
-
-## Multi-Page Batch Crawl v1 (Mar 2026) — COMPLETE
-- **Extended crawl endpoint**: `POST /api/internal/growth/crawl` now accepts `mode` (single|batch) and `max_pages` (1-25, default 10). Default mode=single preserves backward compatibility.
-- **BFS crawler**: Batch mode starts from seed URL, discovers internal links via `<a>` tags, stays on same hostname, skips non-HTML assets (images, PDFs, CSS, JS, etc.), deduplicates URLs (normalized without query/fragment), stops at max_pages, 10s timeout per page, best-effort (continues past failures).
-- **Helper refactor**: Extracted `_crawl_single_page()` async helper for reuse in both modes. Returns `internal_link_urls` for BFS discovery. Stores `crawl_mode` and `parent_seed_url` on each page document.
-- **route.js proxy**: Updated with AbortController — 180s timeout for batch vs 30s for single.
-- **UI**: Mode toggle (Single Page / Batch Crawl), max_pages input (only in batch mode), batch summary banner showing pages_saved/failed/attempted, button text updates per mode.
-- Tested: iteration_33.json (15/15 backend, 12/12 frontend — 100% pass rate)
-- Files: `server.py` (_crawl_single_page helper + batch BFS), `route.js` (timeout extension), `lib/growth/service.js` (projection update), `GrowthPanel.jsx` (mode toggle + summary banner)
-
-
+- P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
 
 ## Deploy Tab Placeholder (Mar 2026)
 - Deploy is Phase 2 — not part of current acceptance
