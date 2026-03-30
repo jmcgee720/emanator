@@ -49,6 +49,23 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Fixed SelfCritique loop: replaced `continue` (wrong loop scope) with inline AI re-call
   - Fixed PlanValidator rejection: replaced `continue` (wrong loop scope) with inline AI retry
   - Both fixes ensure rejected/revised plans properly re-call the AI and yield tokens to client
+- **Anthropic Provider Fix** (Mar 2026):
+  - Root cause: Health check misclassified Anthropic billing error (HTTP 400 "credit balance too low") as `auth_issue` because `msg.includes('invalid')` matched `"invalid_request_error"` in the error JSON
+  - Fix 1: `route.js` — Reordered health-check conditions so billing/credit is checked before `invalid` keyword; narrowed auth check to `invalid api key`/`invalid x-api-key`
+  - Fix 2: `ModelSelector.jsx` — Made `billing_issue` selectable (not disabled) since the key IS valid, just low on credits
+- **H8.1: Stripe Integration** (Mar 2026):
+  - Server: `POST /api/stripe/checkout` (creates Stripe Checkout session via `emergentintegrations`)
+  - Server: `GET /api/stripe/status/{session_id}` (polls payment, grants credits idempotently)
+  - Server: `POST /api/webhook/stripe` (handles `checkout.session.completed`, grants credits)
+  - Packages: starter ($10→100), pro ($45→500), ultra ($80→1000)
+  - Idempotent: `payment_transactions` collection with unique `session_id` index, `$ne: 'paid'` guard
+  - Frontend: Credits modal buttons redirect to Stripe Checkout, return polling confirms payment
+- **GitHub Import Branch Resolution Fix** (Mar 2026):
+  - Root cause (import): Old code passed branch name directly to `/git/commits/{branch}` which expects a 40-char SHA
+  - Fix (import): Added `/branches/{name}` API call to resolve branch name → commit SHA before tree fetch; falls back to repo default branch on 404
+  - Root cause (sync): `commitData` referenced on tree fetch line but only defined in SHA else-block; undefined for branch names
+  - Fix (sync): Replaced `commitData.commit.tree.sha` with `syncTreeSha` variable that's set in both code paths
+  - Files changed: `app/api/[[...path]]/route.js`
 
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
@@ -67,27 +84,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
 - `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
 - `/app/hooks/useAuroraState.js` — Aurora state machine hook
-- `/app/app/api/[[...path]]/route.js` — API routes (project CRUD, delete, account cleanup)
+- `/app/app/api/[[...path]]/route.js` — API routes (project CRUD, delete, account cleanup, GitHub import)
 - `/app/lib/ai/service.js` — AI pipeline (multi-pass, plan mode, self-critique, streaming)
 - `/app/lib/api/stream-handler.js` — SSE streaming endpoint handler
-
-- **Anthropic Provider Fix** (Mar 2026):
-  - Root cause: Health check misclassified Anthropic billing error (HTTP 400 "credit balance too low") as `auth_issue` because `msg.includes('invalid')` matched `"invalid_request_error"` in the error JSON
-  - Fix 1: `route.js` — Reordered health-check conditions so billing/credit is checked before `invalid` keyword; narrowed auth check to `invalid api key`/`invalid x-api-key`
-  - Fix 2: `ModelSelector.jsx` — Made `billing_issue` selectable (not disabled) since the key IS valid, just low on credits
-  - Files changed: `app/api/[[...path]]/route.js`, `components/dashboard/ModelSelector.jsx`
-
-- **H8.1: Stripe Integration** (Mar 2026):
-  - Server: `POST /api/stripe/checkout` (creates Stripe Checkout session via `emergentintegrations`)
-  - Server: `GET /api/stripe/status/{session_id}` (polls payment, grants credits idempotently)
-  - Server: `POST /api/webhook/stripe` (handles `checkout.session.completed`, grants credits)
-  - Packages: starter ($10→100), pro ($45→500), ultra ($80→1000)
-  - Idempotent: `payment_transactions` collection with unique `session_id` index, `$ne: 'paid'` guard
-  - Frontend: Credits modal buttons redirect to Stripe Checkout, return polling confirms payment
-  - Files: `backend/server.py`, `components/dashboard/Dashboard.jsx`, `backend/.env`
+- `/app/backend/server.py` — FastAPI reverse proxy & Stripe endpoints
 
 ## Backlog
 - P1: Apply design tokens to ChatComposer, ModelSelector, SearchPanel
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
-- P3: Credits persistence via Stripe/payment integration
