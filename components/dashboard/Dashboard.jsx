@@ -187,6 +187,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (res?.ok) {
           const data = await res.json()
           if (data.payment_status === 'paid') {
+            // Grant credits via the correct auth path (uses proper dbUser.id)
+            if (data.needs_credit_grant) {
+              try {
+                await authFetch('/api/credits/add', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ amount: data.credits }),
+                })
+                // Mark as granted so it's idempotent on retry
+                await authFetch(`/api/stripe/confirm-credits/${sessionId}`, { method: 'POST' })
+              } catch {}
+            }
             toast({ title: 'Payment Successful', description: `+${data.credits} credits added to your account` })
             loadCredits()
             return
