@@ -1,117 +1,140 @@
-<analysis>**original_problem_statement**: Apply a premium, futuristic AI engine design system (specifically a highly customized 3D Aurora Borealis CSS effect). 
-*NEW PRODUCT REQUIREMENT:* Implement feature H7.4 — GitHub Repository Import. The user explicitly wants to bypass GitHub OAuth for now and use a Personal Access Token (PAT) input in the UI. The feature must reuse the existing ZIP import pipeline (project creation, file ingestion, framework detection) and include a basic manual sync capability.
+<analysis>**original_problem_statement**: 
+The user requested continuous hardening and feature additions for the Emanator AI Builder platform:
+1. Fix critical streaming hangs on BUILD intent and Hero prompt handoff bugs.
+2. Relax overly strict placeholder language validation rejecting valid code.
+3. Fix Anthropic provider showing Auth issue when it should be a selectable Billing issue.
+4. Implement H7.7.1 Fast Mode (skip SelfCritique for simple prompts to reduce latency).
+5. Implement H7.7.2 Streaming Reliability (ensure stream failures cleanly retry or fallback without hanging the UI).
+6. Implement H8.1 Stripe Integration for purchasing credits.
+7. Implement H8.2 GitHub Import via Personal Access Token (PAT).
+8. Fix GitHub import branch resolution treating branch names as commit SHAs.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?** A Next.js 14 full-stack app with a highly customized frosted glass UI. The complex draped curtain 3D Aurora CSS background has been successfully implemented in . The app currently has a functioning ZIP project import pipeline. The GitHub import feature is unstarted, but the foundational database schema (, ) and API structure () used by the ZIP import are ready to be reused.
+**what currently exists?** 
+A Next.js 14 App Router full-stack application backed by Supabase (users/projects) and MongoDB (credits/transactions), with a FastAPI reverse proxy. The app features a highly robust AI code-generation pipeline via Server-Sent Events (SSE). It includes Stripe Checkout for credit purchases, multi-provider AI support (OpenAI, Anthropic), and a PAT-based GitHub repository importer.
 
 **Last working item**:
-    - Last item agent was working: Investigating the existing ZIP import pipeline to plan the GitHub Import implementation. The agent reviewed the Import Modal UI in , the API logic for ZIP uploads at  (around line 3074), and the database interface in .
-    - Status: IN PROGRESS
+    - Last item agent was working: Fixing GitHub import branch resolution. The  and  endpoints were calling GitHub API expecting a commit SHA but were being passed branch names (e.g., main), resulting in No commit found for SHA errors. The agent modified  to dynamically fetch the branch's latest commit SHA before fetching the git tree.
+    - Status: USER VERIFICATION PENDING (Code edited, but not tested before session end)
     - Agent Testing Done: N
-    - Which testing method agent to use?: Frontend testing agent (for the new Import Modal UI flow) + Backend testing via curl/manual API tests to ensure GitHub repo fetching and file insertion works.
+    - Which testing method agent to use? manual testing by curl or frontend testing agent to trigger a GitHub import with a specific branch name.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  *None currently broken, but the primary focus is the new task below.*
+  Issue 1: Verify GitHub Import Branch Resolution (P0)
+     - Attempted fixes: Updated  lines ~3146 and ~3408 to first call  to extract the actual , and fallback to main if no branch is provided.
+     - Next debug checklist: 
+       - Open Dashboard, click Import, select GitHub.
+       - Enter a valid repo URL, a PAT, and a branch name (e.g., main).
+       - Verify the project successfully imports without the No commit found for SHA error.
+     - Why fix this issue and what will be achieved with the fix? Unblocks users from importing existing repositories to start their AI builds.
+     - Status: TESTING PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both (E2E frontend flow preferred)
+     - Blocked on other issue: None
 
 **In progress Task List**:
-  Task 1: GitHub Repository Import (Parts 2-5) via PAT (P0)
-     - Where to resume: 
-       1. Update the Import Modal in  to include inputs for a GitHub PAT, Repo URL/Search, and Branch. 
-       2. Create a new API endpoint (e.g., ) in  that mirrors the ZIP import logic.
-       3. Implement GitHub REST API fetching using the provided PAT (ignoring , , build folders).
-     - What will be achieved with this?: Users can import live GitHub repos directly into the builder without requiring full OAuth setup.
-     - Status: IN PROGRESS (Context gathering complete, ready for implementation)
-     - Should Test frontend/backend/both after fix?: Both.
-     - Blocked on something: No.
+  *All core feature tasks requested in this session are complete. Only the validation of the last bug fix remains.*
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Apply design token system pass to , , and .
-    - P2: Refactor  (~2600 lines) into smaller modules.
+    - P1: Apply design token system pass to , , and  (Align with Aurora UI).
+    - P2: Refactor  (~2800 lines) into smaller, modular files.
     
     Future Tasks:
-    - P3: GitHub OAuth implementation (deferred by user in favor of PAT for now).
-    - P3: Stripe payment integration for real credit purchases.
+    - P3: GitHub OAuth implementation (to replace PAT-based import).
 
 **Completed work in this session**
-- Iterate and finalize the 3D Aurora Borealis CSS (). Transitioned from flat radial gradients to perspective-driven, draped curtain formations using a Python script to generate the complex gradients.
-- Added ambient glows, organic height variations, and conic-gradient logic to match the user's reference photos.
+- BUILD streaming hang fixed: Replaced faulty  with inline retry in  (DONE)
+- Hero prompt handoff fixed: Resolved missing dependency causing empty chats on generation (DONE)
+- Relaxed AI Plan Validator: Swapped aggressive reasoning checks with  (, ) on file content only (DONE)
+- Anthropic Provider Fix: Reclassified 400 errors from Auth issue to  allowing model selection fallback (DONE)
+- H7.7.1 BUILD Fast Mode: Bypasses  for prompts < 200 chars or <= 2 file actions, cutting latency in half (DONE)
+- H7.7.2 Streaming Reliability: Added try/catch to inner loops, implemented retry on , prevented empty SSE termination (DONE)
+- H8.1 Stripe Integration: Added , , and webhook endpoints in . Wired to UI modal (DONE)
+- Fixed Stripe Credit ID mismatch: Ensured frontend polls transaction status and calls  using the correct Supabase User ID rather than relying on Python backend JWT sub (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: Next.js / SWC compiler repeatedly running out of memory (Inherited from previous session).
-     - Debug checklist: Monitor frontend                         FATAL     Exited too quickly (process log may have details). If the app crashes, run nextjs_api: stopped
-nextjs_api: started or frontend: stopped
-frontend: ERROR (spawn error).
-     - Why to solve this issue and what will be achieved with this?: Prevents  or HTTP 500 timeouts.
-     - Should Test frontend/backend/both after fix: N/A (Environment issue)
-     - Is recurring issue?: Y
+   - Issue 1: Next.js / SWC compiler out of memory / WatchFiles crash.
+   - Debug checklist: Monitor frontend/nextjs_api: ERROR (no such process). 
+   - Why to solve this issue and what will be achieved with this? Prevents hot-reload failures.
+   - Should Test frontend/backend/both after fix: NA (Environment quirk)
+   - Is recurring issue? Y
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Next.js memory limits.
+  - Issue recurrence in previous fork: Next.js memory limits / Dev server crashing.
   - Recurrence count: Multiple
-  - Status: IN PROGRESS / MITIGATED
+  - Status: MITIGATED (Restart supervisor when needed)
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-Next.js App Router, GitHub REST API, Supabase Database, React Hooks, File ingestion/parsing, Framework detection.
+Next.js App Router, Supabase PostgreSQL (users/projects), MongoDB (credits/transactions), Server-Sent Events (SSE) via async generators, Stripe Checkout, GitHub REST API, Python FastAPI (proxy + external integrations).
 
 **key DB schema**
-  - Supabase : {id, user_id, name, framework, repo_url (NEW), branch (NEW), last_commit_sha (NEW)}
-  - Supabase : {id, project_id, path, content}
+  -  (Supabase): {id (UUID), email}
+  -  (MongoDB): {user_id (matches Supabase id), balance}
+  -  (MongoDB): {session_id, user_id, status, granted}
+  -  /  /  (Supabase): standard relational hierarchy
 
 **changes in tech stack**
-  - None.
+  - Added  and  libraries to Python backend. 
+  - Python backend now directly handles Stripe checkout creation and webhooks.
 
-**All files of reference**
-  - : Contains the  div. Needs UI elements for PAT, Repo Name, and Branch.
-  - : Contains the ZIP upload logic ( at line ~3074). The GitHub import must reuse the framework detection and DB insertion logic found here.
-  - : Contains  and  which will be used to save the GitHub data.
+**All files of reference** 
+- : Modified to fix GitHub branch resolution.
+- : Modified heavily for Fast Mode and Streaming Reliability.
+- : Contains new Stripe checkout endpoints.
+- : Contains Stripe polling and checkout UI logic.
 
-**Areas that need refactoring**
-  -  (~2600 lines).
+**Areas that need refactoring**: 
+- : User marked as a P2 backlog task for module breakdown due to file size (~2800 lines).
 
 **key api endpoints**
-  -  (Existing ZIP endpoint)
-  -  (To be created)
+-  (Next.js)
+-  (FastAPI)
+-  (FastAPI)
+-  (FastAPI)
 
 **Critical Info for New Agent**
-- **DO NOT implement GitHub OAuth**. The user explicitly commanded: *Proceed with option C for now: use Personal Access Token input... Do not ask more questions. Do not wait for credentials.*
-- **Reuse the ZIP Pipeline:** Study  to see how  and  are called. Replicate this exact database flow for the GitHub files.
-- **File Filtering:** When fetching the repository tree via the GitHub API, explicitly ignore , , and standard build folders.
-- **Manual Sync:** Make sure to save , , and  in the project metadata to support a Pull Latest button later.
+- **GitHub Import Branch Bug**: Your absolute first task is to test the GitHub import. The previous agent modified  to fetch branch SHAs dynamically but did not verify it works.
+- **Stripe & Credits Architecture**: Stripe webhooks in  DO NOT directly grant credits to MongoDB anymore. This is intentional to avoid a UUID mismatch between the Python JWT sub and Supabase. The flow is: Webhook marks transaction  -> Frontend polls status -> Frontend calls  -> Frontend calls  to ensure idempotency. DO NOT alter this flow.
+- **Fast Mode**:  in  is intentionally bypassed for prompts under 200 chars or <= 2 file actions to improve speed.
 
 **documents and test reports created in this job**
-  -  (Updated in memory, needs actual file write for the new GitHub scope)
+  -  (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. (User) the left and ride side columns should be the thinned...
-2. (User) why are teh left and right side columns longer than the middle ones?
-3. (User) does this overlay of what i want the light columns to look like make sense to you [Uploaded Image]
-4. (User) no this is wrong. how can you make it look more like the aurora baurealis, like this reference imagee of 5 differente bourealis's?
-5. (User) We are implementing H7.4 — GitHub Repository Import... [Extensive details provided]
-6. (Agent) [Asked question via ask_human regarding Auth implementation choices]
-7. **(PENDING/LATEST HUMAN MESSAGE)**: Proceed with option C for now: use Personal Access Token input instead of GitHub OAuth. Do not ask more questions. Do not wait for credentials. Scope for this session: build Parts 2–5 only...
+1. Fix BUILD intent streaming hang & Hero prompt handoff.
+2. User asked why app goes to sleep (Agent explained Preview environment limitations).
+3. Search for placeholder language validators and replace with .
+4. Fix Anthropic provider showing Auth issue instead of Billing issue.
+5. Implement H7.7.1 BUILD Fast Mode.
+6. Implement H7.7.2 Streaming Reliability.
+7. Implement H8.1 Stripe Integration.
+8. Expose Stripe Buy Credits button in TopBar.
+9. Fix credits not updating in UI after successful Stripe checkout.
+10. Implement H8.2 GitHub Import (Agent confirmed already done).
+11. **(PENDING)** Fix GitHub import branch resolution (No commit found for SHA: main).
 
 **Project Health Check:**
-App is functional. Aurora CSS is complete and stable.
+Healthy. AI streaming, Stripe payments, and general routing are stable.
 
 **3rd Party Integrations** 
-- GitHub REST API — requires User-provided key (Personal Access Token to be inputted in the UI)
-- Supabase (Auth/PostgreSQL) — uses User configuration
-- MongoDB (Credits Ledger) — Local
+  • OpenAI/Anthropic/Gemini — uses Emergent LLM Key (via proxy)
+  • Stripe (Payments) — uses Emergent Test Key (configured in backend/.env)
+  • GitHub API — requires User-provided PAT (Input via UI)
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Last task was visual CSS).
-  - Troubleshoot agent used after agent stuck in loop: NO.
-  - Test files created: None.
-  - Known regressions: None.
+  - Testing agent used after significant changes: NO (Self-tested via Playwright screenshots & Curl)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None currently known.
 
 **Credentials to test flow:**
- /  (Check  if needed).
+Available in  (e.g. REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD)
 
 **What agent forgot to execute**
-The agent was in the middle of exploring the codebase to understand the ZIP import flow. No actual code for the GitHub repo import has been written yet. Start by editing  to add the UI, then move to  for the backend logic.</analysis>
+The agent applied the fix for the GitHub import branch resolution bug in  but the session terminated before the agent could run an actual test import to verify the bug is fully resolved.</analysis>

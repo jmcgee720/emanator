@@ -8,7 +8,7 @@ import ssl
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://service-js-repair.preview.emergentagent.com"
+BASE_URL = "https://ai-builder-hub-47.preview.emergentagent.com"
 TEST_CREDENTIALS = {"email": "REDACTED_LEAKED_USER", "password": "REDACTED_LEAKED_PASSWORD"}
 
 class VariationStudioBackendTester:

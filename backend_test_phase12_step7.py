@@ -18,7 +18,7 @@ Test scenarios:
 7. Permission constants verification
 8. getUserRole + hasPermission function verification
 
-Environment: https://service-js-repair.preview.emergentagent.com
+Environment: https://ai-builder-hub-47.preview.emergentagent.com
 Auth: REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD (owner account)
 """
 
@@ -29,7 +29,7 @@ import os
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://service-js-repair.preview.emergentagent.com/api"
+BASE_URL = "https://ai-builder-hub-47.preview.emergentagent.com/api"
 TEST_EMAIL = "REDACTED_LEAKED_USER"
 TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "

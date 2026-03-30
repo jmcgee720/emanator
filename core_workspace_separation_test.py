@@ -23,7 +23,7 @@ import os
 import uuid
 
 # Configuration
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://service-js-repair.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://ai-builder-hub-47.preview.emergentagent.com')
 OWNER_EMAIL = 'REDACTED_LEAKED_USER'
 OWNER_PASSWORD = 'REDACTED_LEAKED_PASSWORD'
 SELF_EDIT_PREFIX = '⚙ Self-Edit: '  # Unicode U+2699

@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T15:08:36.960666",
   "test_suite": "Intent Classification Routing Fix",
-  "app_url": "https://service-js-repair.preview.emergentagent.com",
+  "app_url": "https://ai-builder-hub-47.preview.emergentagent.com",
   "auth": "REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD",
   "iteration": 21,
   "tests": {

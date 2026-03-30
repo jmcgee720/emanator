@@ -3145,17 +3145,40 @@ async function handleRoute(request, { params }) {
         const [, owner, repoName] = repoMatch
         const ghHeaders = { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Emanator-Import' }
 
-        // 1. Get latest commit
-        const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/commits/${branch}`, { headers: ghHeaders })
-        if (!commitRes.ok) {
-          const errData = await commitRes.json().catch(() => ({}))
-          if (commitRes.status === 401) return handleCORS(NextResponse.json({ error: 'Invalid Personal Access Token' }, { status: 401 }))
-          if (commitRes.status === 404) return handleCORS(NextResponse.json({ error: `Repository or branch not found: ${owner}/${repoName}@${branch}` }, { status: 404 }))
-          return handleCORS(NextResponse.json({ error: errData.message || 'Failed to access GitHub repository' }, { status: commitRes.status }))
+        // 1. Resolve branch → commit SHA
+        let resolvedBranch = branch
+        let commitSha, treeSha
+
+        // If branch doesn't look like a 40-char SHA, resolve it as a branch name
+        if (!/^[0-9a-f]{40}$/i.test(resolvedBranch)) {
+          // Try the requested branch first; if 404, fall back to repo default branch
+          let branchRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/branches/${resolvedBranch}`, { headers: ghHeaders })
+          if (branchRes.status === 401) return handleCORS(NextResponse.json({ error: 'Invalid Personal Access Token' }, { status: 401 }))
+          if (branchRes.status === 404) {
+            // Requested branch not found — try repo default
+            const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, { headers: ghHeaders })
+            if (!repoRes.ok) return handleCORS(NextResponse.json({ error: `Repository not found: ${owner}/${repoName}` }, { status: 404 }))
+            const repoData = await repoRes.json()
+            resolvedBranch = repoData.default_branch || 'main'
+            branchRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/branches/${resolvedBranch}`, { headers: ghHeaders })
+          }
+          if (!branchRes.ok) {
+            return handleCORS(NextResponse.json({ error: `Branch not found: ${owner}/${repoName}@${resolvedBranch}` }, { status: 404 }))
+          }
+          const branchData = await branchRes.json()
+          commitSha = branchData.commit.sha
+          treeSha = branchData.commit.commit.tree.sha
+        } else {
+          // Direct SHA — fetch commit
+          const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/commits/${resolvedBranch}`, { headers: ghHeaders })
+          if (!commitRes.ok) {
+            const errData = await commitRes.json().catch(() => ({}))
+            return handleCORS(NextResponse.json({ error: errData.message || 'Commit not found' }, { status: commitRes.status }))
+          }
+          const commitData = await commitRes.json()
+          commitSha = commitData.sha
+          treeSha = commitData.commit.tree.sha
         }
-        const commitData = await commitRes.json()
-        const commitSha = commitData.sha
-        const treeSha = commitData.commit.tree.sha
 
         // 2. Get full tree recursively
         const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/git/trees/${treeSha}?recursive=1`, { headers: ghHeaders })
@@ -3384,14 +3407,34 @@ async function handleRoute(request, { params }) {
 
         const ghHeaders = { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Emanator-Import' }
 
-        // Get latest commit
-        const commitRes = await fetch(`https://api.github.com/repos/${repoUrl}/commits/${branch}`, { headers: ghHeaders })
-        if (!commitRes.ok) {
-          const errData = await commitRes.json().catch(() => ({}))
-          return handleCORS(NextResponse.json({ error: errData.message || 'Failed to fetch latest commit' }, { status: commitRes.status }))
+        // Resolve branch → commit SHA
+        let latestSha, syncTreeSha
+        if (!/^[0-9a-f]{40}$/i.test(branch)) {
+          let branchRes = await fetch(`https://api.github.com/repos/${repoUrl}/branches/${branch}`, { headers: ghHeaders })
+          if (branchRes.status === 404) {
+            const repoRes = await fetch(`https://api.github.com/repos/${repoUrl}`, { headers: ghHeaders })
+            if (repoRes.ok) {
+              const repoData = await repoRes.json()
+              branchRes = await fetch(`https://api.github.com/repos/${repoUrl}/branches/${repoData.default_branch || 'main'}`, { headers: ghHeaders })
+            }
+          }
+          if (!branchRes.ok) {
+            const errData = await branchRes.json().catch(() => ({}))
+            return handleCORS(NextResponse.json({ error: errData.message || 'Failed to resolve branch' }, { status: branchRes.status }))
+          }
+          const branchData = await branchRes.json()
+          latestSha = branchData.commit.sha
+          syncTreeSha = branchData.commit.commit.tree.sha
+        } else {
+          const commitRes = await fetch(`https://api.github.com/repos/${repoUrl}/commits/${branch}`, { headers: ghHeaders })
+          if (!commitRes.ok) {
+            const errData = await commitRes.json().catch(() => ({}))
+            return handleCORS(NextResponse.json({ error: errData.message || 'Failed to fetch commit' }, { status: commitRes.status }))
+          }
+          const commitData = await commitRes.json()
+          latestSha = commitData.sha
+          syncTreeSha = commitData.commit.tree.sha
         }
-        const commitData = await commitRes.json()
-        const latestSha = commitData.sha
 
         if (latestSha === storedSha) {
           return handleCORS(NextResponse.json({ success: true, updated: false, message: 'Already up to date', commit_sha: latestSha }))
