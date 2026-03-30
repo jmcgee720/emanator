@@ -114,4 +114,11 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - `GET /api/growth/pages/:id` (Next.js route.js): Returns single page with full extracted_data + opportunities, ownership enforced
 - `DELETE /api/growth/pages/:id` (Next.js route.js): Deletes page, ownership enforced
 - MongoDB service: `lib/growth/service.js` — savePage, getPages, getPage, saveOpportunities, deletePage
-- Key detail: `user_id` uses Supabase auth UUID (JWT `sub`), NOT `public.users.id` — these differ. Python endpoints and JS CRUD routes both use `authUser.id`/JWT `sub` for consistency.
+- Key detail: `user_id` uses Supabase `public.users.id` (via `dbUser.id`), matching all other features (projects, credits). Python endpoints are internal-only at `/api/internal/growth/*`, called by Next.js route.js which handles auth.
+- **Growth Engine UI Shell** (Mar 2026):
+  - `GrowthPanel.jsx`: Full-view panel (AdminPanel pattern) with left sidebar (URL input, crawl button, pages list) and right detail area (extracted data summary, meta details, SEO opportunities)
+  - TopBar: Added "Growth" button with BarChart3 icon
+  - Dashboard: `showGrowth` state, early return for GrowthPanel
+  - Features: crawl URL, list pages, view page detail, run AI analysis, view structured SEO opportunities (5 sections), delete pages, back navigation
+  - Loading/empty/error states for all async operations
+  - Files: `components/dashboard/GrowthPanel.jsx` (created), `Dashboard.jsx` (updated), `TopBar.jsx` (updated)
