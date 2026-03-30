@@ -1400,25 +1400,28 @@ async def _proxy_to_preview(request: Request, project_id: str, path: str):
     if str(request.query_params):
         target += f"?{request.query_params}"
 
-    headers = dict(request.headers)
-    headers.pop('host', None)
+    # Strip encoding/host headers so httpx fetches uncompressed content
+    headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in ('host', 'accept-encoding', 'connection')
+    }
     body = await request.body()
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             resp = await client.request(
                 method=request.method, url=target,
                 headers=headers, content=body,
             )
+        # Pass through all safe headers from upstream
         resp_headers = {
             k: v for k, v in resp.headers.items()
-            if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding')
+            if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding', 'connection')
         }
         return Response(
             content=resp.content,
             status_code=resp.status_code,
             headers=resp_headers,
-            media_type=resp.headers.get('content-type', 'application/octet-stream'),
         )
     except httpx.RequestError as e:
         return JSONResponse({"error": f"Preview not responding: {e}"}, status_code=502)
