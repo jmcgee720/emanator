@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, Layers, ArrowLeft, ChevronRight, FolderOpen, GitBranch, Zap, Hash, Calendar, Code2, Activity, Trash2 } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, Layers, ArrowLeft, ChevronRight, FolderOpen, GitBranch, Zap, Hash, Calendar, Code2, Activity, Trash2, Pencil } from 'lucide-react'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -28,9 +28,20 @@ export default function ProjectHub({
   onDeleteProject,
   onOpenImport,
   onSyncRepo,
+  onRenameChat,
   creditsBalance,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
+  const [renamingId, setRenamingId] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  const submitRename = async (chatId) => {
+    const trimmed = renameValue.trim()
+    if (trimmed && onRenameChat) {
+      await onRenameChat(chatId, trimmed)
+    }
+    setRenamingId(null)
+  }
 
   const chatCount = chats?.length || 0
   const fileCount = files?.length || 0
@@ -94,6 +105,19 @@ export default function ProjectHub({
               </div>
             ) : (
               chats.map((chat) => (
+                renamingId === chat.id ? (
+                  <div key={chat.id} className="flex items-center gap-2 px-3 py-2">
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') submitRename(chat.id); if (e.key === 'Escape') setRenamingId(null); }}
+                      onBlur={() => submitRename(chat.id)}
+                      className="flex-1 text-xs bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.15)] rounded px-2 py-1 outline-none focus:border-[rgba(0,229,255,0.30)] em-text-primary"
+                      data-testid={`hub-rename-input-${chat.id}`}
+                    />
+                  </div>
+                ) : (
                 <button
                   key={chat.id}
                   onClick={() => onSelectChat(chat)}
@@ -109,8 +133,17 @@ export default function ProjectHub({
                     <div className="text-xs font-medium em-text-primary truncate">{chat.title || 'Untitled'}</div>
                     <div className="text-[10px] em-text-muted mt-0.5">{formatRelativeTime(chat.updated_at || chat.created_at)}</div>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRenameValue(chat.title || ''); setRenamingId(chat.id); }}
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 transition-opacity"
+                    title="Rename"
+                    data-testid={`hub-rename-btn-${chat.id}`}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
                   <ChevronRight className={`w-3 h-3 em-text-muted transition-all duration-150 ${hoveredChat === chat.id ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'}`} />
                 </button>
+                )
               ))
             )}
           </div>
@@ -164,9 +197,9 @@ export default function ProjectHub({
                     <MessageSquare className="w-4 h-4 text-[var(--em-cyan)]" />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-medium em-text-primary">Open Latest Chat</div>
+                    <div className="text-xs font-medium em-text-primary">Open Workspace</div>
                     <div className="text-[10px] em-text-muted mt-0.5">
-                      {latestChat ? latestChat.title || 'Continue conversation' : 'Start building'}
+                      {latestChat ? 'Open the latest conversation in this project' : 'Start building'}
                     </div>
                   </div>
                 </button>
@@ -195,7 +228,7 @@ export default function ProjectHub({
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">Import Files</div>
-                    <div className="text-[10px] em-text-muted mt-0.5">Upload project files</div>
+                    <div className="text-[10px] em-text-muted mt-0.5">Add files into this current project</div>
                   </div>
                 </button>
 
@@ -217,7 +250,7 @@ export default function ProjectHub({
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">Pull Latest</div>
                     <div className="text-[10px] em-text-muted mt-0.5">
-                      {isGithubProject ? `Sync from ${repoUrl}` : 'No repository linked'}
+                      {isGithubProject ? `Sync latest changes from connected GitHub repo` : 'No repository linked'}
                     </div>
                   </div>
                 </button>
@@ -230,6 +263,18 @@ export default function ProjectHub({
                 <h3 className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-3">Recent Activity</h3>
                 <div className="space-y-1" data-testid="hub-recent-activity">
                   {chats.slice(0, 5).map((chat) => (
+                    renamingId === chat.id ? (
+                      <div key={chat.id} className="flex items-center gap-2 px-3 py-2">
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') submitRename(chat.id); if (e.key === 'Escape') setRenamingId(null); }}
+                          onBlur={() => submitRename(chat.id)}
+                          className="flex-1 text-xs bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.15)] rounded px-2 py-1 outline-none focus:border-[rgba(0,229,255,0.30)] em-text-primary"
+                        />
+                      </div>
+                    ) : (
                     <button
                       key={chat.id}
                       onClick={() => onSelectChat(chat)}
@@ -240,9 +285,18 @@ export default function ProjectHub({
                       <div className="flex-1 min-w-0 text-left">
                         <span className="text-xs em-text-primary truncate block">{chat.title || 'Untitled'}</span>
                       </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRenameValue(chat.title || ''); setRenamingId(chat.id); }}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 transition-opacity"
+                        title="Rename"
+                        data-testid={`hub-activity-rename-${chat.id}`}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
                       <span className="text-[10px] em-text-muted shrink-0">{formatRelativeTime(chat.updated_at || chat.created_at)}</span>
                       <ChevronRight className="w-3 h-3 em-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
+                    )
                   ))}
                 </div>
               </div>
