@@ -288,7 +288,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         body: JSON.stringify({ pat, repo, branch }),
       })
 
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        setImportError(text.slice(0, 200) || `Import failed (HTTP ${res.status})`)
+        return
+      }
 
       if (!res.ok) {
         setImportError(data.error || 'GitHub import failed')
@@ -341,7 +348,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         body: JSON.stringify({ project_id: selectedProject.id, pat: pat.trim() }),
       })
 
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        toast({ title: 'Sync Failed', description: text.slice(0, 200) || `Sync failed (HTTP ${res.status})`, variant: 'destructive' })
+        return
+      }
 
       if (!res.ok) {
         toast({ title: 'Sync Failed', description: data.error, variant: 'destructive' })

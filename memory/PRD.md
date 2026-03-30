@@ -66,6 +66,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Root cause (sync): `commitData` referenced on tree fetch line but only defined in SHA else-block; undefined for branch names
   - Fix (sync): Replaced `commitData.commit.tree.sha` with `syncTreeSha` variable that's set in both code paths
   - Files changed: `app/api/[[...path]]/route.js`
+- **GitHub Import Response Parsing Fix** (Mar 2026):
+  - Root cause: Frontend called `res.json()` unconditionally; upstream timeouts (Cloudflare/ingress) return HTML error pages, causing `JSON.parse` failure
+  - Fix 1 (frontend): Read response as text first, safe-parse with `JSON.parse`, surface raw text on failure instead of cryptic parse error
+  - Fix 2 (proxy): `server.py` proxy wraps non-JSON upstream responses in JSON error objects; catches `response.json()` failures gracefully
+  - Applied to both import and sync handlers in `Dashboard.jsx`
+  - Files changed: `components/dashboard/Dashboard.jsx`, `backend/server.py`
 
 ## Design Rules
 - Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
