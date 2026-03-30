@@ -2087,7 +2087,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                         projects.find(p => p.name === 'Emanator') ||
                         projects.find(p => p.type === 'core') ||
                         null
-                      if (coreProject) openProjectWorkspace(coreProject)
+                      if (coreProject) {
+                        hubEntryRef.current = true
+                        setSelectedChat(null)
+                        setMessages([])
+                        openProjectWorkspace(coreProject)
+                      }
                     }}
                     className="px-3.5 py-1.5 rounded-xl text-[11px] font-semibold border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.25)] backdrop-blur-sm transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
                     data-testid="core-system-btn"
