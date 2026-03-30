@@ -204,4 +204,9 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
 - **Root cause**: Import Modal JSX was scoped inside `renderProjectGrid()`, only called when `!selectedProject`. In project/chat views, clicking Import toggled state but the modal never mounted.
 - **Fix**: Moved Import Modal to top-level return of Dashboard component so it renders in all views.
 - **File**: `components/dashboard/Dashboard.jsx`
+
+## Deploy Tab Fix (Mar 2026) — COMPLETE
+- **Root cause**: `db.deployments` was referenced in route.js but never defined in `lib/supabase/db.js`. Both GET and POST deployment endpoints crashed, returning error objects that DeployTab rendered as "Invalid Date".
+- **Fix**: Replaced crashing endpoints with safe stubs (GET returns `[]`, POST returns 501). Disabled Vercel deploy button with "Not Yet Available" label. Guarded date rendering with null check. Deploy is clearly marked as Phase 2 placeholder.
+- **Files**: `route.js` (safe deployment stubs), `DeployTab.jsx` (disabled button, date guard)
 - Tested: Screenshot verification — Import modal opens correctly from project/chat view.

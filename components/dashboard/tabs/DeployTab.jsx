@@ -10,13 +10,11 @@ import {
   ExternalLink,
   CheckCircle,
   Clock,
-  AlertCircle,
-  Loader2
+  AlertCircle
 } from 'lucide-react'
 
 export default function DeployTab({ project, addLog }) {
   const [deployments, setDeployments] = useState([])
-  const [deploying, setDeploying] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,22 +34,7 @@ export default function DeployTab({ project, addLog }) {
   }
 
   const handleDeploy = async (platform) => {
-    setDeploying(true)
-    try {
-      const response = await authFetch(`/api/projects/${project.id}/deployments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform })
-      })
-      
-      const data = await response.json()
-      setDeployments([data, ...deployments])
-      addLog('info', `Deployment initiated to ${platform}`)
-    } catch (error) {
-      addLog('error', `Deployment failed`)
-    } finally {
-      setDeploying(false)
-    }
+    addLog('info', `Deployment to ${platform} is not yet available. Coming in Phase 2.`)
   }
 
   const statusIcon = (status) => {
@@ -97,14 +80,10 @@ export default function DeployTab({ project, addLog }) {
               <Button
                 className="w-full"
                 size="sm"
-                onClick={() => handleDeploy('vercel')}
-                disabled={deploying}
+                variant="outline"
+                disabled
               >
-                {deploying ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deploying...</>
-                ) : (
-                  <><Rocket className="w-4 h-4 mr-2" /> Deploy</>
-                )}
+                <Rocket className="w-4 h-4 mr-2" /> Not Yet Available
               </Button>
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 Integration coming in Phase 2
@@ -150,7 +129,7 @@ export default function DeployTab({ project, addLog }) {
                     <div>
                       <p className="text-sm font-medium capitalize">{deployment.platform}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(deployment.created_at).toLocaleString()}
+                        {deployment.created_at ? new Date(deployment.created_at).toLocaleString() : 'Unknown date'}
                       </p>
                     </div>
                   </div>
