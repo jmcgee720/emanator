@@ -61,9 +61,9 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="h-7 gap-1.5 px-2.5 text-xs border-border/60 bg-muted/40 hover:bg-muted"
+          className="h-7 gap-1.5 px-2.5 text-xs em-btn-ghost"
           data-testid="model-selector"
         >
           <ProviderIcon className="w-3 h-3" />
@@ -78,7 +78,7 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="w-72">
+      <DropdownMenuContent align="start" className="w-72 border-[rgba(124,58,237,0.15)]">
         {PROVIDERS.map((prov, idx) => {
           const Icon = prov.icon
           const pStatus = providerStatus?.[prov.id]

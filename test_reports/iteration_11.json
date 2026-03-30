@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T04:55:40.624983",
   "test_suite": "User Dashboard and Audit Log Viewer",
-  "base_url": "https://project-runner-48.preview.emergentagent.com",
+  "base_url": "https://luxury-minimal-ui-1.preview.emergentagent.com",
   "tests": {
     "login_and_dashboard": {
       "passed": true,

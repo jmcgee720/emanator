@@ -343,7 +343,7 @@ const ChatComposer = forwardRef(function ChatComposer({
             placeholder={disabled ? 'Create or select a project to start...' : (attachedFiles.length > 0 ? 'Add a message about the uploaded files...' : placeholder)}
             disabled={disabled || sending || uploading}
             rows={1}
-            className="w-full resize-none rounded-md border border-[hsl(260_20%_20%)] bg-[hsl(var(--em-surface-raised))] px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[hsl(190_100%_50%/0.4)] focus:border-[hsl(190_100%_50%/0.25)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="em-input w-full resize-none px-3.5 py-2.5 text-sm placeholder:text-muted-foreground/40 disabled:opacity-40 disabled:cursor-not-allowed"
             data-testid="chat-input"
           />
         </div>
