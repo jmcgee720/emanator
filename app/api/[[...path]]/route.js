@@ -1414,6 +1414,22 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true }))
     }
 
+    // Rename a chat
+    if (route.match(/^\/chats\/[^/]+$/) && method === 'PATCH') {
+      const chatId = path[1]
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+      const body = await request.json()
+      const title = (body.title || '').trim()
+      if (!title) {
+        return handleCORS(NextResponse.json({ error: 'Title required' }, { status: 400 }))
+      }
+      await db.chats.update(chatId, { title })
+      return handleCORS(NextResponse.json({ success: true, title }))
+    }
+
     // ============ SESSION FORKING ============
 
     // Fork a chat — compress history into a new chat with a single synthetic message

@@ -314,11 +314,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setGithubRepo('')
       setGithubBranch('main')
 
-      // Enter hub mode for the new project
-      hubEntryRef.current = true
+      // Go directly to workspace for the new project (skip hub)
+      hubEntryRef.current = false
+      importChatTitleRef.current = 'Imported Project'
       setSelectedChat(null)
       setMessages([])
       setSelectedProject(data.project)
+      // loadProjectData will auto-create/select a chat since skipChatSelect=false
       loadProjects()
     } catch (err) {
       setImportError(err.message || 'GitHub import failed')
@@ -386,6 +388,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   const streamAbortRef = useRef(null)
   const hubEntryRef = useRef(false)
+  const importChatTitleRef = useRef(null)
   const pendingHeroPromptRef = useRef(null)
   const { toast } = useToast()
 
@@ -474,7 +477,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     if (selectedProject) {
       const isHubEntry = hubEntryRef.current
       hubEntryRef.current = false
-      loadProjectData(selectedProject.id, isHubEntry)
+      const chatTitle = importChatTitleRef.current || 'New Conversation'
+      importChatTitleRef.current = null
+      loadProjectData(selectedProject.id, isHubEntry, chatTitle)
       setSandboxTestResult(selectedProject.settings?.last_test_result || null)
     }
   }, [selectedProject?.id])
@@ -527,7 +532,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  const loadProjectData = async (projectId, skipChatSelect = false) => {
+  const loadProjectData = async (projectId, skipChatSelect = false, chatTitle = 'New Conversation') => {
     try {
       const chatsResponse = await authFetch(`/api/projects/${projectId}/chats`)
       const chatsData = await chatsResponse.json()
@@ -538,7 +543,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (chatList.length > 0) {
           setSelectedChat(chatList[0])
         } else {
-          await autoCreateChat(projectId)
+          await autoCreateChat(projectId, chatTitle)
         }
       }
     } catch (error) {
@@ -582,12 +587,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  const autoCreateChat = async (projectId) => {
+  const autoCreateChat = async (projectId, title = 'New Conversation') => {
     try {
       const response = await authFetch(`/api/projects/${projectId}/chats`, {
         method: 'POST',
         headers: JSON_HEADERS,
-        body: JSON.stringify({ title: 'New Conversation' })
+        body: JSON.stringify({ title })
       })
       if (response.ok) {
         const newChat = await response.json()
@@ -1563,6 +1568,24 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
+  const renameChat = async (chatId, newTitle) => {
+    try {
+      await authFetch(`/api/chats/${chatId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      })
+      setChats(prev => prev.map(c => c.id === chatId ? { ...c, title: newTitle } : c))
+      if (selectedChat?.id === chatId) {
+        setSelectedChat(prev => ({ ...prev, title: newTitle }))
+      }
+    } catch (error) {
+      console.error('Error renaming chat:', error)
+      toast({ title: 'Error', description: 'Failed to rename conversation', variant: 'destructive' })
+    }
+  }
+
+
   const deleteProject = async (projectId) => {
     try {
       const response = await authFetch(`/api/projects/${projectId}`, { method: 'DELETE' })
@@ -2089,7 +2112,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   key={item.id}
                   className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer"
                   onClick={() => {
-                    hubEntryRef.current = true
+                    hubEntryRef.current = false
                     setBuilderMode('app')
                     setSelectedChat(null)
                     setMessages([])
@@ -2269,10 +2292,21 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
       <div className="w-px h-6 bg-[rgba(255,255,255,0.10)] shrink-0" />
 
-      {/* Current chat indicator */}
+      {/* Current chat indicator with rename */}
       {selectedChat && (
         <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(0,229,255,0.25)] bg-[rgba(0,229,255,0.06)] text-sm text-[var(--em-text-primary)]">
           <span className="truncate max-w-[200px]">{selectedChat.title || 'Chat'}</span>
+          <button
+            onClick={() => {
+              const newTitle = prompt('Rename conversation:', selectedChat.title)
+              if (newTitle?.trim()) renameChat(selectedChat.id, newTitle.trim())
+            }}
+            className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
+            data-testid="workspace-rename-chat"
+            title="Rename conversation"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
         </div>
       )}
     </div>
@@ -2551,6 +2585,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   onCreateChat={createChat}
                   onDeleteChat={deleteChat}
                   onForkChat={forkChat}
+                  onRenameChat={renameChat}
                   onCreateSelfEditChat={createSelfEditChat}
                   selfEditTarget={selfEditTarget}
                   selfEditTargets={SELF_EDIT_TARGETS}
