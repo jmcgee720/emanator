@@ -1,7 +1,7 @@
 {
   "test_session": "child_monitored_role_ui_testing",
   "timestamp": "2026-03-19T12:53:00Z",
-  "app_url": "https://ai-builder-hub-47.preview.emergentagent.com",
+  "app_url": "https://trend-signal-labs.preview.emergentagent.com",
   "credentials": "testprov@test.com / password123 (role: owner)",
   "test_scenarios": {
     "1_login_and_open_admin_panel": {
