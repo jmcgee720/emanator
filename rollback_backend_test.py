@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend Testing for Rollback Feature
-Testing at: https://service-js-repair.preview.emergentagent.com
+Testing at: https://ai-builder-hub-47.preview.emergentagent.com
 Auth: testprov@test.com / password123
 
 Full test flow (must be sequential):
@@ -21,7 +21,7 @@ import json
 import time
 from typing import Dict, List, Optional, Any
 
-BASE_URL = "https://service-js-repair.preview.emergentagent.com/api"
+BASE_URL = "https://ai-builder-hub-47.preview.emergentagent.com/api"
 
 # Test Results Storage
 test_results = []

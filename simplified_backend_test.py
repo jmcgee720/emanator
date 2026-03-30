@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://service-js-repair.preview.emergentagent.com"
+BASE_URL = "https://ai-builder-hub-47.preview.emergentagent.com"
 AUTH_EMAIL = "testprov@test.com"
 AUTH_PASSWORD = "password123"
 
