@@ -3441,8 +3441,7 @@ async function handleRoute(request, { params }) {
         }
 
         // Fetch full tree
-        const treeSha = commitData.commit.tree.sha
-        const treeRes = await fetch(`https://api.github.com/repos/${repoUrl}/git/trees/${treeSha}?recursive=1`, { headers: ghHeaders })
+        const treeRes = await fetch(`https://api.github.com/repos/${repoUrl}/git/trees/${syncTreeSha}?recursive=1`, { headers: ghHeaders })
         if (!treeRes.ok) {
           return handleCORS(NextResponse.json({ error: 'Failed to fetch repository tree' }, { status: 500 }))
         }
