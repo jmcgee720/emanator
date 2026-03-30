@@ -23,6 +23,8 @@ export default function GrowthPanel({ onClose }) {
   const [analyzing, setAnalyzing] = useState(false)
   const [loadingPages, setLoadingPages] = useState(true)
   const [error, setError] = useState(null)
+  const [trends, setTrends] = useState([])
+  const [fetchingTrends, setFetchingTrends] = useState(false)
 
   const fetchPages = useCallback(async () => {
     setLoadingPages(true)
@@ -38,6 +40,27 @@ export default function GrowthPanel({ onClose }) {
   }, [])
 
   useEffect(() => { fetchPages() }, [fetchPages])
+
+  useEffect(() => {
+    authFetch('/api/trends')
+      .then(r => r.json())
+      .then(d => { if (d.trends) setTrends(d.trends) })
+      .catch(() => {})
+  }, [])
+
+  const handleFetchTrends = async () => {
+    setFetchingTrends(true)
+    try {
+      await authFetch('/api/trends/fetch', { method: 'POST', headers: JSON_HEADERS, body: '{}' })
+      const res = await authFetch('/api/trends')
+      const data = await res.json()
+      if (data.trends) setTrends(data.trends)
+    } catch {
+      // silent
+    } finally {
+      setFetchingTrends(false)
+    }
+  }
 
   const handleCrawl = async () => {
     if (!url.trim()) return
@@ -247,6 +270,45 @@ export default function GrowthPanel({ onClose }) {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Trending Now */}
+          <div className="shrink-0 border-t border-[rgba(255,255,255,0.06)]">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-3 h-3 text-[var(--em-cyan)]" style={{ opacity: 0.6 }} />
+                <span className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Trending</span>
+              </div>
+              <button
+                onClick={handleFetchTrends}
+                disabled={fetchingTrends}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md transition-all duration-200 hover:bg-[rgba(0,229,255,0.08)]"
+                style={{ color: 'var(--em-cyan)', opacity: fetchingTrends ? 0.4 : 0.7 }}
+                data-testid="growth-fetch-trends-btn"
+              >
+                {fetchingTrends ? 'Fetching...' : 'Refresh'}
+              </button>
+            </div>
+            <div className="px-3 pb-3 space-y-1" data-testid="growth-trends-list">
+              {trends.length === 0 ? (
+                <p className="text-[10px] text-[var(--em-text-muted)] text-center py-3" style={{ opacity: 0.5 }}>
+                  Click Refresh to load trends
+                </p>
+              ) : (
+                trends.slice(0, 5).map((t, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <span className="text-[10px] font-mono font-bold w-4 text-[var(--em-text-muted)]" style={{ opacity: 0.4 }}>{i + 1}</span>
+                    <span className="text-[11px] text-[var(--em-text-secondary)] truncate flex-1">{t.keyword}</span>
+                    <span className="text-[9px] font-medium rounded px-1.5 py-0.5 shrink-0" style={{
+                      background: t.source === 'google_trends' ? 'rgba(0,229,255,0.08)' : 'rgba(248,156,49,0.08)',
+                      color: t.source === 'google_trends' ? 'var(--em-cyan)' : '#F59E0B',
+                    }}>
+                      {t.source === 'google_trends' ? 'Google' : 'HN'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 

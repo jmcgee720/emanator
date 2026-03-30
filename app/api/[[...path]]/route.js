@@ -3118,6 +3118,38 @@ async function handleRoute(request, { params }) {
 
     // ============ GROWTH ENGINE ============
 
+    if (route === '/trends/fetch' && method === 'POST') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+
+      try {
+        const res = await fetch('http://localhost:8001/api/internal/trends/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+        const data = await res.json()
+        return handleCORS(NextResponse.json(data, { status: res.status }))
+      } catch (err) {
+        console.error('[Trends] Fetch proxy error:', err)
+        return handleCORS(NextResponse.json({ error: 'Trend fetch failed' }, { status: 500 }))
+      }
+    }
+
+    if (route === '/trends' && method === 'GET') {
+      const authUser = await getAuthUser(request)
+      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      const dbUser = await checkAllowlist(authUser.email)
+      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
+
+      try {
+        const res = await fetch('http://localhost:8001/api/internal/trends/list')
+        const data = await res.json()
+        return handleCORS(NextResponse.json(data))
+      } catch (err) {
+        console.error('[Trends] List proxy error:', err)
+        return handleCORS(NextResponse.json({ error: 'Trend list failed' }, { status: 500 }))
+      }
+    }
+
     if (route === '/growth/crawl' && method === 'POST') {
       const authUser = await getAuthUser(request)
       if (!authUser) {

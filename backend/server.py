@@ -263,6 +263,91 @@ async def stripe_confirm_credits(request: Request, session_id: str):
     return JSONResponse({"confirmed": True})
 
 
+# ── Trend Engine routes (BEFORE the catch-all proxy) ──
+
+@app.post("/api/internal/trends/fetch")
+async def trends_fetch(request: Request):
+    """Fetch trends from Google Trends RSS and Hacker News. Called by route.js."""
+    from lxml import etree
+    import asyncio
+
+    db = get_db()
+    signals = []
+
+    # 1. Google Trends RSS
+    try:
+        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+            resp = await client.get(
+                "https://trends.google.com/trending/rss?geo=US",
+                headers={"User-Agent": "Mozilla/5.0 (compatible; EmanatorBot/1.0)"},
+            )
+        if resp.status_code == 200:
+            root = etree.fromstring(resp.content)
+            ns = {"ht": "https://trends.google.com/trending/rss"}
+            for item in root.findall(".//item")[:20]:
+                title_el = item.find("title")
+                traffic_el = item.find("ht:approx_traffic", ns)
+                if title_el is not None and title_el.text:
+                    keyword = title_el.text.strip().lower()
+                    traffic_str = (traffic_el.text or "0").replace("+", "").replace(",", "").strip()
+                    try:
+                        score = int(traffic_str) if traffic_str.isdigit() else 100
+                    except Exception:
+                        score = 100
+                    signals.append({
+                        "keyword": keyword,
+                        "source": "google_trends",
+                        "score": score,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    })
+    except Exception as e:
+        logger.warning(f"[Trends] Google Trends fetch failed: {e}")
+
+    # 2. Hacker News top stories
+    try:
+        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+            ids_resp = await client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
+            story_ids = ids_resp.json()[:15]
+
+            async def fetch_story(sid):
+                r = await client.get(f"https://hacker-news.firebaseio.com/v0/item/{sid}.json")
+                return r.json() if r.status_code == 200 else None
+
+            stories = await asyncio.gather(*[fetch_story(sid) for sid in story_ids])
+
+        for story in stories:
+            if not story or not story.get("title"):
+                continue
+            signals.append({
+                "keyword": story["title"].strip().lower(),
+                "source": "hackernews",
+                "score": story.get("score", 0),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+    except Exception as e:
+        logger.warning(f"[Trends] HN fetch failed: {e}")
+
+    if signals:
+        db["trend_signals"].insert_many(signals)
+
+    logger.info(f"[Trends] Fetched {len(signals)} signals (Google: {sum(1 for s in signals if s['source']=='google_trends')}, HN: {sum(1 for s in signals if s['source']=='hackernews')})")
+
+    return JSONResponse({"success": True, "count": len(signals)}, status_code=201)
+
+
+@app.get("/api/internal/trends/list")
+async def trends_list(request: Request):
+    """Return recent trend signals. Called by route.js."""
+    db = get_db()
+    docs = list(
+        db["trend_signals"]
+        .find({}, {"_id": 0})
+        .sort("created_at", -1)
+        .limit(50)
+    )
+    return JSONResponse({"trends": docs})
+
+
 # ── Growth Engine routes (BEFORE the catch-all proxy) ──
 
 @app.post("/api/internal/growth/crawl")
@@ -448,6 +533,37 @@ async def growth_analyze(request: Request):
     if 'h1' in headings and headings['h1']:
         current_h1 = headings['h1'][0]
 
+    # Find relevant trends (simple keyword overlap)
+    trend_context = ""
+    try:
+        page_text = (
+            (extracted.get('title') or '') + ' ' +
+            (extracted.get('meta_description') or '') + ' ' +
+            ' '.join(h for hlist in headings.values() for h in hlist)
+        ).lower()
+        page_words = set(page_text.split())
+
+        recent_trends = list(
+            db["trend_signals"]
+            .find({}, {"_id": 0, "keyword": 1, "source": 1, "score": 1})
+            .sort("created_at", -1)
+            .limit(50)
+        )
+        scored = []
+        for t in recent_trends:
+            kw_words = set(t["keyword"].lower().split())
+            overlap = len(kw_words & page_words)
+            if overlap > 0:
+                scored.append((overlap * t.get("score", 1), t))
+        scored.sort(key=lambda x: -x[0])
+        top_trends = scored[:3]
+
+        if top_trends:
+            trend_lines = [f"- \"{t['keyword']}\" (source: {t['source']}, score: {t['score']})" for _, t in top_trends]
+            trend_context = "\n\nCurrently trending topics that may be relevant:\n" + "\n".join(trend_lines) + "\nIncorporate relevant trending angles into your recommendations if appropriate."
+    except Exception as e:
+        logger.warning(f"[Growth] Trend matching failed: {e}")
+
     prompt = f"""Analyze this webpage's SEO and return ONLY a JSON object with exactly these keys:
 
 ANALYSIS (arrays of strings):
@@ -475,6 +591,7 @@ Page data:
 - External Links: {extracted.get('external_links', 0)}
 - Images: {extracted.get('total_images', 0)} total, {extracted.get('images_with_alt', 0)} with alt text
 - Meta Robots: {extracted.get('meta_robots', 'not set')}
+{trend_context}
 
 Return ONLY the JSON object, no markdown, no explanation."""
 
