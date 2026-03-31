@@ -190,6 +190,7 @@ export default function LeftPanel({
   onRetryWithFallback,
   scope,
   onScopeChange,
+  projectName,
   loading,
   streamingMessageId,
   streamingStatus,
@@ -374,6 +375,14 @@ export default function LeftPanel({
               ))}
             </select>
           </div>
+        </div>
+      )}
+
+      {/* Project context label — shown for non-self-edit chats */}
+      {selectedChat && getChatType(selectedChat) !== CHAT_TYPES.SELF_EDIT && projectName && (
+        <div className="px-3 py-1 border-b border-[rgba(255,255,255,0.06)]" data-testid="project-context-label">
+          <span className="text-[10px] em-text-muted">Project: </span>
+          <span className="text-[10px] text-[var(--em-cyan)] font-medium">{projectName}</span>
         </div>
       )}
 

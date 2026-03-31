@@ -2838,6 +2838,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   onRetryWithFallback={retryWithFallback}
                   scope={scope}
                   onScopeChange={setScope}
+                  projectName={selectedProject?.name}
                   loading={loading}
                   streamingMessageId={streamingMessageId}
                   streamingStatus={streamingStatus}
