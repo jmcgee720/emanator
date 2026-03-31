@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, X } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File } from 'lucide-react'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -18,10 +18,50 @@ function formatRelativeTime(dateStr) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function getFileIcon(fileType) {
-  if (fileType === 'image') return <Image className="w-3 h-3 text-purple-400" />
-  if (fileType === 'document') return <FileText className="w-3 h-3 text-amber-400" />
-  return <File className="w-3 h-3 em-text-muted" />
+function getExtension(filename) {
+  return filename?.split('.').pop()?.toUpperCase() || '?'
+}
+
+function MediaTile({ file, onDelete }) {
+  const isImage = file.file_type === 'image'
+  const ext = getExtension(file.filename)
+
+  return (
+    <div className="group relative aspect-square rounded-lg overflow-hidden em-glass hover:border-[rgba(0,229,255,0.25)] hover:shadow-[0_4px_16px_rgba(0,229,255,0.10)] hover:-translate-y-px transition-all duration-200" data-testid={`media-tile-${file.id}`}>
+      {/* Preview area */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {isImage && file.preview_data ? (
+          <img src={file.preview_data} alt={file.filename} className="w-full h-full object-cover" draggable={false} />
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            {file.file_type === 'document' ? (
+              <FileText className="w-5 h-5 text-amber-400/70" />
+            ) : (
+              <File className="w-5 h-5 em-text-muted opacity-50" />
+            )}
+            <span className="text-[9px] font-bold em-text-muted opacity-60 uppercase">{ext}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Hover overlay — filename + delete */}
+      <div className="absolute inset-0 bg-[rgba(12,16,24,0.75)] opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col justify-end p-1.5">
+        <span className="text-[9px] em-text-primary truncate leading-tight">{file.filename}</span>
+      </div>
+
+      {/* Delete button */}
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
+          className="absolute top-1 right-1 p-0.5 rounded bg-[rgba(12,16,24,0.7)] text-red-400/70 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          title="Remove"
+          data-testid={`media-delete-${file.id}`}
+        >
+          <Trash2 className="w-2.5 h-2.5" />
+        </button>
+      )}
+    </div>
+  )
 }
 
 export default function ProjectHub({
@@ -37,6 +77,7 @@ export default function ProjectHub({
   onSyncRepo,
   onRenameChat,
   onRenameProject,
+  onDeleteMediaFile,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
   const [renamingId, setRenamingId] = useState(null)
@@ -173,7 +214,7 @@ export default function ProjectHub({
         {/* CENTER PANEL — Project Overview */}
         <div className="flex-1 overflow-y-auto" data-testid="hub-center-panel">
           <div className="max-w-2xl mx-auto px-8 py-8">
-            {/* Project Title — inline rename */}
+            {/* Project Title — always-visible pencil */}
             <div className="mb-6">
               {renamingProject ? (
                 <input
@@ -186,17 +227,17 @@ export default function ProjectHub({
                   data-testid="hub-rename-project-input"
                 />
               ) : (
-                <div className="flex items-center gap-2 group mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5">
                   <h1 className="text-2xl font-semibold em-text-primary tracking-tight" data-testid="hub-title">
                     {project?.name}
                   </h1>
                   <button
                     onClick={() => { setProjectRenameValue(project?.name || ''); setRenamingProject(true); }}
-                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-1 transition-opacity"
+                    className="p-1 rounded-md em-text-muted opacity-50 hover:opacity-100 hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.08)] transition-all duration-150"
                     title="Rename project"
                     data-testid="hub-rename-project-btn"
                   >
-                    <Pencil className="w-3.5 h-3.5 em-text-muted" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
@@ -215,7 +256,7 @@ export default function ProjectHub({
               </div>
             </div>
 
-            {/* Quick Actions — New Chat + Upload to Media Bin */}
+            {/* Quick Actions */}
             <div className="mb-8">
               <h3 className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-3">Quick Actions</h3>
               <div className="grid grid-cols-2 gap-3" data-testid="hub-quick-actions">
@@ -305,7 +346,7 @@ export default function ProjectHub({
           </div>
 
           <div className="flex-1 overflow-y-auto px-3 py-3">
-            {/* Stats Grid */}
+            {/* Stats */}
             <div className="space-y-3 mb-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-md bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
@@ -316,7 +357,6 @@ export default function ProjectHub({
                   <div className="text-[9px] em-text-muted">Files</div>
                 </div>
               </div>
-
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-md bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
                   <MessageSquare className="w-3.5 h-3.5 em-text-muted" />
@@ -326,7 +366,6 @@ export default function ProjectHub({
                   <div className="text-[9px] em-text-muted">Conversations</div>
                 </div>
               </div>
-
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-md bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
                   <Clock className="w-3.5 h-3.5 em-text-muted" />
@@ -340,9 +379,9 @@ export default function ProjectHub({
 
             <div className="h-px bg-[rgba(255,255,255,0.06)] mb-4" />
 
-            {/* Media Bin */}
+            {/* Media Bin — Thumbnail Grid */}
             <div className="mb-5" data-testid="hub-media-bin">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2.5">
                 <h4 className="text-[9px] font-semibold uppercase tracking-wider em-text-muted">Media Bin</h4>
                 <div className="flex items-center gap-1.5">
                   <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[rgba(255,255,255,0.06)] em-text-muted">{mediaBinCount}</span>
@@ -356,10 +395,11 @@ export default function ProjectHub({
                   </button>
                 </div>
               </div>
+
               {mediaBinCount === 0 ? (
-                <div className="py-3 text-center">
-                  <Upload className="w-4 h-4 mx-auto mb-1.5 em-text-muted opacity-40" />
-                  <p className="text-[10px] em-text-muted opacity-70">No reference files</p>
+                <div className="py-4 text-center">
+                  <Upload className="w-5 h-5 mx-auto mb-2 em-text-muted opacity-30" />
+                  <p className="text-[10px] em-text-muted opacity-60">No reference files</p>
                   <button
                     onClick={onUploadMediaBin}
                     className="text-[10px] text-[var(--em-cyan)] hover:underline mt-1"
@@ -369,13 +409,9 @@ export default function ProjectHub({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-1 max-h-[160px] overflow-y-auto">
+                <div className="grid grid-cols-3 gap-1.5 max-h-[210px] overflow-y-auto" data-testid="media-bin-grid">
                   {mediaBinFiles.map((f) => (
-                    <div key={f.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[rgba(255,255,255,0.04)] transition-colors group">
-                      {getFileIcon(f.file_type)}
-                      <span className="text-[10px] em-text-primary truncate flex-1">{f.filename}</span>
-                      <span className="text-[9px] em-text-muted shrink-0">{f.file_type}</span>
-                    </div>
+                    <MediaTile key={f.id} file={f} onDelete={onDeleteMediaFile} />
                   ))}
                 </div>
               )}
@@ -386,45 +422,38 @@ export default function ProjectHub({
             {/* Metadata */}
             <div className="space-y-2.5 mb-5">
               <h4 className="text-[9px] font-semibold uppercase tracking-wider em-text-muted">Metadata</h4>
-
               <div className="flex items-center justify-between">
                 <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Code2 className="w-3 h-3" /> Framework</span>
                 <span className="text-[10px] font-medium em-text-primary">{framework === 'node' ? 'Node.js' : framework}</span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Hash className="w-3 h-3" /> Type</span>
                 <span className="text-[10px] font-medium em-text-primary">{project?.type || 'app'}</span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Created</span>
                 <span className="text-[10px] font-medium em-text-primary">
                   {project?.created_at ? new Date(project.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                 </span>
               </div>
-
               {project?.repo_url && (
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] em-text-muted flex items-center gap-1.5"><GitBranch className="w-3 h-3" /> Repo</span>
                   <span className="text-[10px] font-medium em-text-primary truncate max-w-[120px]">{project.repo_url}</span>
                 </div>
               )}
-
               {repoUrl && (
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] em-text-muted flex items-center gap-1.5"><GitBranch className="w-3 h-3" /> Source</span>
                   <span className="text-[10px] font-medium text-purple-400 truncate max-w-[120px]">{repoUrl}</span>
                 </div>
               )}
-
               {commitSha && (
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Hash className="w-3 h-3" /> Commit</span>
                   <span className="text-[10px] font-mono font-medium em-text-primary">{commitSha.slice(0, 8)}</span>
                 </div>
               )}
-
               {isGithubProject && (
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] em-text-muted flex items-center gap-1.5"><Activity className="w-3 h-3" /> Branch</span>

@@ -1610,7 +1610,21 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const res = await authFetch(`/api/projects/${projectId}/attachments`)
       if (res.ok) {
         const data = await res.json()
-        setMediaBinFiles(Array.isArray(data) ? data : [])
+        const items = Array.isArray(data) ? data : []
+        // Fetch preview data for image files in parallel
+        const withPreviews = await Promise.all(items.map(async (f) => {
+          if (f.file_type === 'image') {
+            try {
+              const r = await authFetch(`/api/projects/${projectId}/attachment-content?path=${encodeURIComponent(f.path)}`)
+              if (r.ok) {
+                const d = await r.json()
+                return { ...f, preview_data: d.content }
+              }
+            } catch {}
+          }
+          return f
+        }))
+        setMediaBinFiles(withPreviews)
       }
     } catch (error) {
       console.error('Error loading media bin:', error)
@@ -1642,11 +1656,37 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const successes = res.uploads.filter(u => u.success)
       if (successes.length > 0) {
         toast({ title: 'Uploaded', description: `${successes.length} file(s) added to Media Bin` })
-        loadMediaBin(selectedProject.id)
+        // Append new uploads to mediaBinFiles with preview data intact
+        const newItems = successes.map(u => ({
+          id: u.id,
+          filename: u.filename,
+          path: u.path,
+          file_type: u.file_category === 'image' ? 'image' : u.file_category === 'pdf' ? 'document' : 'code',
+          size: u.size,
+          created_at: u.created_at,
+          preview_data: u.preview_data || null,
+        }))
+        setMediaBinFiles(prev => [...prev, ...newItems])
         // Refresh files so AI context picks them up
         const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
         if (filesRes.ok) { const d = await filesRes.json(); setFiles(Array.isArray(d) ? d : []) }
       }
+    }
+  }
+
+
+  const handleMediaBinDelete = async (fileId) => {
+    if (!selectedProject) return
+    try {
+      const res = await authFetch(`/api/projects/${selectedProject.id}/files/${fileId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setMediaBinFiles(prev => prev.filter(f => f.id !== fileId))
+        // Refresh files so AI context drops the deleted file
+        const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
+        if (filesRes.ok) { const d = await filesRes.json(); setFiles(Array.isArray(d) ? d : []) }
+      }
+    } catch (error) {
+      console.error('Error deleting media file:', error)
     }
   }
 
@@ -2634,6 +2674,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           onSyncRepo={handleSyncRepo}
           onRenameChat={renameChat}
           onRenameProject={(newName) => renameProject(selectedProject.id, newName)}
+          onDeleteMediaFile={handleMediaBinDelete}
         />
       ) : (
         <>
