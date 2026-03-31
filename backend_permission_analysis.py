@@ -19,7 +19,7 @@ import requests
 import json
 
 # Test configuration
-BASE_URL = "https://pipeline-secure.preview.emergentagent.com/api"
+BASE_URL = "https://api-feature-extract.preview.emergentagent.com/api"
 
 class PermissionAnalysis:
     def __init__(self):
