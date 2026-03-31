@@ -1,21 +1,135 @@
-<analysis>ChatComposer.jsxModelSelector.jsxSearchPanel.jsxpnpmyarnnpm--ignore-scriptsPreviewTabChatComposer.jsxModelSelector.jsxSearchPanel.jsxapp/components/dashboard/ChatComposer.jsxModelSelector.jsxSearchPanel.jsx--em-*.em-glass.em-glass-panelapp/globals.csslib/ai/service.js/app/app/api/[[...path]]/route.jsclientFiles--ignore-scriptsdevdevelopstartpreviewserveAccept-Encoding_probe_preview_base_path()/index.htmlsudo supervisorctl status nextjs_api
-/app
-├── app/
-│   ├── api/[[...path]]/route.js        # Catch-all Next.js API (includes project DB logic & chat endpoints)
-│   └── globals.css                     # Contains Aurora UI tokens (.em-glass, --em-*)
-├── backend/
-│   ├── server.py                       # FastAPI proxy & Preview Execution Runner (Process management)
-├── components/
-│   └── dashboard/
-│       ├── Dashboard.jsx               # Main UI, manages routing to workspace vs hub
-│       ├── ProjectHub.jsx              # Project Home Screen
-│       ├── ChatComposer.jsx            # UI Component (Target for restyle)
-│       ├── ModelSelector.jsx           # UI Component (Target for restyle)
-│       ├── SearchPanel.jsx             # UI Component (Target for restyle)
-│       └── tabs/
-│           └── PreviewTab.jsx          # UI for rendering project execution iframe & logs
-└── memory/
-    └── PRD.md                          # Tracking document
-/tmp/preview_*projectsprojectFileschatsapp/components/dashboard/ChatComposer.jsxapp/components/dashboard/ModelSelector.jsxapp/components/dashboard/SearchPanel.jsxapp/app/globals.cssapp/api/[[...path]]/route.jslib/ai/service.jsPOST /api/preview/startserver.pyGET /api/preview/status/{id}base_pathGET /api/preview/serve/{id}/{path}PATCH /api/chats/{id}server.py--em-cyan--em-text-primary.em-glass-panelglobals.cssChatComposer.jsxModelSelector.jsxSearchPanel.jsx/app/memory/PRD.mddevelopScript started, output log file is 'vs'.
-# 
-Script done.dev//app/memory/test_credentials.md</analysis>
+<analysis>original_problem_statement: 
+The user wants to continuously harden the Emanator AI Builder core system. Focus includes refining the Aurora UI, improving workspace navigation, and tackling significant technical debt by refactoring massive files ( and ).
+PRODUCT REQUIREMENTS:
+- ProjectHub UI cleanup (remove credits, polish metadata).
+- TopBar cleanup (remove breadcrumbs, style credits with Aurora gradient).
+- Workspace improvements: Add Media Bin with thumbnail grid, improve inline project renaming.
+- Multi-project navigation: Implement persistent Project Bin tab model where users can have multiple project tabs open simultaneously.
+- Code Refactoring: Safely extract logic from  (~2700 lines) into smaller, single-responsibility modules without altering behavior.
+
+**User's preferred language**: English (INSTRUCT next agent to respond in English only)
+
+**what currently exists?** 
+A Next.js 14 App Router full-stack application backed by Supabase and MongoDB with a FastAPI proxy. It uses a heavily customized Aurora dark luxury UI. The application features a persistent tab-based workspace navigation system allowing multiple projects to be open alongside a permanent Project Bin tab. The Project Hub includes a Media Bin thumbnail grid for project reference files. The AI backend () has been partially refactored, extracting provider logic, intent routing, tool execution, and stream helpers into separate modules.
+
+**Last working item**: 
+    - Last item agent was working: Refactoring  (Step 5) by extracting post-processing and response formatting helpers (, , ) into a new file . The code changes were completed and compilation was verified, but the agent ran out of context before running behavioral tests and concluding the task.
+    - Status: TESTING PENDING
+    - Agent Testing Done: N (Only syntax/compilation checking done. No functional chat/canvas test).
+    - Which testing method agent to use? backend testing agent/ manual testing by curl/ UI chat testing. 
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  Issue 1: Verify and finish  extraction (P0)
+     - Attempted fixes: Created  and wired it into . Removed inline canvas updating and formatting logic from .
+     - Next debug checklist: Start the application, initiate a chat that triggers canvas updates and normal AI responses. Verify the application still processes messages correctly without regressions. Update  and finish the task.
+     - Why fix this issue and what will be achieved with the fix? Ensures the refactoring didn't break AI chat or canvas behavior. 
+     - Status: TESTING PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both (verify backend processes chat and frontend updates UI/canvas).
+     - Blocked on other issue: None
+
+**In progress Task List**: 
+  None beyond the final verification of the  refactor mentioned above.
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P2: Refactor  (currently ~4000 lines) into smaller, modular route files.
+
+    Future Tasks:
+    - Growth: Add CSV export option (currently only JSON is supported for crawl exports).
+    - Phase 2: Deploy integration (Vercel/Netlify) — currently mocked.
+
+**Completed work in this session**
+- ProjectHub UI cleanup: node -> Node.js badge, Credits removed, cards normalized. (DONE)
+- TopBar header cleanup: Cleaned up project breadcrumb, styled credits with Aurora gradient. (DONE)
+- Workspace improvements: Added Media Bin with thumbnail grid, improved project rename UX (always visible pencil). (DONE)
+- Implemented persistent multi-project tabs in main workspace shell (smooth scroll, active/inactive states). (DONE)
+- Refactoring Step 1 & 2: Validated Provider and Intent extractions were already complete. (DONE)
+- Refactoring Step 3: Extracted tool execution dispatch into . (DONE)
+- Refactoring Step 4: Extracted streaming helpers into . (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+   - Issue 1: Next.js / SWC compiler out of memory / WatchFiles crash.
+   - Debug checklist: Monitor nextjs_api                       RUNNING   pid 51, uptime 0:00:04. Restart if Next.js compiler hangs.
+   - Why to solve this issue and what will be achieved with this? Prevents environment hanging during rapid file changes.
+   - Should Test frontend/backend/both after fix: NA
+   - Is recurring issue? Y
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Next.js memory thrashing / OOM.
+  - Recurrence count: 4+
+  - Status: MITIGATED (Restart the supervisor process if the frontend becomes unresponsive).
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+Next.js App Router, FastAPI backend proxy, MongoDB, Supabase. 
+The workspace shell uses a persistent tab model: Project Bin is the permanent leftmost tab.  tracks open projects. State () is minimally preserved when switching tabs to maintain the user's active chat without clearing everything.
+
+**key DB schema**
+  -  (Supabase): 
+  - : Project assets and user-uploaded Media Bin files.
+  - : Document/content state mapped to a specific project.
+
+**changes in tech stack**
+  - None
+
+**All files of reference** 
+- : Tab bar logic, Media Bin loading, .
+- : Project details, inline renaming, Media Bin grid.
+- : The central orchestrator being actively refactored.
+- : Newest file created in the last step.
+-  & : Recently created helper files.
+
+**Areas that need refactoring**: 
+-  (~4000 lines). Next major refactor target.
+
+**key api endpoints**
+- : Update project (used for inline renaming).
+- : Fetch Media Bin files.
+- : Upload to Media Bin.
+- : Delete file from Media Bin.
+
+**Critical Info for New Agent** 
+- **Refactoring constraints**: The user specifically requested *safe* extractions for . Do NOT change streaming orchestration logic,  logic, or retry loops during refactors. 
+- **Current Block**: The final slice of the  refactor ( extraction) was completed code-wise, but the task must be functionally tested before being finalized. You just need to verify chat and canvas still work, update PRD, finish the task, and then proceed to the next user instruction or  refactoring.
+
+**documents and test reports created in this job**
+  -  (Continuously updated)
+  -  (Last testing agent pass for Frontend Tabs)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. Fix Core System project mapping. (ABORTED BY USER)
+2. Stop. Do not continue Core System mapping. Implement multi-project tabs in main workspace. (Implemented)
+3. Refactor workspace shell tab model to persistent Home tab pattern (Project Bin). (Implemented)
+4. Polish multi-project tabs for usability (horizontal scroll, active UI clarity). (Implemented)
+5. Start refactoring  (Provider extraction). (Agent verified already complete)
+6. Extract intent routing / mode classification. (Agent verified already complete in )
+7. Extract tool execution dispatch from . (Implemented)
+8. Extract streaming orchestration helpers from . (Implemented)
+9. Extract post-processing / response formatting helpers from . (Code written, TESTING PENDING).
+
+**Project Health Check:**
+Healthy (App compiles, but pending backend behavioral verification on AI chat/canvas).
+
+**3rd Party Integrations** 
+  • OpenAI GPT-4o — uses Emergent LLM Key
+  • Anthropic Claude — uses Emergent LLM Key
+  • Stripe (Payments) — uses Emergent Test Key (in backend/.env)
+  • GitHub API — requires User-provided PAT
+
+**Testing status**
+  - Testing agent used after significant changes: YES (Tested Tabs thoroughly).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None.
+  - Known regressions: None detected in last run.
+
+**Credentials to test flow:**
+Available in 
+- Email: 
+- Password: 
+
+**What agent forgot to execute**
+The agent completed the creation of  and modified , ran a syntax/compilation check (HTTP 200), but hit the context limit before performing functional verification (e.g., executing a chat prompt via UI/curl to ensure canvas updating works) and calling the  tool.</analysis>

@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://emanator-core.preview.emergentagent.com"
+BASE_URL = "https://ai-refactor-hub-1.preview.emergentagent.com"
 AUTH_EMAIL = "REDACTED_LEAKED_USER"
 AUTH_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 
