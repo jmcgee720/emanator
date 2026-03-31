@@ -203,7 +203,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Moved: `inspectToolCalls`, `detectFileType`, `tryParseFilesFromResponse`, `buildDeleteDiffs`, `parseSpriteOpts`, `parseIconOpts`, `formatPlanResponse`, `formatProposedPlanResponse`, `formatSummaryResponse`, `formatDiffSummary`, `formatDeleteSummary`
   - service.js: 2774→2647 lines (−127L). All `this.` references replaced with imported functions.
   - Files: `lib/ai/service.js`, `lib/ai/tool-executor.js` (new)
-- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration, retry/fallback, plan validation loops (~2647L)
+- **stream-helpers.js Extraction** (Mar 2026):
+  - Created `lib/ai/stream-helpers.js` (162L): pure streaming-adjacent helpers
+  - Moved: `compressContext` (context prep), `classifyStreamError` (error classification), `extractInsights` (post-stream canvas insights), `sanitizeLogPayload` (log payload builder), `buildSearchEntries` (search index builder)
+  - `indexForSearch` and `logGenerationRun` simplified to use imported builders
+  - service.js: 2648→2533 lines (−115L). Combined extraction: −242L from original 2774.
+  - Files: `lib/ai/service.js`, `lib/ai/stream-helpers.js` (new)
+- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2533L)
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
