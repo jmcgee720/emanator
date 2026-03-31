@@ -193,7 +193,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - "+" button at far right opens Project Bin
   - Smooth `duration-200` transitions on all tab interactions
   - File: `Dashboard.jsx`
-- P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
+- **service.js Cleanup** (Mar 2026):
+  - Provider extraction already complete: `providers/openai.js` (186L), `providers/anthropic.js` (237L), `providers/base.js` (69L), `providers/index.js` (factory)
+  - Fixed duplicate `_defaultModel` method and constructor indentation in `service.js`
+  - Zero inline provider API calls remain in service.js — all delegated via `this.provider.*`
+  - File: `lib/ai/service.js`
+- P2: Refactor `lib/ai/service.js` — remaining: extract intent routing, tool execution, streaming orchestration into separate modules (~2700→2770L after dedup fix)
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
