@@ -1,114 +1,56 @@
 import { NextResponse } from 'next/server'
-import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { db, getSupabaseAdmin } from '@/lib/supabase/db'
 import { AIService } from '@/lib/ai/service'
 import { ProviderError } from '@/lib/ai/errors'
 import { SELF_EDIT_PREFIX, getChatType, getUserRole, hasPermission, VALID_ROLES, ROLES, isMonitored } from '@/lib/constants'
 import { handleStreamMessage } from '@/lib/api/stream-handler'
 import JSZip from 'jszip'
-import { creditsDb, CREDIT_COSTS, CREDIT_PACKAGES } from '@/lib/credits/service'
+
+// Shared helpers
+import { handleCORS, getAuthUser, checkAllowlist, initializeOwner } from '@/lib/api/helpers'
+
+// Phase 1 route modules
+import * as publicRoutes from '@/lib/api/routes/public'
+import * as authRoutes from '@/lib/api/routes/auth'
+import * as adminRoutes from '@/lib/api/routes/admin'
+import * as exportsRoutes from '@/lib/api/routes/exports'
+import * as creditsRoutes from '@/lib/api/routes/credits'
+import * as searchRoutes from '@/lib/api/routes/search'
+import * as growthRoutes from '@/lib/api/routes/growth'
+import * as personasRoutes from '@/lib/api/routes/personas'
+import * as importsRoutes from '@/lib/api/routes/imports'
+import * as deploymentsRoutes from '@/lib/api/routes/deployments'
+import * as snapshotsRoutes from '@/lib/api/routes/snapshots'
+import * as generationsRoutes from '@/lib/api/routes/generations'
+import * as memoryRoutes from '@/lib/api/routes/memory'
+import * as builderStatusRoutes from '@/lib/api/routes/builder-status'
+import * as promptLibraryRoutes from '@/lib/api/routes/prompt-library'
+import * as learningRoutes from '@/lib/api/routes/learning'
 
 // Allow larger body for file uploads (50MB)
 export const config = {
   api: { bodyParser: { sizeLimit: '50mb' } }
 }
 
-// Helper function to handle CORS
-function handleCORS(response) {
-  response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
-  return response
-}
-
-// Get user from auth — tries cookies first, then bearer token fallback
-async function getAuthUser(request) {
-  // Strategy 1: Cookie-based SSR auth
-  try {
-    const supabase = await createServerSupabase()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) return user
-  } catch {}
-
-  // Strategy 2: Bearer token fallback (embedded mode / when cookies don't work)
-  if (request) {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7)
-      try {
-        const { createClient } = await import('@supabase/supabase-js')
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        )
-        const { data: { user } } = await supabase.auth.getUser(token)
-        if (user) return user
-      } catch {}
-    }
-  }
-
-  return null
-}
-
-// Check if user is allowlisted, resolve effective role from DB + Supabase Auth metadata
-async function checkAllowlist(email) {
-  const ownerEmail = process.env.DEFAULT_OWNER_EMAIL
-
-if (ownerEmail && email && email.toLowerCase() === ownerEmail.toLowerCase()) {
-  // Ensure owner exists in DB and has a valid UUID
-  let owner = await db.users.findByEmail(email)
-
-  if (!owner) {
-    owner = await db.users.create({
-      email,
-      role: 'owner',
-      is_allowlisted: true
-    })
-  }
-
-  return owner
-}
-
-  const user = await db.users.findByEmail(email)
-  if (!user?.is_allowlisted) return null
-
-  if (user.role === 'owner') return user
-
-  try {
-    const supabase = getSupabaseAdmin()
-    const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-    const authUser = authUsers?.find((u) => u.email === email)
-    const metaRole = authUser?.user_metadata?.app_role
-
-    if (metaRole === 'admin' || metaRole === 'child_monitored') {
-      return { ...user, role: metaRole }
-    }
-  } catch (error) {
-  }
-
-  return user
-}
-
-// Initialize default owner
-async function initializeOwner() {
-  const ownerEmail = process.env.DEFAULT_OWNER_EMAIL
-  if (!ownerEmail || ownerEmail === 'YOUR_EMAIL') return
-  
-  try {
-    const existing = await db.users.findByEmail(ownerEmail)
-    if (!existing) {
-      await db.users.create({
-        email: ownerEmail,
-        role: 'owner',
-        is_allowlisted: true
-      })
-    }
-  } catch (error) {
-    // Ignore if already exists or table doesn't exist yet
-    console.log('Owner initialization:', error.message)
-  }
-}
+// Phase 1 module dispatch order (CRITICAL: preserve evaluation order)
+const phase1Modules = [
+  publicRoutes,
+  authRoutes,
+  adminRoutes,
+  exportsRoutes,       // MUST run before inline projects (handles /projects/import)
+  creditsRoutes,
+  searchRoutes,
+  growthRoutes,
+  personasRoutes,
+  importsRoutes,
+  deploymentsRoutes,
+  snapshotsRoutes,
+  generationsRoutes,
+  memoryRoutes,
+  builderStatusRoutes,
+  promptLibraryRoutes,
+  learningRoutes,
+]
 
 // OPTIONS handler for CORS
 export async function OPTIONS() {
@@ -124,114 +66,13 @@ async function handleRoute(request, { params }) {
   try {
     await initializeOwner()
 
-    // Public routes
-    if (route === '/' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: 'MyMergent API v2.0 (Supabase)' }))
+    // ── Phase 1: Dispatch to extracted modules ──
+    for (const mod of phase1Modules) {
+      const result = await mod.handle(route, method, path, request)
+      if (result) return result
     }
 
-    if (route === '/health' && method === 'GET') {
-      return handleCORS(NextResponse.json({ 
-        status: 'healthy', 
-        database: 'supabase',
-        timestamp: new Date().toISOString() 
-      }))
-    }
-
-    // Provider status check
-    if (route === '/providers/status' && method === 'GET') {
-      const results = {}
-      
-      // Check OpenAI
-      const openaiKey = process.env.OPENAI_API_KEY
-      if (openaiKey) {
-        try {
-          const { default: OpenAI } = await import('openai')
-          const client = new OpenAI({ apiKey: openaiKey })
-          await client.models.list()
-          results.openai = { status: 'ready' }
-        } catch (err) {
-          const msg = (err?.message || '').toLowerCase()
-          const status = err?.status || err?.statusCode || null
-          if (status === 401 || msg.includes('invalid') || msg.includes('api key')) {
-            results.openai = { status: 'auth_issue', detail: 'Invalid or revoked API key' }
-          } else if (status === 402 || msg.includes('billing') || msg.includes('quota') || msg.includes('credit')) {
-            results.openai = { status: 'billing_issue', detail: 'Insufficient billing/credits' }
-          } else {
-            results.openai = { status: 'unavailable', detail: err.message }
-          }
-        }
-      } else {
-        results.openai = { status: 'no_key', detail: 'API key not configured' }
-      }
-      
-      // Check Anthropic
-      const anthropicKey = process.env.ANTHROPIC_API_KEY
-      if (anthropicKey) {
-        try {
-          const { default: Anthropic } = await import('@anthropic-ai/sdk')
-          const client = new Anthropic({ apiKey: anthropicKey })
-          // Lightweight check: send a tiny message
-          await client.messages.create({
-            model: 'claude-haiku-4-5',
-            max_tokens: 5,
-            messages: [{ role: 'user', content: 'Hi' }]
-          })
-          results.anthropic = { status: 'ready' }
-        } catch (err) {
-          const msg = (err?.message || '').toLowerCase()
-          const status = err?.status || err?.statusCode || null
-          if (status === 402 || msg.includes('billing') || msg.includes('credit') || msg.includes('insufficient') || msg.includes('balance is too low')) {
-            results.anthropic = { status: 'billing_issue', detail: 'Insufficient billing/credits' }
-          } else if (status === 401 || msg.includes('invalid api key') || msg.includes('invalid x-api-key') || msg.includes('authentication')) {
-            results.anthropic = { status: 'auth_issue', detail: 'Invalid or revoked API key' }
-          } else if (status === 429 || msg.includes('rate')) {
-            // Rate limit during status check = provider is actually working
-            results.anthropic = { status: 'ready' }
-          } else {
-            results.anthropic = { status: 'unavailable', detail: err.message }
-          }
-        }
-      } else {
-        results.anthropic = { status: 'no_key', detail: 'API key not configured' }
-      }
-      
-      return handleCORS(NextResponse.json(results))
-    }
-
-    // Auth check route
-    if (route === '/auth/check' && method === 'POST') {
-      const body = await request.json()
-      const { email, provider } = body
-      
-      if (!email) {
-        return handleCORS(NextResponse.json({ error: 'Email required' }, { status: 400 }))
-      }
-      
-      let user = await checkAllowlist(email)
-
-      // Auto-create user for OAuth providers (Google, etc.)
-      if (!user && provider === 'google') {
-        user = await db.users.create({
-          email,
-          role: 'user',
-          is_allowlisted: true,
-        })
-      }
-
-      if (!user) {
-        return handleCORS(NextResponse.json({ 
-          allowed: false, 
-          message: 'Access denied. Contact owner for approval.' 
-        }, { status: 403 }))
-      }
-      
-      return handleCORS(NextResponse.json({ 
-        allowed: true, 
-        user: { id: user.id, email: user.email, role: getUserRole(user) }
-      }))
-    }
-
-    // ============ ADMIN ROUTES ============
+    // ============ ADMIN ROUTES (Phase 2 — inline) ============
     
     // Get all users (owner or admin)
     if (route === '/admin/users' && method === 'GET') {
@@ -375,9 +216,9 @@ async function handleRoute(request, { params }) {
         db.changelog.create({
           project_id: firstProjectId,
           user_id: currentUser.id,
-          user_task: `Role changed for user ${userId}: → ${effectiveRole}`,
+          user_task: `Role changed for user ${userId}: \u2192 ${effectiveRole}`,
           task_mode: 'role_change',
-          plan_summary: `Role → ${effectiveRole}`,
+          plan_summary: `Role \u2192 ${effectiveRole}`,
         }).catch(e => console.warn('[changelog] role_change write failed:', e.message))
       }
 
@@ -407,7 +248,7 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true }))
     }
 
-    // ============ PROJECT ROUTES ============
+    // ============ PROJECT ROUTES (Phase 2 — inline) ============
     
     // Get all projects for user
     if (route === '/projects' && method === 'GET') {
@@ -429,7 +270,7 @@ async function handleRoute(request, { params }) {
     if (route === '/projects' && method === 'POST') {
       const authUser = await getAuthUser(request)
       if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized — no auth session in cookies' }, { status: 401 }))
+        return handleCORS(NextResponse.json({ error: 'Unauthorized \u2014 no auth session in cookies' }, { status: 401 }))
       }
       
       // Look up the internal user row
@@ -447,7 +288,7 @@ async function handleRoute(request, { params }) {
       }
       
       if (!dbUser.is_allowlisted) {
-        return handleCORS(NextResponse.json({ error: 'Access denied — not on allowlist' }, { status: 403 }))
+        return handleCORS(NextResponse.json({ error: 'Access denied \u2014 not on allowlist' }, { status: 403 }))
       }
       
       const body = await request.json()
@@ -614,7 +455,7 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // ============ SANDBOX / WORKSPACE CLONE ============
+    // ============ SANDBOX / WORKSPACE CLONE (Phase 2 — inline) ============
 
     // Create sandbox from project
     if (route.match(/^\/projects\/[^/]+\/sandbox$/) && method === 'POST') {
@@ -715,18 +556,14 @@ async function handleRoute(request, { params }) {
         const sbx = sandboxMap.get(p)
 
         if (sbx && !src) {
-          // created in sandbox
           const lines = (sbx.content || '').split('\n').length
           changes.push({ path: p, status: 'create', lines_added: lines, lines_removed: 0 })
         } else if (src && !sbx) {
-          // deleted in sandbox
           const lines = (src.content || '').split('\n').length
           changes.push({ path: p, status: 'delete', lines_added: 0, lines_removed: lines })
         } else if (src && sbx && src.content !== sbx.content) {
-          // modified
           const srcLines = (src.content || '').split('\n')
           const sbxLines = (sbx.content || '').split('\n')
-          // Simple line-level diff count
           const srcSet = new Set(srcLines)
           const sbxSet = new Set(sbxLines)
           let added = 0, removed = 0
@@ -734,7 +571,6 @@ async function handleRoute(request, { params }) {
           for (const l of srcLines) { if (!sbxSet.has(l)) removed++ }
           changes.push({ path: p, status: 'update', lines_added: added, lines_removed: removed })
         }
-        // else: identical — skip
       }
 
       changes.sort((a, b) => {
@@ -776,7 +612,6 @@ async function handleRoute(request, { params }) {
       const checks = []
       const errors = []
 
-      // 1. Sandbox status check
       if (!settings.is_sandbox) {
         errors.push({ check: 'sandbox_status', message: 'Not a sandbox project' })
       } else if (settings.sandbox_status !== 'active') {
@@ -784,21 +619,18 @@ async function handleRoute(request, { params }) {
       }
       checks.push({ name: 'sandbox_status', passed: errors.length === 0 })
 
-      // 2. Parse request body for diffs
       let diffs = []
       try {
         const body = await request.json()
         diffs = body.diffs || []
       } catch {}
 
-      // 3. Diff existence check
       const hasDiffs = diffs.length > 0
       checks.push({ name: 'diff_exists', passed: hasDiffs })
       if (!hasDiffs) {
         errors.push({ check: 'diff_exists', message: 'No pending diffs to validate' })
       }
 
-      // 4. Syntax validation per file
       let syntaxPassed = true
       for (const file of diffs) {
         const filePath = file.path || file.filename || ''
@@ -810,7 +642,6 @@ async function handleRoute(request, { params }) {
           continue
         }
 
-        // JSON parse check
         if (filePath.endsWith('.json')) {
           try {
             JSON.parse(content)
@@ -821,7 +652,6 @@ async function handleRoute(request, { params }) {
           continue
         }
 
-        // JS/JSX/TS/TSX brace balance check
         if (/\.(js|jsx|ts|tsx|mjs)$/.test(filePath)) {
           let braces = 0, parens = 0, brackets = 0
           let inString = false, stringChar = ''
@@ -855,11 +685,9 @@ async function handleRoute(request, { params }) {
       }
       checks.push({ name: 'syntax', passed: syntaxPassed })
 
-      // 5. Import resolution check — verify imports reference existing project files
       let importsPassed = true
       const projectFiles = await db.projectFiles.findByProjectId(projectId)
       const existingPaths = new Set(projectFiles.map(f => f.path))
-      // Also add the diff files themselves as "will exist"
       for (const file of diffs) {
         existingPaths.add(file.path || file.filename || '')
       }
@@ -872,21 +700,17 @@ async function handleRoute(request, { params }) {
         const importMatches = content.matchAll(/(?:import|from)\s+['"]([^'"]+)['"]/g)
         for (const match of importMatches) {
           const imp = match[1]
-          // Skip node_modules / package imports
           if (!imp.startsWith('.') && !imp.startsWith('/') && !imp.startsWith('@/')) continue
-          // Resolve @/ alias
           let resolved = imp
           if (imp.startsWith('@/')) {
             resolved = imp.replace('@/', '')
           } else if (imp.startsWith('./') || imp.startsWith('../')) {
-            // Relative imports — skip detailed resolution, just check it's not obviously broken
             continue
           }
-          // Check common extensions
           const candidates = [resolved, `${resolved}.js`, `${resolved}.jsx`, `${resolved}.ts`, `${resolved}.tsx`, `${resolved}/index.js`, `${resolved}/index.jsx`]
           const found = candidates.some(c => existingPaths.has(c))
           if (!found && !resolved.includes('node_modules')) {
-            // Not an error, just a warning — the file might be in node_modules
+            // Not an error, just a warning
           }
         }
       }
@@ -896,7 +720,6 @@ async function handleRoute(request, { params }) {
       const timestamp = new Date().toISOString()
       const result = { passed, errors, checks, timestamp, files_tested: diffs.length }
 
-      // Store result in sandbox settings
       try {
         await db.projects.update(projectId, {
           settings: { ...settings, last_test_result: result }
@@ -906,7 +729,7 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(result))
     }
 
-    // Promote sandbox → primary (owner only)
+    // Promote sandbox -> primary (owner only)
     if (route.match(/^\/projects\/[^/]+\/promote$/) && method === 'POST') {
       const sandboxId = path[1]
       const authUser = await getAuthUser(request)
@@ -925,23 +748,19 @@ async function handleRoute(request, { params }) {
 
       const settings = sandbox.settings || {}
 
-      // Precondition: must be a sandbox
       if (!settings.is_sandbox) {
         return handleCORS(NextResponse.json({ error: 'Not a sandbox project' }, { status: 400 }))
       }
 
-      // Precondition: must be active
       if (settings.sandbox_status !== 'active') {
         return handleCORS(NextResponse.json({ error: `Sandbox status is "${settings.sandbox_status}", must be "active"` }, { status: 400 }))
       }
 
-      // Precondition: last test must have passed
       const lastTest = settings.last_test_result
       if (!lastTest || !lastTest.passed) {
         return handleCORS(NextResponse.json({ error: 'Last test must pass before promotion. Run "Test Changes" first.' }, { status: 400 }))
       }
 
-      // Precondition: sandbox must have files
       const sandboxFiles = await db.projectFiles.findByProjectId(sandboxId)
       if (sandboxFiles.length === 0) {
         return handleCORS(NextResponse.json({ error: 'Sandbox has no files to promote' }, { status: 400 }))
@@ -953,28 +772,22 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'Source project no longer exists' }, { status: 404 }))
       }
 
-      // Apply sandbox file state to source project:
-      // 0. Capture pre-promotion snapshot of primary files
       const primaryFiles = await db.projectFiles.findByProjectId(sourceId)
       const primaryMap = new Map(primaryFiles.map(f => [f.path, f]))
       const sandboxPathSet = new Set(sandboxFiles.map(f => f.path))
 
       const snapshot = []
-      // Files that existed in primary (will be overwritten or deleted)
       for (const f of primaryFiles) {
         snapshot.push({ path: f.path, previous_content: f.content, existed_before: true })
       }
-      // Files that only exist in sandbox (newly created — rollback should delete them)
       for (const f of sandboxFiles) {
         if (!primaryMap.has(f.path)) {
           snapshot.push({ path: f.path, previous_content: null, existed_before: false })
         }
       }
 
-      // 1. Delete all current source files
       await db.projectFiles.deleteByProjectId(sourceId)
 
-      // 2. Copy sandbox files into source
       const promoted = sandboxFiles.map(f => ({
         project_id: sourceId,
         path: f.path,
@@ -984,19 +797,17 @@ async function handleRoute(request, { params }) {
       }))
       await db.projectFiles.bulkInsert(promoted)
 
-      // 3. Mark sandbox as promoted (remains as snapshot)
       const now = new Date().toISOString()
       await db.projects.update(sandboxId, {
         settings: { ...settings, sandbox_status: 'promoted', promoted_at: now }
       })
 
-      // 4. Log promotion event with snapshot in file_actions
       db.changelog.create({
         project_id: sourceId,
         user_id: dbUser.id,
         user_task: `Sandbox promoted to primary: ${sandbox.name}`,
         task_mode: 'sandbox_promote',
-        plan_summary: `Source sandbox: ${sandboxId} → Target: ${sourceId} | ${sandboxFiles.length} file(s)`,
+        plan_summary: `Source sandbox: ${sandboxId} \u2192 Target: ${sourceId} | ${sandboxFiles.length} file(s)`,
         file_actions: { snapshot, sandbox_id: sandboxId },
       }).catch(e => console.warn('[changelog] sandbox_promote write failed:', e.message))
 
@@ -1009,7 +820,7 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // Rollback a promoted sandbox — restore primary to pre-promotion state
+    // Rollback a promoted sandbox
     if (route.match(/^\/projects\/[^/]+\/rollback$/) && method === 'POST') {
       const sandboxId = path[1]
       const authUser = await getAuthUser(request)
@@ -1035,7 +846,6 @@ async function handleRoute(request, { params }) {
 
       const sourceId = settings.sandbox_source_id
 
-      // Find the promotion changelog entry with snapshot
       const supabase = getSupabaseAdmin()
       const { data: entries } = await supabase
         .from('changelog')
@@ -1056,10 +866,8 @@ async function handleRoute(request, { params }) {
 
       const snapshot = entry.file_actions.snapshot
 
-      // Delete all current primary files
       await db.projectFiles.deleteByProjectId(sourceId)
 
-      // Restore files that existed before
       const toRestore = snapshot.filter(f => f.existed_before && f.previous_content != null)
       if (toRestore.length > 0) {
         await db.projectFiles.bulkInsert(toRestore.map(f => ({
@@ -1070,15 +878,12 @@ async function handleRoute(request, { params }) {
           version: 1,
         })))
       }
-      // Files with existed_before === false are simply not restored (effectively deleted)
 
-      // Mark sandbox as rolled back
       const now = new Date().toISOString()
       await db.projects.update(sandboxId, {
         settings: { ...settings, sandbox_status: 'rolled_back', rolled_back_at: now }
       })
 
-      // Log rollback event
       db.changelog.create({
         project_id: sourceId,
         user_id: dbUser.id,
@@ -1096,7 +901,7 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // ============ CHAT ROUTES ============
+    // ============ CHAT ROUTES (Phase 2 — inline) ============
     
     // Get chats for project
     if (route.match(/^\/projects\/[^/]+\/chats$/) && method === 'GET') {
@@ -1112,7 +917,6 @@ async function handleRoute(request, { params }) {
       }
       
       const chats = await db.chats.findByProjectId(projectId)
-      // Derive chat_type from title convention
       const enriched = chats.map(c => ({ ...c, chat_type: getChatType(c) }))
       return handleCORS(NextResponse.json(enriched))
     }
@@ -1133,7 +937,6 @@ async function handleRoute(request, { params }) {
       const body = await request.json()
       const { title = 'New Chat', is_self_edit = false } = body
 
-      // Core System Boundary: self-edit chats require both explicit flag AND owner permission
       const titleLooksSelfEdit = title.startsWith(SELF_EDIT_PREFIX)
       if (titleLooksSelfEdit || is_self_edit) {
         if (!hasPermission(getUserRole(dbUser), 'self_edit')) {
@@ -1141,7 +944,6 @@ async function handleRoute(request, { params }) {
         }
       }
 
-      // Store self-edit chats with prefix so getChatType() can classify them correctly
       let finalTitle = title
       if (is_self_edit && !titleLooksSelfEdit) {
         finalTitle = `${SELF_EDIT_PREFIX}${title}`.trim()
@@ -1154,7 +956,6 @@ async function handleRoute(request, { params }) {
         title: finalTitle
       })
 
-      // Log self-edit chat creation to changelog for activity feed
       if (finalTitle.startsWith(SELF_EDIT_PREFIX)) {
         db.changelog.create({
           project_id: projectId,
@@ -1166,7 +967,6 @@ async function handleRoute(request, { params }) {
         }).catch(e => console.warn('[changelog] self_edit_chat write failed:', e.message))
       }
       
-      // Derive chat_type from title
       return handleCORS(NextResponse.json({ ...chat, chat_type: getChatType(chat) }, { status: 201 }))
     }
 
@@ -1178,7 +978,6 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       }
 
-      // Core System Boundary: non-owner cannot view self-edit chat messages
       const chat = await db.chats.findById(chatId)
       if (chat?.title?.startsWith(SELF_EDIT_PREFIX)) {
         const dbUser = await checkAllowlist(authUser.email)
@@ -1188,7 +987,6 @@ async function handleRoute(request, { params }) {
       }
       
       const messages = await db.messages.findByChatId(chatId)
-      // Strip imageData from generatedImage metadata (loaded on-demand via asset-content API)
       const sanitized = messages.map(m => {
         if (m.metadata?.generatedImage?.imageData) {
           return {
@@ -1204,7 +1002,7 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(sanitized))
     }
 
-    // Update message metadata (e.g., after image generation completes)
+    // Update message metadata
     if (route.match(/^\/messages\/[^/]+\/metadata$/) && method === 'PATCH') {
       const messageId = path[1]
       const authUser = await getAuthUser(request)
@@ -1227,7 +1025,7 @@ async function handleRoute(request, { params }) {
     }
 
 
-    // ============ STREAMING MESSAGE ENDPOINT ============
+    // ============ STREAMING MESSAGE ENDPOINT (Phase 2 — inline) ============
     if (route.match(/^\/chats\/[^/]+\/messages\/stream$/) && method === 'POST') {
       const chatId = path[1]
       const authUser = await getAuthUser(request)
@@ -1256,7 +1054,6 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'Content required' }, { status: 400 }))
       }
       
-      // Get the chat to find project_id
       const chat = await db.chats.findById(chatId)
       if (!chat) {
         return handleCORS(NextResponse.json({ error: 'Chat not found' }, { status: 404 }))
@@ -1267,17 +1064,14 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
       }
 
-      // Block child_monitored from self-edit chats
       if (isMonitored(getUserRole(dbUser)) && chat.title?.startsWith(SELF_EDIT_PREFIX)) {
         return handleCORS(NextResponse.json({ error: 'Monitored accounts cannot use self-edit chats' }, { status: 403 }))
       }
 
-      // Core System Boundary: only owner can post in self-edit chats
       if (chat.title?.startsWith(SELF_EDIT_PREFIX) && !hasPermission(getUserRole(dbUser), 'self_edit')) {
         return handleCORS(NextResponse.json({ error: 'Self-edit chats are owner-only' }, { status: 403 }))
       }
       
-      // Create user message
       const userMessage = await db.messages.create({
         chat_id: chatId,
         project_id: chat.project_id,
@@ -1286,12 +1080,10 @@ async function handleRoute(request, { params }) {
         metadata
       })
       
-      // Update chat timestamp
       await db.chats.update(chatId, { updated_at: new Date().toISOString() })
 
-      // Capture monitored-user prompt for review
       if (role === 'user' && isMonitored(getUserRole(dbUser))) {
-        const promptSummary = content.length > 200 ? content.slice(0, 200) + '…' : content
+        const promptSummary = content.length > 200 ? content.slice(0, 200) + '\u2026' : content
         db.changelog.create({
           project_id: chat.project_id,
           chat_id: chatId,
@@ -1302,18 +1094,14 @@ async function handleRoute(request, { params }) {
         }).catch(e => console.warn('[changelog] monitored_prompt write failed:', e.message))
       }
       
-      // If user message, generate AI response
       if (role === 'user') {
         try {
-          // Read provider/model from chat settings, project settings, or request
           const project = await db.projects.findById(chat.project_id)
           const providerName = metadata.provider || project?.settings?.provider || 'openai'
           const modelName = metadata.model || project?.settings?.model || null
 
-          // Initialize AI service with provider routing
           const aiService = new AIService(providerName, modelName)
           
-          // Process message and get AI response
           const aiResult = await aiService.processMessage({
             projectId: chat.project_id,
             chatId: chatId,
@@ -1322,7 +1110,6 @@ async function handleRoute(request, { params }) {
             scope: metadata.scope || undefined
           })
           
-          // Create assistant message
           const assistantMessage = await db.messages.create({
             chat_id: chatId,
             project_id: chat.project_id,
@@ -1357,12 +1144,10 @@ async function handleRoute(request, { params }) {
           
           const isProviderError = aiError instanceof ProviderError || aiError.name === 'ProviderError'
           
-          // Build user-facing message (never dump raw JSON/error objects)
           const userFacingContent = isProviderError
             ? aiError.user_message
             : `I encountered an error while processing your request. Please try again or rephrase your request.`
           
-          // Build rich metadata for frontend rendering & logs
           const errorMeta = {
             error: true,
             providerError: isProviderError,
@@ -1408,7 +1193,6 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       }
       
-      // Cascade delete handled by foreign keys
       await db.chats.delete(chatId)
       
       return handleCORS(NextResponse.json({ success: true }))
@@ -1430,9 +1214,8 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true, title }))
     }
 
-    // ============ SESSION FORKING ============
+    // ============ SESSION FORKING (Phase 2 — inline) ============
 
-    // Fork a chat — compress history into a new chat with a single synthetic message
     if (route.match(/^\/chats\/[^/]+\/fork$/) && method === 'POST') {
       const chatId = path[1]
       const authUser = await getAuthUser(request)
@@ -1445,23 +1228,19 @@ async function handleRoute(request, { params }) {
       }
 
       try {
-        // 1. Fetch source chat
         const sourceChat = await db.chats.findById(chatId)
         if (!sourceChat) {
           return handleCORS(NextResponse.json({ error: 'Source chat not found' }, { status: 404 }))
         }
 
-        // 2. Fetch all messages from source chat
         const messages = await db.messages.findByChatId(chatId)
 
-        // 3. Compress the history
         const aiService = new AIService()
         const compressed = aiService.compressContext(messages)
         const summaryText = compressed.length > 0 && compressed[0].role === 'system'
           ? compressed[0].content
           : `[Forked from chat "${sourceChat.title}" with ${messages.length} messages]`
 
-        // 4. Extract latest plan/diff metadata from the most recent assistant message
         let latestMeta = {}
         for (let i = messages.length - 1; i >= 0; i--) {
           const m = messages[i]
@@ -1474,13 +1253,11 @@ async function handleRoute(request, { params }) {
           }
         }
 
-        // 5. Create the new forked chat
         const forkedChat = await db.chats.create({
           project_id: sourceChat.project_id,
           title: `Fork of: ${sourceChat.title}`
         })
 
-        // 6. Seed with a single synthetic message containing the summary + metadata
         await db.messages.create({
           chat_id: forkedChat.id,
           project_id: sourceChat.project_id,
@@ -1506,9 +1283,8 @@ async function handleRoute(request, { params }) {
       }
     }
 
-    // ============ PROJECT FILES ROUTES ============
+    // ============ PROJECT FILES ROUTES (Phase 2 — inline) ============
     
-    // Get files for project
     if (route.match(/^\/projects\/[^/]+\/files$/) && method === 'GET') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1517,7 +1293,6 @@ async function handleRoute(request, { params }) {
       }
       
       const files = await db.projectFiles.findByProjectId(projectId)
-      // Strip content from generated assets to avoid OOM (each is ~2MB base64)
       const sanitized = files.map(f => {
         if (f.path?.startsWith('_generated/') || (f.path?.startsWith('_uploads/') && f.file_type === 'image')) {
           return { ...f, content: `[asset: ${f.path}]` }
@@ -1527,7 +1302,6 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(sanitized))
     }
 
-    // Get lightweight file index (metadata only, no content)
     if (route.match(/^\/projects\/[^/]+\/files-index$/) && method === 'GET') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1539,7 +1313,6 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ files }))
     }
 
-    // Create/Update file
     if (route.match(/^\/projects\/[^/]+\/files$/) && method === 'POST') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1562,7 +1335,6 @@ async function handleRoute(request, { params }) {
       }, { status: result.action === 'created' ? 201 : 200 }))
     }
 
-    // Delete file
     if (route.match(/^\/projects\/[^/]+\/files\/[^/]+$/) && method === 'DELETE') {
       const fileId = path[3]
       const authUser = await getAuthUser(request)
@@ -1575,7 +1347,6 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true }))
     }
 
-    // Sync repo files from disk into project_files
     if (route.match(/^\/projects\/[^/]+\/sync-repo$/) && method === 'POST') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1634,7 +1405,6 @@ async function handleRoute(request, { params }) {
         }
       }
 
-      // Also sync root config files
       const ROOT_FILES = ['package.json', 'next.config.mjs', 'tailwind.config.js', 'postcss.config.mjs', 'jsconfig.json']
       for (const name of ROOT_FILES) {
         try {
@@ -1648,28 +1418,24 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true, synced, errors }))
     }
 
-    // ============ CANVAS ROUTES ============
+    // ============ CANVAS ROUTES (Phase 2 — inline) ============
     
-    // Get canvas for project — resilient: auto-creates if missing, soft auth
     if (route.match(/^\/projects\/[^/]+\/canvas$/) && method === 'GET') {
       const projectId = path[1]
 
-      // Soft auth: try cookie auth, but don't hard-fail — canvas reads are project-scoped
       const authUser = await getAuthUser(request)
       if (!authUser) {
-        // Check if any Supabase auth cookies are present (user is likely authenticated but session expired temporarily)
         const { cookies: cookiesFn } = await import('next/headers')
         const cookieStore = await cookiesFn()
         const hasSbCookies = cookieStore.getAll().some(c => c.name.includes('sb-'))
         if (!hasSbCookies) {
           return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
         }
-        console.log('[Canvas GET] Auth cookie present but session expired — allowing read for project', projectId)
+        console.log('[Canvas GET] Auth cookie present but session expired \u2014 allowing read for project', projectId)
       }
 
       let canvas = await db.projectCanvas.findByProjectId(projectId)
       
-      // Auto-create default canvas if none exists
       if (!canvas) {
         try {
           canvas = await db.projectCanvas.create({
@@ -1692,7 +1458,6 @@ async function handleRoute(request, { params }) {
           })
           console.log('[Canvas GET] Auto-created empty canvas for project', projectId)
         } catch (createErr) {
-          // Another request may have created it concurrently
           canvas = await db.projectCanvas.findByProjectId(projectId)
           if (!canvas) {
             return handleCORS(NextResponse.json({ error: 'Canvas creation failed' }, { status: 500 }))
@@ -1703,7 +1468,6 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(canvas))
     }
 
-    // Update canvas
     if (route.match(/^\/projects\/[^/]+\/canvas$/) && method === 'PUT') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1716,7 +1480,6 @@ async function handleRoute(request, { params }) {
       
       await db.projectCanvas.update(projectId, canvas_content)
       
-      // Log canvas event if change_summary provided
       if (change_summary) {
         await db.canvasEvents.create({
           project_id: projectId,
@@ -1728,9 +1491,8 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true }))
     }
 
-    // ============ DESIGN PREFERENCES ROUTES ============
+    // ============ DESIGN PREFERENCES (Phase 2 — inline) ============
 
-    // Get design preferences for project
     if (route.match(/^\/projects\/[^/]+\/design$/) && method === 'GET') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1749,7 +1511,6 @@ async function handleRoute(request, { params }) {
       }))
     }
 
-    // Update design preferences for project
     if (route.match(/^\/projects\/[^/]+\/design$/) && method === 'PUT') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1767,9 +1528,8 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ success: true, design_prefs: body }))
     }
 
-    // ============ DIFF / APPLY ROUTES ============
+    // ============ DIFF / APPLY (Phase 2 — inline) ============
 
-    // Apply approved diffs — creates snapshot, writes files, logs events
     if (route.match(/^\/projects\/[^/]+\/apply-diffs$/) && method === 'POST') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1784,11 +1544,9 @@ async function handleRoute(request, { params }) {
         return handleCORS(NextResponse.json({ error: 'No files to apply' }, { status: 400 }))
       }
 
-      // DiffReviewGuard
       const guardErrors = []
       const normPath = (p) => (p || '').replace(/^\.\//, '').replace(/^\//, '')
 
-      // Load server-side pending diff state
       let pendingMessage = null
       if (chatId) {
         const chatMessages = await db.messages.findByChatId(chatId)
@@ -1810,14 +1568,12 @@ async function handleRoute(request, { params }) {
         guardErrors.push('Server-side metadata.diffFiles is empty')
       }
 
-      // Normalize all paths
       for (const diff of approvedFiles) {
         diff.path = normPath(diff.path)
       }
       const serverPaths = new Set(serverDiffFiles.map(f => normPath(f.path)))
       const approvedPaths = new Set(approvedFiles.map(f => f.path))
 
-      // Exact set match
       if (serverDiffFiles.length > 0) {
         if (approvedFiles.length !== serverDiffFiles.length) {
           guardErrors.push(`Diff set size mismatch: approved ${approvedFiles.length} vs server ${serverDiffFiles.length}`)
@@ -1830,7 +1586,6 @@ async function handleRoute(request, { params }) {
         }
       }
 
-      // Plan hash match
       if (planData && pendingMessage?.metadata?.planData) {
         const { hashPlan: hp } = await import('@/lib/ai/plan-validator.js')
         const clientHash = hp(planData)
@@ -1840,34 +1595,29 @@ async function handleRoute(request, { params }) {
         }
       }
 
-      // planId match
       if (planData?.planId && pendingMessage?.metadata?.planId) {
         if (planData.planId !== pendingMessage.metadata.planId) {
           guardErrors.push('STALE_PLAN_OR_DIFF_ID: planId mismatch')
         }
       }
 
-      // diffId match
       if (body.diffId && pendingMessage?.metadata?.diffId) {
         if (body.diffId !== pendingMessage.metadata.diffId) {
           guardErrors.push('STALE_PLAN_OR_DIFF_ID: diffId mismatch')
         }
       }
 
-      // Load existing files with normalized paths
       const existingFiles = await db.projectFiles.findByProjectId(projectId)
       const existingByPath = new Map(existingFiles.map(f => [normPath(f.path), f]))
 
       for (const diff of approvedFiles) {
-        // Illegal create
         if (diff.action === 'create' && existingByPath.has(diff.path)) {
-          guardErrors.push(`"${diff.path}": illegal create — file already exists`)
+          guardErrors.push(`"${diff.path}": illegal create \u2014 file already exists`)
         }
-        // No-op update
         if (diff.action === 'update' && diff.newContent != null) {
           const existing = existingByPath.get(diff.path)
           if (existing && existing.content === diff.newContent) {
-            guardErrors.push(`"${diff.path}": no-op update — content identical to current file`)
+            guardErrors.push(`"${diff.path}": no-op update \u2014 content identical to current file`)
           }
         }
       }
@@ -1898,8 +1648,6 @@ async function handleRoute(request, { params }) {
       const aiService = new AIService(body.provider || 'openai')
       const results = await aiService.applyDiffs(projectId, chatId, authUser.id, approvedFiles, planData)
 
-      // safeApplyDiffs handles diffStatus transition internally now;
-      // only fall back to manual update if it didn't transition
       if (pendingMessage && !results.diffStatusTransitioned) {
         try {
           await db.messages.update(pendingMessage.id, {
@@ -1908,7 +1656,6 @@ async function handleRoute(request, { params }) {
         } catch {}
       }
 
-      // Auto-save successful prompt as pattern (fire-and-forget)
       import('@/lib/self_builder/change_log').then(async ({ logChange }) => {
         let chatType = 'builder'
         if (chatId) {
@@ -1933,7 +1680,6 @@ async function handleRoute(request, { params }) {
         })
       }).catch(e => console.warn('[changelog] apply logChange failed:', e.message))
 
-      // Build continuation info if plan has next_steps
       const nextStep = (!results.rolledBack && planData?.next_steps?.length > 0) ? planData.next_steps[0] : null
       const remainingSteps = (!results.rolledBack && planData?.next_steps?.length > 1) ? planData.next_steps.slice(1) : []
 
@@ -1950,11 +1696,10 @@ async function handleRoute(request, { params }) {
     }
 
 
-    // ============ FILE UPLOAD ROUTES ============
+    // ============ FILE UPLOAD ROUTES (Phase 2 — inline) ============
 
-    // ============ IMAGE GENERATION ROUTES ============
+    // ============ IMAGE GENERATION (Phase 2 — inline) ============
 
-    // Generate image
     if (route.match(/^\/projects\/[^/]+\/generate-image$/) && method === 'POST') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -1973,7 +1718,6 @@ async function handleRoute(request, { params }) {
 
         const imageService = new ImageService()
 
-        // Stream progress events via SSE
         const encoder = new TextEncoder()
         const stream = new ReadableStream({
           async start(controller) {
@@ -2054,7 +1798,7 @@ async function handleRoute(request, { params }) {
       }
     }
 
-    // Get project assets (generated images + uploaded images)
+    // Get project assets
     if (route.match(/^\/projects\/[^/]+\/assets$/) && method === 'GET') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -2066,9 +1810,7 @@ async function handleRoute(request, { params }) {
       const assets = files
         .filter(f => f.path?.startsWith('_generated/') || (f.path?.startsWith('_uploads/') && f.file_type === 'image'))
         .map(f => {
-          // Extract clean filename: remove prefix directory
           const rawName = f.path.replace(/^_(?:generated|uploads)\//, '')
-          // For generated: safeName_timestamp.png → extract readable name
           const cleanName = rawName.replace(/_\d{13}\.png$/, '.png').replace(/_/g, ' ')
           return {
             id: f.id,
@@ -2104,128 +1846,7 @@ async function handleRoute(request, { params }) {
       }
     }
 
-    // ── Prompt Library API ──
-    if (route.match(/^\/projects\/[^/]+\/prompt-library$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { getPromptLibrary } = await import('@/lib/ai/prompt-library')
-      const data = await getPromptLibrary(projectId)
-      return handleCORS(NextResponse.json(data))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/prompt-library$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const body = await request.json()
-      const { savePromptToLibrary } = await import('@/lib/ai/prompt-library')
-      const entry = await savePromptToLibrary(projectId, body)
-      return handleCORS(NextResponse.json(entry))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/prompt-library\/[^/]+$/) && method === 'DELETE') {
-      const projectId = path[1]
-      const promptId = path[3]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { deletePromptFromLibrary } = await import('@/lib/ai/prompt-library')
-      await deletePromptFromLibrary(projectId, promptId)
-      return handleCORS(NextResponse.json({ success: true }))
-    }
-
-    // ── Learning / Adaptive Memory API ──
-    if (route.match(/^\/projects\/[^/]+\/learning$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { getLearningEvents } = await import('@/lib/ai/adaptive-learning')
-      const data = await getLearningEvents(projectId)
-      return handleCORS(NextResponse.json(data))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/learning\/rules\/[^/]+$/) && method === 'PATCH') {
-      const projectId = path[1]
-      const ruleId = path[4]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const body = await request.json()
-      const { updateRule } = await import('@/lib/ai/adaptive-learning')
-      await updateRule(projectId, ruleId, body)
-      return handleCORS(NextResponse.json({ success: true }))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/learning\/rules\/[^/]+$/) && method === 'DELETE') {
-      const projectId = path[1]
-      const ruleId = path[4]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { deleteRule } = await import('@/lib/ai/adaptive-learning')
-      await deleteRule(projectId, ruleId)
-      return handleCORS(NextResponse.json({ success: true }))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/learning\/reset$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { resetProjectMemory } = await import('@/lib/ai/adaptive-learning')
-      await resetProjectMemory(projectId)
-      return handleCORS(NextResponse.json({ success: true }))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/learning\/reset-all$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { resetAllMemory } = await import('@/lib/ai/adaptive-learning')
-      await resetAllMemory(projectId)
-      return handleCORS(NextResponse.json({ success: true }))
-    }
-
-    // ── User Preferences API ──
-    if (route.match(/^\/projects\/[^/]+\/user-preferences$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { getUserPreferences } = await import('@/lib/ai/adaptive-learning')
-      const prefs = await getUserPreferences(projectId)
-      return handleCORS(NextResponse.json(prefs))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/user-preferences$/) && method === 'PATCH') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const body = await request.json()
-      const { updateUserPreferences } = await import('@/lib/ai/adaptive-learning')
-      const updated = await updateUserPreferences(projectId, body)
-      return handleCORS(NextResponse.json(updated))
-    }
-
-    // ── Project Preferences API ──
-    if (route.match(/^\/projects\/[^/]+\/project-preferences$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const { getProjectPreferences } = await import('@/lib/ai/adaptive-learning')
-      const prefs = await getProjectPreferences(projectId)
-      return handleCORS(NextResponse.json(prefs))
-    }
-
-    if (route.match(/^\/projects\/[^/]+\/project-preferences$/) && method === 'PATCH') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const body = await request.json()
-      const { updateProjectPreferences } = await import('@/lib/ai/adaptive-learning')
-      const prefs = await updateProjectPreferences(projectId, body)
-      return handleCORS(NextResponse.json(prefs))
-    }
-
-
-
-    // Get asset content (for viewing/downloading)
+    // Get asset content
     if (route.match(/^\/projects\/[^/]+\/asset-content$/) && method === 'GET') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -2247,7 +1868,7 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ content: file.content, path: file.path }))
     }
 
-    // Upload files to a project (for chat attachments)
+    // Upload files to a project
     if (route.match(/^\/projects\/[^/]+\/upload$/) && method === 'POST') {
       const projectId = path[1]
       const authUser = await getAuthUser(request)
@@ -2266,9 +1887,9 @@ async function handleRoute(request, { params }) {
         const ALLOWED_EXTENSIONS = ['txt','md','json','csv','html','css','js','jsx','ts','tsx','py','sql','pdf','png','jpg','jpeg','webp','svg']
         const TEXT_EXTENSIONS = ['txt','md','json','csv','html','css','js','jsx','ts','tsx','py','sql']
         const IMAGE_EXTENSIONS = ['png','jpg','jpeg','webp','svg']
-        const MAX_TEXT_SIZE = 512 * 1024  // 500KB
-        const MAX_IMAGE_SIZE = 5 * 1024 * 1024  // 5MB
-        const MAX_PDF_SIZE = 10 * 1024 * 1024  // 10MB
+        const MAX_TEXT_SIZE = 512 * 1024
+        const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+        const MAX_PDF_SIZE = 10 * 1024 * 1024
 
         const results = []
 
@@ -2279,7 +1900,6 @@ async function handleRoute(request, { params }) {
             continue
           }
 
-          // Validate size
           const dataSize = file.data ? Buffer.from(file.data.split(',').pop() || file.data, 'base64').length : (file.content?.length || 0)
           const maxSize = ext === 'pdf' ? MAX_PDF_SIZE : IMAGE_EXTENSIONS.includes(ext) ? MAX_IMAGE_SIZE : MAX_TEXT_SIZE
           if (dataSize > maxSize) {
@@ -2298,30 +1918,26 @@ async function handleRoute(request, { params }) {
           if (isText && file.content) {
             textContent = file.content
           } else if (isText && file.data) {
-            // Decode base64 text
             const buff = Buffer.from(file.data.split(',').pop() || file.data, 'base64')
             textContent = buff.toString('utf-8')
           }
 
           if (isPdf && file.data) {
-            // Simple PDF text extraction attempt
             try {
               const buff = Buffer.from(file.data.split(',').pop() || file.data, 'base64')
               const text = buff.toString('utf-8')
-              // Extract readable text between stream markers
               const matches = text.match(/\(([^)]+)\)/g)
               if (matches) {
                 extractedText = matches.map(m => m.slice(1, -1)).join(' ').slice(0, 50000)
               }
               if (!extractedText || extractedText.length < 20) {
-                extractedText = '[PDF text extraction limited — binary PDF content]'
+                extractedText = '[PDF text extraction limited \u2014 binary PDF content]'
               }
             } catch {
               extractedText = '[PDF text could not be extracted]'
             }
           }
 
-          // Store in project_files
           const fileType = isImage ? 'image' : isPdf ? 'document' : 'code'
           const storeContent = isText ? textContent : (isImage ? file.data : (extractedText || file.data))
 
@@ -2397,1696 +2013,6 @@ async function handleRoute(request, { params }) {
         content: file.content,
         file_type: file.file_type,
       }))
-    }
-
-    // ============ SNAPSHOT ROUTES ============
-    
-    // Get snapshots for project
-    if (route.match(/^\/projects\/[^/]+\/snapshots$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const snapshots = await db.snapshots.findByProjectId(projectId)
-      return handleCORS(NextResponse.json(snapshots))
-    }
-
-    // Create snapshot
-    if (route.match(/^\/projects\/[^/]+\/snapshots$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const body = await request.json()
-      const { name } = body
-      
-      if (!name) {
-        return handleCORS(NextResponse.json({ error: 'Snapshot name required' }, { status: 400 }))
-      }
-      
-      // Get all files for project
-      const files = await db.projectFiles.findByProjectId(projectId)
-      
-      // Get canvas
-      const canvas = await db.projectCanvas.findByProjectId(projectId)
-      
-      const snapshot = await db.snapshots.create({
-        project_id: projectId,
-        name,
-        files_snapshot: files,
-        canvas_snapshot: canvas?.canvas_content || null,
-        metadata: {
-          file_count: files.length,
-          created_by: authUser.email
-        }
-      })
-      
-      return handleCORS(NextResponse.json(snapshot, { status: 201 }))
-    }
-
-    // Restore snapshot
-    if (route.match(/^\/snapshots\/[^/]+\/restore$/) && method === 'POST') {
-      const snapshotId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const snapshot = await db.snapshots.findById(snapshotId)
-      if (!snapshot) {
-        return handleCORS(NextResponse.json({ error: 'Snapshot not found' }, { status: 404 }))
-      }
-      
-      const projectId = snapshot.project_id
-      
-      // Delete current files
-      await db.projectFiles.deleteByProjectId(projectId)
-      
-      // Restore files from snapshot
-      if (snapshot.files_snapshot && snapshot.files_snapshot.length > 0) {
-        const restoredFiles = snapshot.files_snapshot.map(f => ({
-          project_id: projectId,
-          path: f.path,
-          content: f.content,
-          file_type: f.file_type,
-          version: 1,
-          restored_from: snapshotId
-        }))
-        await db.projectFiles.bulkInsert(restoredFiles)
-      }
-      
-      // Restore canvas if present
-      if (snapshot.canvas_snapshot) {
-        await db.projectCanvas.update(projectId, snapshot.canvas_snapshot)
-      }
-      
-      return handleCORS(NextResponse.json({ 
-        success: true, 
-        restored_files: snapshot.files_snapshot?.length || 0 
-      }))
-    }
-
-    // ============ EXPORT ROUTES ============
-    
-    // Get exports for project
-    if (route.match(/^\/projects\/[^/]+\/exports$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const exports = await db.exports.findByProjectId(projectId)
-      return handleCORS(NextResponse.json(exports))
-    }
-
-    // Create export
-    if (route.match(/^\/projects\/[^/]+\/exports$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const body = await request.json()
-      const { export_type } = body
-      
-      const validTypes = ['web', 'pwa', 'ios', 'android', 'zip', 'manifest']
-      if (!validTypes.includes(export_type)) {
-        return handleCORS(NextResponse.json({ error: 'Invalid export type' }, { status: 400 }))
-      }
-      
-      // Get project data
-      const project = await db.projects.findById(projectId)
-      const files = await db.projectFiles.findByProjectId(projectId)
-      const canvas = await db.projectCanvas.findByProjectId(projectId)
-      const chats = await db.chats.findByProjectId(projectId)
-      const snapshots = await db.snapshots.findByProjectId(projectId)
-      
-      let artifactData = null
-      
-      // Generate export based on type
-      if (export_type === 'manifest') {
-        artifactData = {
-          version: '1.0.0',
-          format: 'mymergent-project',
-          project: {
-            id: project.id,
-            name: project.name,
-            description: project.description,
-            type: project.type,
-            settings: project.settings,
-            created_at: project.created_at,
-            updated_at: project.updated_at
-          },
-          files: files,
-          canvas: canvas?.canvas_content || null,
-          chats: chats.map(c => ({ id: c.id, title: c.title, created_at: c.created_at })),
-          snapshots: snapshots.map(s => ({ id: s.id, name: s.name, created_at: s.created_at })),
-          exported_at: new Date().toISOString(),
-          exported_by: authUser.email
-        }
-      } else if (export_type === 'zip') {
-        // Create ZIP with all project files
-        const zip = new JSZip()
-        
-        // Add manifest
-        const manifest = {
-          version: '1.0.0',
-          format: 'mymergent-project',
-          project: {
-            id: project.id,
-            name: project.name,
-            description: project.description,
-            type: project.type,
-            settings: project.settings
-          },
-          exported_at: new Date().toISOString()
-        }
-        zip.file('mymergent-manifest.json', JSON.stringify(manifest, null, 2))
-        
-        // Add project files
-        const srcFolder = zip.folder('src')
-        files.forEach(file => {
-          srcFolder.file(file.path, file.content || '')
-        })
-        
-        // Add canvas
-        if (canvas?.canvas_content) {
-          zip.file('canvas.json', JSON.stringify(canvas.canvas_content, null, 2))
-        }
-        
-        // Generate ZIP
-        const zipContent = await zip.generateAsync({ type: 'base64' })
-        artifactData = { 
-          zip_base64: zipContent, 
-          filename: `${project.name.replace(/[^a-z0-9]/gi, '_')}.zip` 
-        }
-      }
-      
-      const exportRecord = await db.exports.create({
-        project_id: projectId,
-        export_type,
-        status: artifactData ? 'completed' : 'pending',
-        artifact_data: artifactData,
-        metadata: {
-          file_count: files.length,
-          exported_by: authUser.email
-        }
-      })
-      
-      return handleCORS(NextResponse.json(exportRecord, { status: 201 }))
-    }
-
-    // ============ IMPORT ROUTES ============
-    
-    // Import project from manifest
-    if (route === '/projects/import' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-      
-      const body = await request.json()
-      const { manifest } = body
-      
-      if (!manifest || manifest.format !== 'mymergent-project') {
-        return handleCORS(NextResponse.json({ error: 'Invalid project manifest' }, { status: 400 }))
-      }
-      
-      // Create project
-      const project = await db.projects.create({
-        user_id: dbUser.id,
-        name: manifest.project.name + ' (Imported)',
-        description: manifest.project.description,
-        type: manifest.project.type,
-        settings: manifest.project.settings || {},
-        imported_from: manifest.project.id,
-        imported_at: new Date().toISOString()
-      })
-      
-      // Import files
-      if (manifest.files && manifest.files.length > 0) {
-        const importedFiles = manifest.files.map(f => ({
-          project_id: project.id,
-          path: f.path,
-          content: f.content || '',
-          file_type: f.file_type || 'text',
-          version: 1,
-          imported: true
-        }))
-        await db.projectFiles.bulkInsert(importedFiles)
-      }
-      
-      // Import canvas
-      await db.projectCanvas.create({
-        project_id: project.id,
-        canvas_content: manifest.canvas || {
-          project_overview: '',
-          project_goals: [],
-          key_decisions: [],
-          architecture_notes: [],
-          master_prompts: [],
-          working_prompts: [],
-          failed_prompts: [],
-          successful_patterns: [],
-          feature_requirements: [],
-          technical_specs: [],
-          constraints: [],
-          open_tasks: [],
-          completed_tasks: []
-        }
-      })
-      
-      return handleCORS(NextResponse.json({
-        project,
-        imported_files: manifest.files?.length || 0
-      }, { status: 201 }))
-    }
-
-    // ============ SEARCH ROUTES ============
-    
-    // Global search
-    if (route === '/search' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-      
-      const body = await request.json()
-      const { query, project_id, content_types } = body
-      
-      if (!query || query.length < 2) {
-        return handleCORS(NextResponse.json({ error: 'Query must be at least 2 characters' }, { status: 400 }))
-      }
-      
-      const results = {
-        projects: [],
-        chats: [],
-        messages: [],
-        files: []
-      }
-      
-      // Get user's projects for filtering
-      const userProjects = await db.projects.findByUserId(dbUser.id)
-      const projectIds = project_id ? [project_id] : userProjects.map(p => p.id)
-      
-      if (projectIds.length === 0) {
-        return handleCORS(NextResponse.json(results))
-      }
-      
-      const { getSupabaseAdmin } = await import('@/lib/supabase/db')
-      const supabase = getSupabaseAdmin()
-      
-      // Search projects
-      if (!content_types || content_types.includes('projects')) {
-        const { data } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('user_id', dbUser.id)
-          .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
-          .limit(20)
-        results.projects = data || []
-      }
-      
-      // Search chats
-      if (!content_types || content_types.includes('chats')) {
-        const { data } = await supabase
-          .from('chats')
-          .select('*')
-          .in('project_id', projectIds)
-          .ilike('title', `%${query}%`)
-          .limit(20)
-        results.chats = data || []
-      }
-      
-      // Search messages
-      if (!content_types || content_types.includes('messages')) {
-        const { data } = await supabase
-          .from('messages')
-          .select('*')
-          .in('project_id', projectIds)
-          .ilike('content', `%${query}%`)
-          .limit(50)
-        results.messages = data || []
-      }
-      
-      // Search files
-      if (!content_types || content_types.includes('files')) {
-        const { data } = await supabase
-          .from('project_files')
-          .select('id, project_id, path, file_type, version, updated_at')
-          .in('project_id', projectIds)
-          .or(`path.ilike.%${query}%,content.ilike.%${query}%`)
-          .limit(30)
-        results.files = data || []
-      }
-      
-      // Build project_map for UI (id → {id, name}) from all user projects
-      const projectMap = {}
-      for (const p of userProjects) {
-        projectMap[p.id] = { id: p.id, name: p.name }
-      }
-      results.project_map = projectMap
-      
-      return handleCORS(NextResponse.json(results))
-    }
-
-    // ============ DEPLOYMENT ROUTES ============
-    
-    // Get deployments for project
-    if (route.match(/^\/projects\/[^/]+\/deployments$/) && method === 'GET') {
-      // Deployment system not yet implemented — return empty list
-      return handleCORS(NextResponse.json([]))
-    }
-
-    // Create deployment (not implemented)
-    if (route.match(/^\/projects\/[^/]+\/deployments$/) && method === 'POST') {
-      return handleCORS(NextResponse.json({ error: 'Deployment not yet implemented. Coming in Phase 2.' }, { status: 501 }))
-    }
-
-    // ============ GENERATION LOGS ROUTES ============
-    
-    // Get generation runs for project
-    if (route.match(/^\/projects\/[^/]+\/generations$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const runs = await db.generationRuns.findByProjectId(projectId)
-      return handleCORS(NextResponse.json(runs))
-    }
-
-    // Get file change events for project
-    if (route.match(/^\/projects\/[^/]+\/file-events$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      
-      const events = await db.fileChangeEvents.findByProjectId(projectId)
-      return handleCORS(NextResponse.json(events))
-    }
-
-    // GET /api/projects/:id/memory — project memory entries
-    if (route.match(/^\/projects\/[^/]+\/memory$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const entries = await db.projectMemory.findByProjectId(projectId)
-      return handleCORS(NextResponse.json(entries))
-    }
-
-    // POST /api/projects/:id/memory — create memory entry
-    if (route.match(/^\/projects\/[^/]+\/memory$/) && method === 'POST') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const body = await request.json()
-      const { key, value } = body
-      if (!key) {
-        return handleCORS(NextResponse.json({ error: 'Missing key' }, { status: 400 }))
-      }
-      try {
-        const entry = await db.projectMemory.create({
-          project_id: projectId,
-          key,
-          value: value || '',
-        })
-        return handleCORS(NextResponse.json(entry, { status: 201 }))
-      } catch (err) {
-        return handleCORS(NextResponse.json({ error: 'Failed to save memory', details: err.message }, { status: 500 }))
-      }
-    }
-
-    // DELETE /api/projects/:id/memory/:memoryId
-    if (route.match(/^\/projects\/[^/]+\/memory\/[^/]+$/) && method === 'DELETE') {
-      const memoryId = path[3]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      await db.projectMemory.deleteById(memoryId)
-      return handleCORS(NextResponse.json({ success: true }))
-    }
-
-    // PUT /api/projects/:id/memory/:memoryId — update memory entry
-    if (route.match(/^\/projects\/[^/]+\/memory\/[^/]+$/) && method === 'PUT') {
-      const memoryId = path[3]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const body = await request.json()
-      const updated = await db.projectMemory.updateById(memoryId, {
-        key: body.key,
-        value: body.value,
-      })
-      return handleCORS(NextResponse.json(updated))
-    }
-
-    // GET /api/projects/:id/builder-status — self-builder status from changelog
-    if (route.match(/^\/projects\/[^/]+\/builder-status$/) && method === 'GET') {
-      const projectId = path[1]
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const logs = await db.changelog.findByProject(projectId, 50)
-      const total = logs.length
-      const applied = logs.filter(l => l.validator_result?.result === 'applied').length
-      const rolledBack = logs.filter(l => l.validator_result?.result === 'rolled_back').length
-      const discarded = logs.filter(l => l.validator_result?.result === 'discarded').length
-      const selfEdits = logs.filter(l => l.validator_result?.chat_type === 'self_edit').length
-      const lastBuild = logs[0]?.created_at || null
-      return handleCORS(NextResponse.json({ total, applied, rolledBack, discarded, selfEdits, lastBuild }))
-    }
-
-    // ========== MONITORED ACTIVITY ==========
-    // GET /api/admin/monitored — monitored-user prompts/actions (owner only)
-    if (route === '/admin/monitored' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const currentUser = await checkAllowlist(authUser.email)
-      if (!currentUser || !hasPermission(getUserRole(currentUser), 'view_monitored')) {
-        return handleCORS(NextResponse.json({ error: 'Owner access required' }, { status: 403 }))
-      }
-
-      const supabase = getSupabaseAdmin()
-      const allUsers = await db.users.findAll()
-      const userMap = new Map(allUsers.map(u => [u.id, u]))
-
-      // Find all child_monitored user IDs
-      let monitoredEmails = new Set()
-      try {
-        const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-        for (const au of (authUsers || [])) {
-          if (au.user_metadata?.app_role === 'child_monitored') monitoredEmails.add(au.email)
-        }
-      } catch {}
-
-      const monitoredUserIds = new Set()
-      for (const [id, u] of userMap) {
-        if (monitoredEmails.has(u.email)) monitoredUserIds.add(id)
-      }
-
-      // Fetch changelog entries from monitored users
-      const { data: changelog } = await supabase
-        .from('changelog')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200)
-
-      const feed = []
-      for (const entry of (changelog || [])) {
-        if (!monitoredUserIds.has(entry.user_id)) continue
-        const u = userMap.get(entry.user_id)
-        feed.push({
-          id: entry.id,
-          timestamp: entry.created_at,
-          actor: u?.email || 'unknown',
-          role: 'child_monitored',
-          action_type: entry.task_mode || 'prompt',
-          prompt: entry.user_task || '',
-          target: entry.plan_summary || '',
-          project_id: entry.project_id,
-          chat_id: entry.chat_id || null,
-        })
-      }
-
-      return handleCORS(NextResponse.json(feed.slice(0, 100)))
-    }
-
-    // ========== ACTIVITY LOG ==========
-    // GET /api/admin/activity — unified activity feed for admin/owner
-    if (route === '/admin/activity' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const currentUser = await checkAllowlist(authUser.email)
-      if (!currentUser || !hasPermission(getUserRole(currentUser), 'view_admin')) {
-        return handleCORS(NextResponse.json({ error: 'Admin access required' }, { status: 403 }))
-      }
-
-      // Fetch from multiple sources and merge into unified feed
-      const supabase = getSupabaseAdmin()
-      const allUsers = await db.users.findAll()
-      const userMap = new Map(allUsers.map(u => [u.id, u]))
-
-      // Source 1: changelog entries (plan executions, diffs, discards, role changes, self-edit)
-      const { data: changelog } = await supabase
-        .from('changelog')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100)
-
-      // Source 2: file change events (file creates, updates, deletes)
-      const { data: fileEvents } = await supabase
-        .from('file_change_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      // Enrich auth metadata for admin roles
-      let metaMap = new Map()
-      try {
-        const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-        for (const au of (authUsers || [])) {
-          if (au.user_metadata?.app_role) metaMap.set(au.email, au.user_metadata.app_role)
-        }
-      } catch {}
-
-      function resolveActor(userId) {
-        const u = userMap.get(userId)
-        if (!u) return { email: 'system', role: 'system' }
-        const metaRole = metaMap.get(u.email)
-        const dbRole = u.role === 'owner' ? 'owner' : (metaRole === 'admin' || metaRole === 'child_monitored' ? metaRole : 'member')
-        return { email: u.email, role: dbRole }
-      }
-
-      const feed = []
-
-      // Process changelog
-      for (const entry of (changelog || [])) {
-        const actor = resolveActor(entry.user_id)
-        const mode = entry.task_mode || 'plan'
-        let actionType = mode
-        let target = entry.plan_summary || entry.user_task || ''
-        if (target.length > 120) target = target.slice(0, 120) + '…'
-
-        feed.push({
-          id: entry.id,
-          timestamp: entry.created_at,
-          actor: actor.email,
-          role: actor.role,
-          action_type: actionType,
-          target,
-          source: 'changelog',
-          project_id: entry.project_id,
-          rejected: (entry.rejection_reasons || []).length > 0,
-        })
-      }
-
-      // Process file events
-      for (const evt of (fileEvents || [])) {
-        feed.push({
-          id: evt.id,
-          timestamp: evt.created_at,
-          actor: 'system',
-          role: 'system',
-          action_type: `file_${evt.action}`,
-          target: evt.file_path || '',
-          source: 'file_events',
-          project_id: evt.project_id,
-          rejected: false,
-        })
-      }
-
-      // Sort by timestamp descending
-      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-
-      return handleCORS(NextResponse.json(feed.slice(0, 100)))
-    }
-
-    // ============ CREDITS SYSTEM ============
-
-    if (route === '/credits' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-
-      let dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const balance = await creditsDb.getBalance(dbUser.id)
-        return handleCORS(NextResponse.json({
-          ...balance,
-          costs: CREDIT_COSTS,
-          packages: CREDIT_PACKAGES,
-        }))
-      } catch (err) {
-        console.error('[Credits] Get balance error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to get credits' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/credits/use' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-
-      let dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-        const { action_type } = body
-
-        if (!action_type || !CREDIT_COSTS[action_type]) {
-          return handleCORS(NextResponse.json({
-            error: `Invalid action_type. Valid types: ${Object.keys(CREDIT_COSTS).join(', ')}`,
-          }, { status: 400 }))
-        }
-
-        const result = await creditsDb.deductCredits(dbUser.id, action_type)
-
-        if (result.error) {
-          return handleCORS(NextResponse.json(result, { status: 402 }))
-        }
-
-        return handleCORS(NextResponse.json(result))
-      } catch (err) {
-        console.error('[Credits] Use error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/credits/add' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-
-      let dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-        const { amount } = body
-
-        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-          return handleCORS(NextResponse.json({ error: 'Invalid amount' }, { status: 400 }))
-        }
-
-        const result = await creditsDb.addCredits(dbUser.id, parseFloat(amount))
-        return handleCORS(NextResponse.json(result))
-      } catch (err) {
-        console.error('[Credits] Add error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to add credits' }, { status: 500 }))
-      }
-    }
-
-    // ============ GROWTH ENGINE ============
-
-    if (route === '/trends/fetch' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      try {
-        const res = await fetch('http://localhost:8001/api/internal/trends/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-        const data = await res.json()
-        return handleCORS(NextResponse.json(data, { status: res.status }))
-      } catch (err) {
-        console.error('[Trends] Fetch proxy error:', err)
-        return handleCORS(NextResponse.json({ error: 'Trend fetch failed' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/trends' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      try {
-        const res = await fetch('http://localhost:8001/api/internal/trends/list')
-        const data = await res.json()
-        return handleCORS(NextResponse.json(data))
-      } catch (err) {
-        console.error('[Trends] List proxy error:', err)
-        return handleCORS(NextResponse.json({ error: 'Trend list failed' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/growth/crawl' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-        const isBatch = body.mode === 'batch'
-        const controller = new AbortController()
-        const timeoutMs = isBatch ? 180000 : 30000
-        const timer = setTimeout(() => controller.abort(), timeoutMs)
-
-        const res = await fetch('http://localhost:8001/api/internal/growth/crawl', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, user_id: dbUser.id }),
-          signal: controller.signal,
-        })
-        clearTimeout(timer)
-        const data = await res.json()
-        return handleCORS(NextResponse.json(data, { status: res.status }))
-      } catch (err) {
-        console.error('[Growth] Crawl proxy error:', err)
-        if (err.name === 'AbortError') {
-          return handleCORS(NextResponse.json({ error: 'Batch crawl timed out' }, { status: 504 }))
-        }
-        return handleCORS(NextResponse.json({ error: 'Crawl failed' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/growth/crawl/progress' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      try {
-        const res = await fetch(`http://localhost:8001/api/internal/growth/crawl/progress?user_id=${dbUser.id}`)
-        const data = await res.json()
-        return handleCORS(NextResponse.json(data))
-      } catch {
-        return handleCORS(NextResponse.json({ active: false }))
-      }
-    }
-
-    if (route === '/growth/analyze' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-
-        // Validate persona ownership if persona_id provided
-        if (body.persona_id) {
-          const { personaDb } = await import('@/lib/growth/service')
-          const personas = await personaDb.getPersonas(dbUser.id)
-          const owned = personas.some(p => p.id === body.persona_id)
-          if (!owned) {
-            return handleCORS(NextResponse.json({ error: 'Persona not found' }, { status: 404 }))
-          }
-        }
-
-        const res = await fetch('http://localhost:8001/api/internal/growth/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, user_id: dbUser.id }),
-        })
-        const data = await res.json()
-        return handleCORS(NextResponse.json(data, { status: res.status }))
-      } catch (err) {
-        console.error('[Growth] Analyze proxy error:', err)
-        return handleCORS(NextResponse.json({ error: 'Analysis failed' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/growth/generate-drafts' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-
-        if (body.persona_id) {
-          const { personaDb } = await import('@/lib/growth/service')
-          const personas = await personaDb.getPersonas(dbUser.id)
-          const owned = personas.some(p => p.id === body.persona_id)
-          if (!owned) {
-            return handleCORS(NextResponse.json({ error: 'Persona not found' }, { status: 404 }))
-          }
-        }
-
-        const res = await fetch('http://localhost:8001/api/internal/growth/generate-drafts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, user_id: dbUser.id }),
-        })
-        const data = await res.json()
-        return handleCORS(NextResponse.json(data, { status: res.status }))
-      } catch (err) {
-        console.error('[Growth] Generate drafts proxy error:', err)
-        return handleCORS(NextResponse.json({ error: 'Draft generation failed' }, { status: 500 }))
-      }
-    }
-
-
-
-    if (route === '/growth/pages' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const { growthDb } = await import('@/lib/growth/service')
-        const pages = await growthDb.getPages(dbUser.id)
-        return handleCORS(NextResponse.json({ pages }))
-      } catch (err) {
-        console.error('[Growth] List pages error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to list pages' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/growth/pages/export' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      try {
-        const { growthDb } = await import('@/lib/growth/service')
-        const pages = await growthDb.getAllPagesFull(dbUser.id)
-        return handleCORS(NextResponse.json({ exported_at: new Date().toISOString(), total_pages: pages.length, pages }))
-      } catch (err) {
-        console.error('[Growth] Export error:', err)
-        return handleCORS(NextResponse.json({ error: 'Export failed' }, { status: 500 }))
-      }
-    }
-
-    if (route.match(/^\/growth\/pages\/[^/]+$/) && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      const pageId = route.split('/').pop()
-      try {
-        const { growthDb } = await import('@/lib/growth/service')
-        const page = await growthDb.getPage(pageId, dbUser.id)
-        if (!page) {
-          return handleCORS(NextResponse.json({ error: 'Page not found' }, { status: 404 }))
-        }
-        return handleCORS(NextResponse.json({ page }))
-      } catch (err) {
-        console.error('[Growth] Get page error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to get page' }, { status: 500 }))
-      }
-    }
-
-    if (route.match(/^\/growth\/pages\/[^/]+$/) && method === 'DELETE') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      const pageId = route.split('/').pop()
-      try {
-        const { growthDb } = await import('@/lib/growth/service')
-        const deleted = await growthDb.deletePage(pageId, dbUser.id)
-        if (!deleted) {
-          return handleCORS(NextResponse.json({ error: 'Page not found' }, { status: 404 }))
-        }
-        return handleCORS(NextResponse.json({ success: true }))
-      } catch (err) {
-        console.error('[Growth] Delete page error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to delete page' }, { status: 500 }))
-      }
-    }
-
-    // ============ GROWTH FEEDBACK ============
-
-    if (route === '/growth/feedback' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      try {
-        const body = await request.json()
-        if (!body.page_id || !body.content_type || body.rating === undefined) {
-          return handleCORS(NextResponse.json({ error: 'page_id, content_type, and rating are required' }, { status: 400 }))
-        }
-        const validTypes = ['seo_analysis', 'fixes', 'social_post', 'search_ad', 'email']
-        if (!validTypes.includes(body.content_type)) {
-          return handleCORS(NextResponse.json({ error: `content_type must be one of: ${validTypes.join(', ')}` }, { status: 400 }))
-        }
-        if (![1, -1].includes(body.rating)) {
-          return handleCORS(NextResponse.json({ error: 'rating must be 1 (thumbs up) or -1 (thumbs down)' }, { status: 400 }))
-        }
-
-        const { feedbackDb, personaDb } = await import('@/lib/growth/service')
-        const result = await feedbackDb.submitFeedback(dbUser.id, body)
-
-        // Update persona score if persona_id provided
-        if (body.persona_id) {
-          const scoreDelta = body.rating - (result.old_rating || 0)
-          if (scoreDelta !== 0) {
-            await personaDb.updatePersonaScore(body.persona_id, dbUser.id, scoreDelta)
-          }
-        }
-
-        return handleCORS(NextResponse.json({ success: true, rating: body.rating }, { status: 201 }))
-      } catch (err) {
-        console.error('[Feedback] Submit error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to submit feedback' }, { status: 500 }))
-      }
-    }
-
-    if (route.match(/^\/growth\/feedback\/[^/]+$/) && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      const pageId = route.split('/').pop()
-      try {
-        const { feedbackDb } = await import('@/lib/growth/service')
-        const feedback = await feedbackDb.getFeedback(dbUser.id, pageId)
-        return handleCORS(NextResponse.json({ feedback }))
-      } catch (err) {
-        console.error('[Feedback] Get error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to get feedback' }, { status: 500 }))
-      }
-    }
-
-
-    // ============ PERSONA PROFILES ============
-
-    if (route === '/personas/create' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      try {
-        const body = await request.json()
-        if (!body.name || !body.name.trim()) {
-          return handleCORS(NextResponse.json({ error: 'name is required' }, { status: 400 }))
-        }
-        const { personaDb } = await import('@/lib/growth/service')
-        const persona = await personaDb.createPersona(dbUser.id, body)
-        return handleCORS(NextResponse.json({ persona }, { status: 201 }))
-      } catch (err) {
-        console.error('[Persona] Create error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to create persona' }, { status: 500 }))
-      }
-    }
-
-    if (route === '/personas' && method === 'GET') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      try {
-        const { personaDb } = await import('@/lib/growth/service')
-        const personas = await personaDb.getPersonas(dbUser.id)
-        return handleCORS(NextResponse.json({ personas }))
-      } catch (err) {
-        console.error('[Persona] List error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to list personas' }, { status: 500 }))
-      }
-    }
-
-    if (route.match(/^\/personas\/[^/]+$/) && method === 'DELETE') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      const dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-
-      const personaId = route.split('/').pop()
-      try {
-        const { personaDb } = await import('@/lib/growth/service')
-        const deleted = await personaDb.deletePersona(personaId, dbUser.id)
-        if (!deleted) return handleCORS(NextResponse.json({ error: 'Persona not found' }, { status: 404 }))
-        return handleCORS(NextResponse.json({ success: true }))
-      } catch (err) {
-        console.error('[Persona] Delete error:', err)
-        return handleCORS(NextResponse.json({ error: 'Failed to delete persona' }, { status: 500 }))
-      }
-    }
-
-
-    // ============ GITHUB IMPORT (PAT-based) ============
-
-    if (route === '/import/github' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-
-      let dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-        const { pat, repo, branch = 'main' } = body
-
-        if (!pat || !repo) {
-          return handleCORS(NextResponse.json({ error: 'Personal Access Token and repository (owner/repo) are required' }, { status: 400 }))
-        }
-
-        // Normalize repo input: support full URLs and shorthand
-        let normalizedRepo = repo.trim()
-          .replace(/\.git$/, '')
-          .replace(/\/$/, '')
-        const urlMatch = normalizedRepo.match(/^https?:\/\/github\.com\/([^/]+\/[^/]+)/)
-        if (urlMatch) normalizedRepo = urlMatch[1]
-
-        const repoMatch = normalizedRepo.match(/^([^/]+)\/([^/]+)$/)
-        if (!repoMatch) {
-          return handleCORS(NextResponse.json({ error: 'Repository must be in format owner/repo or a GitHub URL' }, { status: 400 }))
-        }
-
-        const [, owner, repoName] = repoMatch
-        const ghHeaders = { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Emanator-Import' }
-
-        // 1. Resolve branch → commit SHA
-        let resolvedBranch = branch
-        let commitSha, treeSha
-
-        // If branch doesn't look like a 40-char SHA, resolve it as a branch name
-        if (!/^[0-9a-f]{40}$/i.test(resolvedBranch)) {
-          // Try the requested branch first; if 404, fall back to repo default branch
-          let branchRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/branches/${resolvedBranch}`, { headers: ghHeaders })
-          if (branchRes.status === 401) return handleCORS(NextResponse.json({ error: 'Invalid Personal Access Token' }, { status: 401 }))
-          if (branchRes.status === 404) {
-            // Requested branch not found — try repo default
-            const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, { headers: ghHeaders })
-            if (!repoRes.ok) return handleCORS(NextResponse.json({ error: `Repository not found: ${owner}/${repoName}` }, { status: 404 }))
-            const repoData = await repoRes.json()
-            resolvedBranch = repoData.default_branch || 'main'
-            branchRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/branches/${resolvedBranch}`, { headers: ghHeaders })
-          }
-          if (!branchRes.ok) {
-            const errBody = await branchRes.json().catch(() => ({}))
-            return handleCORS(NextResponse.json({ error: errBody.message || `Branch not found: ${owner}/${repoName}@${resolvedBranch}` }, { status: branchRes.status }))
-          }
-          const branchData = await branchRes.json()
-          commitSha = branchData.commit.sha
-          treeSha = branchData.commit.commit.tree.sha
-        } else {
-          // Direct SHA — fetch commit
-          const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/commits/${resolvedBranch}`, { headers: ghHeaders })
-          if (!commitRes.ok) {
-            const errData = await commitRes.json().catch(() => ({}))
-            return handleCORS(NextResponse.json({ error: errData.message || 'Commit not found' }, { status: commitRes.status }))
-          }
-          const commitData = await commitRes.json()
-          commitSha = commitData.sha
-          treeSha = commitData.commit.tree.sha
-        }
-
-        // 2. Get full tree recursively
-        const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/git/trees/${treeSha}?recursive=1`, { headers: ghHeaders })
-        if (!treeRes.ok) {
-          return handleCORS(NextResponse.json({ error: 'Failed to fetch repository tree' }, { status: 500 }))
-        }
-        const treeData = await treeRes.json()
-
-        if (treeData.truncated) {
-          console.warn('[GitHub Import] Tree was truncated — very large repo')
-        }
-
-        const SKIP_PATTERNS = ['node_modules/', '.git/', '.DS_Store', '__MACOSX/', 'dist/', 'build/', '.next/', '.cache/', '.turbo/', 'coverage/', '.env']
-        const MAX_FILE_SIZE = 512 * 1024
-        const TEXT_EXTENSIONS = new Set(['js', 'jsx', 'ts', 'tsx', 'json', 'html', 'css', 'scss', 'less', 'md', 'txt', 'yml', 'yaml', 'toml', 'xml', 'svg', 'sh', 'bash', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'hpp', 'php', 'vue', 'svelte', 'astro', 'graphql', 'gql', 'sql', 'prisma', 'env', 'example', 'gitignore', 'npmrc', 'editorconfig', 'eslintrc', 'prettierrc', 'dockerignore', 'Dockerfile', 'Makefile', 'lock', 'map'])
-
-        // Filter blobs (files only, skip large + ignored)
-        const blobs = treeData.tree.filter(item => {
-          if (item.type !== 'blob') return false
-          if (SKIP_PATTERNS.some(p => item.path.includes(p))) return false
-          if (item.size > MAX_FILE_SIZE) return false
-          return true
-        })
-
-        if (blobs.length === 0) {
-          return handleCORS(NextResponse.json({ error: 'No supported files found in repository after filtering' }, { status: 400 }))
-        }
-
-        // 3. Fetch file contents in batches
-        const extractedFiles = []
-        let packageJson = null
-        let entryFile = null
-        let framework = 'unknown'
-        let detectedLanguage = 'javascript'
-        const BATCH_SIZE = 15
-
-        for (let i = 0; i < blobs.length; i += BATCH_SIZE) {
-          const batch = blobs.slice(i, i + BATCH_SIZE)
-          const batchResults = await Promise.all(batch.map(async (blob) => {
-            try {
-              const ext = blob.path.split('.').pop()?.toLowerCase() || ''
-              const isText = TEXT_EXTENSIONS.has(ext) || blob.path.includes('.')  === false
-
-              if (!isText) {
-                return { path: blob.path, content: '[binary file — not extracted]', file_type: 'binary' }
-              }
-
-              const blobRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/git/blobs/${blob.sha}`, { headers: ghHeaders })
-              if (!blobRes.ok) return null
-
-              const blobData = await blobRes.json()
-              let content
-              if (blobData.encoding === 'base64') {
-                content = Buffer.from(blobData.content, 'base64').toString('utf-8')
-              } else {
-                content = blobData.content
-              }
-
-              const fileType = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(ext) ? 'image'
-                : ['woff', 'woff2', 'ttf', 'eot'].includes(ext) ? 'font' : 'text'
-
-              return { path: blob.path, content, file_type: fileType }
-            } catch {
-              return null
-            }
-          }))
-
-          for (const result of batchResults) {
-            if (!result) continue
-            extractedFiles.push(result)
-
-            if (result.path === 'package.json') {
-              try { packageJson = JSON.parse(result.content) } catch {}
-            }
-
-            if (!entryFile) {
-              if (['index.html', 'index.js', 'index.tsx', 'index.ts', 'main.js', 'main.ts', 'app.js', 'app.tsx'].includes(result.path)) {
-                entryFile = result.path
-              } else if (['app/page.js', 'app/page.tsx', 'pages/index.js', 'pages/index.tsx', 'src/App.jsx', 'src/App.tsx'].includes(result.path)) {
-                entryFile = result.path
-              }
-            }
-
-            const ext = result.path.split('.').pop()?.toLowerCase()
-            if (ext === 'ts' || ext === 'tsx') detectedLanguage = 'typescript'
-          }
-        }
-
-        if (extractedFiles.length === 0) {
-          return handleCORS(NextResponse.json({ error: 'No files could be fetched from repository' }, { status: 400 }))
-        }
-
-        // 4. Framework detection (reuse ZIP logic)
-        if (packageJson) {
-          const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
-          if (deps['next']) framework = 'nextjs'
-          else if (deps['react']) framework = 'react'
-          else if (deps['vue']) framework = 'vue'
-          else if (deps['svelte'] || deps['@sveltejs/kit']) framework = 'svelte'
-          else if (deps['express'] || deps['fastify'] || deps['koa']) framework = 'node'
-          else framework = 'node'
-        } else if (extractedFiles.some(f => f.path === 'index.html')) {
-          framework = 'static'
-        }
-
-        // 5. Create project
-        const projectName = packageJson?.name || repoName
-        const project = await db.projects.create({
-          user_id: dbUser.id,
-          name: projectName,
-          description: packageJson?.description || `Imported from github.com/${owner}/${repoName}`,
-          type: 'app',
-          settings: {
-            imported: true,
-            import_source: 'github',
-            repo_url: `${owner}/${repoName}`,
-            branch,
-            last_commit_sha: commitSha,
-            framework,
-            entry_file: entryFile,
-            detected_language: detectedLanguage,
-            file_count: extractedFiles.length,
-            imported_at: new Date().toISOString(),
-          }
-        })
-
-        // 6. Create canvas
-        await db.projectCanvas.create({
-          project_id: project.id,
-          canvas_content: {
-            project_overview: `Imported from github.com/${owner}/${repoName} (${framework})`,
-            project_goals: [],
-            key_decisions: [],
-            architecture_notes: [`Framework: ${framework}`, `Entry: ${entryFile || 'unknown'}`, `Language: ${detectedLanguage}`, `Branch: ${branch}`, `Commit: ${commitSha.slice(0, 8)}`],
-            master_prompts: [],
-            working_prompts: [],
-            failed_prompts: [],
-            successful_patterns: [],
-            feature_requirements: [],
-            technical_specs: packageJson ? [`Dependencies: ${Object.keys(packageJson.dependencies || {}).join(', ')}`] : [],
-            constraints: [],
-            open_tasks: [],
-            completed_tasks: []
-          }
-        })
-
-        // 7. Create initial chat
-        const initialChat = await db.chats.create({
-          project_id: project.id,
-          title: 'New Conversation'
-        })
-
-        // 8. Store files
-        const fileBatch = extractedFiles.map(f => ({
-          project_id: project.id,
-          path: f.path,
-          content: f.content,
-          file_type: f.file_type,
-          version: 1,
-        }))
-
-        if (fileBatch.length > 0) {
-          await db.projectFiles.bulkInsert(fileBatch)
-        }
-
-        return handleCORS(NextResponse.json({
-          success: true,
-          project,
-          initialChat,
-          metadata: {
-            framework,
-            entry_file: entryFile,
-            detected_language: detectedLanguage,
-            file_count: extractedFiles.length,
-            project_name: projectName,
-            repo_url: `${owner}/${repoName}`,
-            branch,
-            commit_sha: commitSha,
-          }
-        }, { status: 201 }))
-
-      } catch (err) {
-        console.error('[GitHub Import] Error:', err)
-        return handleCORS(NextResponse.json({ error: `GitHub import failed: ${err.message}` }, { status: 500 }))
-      }
-    }
-
-    // ============ GITHUB SYNC (Pull Latest) ============
-
-    if (route === '/import/github/sync' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-
-      let dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const body = await request.json()
-        const { project_id, pat } = body
-
-        if (!project_id || !pat) {
-          return handleCORS(NextResponse.json({ error: 'project_id and pat are required' }, { status: 400 }))
-        }
-
-        const project = await db.projects.findById(project_id)
-        if (!project) {
-          return handleCORS(NextResponse.json({ error: 'Project not found' }, { status: 404 }))
-        }
-
-        if (project.user_id !== dbUser.id) {
-          return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-        }
-
-        const settings = project.settings || {}
-        if (settings.import_source !== 'github' || !settings.repo_url) {
-          return handleCORS(NextResponse.json({ error: 'This project was not imported from GitHub' }, { status: 400 }))
-        }
-
-        const repoUrl = settings.repo_url
-        const branch = settings.branch || 'main'
-        const storedSha = settings.last_commit_sha
-
-        const ghHeaders = { 'Authorization': `token ${pat}`, 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Emanator-Import' }
-
-        // Resolve branch → commit SHA
-        let latestSha, syncTreeSha
-        if (!/^[0-9a-f]{40}$/i.test(branch)) {
-          let branchRes = await fetch(`https://api.github.com/repos/${repoUrl}/branches/${branch}`, { headers: ghHeaders })
-          if (branchRes.status === 404) {
-            const repoRes = await fetch(`https://api.github.com/repos/${repoUrl}`, { headers: ghHeaders })
-            if (repoRes.ok) {
-              const repoData = await repoRes.json()
-              branchRes = await fetch(`https://api.github.com/repos/${repoUrl}/branches/${repoData.default_branch || 'main'}`, { headers: ghHeaders })
-            }
-          }
-          if (!branchRes.ok) {
-            const errData = await branchRes.json().catch(() => ({}))
-            return handleCORS(NextResponse.json({ error: errData.message || 'Failed to resolve branch' }, { status: branchRes.status }))
-          }
-          const branchData = await branchRes.json()
-          latestSha = branchData.commit.sha
-          syncTreeSha = branchData.commit.commit.tree.sha
-        } else {
-          const commitRes = await fetch(`https://api.github.com/repos/${repoUrl}/commits/${branch}`, { headers: ghHeaders })
-          if (!commitRes.ok) {
-            const errData = await commitRes.json().catch(() => ({}))
-            return handleCORS(NextResponse.json({ error: errData.message || 'Failed to fetch commit' }, { status: commitRes.status }))
-          }
-          const commitData = await commitRes.json()
-          latestSha = commitData.sha
-          syncTreeSha = commitData.commit.tree.sha
-        }
-
-        if (latestSha === storedSha) {
-          return handleCORS(NextResponse.json({ success: true, updated: false, message: 'Already up to date', commit_sha: latestSha }))
-        }
-
-        // Fetch full tree
-        const treeRes = await fetch(`https://api.github.com/repos/${repoUrl}/git/trees/${syncTreeSha}?recursive=1`, { headers: ghHeaders })
-        if (!treeRes.ok) {
-          return handleCORS(NextResponse.json({ error: 'Failed to fetch repository tree' }, { status: 500 }))
-        }
-        const treeData = await treeRes.json()
-
-        const SKIP_PATTERNS = ['node_modules/', '.git/', '.DS_Store', '__MACOSX/', 'dist/', 'build/', '.next/', '.cache/', '.turbo/', 'coverage/', '.env']
-        const MAX_FILE_SIZE = 512 * 1024
-
-        const blobs = treeData.tree.filter(item => {
-          if (item.type !== 'blob') return false
-          if (SKIP_PATTERNS.some(p => item.path.includes(p))) return false
-          if (item.size > MAX_FILE_SIZE) return false
-          return true
-        })
-
-        // Fetch and upsert files
-        let updatedCount = 0
-        let createdCount = 0
-        const BATCH_SIZE = 15
-
-        for (let i = 0; i < blobs.length; i += BATCH_SIZE) {
-          const batch = blobs.slice(i, i + BATCH_SIZE)
-          await Promise.all(batch.map(async (blob) => {
-            try {
-              const blobRes = await fetch(`https://api.github.com/repos/${repoUrl}/git/blobs/${blob.sha}`, { headers: ghHeaders })
-              if (!blobRes.ok) return
-
-              const blobData = await blobRes.json()
-              let content
-              if (blobData.encoding === 'base64') {
-                content = Buffer.from(blobData.content, 'base64').toString('utf-8')
-              } else {
-                content = blobData.content
-              }
-
-              const ext = blob.path.split('.').pop()?.toLowerCase() || 'text'
-              const fileType = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(ext) ? 'image'
-                : ['woff', 'woff2', 'ttf', 'eot'].includes(ext) ? 'font' : 'text'
-
-              const result = await db.projectFiles.upsert(project_id, blob.path, content, fileType)
-              if (result.action === 'updated') updatedCount++
-              else if (result.action === 'created') createdCount++
-            } catch {}
-          }))
-        }
-
-        // Update project settings with new commit SHA
-        await db.projects.update(project_id, {
-          settings: {
-            ...settings,
-            last_commit_sha: latestSha,
-            last_synced_at: new Date().toISOString(),
-            file_count: blobs.length,
-          }
-        })
-
-        return handleCORS(NextResponse.json({
-          success: true,
-          updated: true,
-          message: `Synced to ${latestSha.slice(0, 8)}: ${createdCount} new, ${updatedCount} updated files`,
-          commit_sha: latestSha,
-          previous_sha: storedSha,
-          files_created: createdCount,
-          files_updated: updatedCount,
-        }))
-
-      } catch (err) {
-        console.error('[GitHub Sync] Error:', err)
-        return handleCORS(NextResponse.json({ error: `Sync failed: ${err.message}` }, { status: 500 }))
-      }
-    }
-
-    // ============ PROJECT IMPORT (ZIP UPLOAD) ============
-
-    if (route === '/import/upload' && method === 'POST') {
-      const authUser = await getAuthUser(request)
-      if (!authUser) {
-        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
-      }
-
-      let dbUser = await checkAllowlist(authUser.email)
-      if (!dbUser) {
-        return handleCORS(NextResponse.json({ error: 'Access denied' }, { status: 403 }))
-      }
-
-      try {
-        const formData = await request.formData()
-        const file = formData.get('file')
-
-        if (!file || typeof file === 'string') {
-          return handleCORS(NextResponse.json({ error: 'No file uploaded' }, { status: 400 }))
-        }
-
-        const fileName = file.name || 'upload.zip'
-        if (!fileName.endsWith('.zip')) {
-          return handleCORS(NextResponse.json({ error: 'Only .zip files are supported' }, { status: 400 }))
-        }
-
-        const buffer = Buffer.from(await file.arrayBuffer())
-
-        if (buffer.length === 0) {
-          return handleCORS(NextResponse.json({ error: 'Uploaded file is empty' }, { status: 400 }))
-        }
-
-        // Parse ZIP
-        let zip
-        try {
-          zip = await JSZip.loadAsync(buffer)
-        } catch (e) {
-          return handleCORS(NextResponse.json({ error: 'Invalid or corrupted zip file' }, { status: 400 }))
-        }
-
-        const fileEntries = Object.keys(zip.files).filter(name => !zip.files[name].dir)
-
-        if (fileEntries.length === 0) {
-          return handleCORS(NextResponse.json({ error: 'Zip file is empty — no files found' }, { status: 400 }))
-        }
-
-        // Detect common root prefix (e.g., "my-project/src/..." → strip "my-project/")
-        let commonPrefix = ''
-        if (fileEntries.length > 1) {
-          const parts = fileEntries[0].split('/')
-          if (parts.length > 1) {
-            const candidate = parts[0] + '/'
-            const allMatch = fileEntries.every(f => f.startsWith(candidate))
-            if (allMatch) commonPrefix = candidate
-          }
-        }
-
-        // Extract files and detect framework
-        const extractedFiles = []
-        let packageJson = null
-        let entryFile = null
-        let framework = 'unknown'
-        let detectedLanguage = 'javascript'
-        const MAX_FILE_SIZE = 512 * 1024 // 512KB per file
-        const SKIP_PATTERNS = ['node_modules/', '.git/', '.DS_Store', '__MACOSX/', 'dist/', 'build/', '.next/']
-
-        for (const filePath of fileEntries) {
-          // Skip system/build files
-          if (SKIP_PATTERNS.some(p => filePath.includes(p))) continue
-
-          const relativePath = commonPrefix ? filePath.slice(commonPrefix.length) : filePath
-          if (!relativePath) continue
-
-          const zipFile = zip.files[filePath]
-          let content
-          try {
-            const raw = await zipFile.async('uint8array')
-            if (raw.length > MAX_FILE_SIZE) {
-              content = `[file too large: ${(raw.length / 1024).toFixed(0)}KB]`
-            } else {
-              content = new TextDecoder('utf-8', { fatal: false }).decode(raw)
-            }
-          } catch {
-            content = '[binary file — not extracted]'
-          }
-
-          // Detect file type
-          const ext = relativePath.split('.').pop()?.toLowerCase() || 'text'
-          const fileType = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'].includes(ext) ? 'image'
-            : ['woff', 'woff2', 'ttf', 'eot'].includes(ext) ? 'font'
-            : 'text'
-
-          extractedFiles.push({ path: relativePath, content, file_type: fileType })
-
-          // Parse package.json for project name and framework detection
-          if (relativePath === 'package.json') {
-            try {
-              packageJson = JSON.parse(content)
-            } catch {}
-          }
-
-          // Detect entry points
-          if (!entryFile) {
-            if (['index.html', 'index.js', 'index.tsx', 'index.ts', 'main.js', 'main.ts', 'app.js', 'app.tsx'].includes(relativePath)) {
-              entryFile = relativePath
-            } else if (relativePath === 'app/page.js' || relativePath === 'app/page.tsx' || relativePath === 'pages/index.js' || relativePath === 'pages/index.tsx' || relativePath === 'src/App.jsx' || relativePath === 'src/App.tsx') {
-              entryFile = relativePath
-            }
-          }
-
-          // Detect TypeScript
-          if (ext === 'ts' || ext === 'tsx') detectedLanguage = 'typescript'
-        }
-
-        if (extractedFiles.length === 0) {
-          return handleCORS(NextResponse.json({ error: 'No supported files found in zip after filtering' }, { status: 400 }))
-        }
-
-        // Framework detection
-        if (packageJson) {
-          const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
-          if (deps['next']) framework = 'nextjs'
-          else if (deps['react']) framework = 'react'
-          else if (deps['vue']) framework = 'vue'
-          else if (deps['svelte'] || deps['@sveltejs/kit']) framework = 'svelte'
-          else if (deps['express'] || deps['fastify'] || deps['koa']) framework = 'node'
-          else framework = 'node'
-        } else if (extractedFiles.some(f => f.path === 'index.html')) {
-          framework = 'static'
-        }
-
-        // Derive project name
-        const projectName = packageJson?.name
-          || fileName.replace('.zip', '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-
-        // Create project
-        const project = await db.projects.create({
-          user_id: dbUser.id,
-          name: projectName,
-          description: packageJson?.description || `Imported from ${fileName}`,
-          type: 'app',
-          settings: {
-            imported: true,
-            import_source: 'zip',
-            import_filename: fileName,
-            framework,
-            entry_file: entryFile,
-            detected_language: detectedLanguage,
-            file_count: extractedFiles.length,
-            imported_at: new Date().toISOString(),
-          }
-        })
-
-        // Create canvas
-        await db.projectCanvas.create({
-          project_id: project.id,
-          canvas_content: {
-            project_overview: `Imported from ${fileName} (${framework})`,
-            project_goals: [],
-            key_decisions: [],
-            architecture_notes: [`Framework: ${framework}`, `Entry: ${entryFile || 'unknown'}`, `Language: ${detectedLanguage}`],
-            master_prompts: [],
-            working_prompts: [],
-            failed_prompts: [],
-            successful_patterns: [],
-            feature_requirements: [],
-            technical_specs: packageJson ? [`Dependencies: ${Object.keys(packageJson.dependencies || {}).join(', ')}`] : [],
-            constraints: [],
-            open_tasks: [],
-            completed_tasks: []
-          }
-        })
-
-        // Create initial chat
-        const initialChat = await db.chats.create({
-          project_id: project.id,
-          title: 'New Conversation'
-        })
-
-        // Store all extracted files
-        const fileBatch = extractedFiles.map(f => ({
-          project_id: project.id,
-          path: f.path,
-          content: f.content,
-          file_type: f.file_type,
-          version: 1,
-        }))
-
-        if (fileBatch.length > 0) {
-          await db.projectFiles.bulkInsert(fileBatch)
-        }
-
-        return handleCORS(NextResponse.json({
-          success: true,
-          project,
-          initialChat,
-          metadata: {
-            framework,
-            entry_file: entryFile,
-            detected_language: detectedLanguage,
-            file_count: extractedFiles.length,
-            project_name: projectName,
-          }
-        }, { status: 201 }))
-
-      } catch (err) {
-        console.error('[Import] Error:', err)
-        return handleCORS(NextResponse.json({ error: `Import failed: ${err.message}` }, { status: 500 }))
-      }
     }
 
     // Route not found
