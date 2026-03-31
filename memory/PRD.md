@@ -152,6 +152,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Credits display restyled: Zap icon + Aurora gradient text (`em-gradient-text`) + cyan drop-shadow glow
   - Buy Credits button unchanged; no other header items modified
   - Style-only; no logic changes. File: `TopBar.jsx`
+- **ProjectHub Workspace Improvements** (Mar 2026):
+  - Project rename: inline edit on title (pencil icon on hover, input on click, saves via PUT /api/projects/:id)
+  - Removed "Open Workspace" and "Pull Latest" quick action cards (kept New Chat + Upload to Media Bin)
+  - Media Bin section in right panel: title, count badge, + button, compact file rows, empty state
+  - "Import Files" rewired to "Upload to Media Bin" — opens file picker, uploads via POST /api/projects/:id/upload
+  - Media Bin files auto-included in AI context (uploaded as _uploads/ → part of project files → assembleFilesContext)
+  - Files: `ProjectHub.jsx`, `Dashboard.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)

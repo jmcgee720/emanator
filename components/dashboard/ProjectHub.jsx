@@ -141,14 +141,16 @@ export default function ProjectHub({
                     <div className="text-xs font-medium em-text-primary truncate">{chat.title || 'Untitled'}</div>
                     <div className="text-[10px] em-text-muted mt-0.5">{formatRelativeTime(chat.updated_at || chat.created_at)}</div>
                   </div>
-                  <button
+                  <span
+                    role="button"
+                    tabIndex={0}
                     onClick={(e) => { e.stopPropagation(); setRenameValue(chat.title || ''); setRenamingId(chat.id); }}
-                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 transition-opacity"
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 transition-opacity cursor-pointer"
                     title="Rename"
                     data-testid={`hub-rename-btn-${chat.id}`}
                   >
                     <Pencil className="w-3 h-3" />
-                  </button>
+                  </span>
                   <ChevronRight className={`w-3 h-3 em-text-muted transition-all duration-150 ${hoveredChat === chat.id ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'}`} />
                 </button>
                 )
@@ -275,14 +277,16 @@ export default function ProjectHub({
                       <div className="flex-1 min-w-0 text-left">
                         <span className="text-xs em-text-primary truncate block">{chat.title || 'Untitled'}</span>
                       </div>
-                      <button
+                      <span
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => { e.stopPropagation(); setRenameValue(chat.title || ''); setRenamingId(chat.id); }}
-                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 transition-opacity"
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-0.5 transition-opacity cursor-pointer"
                         title="Rename"
                         data-testid={`hub-activity-rename-${chat.id}`}
                       >
                         <Pencil className="w-3 h-3" />
-                      </button>
+                      </span>
                       <span className="text-[10px] em-text-muted shrink-0">{formatRelativeTime(chat.updated_at || chat.created_at)}</span>
                       <ChevronRight className="w-3 h-3 em-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
