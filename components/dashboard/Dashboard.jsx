@@ -122,8 +122,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [messagesReadyTick, setMessagesReadyTick] = useState(0)
   // ── Delete / Cleanup state ──
   const [deleteConfirmProject, setDeleteConfirmProject] = useState(null)
-  const [showAccountCleanupModal, setShowAccountCleanupModal] = useState(false)
-  const [accountCleanupLoading, setAccountCleanupLoading] = useState(false)
+
   // ── Credits state ──
   const [creditsBalance, setCreditsBalance] = useState(null)
   const [creditsLoading, setCreditsLoading] = useState(false)
@@ -1779,39 +1778,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  const deleteAllProjects = async () => {
-    setAccountCleanupLoading(true)
-    try {
-      const response = await authFetch('/api/account/cleanup', {
-        method: 'POST',
-        headers: JSON_HEADERS,
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Cleanup failed')
-      }
-
-      // Clear all UI state
-      setProjects([])
-      setOpenProjectTabs([])
-      setSelectedProject(null)
-      setChats([])
-      setSelectedChat(null)
-      setMessages([])
-      setFiles([])
-      setCanvas(null)
-      setShowAccountCleanupModal(false)
-
-      addLog('info', data.message)
-      toast({ title: 'Account Cleaned', description: data.message })
-    } catch (error) {
-      console.error('Error cleaning account:', error)
-      toast({ title: 'Cleanup Failed', description: error.message, variant: 'destructive' })
-    } finally {
-      setAccountCleanupLoading(false)
-    }
-  }
 
   const handleHeroPromptSubmit = async () => {
     const text = promptInput.trim()
@@ -2226,18 +2192,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 Your Projects
               </h2>
               <div className="flex items-center gap-2">
-                {isOwner && cards.length > 0 && (
-                  <button
-                    onClick={() => setShowAccountCleanupModal(true)}
-                    className="px-3 py-1.5 rounded-xl text-[11px] font-medium border border-[rgba(255,80,80,0.20)] bg-[rgba(255,80,80,0.06)] text-red-400 hover:bg-[rgba(255,80,80,0.12)] hover:border-[rgba(255,80,80,0.35)] backdrop-blur-sm transition-all duration-200"
-                    data-testid="delete-all-projects-btn"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Trash2 className="w-3 h-3" />
-                      Delete All
-                    </span>
-                  </button>
-                )}
                 {isOwner && (
                   <button
                     onClick={() => {
@@ -3001,60 +2955,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 data-testid="delete-project-confirm-btn"
               >
                 Delete Project
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Account Cleanup Confirmation Modal ── */}
-      {showAccountCleanupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="account-cleanup-overlay">
-          <div className="em-glass rounded-2xl p-6 w-[440px] border border-[rgba(255,80,80,0.25)]" data-testid="account-cleanup-modal">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.30)] flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-red-400">Delete All Projects & Chats</h3>
-                <p className="text-[11px] em-text-secondary mt-0.5">Permanent account-wide cleanup</p>
-              </div>
-            </div>
-            <div className="mb-5 p-3 rounded-xl bg-[rgba(255,60,60,0.08)] border border-[rgba(255,60,60,0.15)]">
-              <p className="text-xs em-text-primary mb-2 font-medium">
-                This will permanently delete ALL {projects.filter(p => p.type !== 'core').length} project(s) from your account.
-              </p>
-              <ul className="text-[11px] em-text-secondary space-y-1 leading-relaxed">
-                <li>All projects and their conversations</li>
-                <li>All messages, files, and canvas data</li>
-                <li>All generation history and memory entries</li>
-              </ul>
-              <p className="text-[11px] text-red-400 font-medium mt-2.5">
-                This cannot be undone. All data will be permanently lost.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowAccountCleanupModal(false)}
-                className="px-4 py-2 text-xs font-medium rounded-xl border border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.06)] em-text-primary transition-all"
-                data-testid="account-cleanup-cancel-btn"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={deleteAllProjects}
-                disabled={accountCleanupLoading}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all duration-200 shadow-[0_0_12px_rgba(255,60,60,0.15)] disabled:opacity-50"
-                data-testid="account-cleanup-confirm-btn"
-              >
-                {accountCleanupLoading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Deleting...
-                  </span>
-                ) : (
-                  'Delete Everything'
-                )}
               </button>
             </div>
           </div>
