@@ -1,7 +1,7 @@
 {
   "test_report": {
     "title": "Sandbox/Workspace Clone UI Testing - MyMergent",
-    "url": "https://ai-refactor-hub-1.preview.emergentagent.com",
+    "url": "https://pipeline-secure.preview.emergentagent.com",
     "credentials": "testprov@test.com / password123",
     "test_date": "2026-01-19",
     "status": "PASSED",

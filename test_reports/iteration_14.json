@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T13:07:21.926494",
   "test_suite": "Versioned Self-Modification Sandbox Feature",
-  "base_url": "https://ai-refactor-hub-1.preview.emergentagent.com/api",
+  "base_url": "https://pipeline-secure.preview.emergentagent.com/api",
   "tests": {
     "get_source_project": {
       "passed": true,

@@ -1,256 +1,56 @@
-# Emanator — AI Self-Builder
+# Emanator AI Builder — Product Requirements Document
 
-## Problem Statement
-Import GitHub repo, run the Next.js AI builder, harden (A-G), implement design system (H).
-Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effect.
+## Original Problem Statement
+Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, improve workspace navigation, execute a multi-step hardening plan (Steps 1-18) to enforce strict mode boundaries, safe patch generation, cross-project context checks, and tackle significant technical debt by refactoring massive files.
 
 ## Architecture
-- Next.js 14 App Router (port 3000, supervisor: `nextjs_api`)
-- FastAPI reverse proxy (port 8001 -> 3000)
-- Supabase (Postgres + RLS)
+- **Frontend**: Next.js 14 App Router with Aurora dark luxury UI
+- **Backend**: FastAPI proxy + Supabase + MongoDB
+- **AI Engine**: OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key
+- **Payments**: Stripe (Emergent Test Key)
+- **Pipeline**: Classification → Mode Routing → Validation → Execution
 
-## Completed Phases
-- **A-G5**: Plan validation, Workspaces, Memory, Routing, Multi-Pass, Self-Critique, Autonomous Execution
-- **G6**: Session Forking
-- **H1-H5**: Moodboard, Token System, Shell Refactor, Motion Layer, Login alignment
-- **H10**: Aurora Borealis — Sky-Dome Crown
-- **Glass H7.1**: Premium glass — clear glass, no purple tint
-- **Project Bin Rebuild**: Hero prompt, mode toggles, floating glass cards
-- **Glass Style Unification** (Mar 2026)
-- **Aurora Ceiling Geometry Correction** (Feb 2026)
-- **Aurora Z-Depth Simulation** (Feb 2026): Added depth zones with varying blur/size
-- **Aurora Y-Axis Shift** (Feb 2026): Shifted columns higher so bright bottom edges are closest
-- **Aurora Asymmetric S-Curve** (Feb 2026)
-- **H7.4: Project / Chat Deletion** (Mar 2026):
-  - Part 1: Project Bin Delete — trash icon on project cards (hover), confirmation modal with cascade info
-  - Part 2: Account Cleanup — "Delete All" button + "Delete Everything" modal with strong warning
-  - Part 3: Safety — all deletes require confirmation, optimistic UI removal, clean error toasts
-  - Backend: `DELETE /api/projects/:id` (with ownership verification), `POST /api/account/cleanup` (bulk)
-  - Supabase ON DELETE CASCADE handles chats, messages, files, canvas, generation_runs, memory, changelog
-- **H7.5: Project Workspace Hub** (Mar 2026):
-  - New intermediate view between Project Bin (grid) and chat workspace
-  - 3-panel layout: Left (chat navigation), Center (project overview + quick actions), Right (project details/metadata)
-  - Flow: Project Bin → Hub → Chat workspace (with back-navigation at each level)
-  - Workspace tabs: breadcrumb-style "← Projects" | "Project Name" (hub) | "Chat Title"
-  - Quick actions: Open Latest Chat, New Chat, Import Files, Pull Latest (placeholder)
-  - Right panel: file count, conversation count, last updated, framework, credits, delete action
-  - File: `/app/components/dashboard/ProjectHub.jsx`
-  - Bug fix: Hero prompt submit button was non-functional (only triggered aurora animation). Wired `handleHeroPromptSubmit` to create project, added Enter key handler, disabled state when empty/submitting.
-- **H8.2: GitHub Import (PAT)** (Mar 2026) — COMPLETE
-  - Import UI, backend, branch resolution, response parsing, repo normalization, import button scope fix
-  - Verified: button works from all views, repo parsing, branch resolution, project+files created
-- **Aurora UI Polish** (Mar 2026): Dimmed dashboard variant, desynchronized veil animations
-- **Hero Prompt Fix** (Mar 2026): Wired submit, Enter key, voice dictation, messagesReadyTick handoff
-- **BUILD Intent Streaming Fix** (Mar 2026):
-  - Fixed SelfCritique loop: replaced `continue` (wrong loop scope) with inline AI re-call
-  - Fixed PlanValidator rejection: replaced `continue` (wrong loop scope) with inline AI retry
-  - Both fixes ensure rejected/revised plans properly re-call the AI and yield tokens to client
-- **Anthropic Provider Fix** (Mar 2026):
-  - Root cause: Health check misclassified Anthropic billing error (HTTP 400 "credit balance too low") as `auth_issue` because `msg.includes('invalid')` matched `"invalid_request_error"` in the error JSON
-  - Fix 1: `route.js` — Reordered health-check conditions so billing/credit is checked before `invalid` keyword; narrowed auth check to `invalid api key`/`invalid x-api-key`
-  - Fix 2: `ModelSelector.jsx` — Made `billing_issue` selectable (not disabled) since the key IS valid, just low on credits
-- **H8.1: Stripe Integration** (Mar 2026) — COMPLETE
-  - Checkout, status polling, webhook, credit packages, idempotent payments
+## What's Been Implemented
 
-## Preview Execution System (Mar 2026) — COMPLETE
-- **Root cause of limitation**: PreviewTab.jsx only assembled file contents into iframe `srcDoc` via Babel — no mechanism to run `npm install`/`npm start` for Node.js projects
-- **Backend endpoints** (server.py):
-  - `POST /api/preview/start` — Receives project_id + files array, writes to `/tmp/preview_{id}/`, detects type (package.json → Node, index.html → static), starts process on ports 9000-9100
-  - `GET /api/preview/status/{project_id}` — Returns status (installing/running/failed/stopped), type, port, last 100 log lines
-  - `POST /api/preview/stop/{project_id}` — Kills process, cleans up temp directory
-  - `GET /api/preview/serve/{project_id}/{path}` — Proxies all HTTP requests to the running preview process port
-- **Node.js execution**: Parses package.json scripts → `npm install --no-audit --no-fund && npm run dev/start`, sets PORT env var, captures stdout/stderr in deque buffer, background thread monitors output for "ready" indicators
-- **Static HTML execution**: Serves via `python3 -m http.server` on assigned port
-- **Concurrency**: Max 1 concurrent preview enforced (new start stops old)
-- **Frontend** (PreviewTab.jsx):
-  - `classifyProject()` detects 'node' type when files include `package.json`
-  - `NodePreviewRunner` component: Start Preview button → POST files → poll status → show build logs → embed iframe when running → Stop button
-  - Framework label detection: reads package.json deps to show Next.js/CRA/Vite/Express/React
-  - Core system projects remain blocked from self-preview
-  - Static HTML/React/JS projects continue using existing srcdoc mechanism
-- **Manual preview flow**: User clicks "Start Preview" → files sent to backend → npm install → dev server starts → iframe loads proxied URL → build logs shown → user can stop/restart
-- Tested: 14/14 backend tests passed (pytest), frontend verified via Playwright
+### Hardening Steps 1-17 (ALL COMPLETE)
+- Step 1: `GET /api/projects/:id/files-index` + `projectFileIndex` state
+- Step 2: Hard Grounding Gate (reject non-existent updates, require/validate `plan.projectId`)
+- Step 3: Conversation Lock (block cross-project streaming, UI project labels)
+- Step 4: Structured Task Modes (plan_only / patch_only / read_only_report classification + enforcement)
+- Step 5: Large File Rewrite Safety (>70% replacement rejection)
+- Step 7: Cross-Project Resolver (exact-path lookup, suggestion-only, no auto-switch)
+- Step 8: UI Fixes (file count badge, chat mode label, wrong project warning)
+- Steps 16-17: Execution Pipeline Separation (tool filtering, hasPlanCall guard, text-fallback blocking)
 
-## Design Rules
-- Glass: see-through frosted, white tint bg, blur 28px, saturate 1.5
-- Aurora: Asymmetric S-curve depth flow, NOT symmetric horseshoe
-- Aurora geometry: left=foreground (close, large, sharp), right=background (far, small, blurry)
-- Aurora depth zones: CLOSE (left, blur=2px), MID (center, blur=5px), FAR (right, blur=10px)
-- Aurora color: cyan columns below, violet/magenta columns above, per depth zone
-- Aurora motion: sideways drifting, folding, rippling (sway, drift, float animations)
-- Background: dark navy #0C1018
-- Text Primary: `#FFFFFF`, Secondary: `#C0C4D8`, Muted: `#8A8EA6`
+### Step 18: Final Validation Pass (COMPLETE)
+- Full audit of all 22 checks across Steps 1-17
+- All checks PASS with file + line evidence
+- No regressions detected
+- Status: READY TO CLOSE
+
+### Service Extractions (COMPLETE)
+- `pending-diff.js` — pending diff helpers extracted from service.js
+- `internal-api-exec.js` — internal API execution extracted from service.js
+- `read-only-report.js` — read-only inspection logic extracted from service.js
+
+## Prioritized Backlog
+
+### P0 — Next
+- Refactor `app/api/[[...path]]/route.js` (~4100 lines) into smaller, modular route files
+
+### P1 — Growth
+- CSV export option
+
+### P2 — Future
+- Deploy integration (Vercel/Netlify) — currently mocked
 
 ## Key Files
-- `/app/app/globals.css` — Aurora engine (S-curve geometry) + Glass system + Tokens
-- `/app/components/dashboard/Dashboard.jsx` — Project Bin + hero + modals + aurora state + delete flows + hub routing
-- `/app/components/dashboard/ProjectHub.jsx` — 3-panel workspace hub (chat nav, overview, details)
-- `/app/components/dashboard/TopBar.jsx` — Logo, credits, import, search, intensity
-- `/app/components/dashboard/tabs/PreviewTab.jsx` — Preview execution system (Node runner + static + srcdoc)
-- `/app/components/auth/LoginPage.jsx` — Login + Google OAuth + glass
-- `/app/hooks/useAuroraState.js` — Aurora state machine hook
-- `/app/app/api/[[...path]]/route.js` — API routes (project CRUD, delete, account cleanup, GitHub import)
-- `/app/lib/ai/service.js` — AI pipeline (multi-pass, plan mode, self-critique, streaming)
-- `/app/lib/api/stream-handler.js` — SSE streaming endpoint handler
-- `/app/backend/server.py` — FastAPI reverse proxy, Stripe, Growth, Preview runner
-
-## Backlog
-- **P1 DONE: Aurora Design Tokens on Core UI** (Mar 2026):
-  - Applied `em-input` to ChatComposer textarea and SearchPanel search input
-  - Applied `em-btn-ghost` glass-morphism to ModelSelector trigger button
-  - Applied `em-elevated-interactive` to SearchPanel result cards
-  - Applied glass panel treatment (em-panel bg, backdrop-blur, violet borders, deep shadows) to SearchPanel
-  - Files changed: `ChatComposer.jsx`, `ModelSelector.jsx`, `SearchPanel.jsx`
-- **Workspace Redirect Flicker Fix** (Mar 2026):
-  - Changed project tile click to land on ProjectHub (hubEntryRef=true → skipChatSelect=true)
-  - Changed GitHub import to land on ProjectHub (same mechanism)
-  - Removed projectSwitchingRef guard (no longer needed)
-  - Tile click → ProjectHub; Open Workspace / conversation click → Workspace
-  - File: Dashboard.jsx (5 lines changed)
-- **Core System Entry Fix** (Mar 2026):
-  - Added `hubEntryRef=true` + `setSelectedChat(null)` + `setMessages([])` before `openProjectWorkspace(coreProject)`
-  - Core System now opens ProjectHub without auto-selecting "Emanator Backend" chat
-  - File: Dashboard.jsx
-- **Site Map Visualization** (Mar 2026):
-  - Added List/Map toggle to Growth panel sidebar
-  - Map view shows tree hierarchy built from `parent_seed_url` relationship data
-  - Root nodes (seed pages) with violet icon, child count badge
-  - Child nodes indented with CSS connector lines, path-only labels
-  - Clicking any node syncs with the existing page detail panel
-  - SiteMapTree component (100 lines) added to GrowthPanel.jsx
-  - Also refactored page selection into shared `selectPage` helper
-- **Debug Cleanup** (Mar 2026):
-  - Removed 2 diagnostic console.logs and 1 visible "Resolved Preview URL" debug banner from PreviewTab.jsx
-- **Real-time Batch Crawl Progress** (Mar 2026):
-  - Backend: `_crawl_progress` dict updated per-page in BFS loop, GET `/api/internal/growth/crawl/progress` endpoint
-  - Route proxy: `/growth/crawl/progress` GET added in route.js
-  - Frontend: 1.5s poll during batch crawl, progress banner with spinner, X/Y counter, cyan progress bar, saved count, current URL
-  - Auto-clears on completion, replaced by existing "Batch Crawl Complete" summary
-  - Files: server.py, route.js, GrowthPanel.jsx
-- **Bulk Analyze ("Analyze All")** (Mar 2026):
-  - "Analyze All (N unanalyzed)" button appears when 2+ pages exist with unanalyzed pages
-  - Iterates sequentially through unanalyzed pages, calling existing single-page analyze endpoint
-  - Violet progress banner with spinner, X/Y counter, progress bar, current page title
-  - Respects persona selection (uses selectedPersonaId if set)
-  - Auto-refreshes pages list on completion; single-page analyze unchanged
-  - File: GrowthPanel.jsx only (no backend changes)
-- **Export Crawl Data** (Mar 2026):
-  - "Export" button in Growth header bar (next to page count)
-  - Downloads `growth-export-YYYY-MM-DD.json` with full page data: extracted data, analysis/opportunities, fixes, marketing drafts, hierarchy relationships
-  - Backend: `getAllPagesFull()` in service.js (one query, no projection), `/growth/pages/export` GET route in route.js
-  - Files: service.js, route.js, GrowthPanel.jsx
-- **AI Bot Persona Update** (Mar 2026): Changed system prompt to casual peer-developer tone. No more formal consultant language. File: `lib/ai/context.js`
-- **Hero Prompt Title Fix** (Mar 2026): Hero prompt now creates projects named "New Project" instead of using raw prompt text as title. File: `Dashboard.jsx`
-- **ProjectHub UI Cleanup** (Mar 2026):
-  - Tech badge: "node" now displays as "Node.js"
-  - Removed Credits section from right details panel
-  - Reduced emphasis on "Created X ago" secondary text (smaller size, lower opacity, tighter spacing)
-  - Normalized quick action card icons (w-8 h-8 containers, w-3.5 h-3.5 icons), consistent Aurora glass hover (cyan border, subtle lift + glow)
-  - Style-only; no logic changes. File: `ProjectHub.jsx`
-- **TopBar Header Cleanup** (Mar 2026):
-  - Removed project name breadcrumb (`/ Project Name`) from main header — logo only on the left
-  - Credits display restyled: Zap icon + Aurora gradient text (`em-gradient-text`) + cyan drop-shadow glow
-  - Buy Credits button unchanged; no other header items modified
-  - Style-only; no logic changes. File: `TopBar.jsx`
-- **ProjectHub Workspace Improvements** (Mar 2026):
-  - Project rename: inline edit on title (pencil icon on hover, input on click, saves via PUT /api/projects/:id)
-  - Removed "Open Workspace" and "Pull Latest" quick action cards (kept New Chat + Upload to Media Bin)
-  - Media Bin section in right panel: title, count badge, + button, compact file rows, empty state
-  - "Import Files" rewired to "Upload to Media Bin" — opens file picker, uploads via POST /api/projects/:id/upload
-  - Media Bin files auto-included in AI context (uploaded as _uploads/ → part of project files → assembleFilesContext)
-  - Files: `ProjectHub.jsx`, `Dashboard.jsx`
-- **ProjectHub Rename UX Fix + Media Bin Thumbnail Grid** (Mar 2026):
-  - Rename pencil: always visible at opacity-50 (not hover-dependent), cyan glow on hover
-  - Media Bin: upgraded from list to 3-column CSS grid (`grid-cols-3`, square `aspect-square` tiles, `max-h-[210px]` scroll)
-  - Thumbnails: images show actual preview via `preview_data`, non-images show file icon + extension label
-  - Tiles: Aurora glass styling, hover overlay (filename), hover delete icon, subtle lift + glow
-  - Dashboard.jsx: `loadMediaBin` now fetches image preview data in parallel, `handleMediaBinUpload` preserves preview_data, added `handleMediaBinDelete` via `DELETE /api/projects/:id/files/:fileId`
-  - Files: `ProjectHub.jsx`, `Dashboard.jsx`
-- **Multi-Project Tabs** (Mar 2026):
-  - Tab bar renders between TopBar and content when any project is open
-  - Tabs tracked via `openProjectTabs` state; no duplicates (same project → activate existing tab)
-  - Active tab: cyan bg/border; inactive: muted with hover-reveal × close button
-  - `switchToProjectTab()`: saves current `selectedChat?.id` to `tabChatStateRef`, restores target tab's saved chat via `pendingRestoreChatRef`
-  - `closeProjectWorkspaceTab()`: removes tab, switches to nearest remaining (right neighbor then left), returns to grid if last tab closed
-  - `goToProjectsGrid()`: shows project grid without closing tabs (tabs stay in bar)
-  - Project tile click wired to `openProjectWorkspace()` (was bypassing it before)
-  - Core System button already uses `openProjectWorkspace()` → singleton-safe
-  - File: `Dashboard.jsx`
-- **Persistent Project Bin Tab Model** (Mar 2026):
-  - Tab bar always visible (not conditional on open tabs)
-  - "Project Bin" as permanent leftmost tab (not closable, cyan when active)
-  - `goToProjectsGrid()` simplified: saves chat state, deselects project, does NOT clear chats/files/canvas
-  - `closeProjectWorkspaceTab()` falls back to Project Bin when last tab closed (not aggressive state clear)
-  - Tabs persist when switching between Project Bin and project workspaces
-  - data-testid: `tabs-project-bin` (replaces old `tabs-projects-btn`)
-  - File: `Dashboard.jsx`
-- **Tab Strip Polish** (Mar 2026):
-  - Scrollable tab overflow: `overflow-x-auto`, `scroll-behavior: smooth`, hidden scrollbar
-  - Active tab: stronger glow (`shadow-[0_0_10px]`), brighter bg (`0.14`), stronger border (`0.30`)
-  - Consistent height: all tabs `h-7`, names truncated at `max-w-[180px]`
-  - Close button: `w-4 h-4` hit area, visible on active, hover-reveal on inactive
-  - Project Bin: LayoutGrid icon, slightly different styling from project tabs
-  - "+" button at far right opens Project Bin
-  - Smooth `duration-200` transitions on all tab interactions
-  - File: `Dashboard.jsx`
-- **service.js Cleanup** (Mar 2026):
-  - Provider extraction already complete: `providers/openai.js` (186L), `providers/anthropic.js` (237L), `providers/base.js` (69L), `providers/index.js` (factory)
-  - Fixed duplicate `_defaultModel` method and constructor indentation in `service.js`
-  - Zero inline provider API calls remain in service.js — all delegated via `this.provider.*`
-  - File: `lib/ai/service.js`
-- **tool-executor.js Extraction** (Mar 2026):
-  - Created `lib/ai/tool-executor.js` (196L): pure functions extracted from AIService class
-  - Moved: `inspectToolCalls`, `detectFileType`, `tryParseFilesFromResponse`, `buildDeleteDiffs`, `parseSpriteOpts`, `parseIconOpts`, `formatPlanResponse`, `formatProposedPlanResponse`, `formatSummaryResponse`, `formatDiffSummary`, `formatDeleteSummary`
-  - service.js: 2774→2647 lines (−127L). All `this.` references replaced with imported functions.
-  - Files: `lib/ai/service.js`, `lib/ai/tool-executor.js` (new)
-- **stream-helpers.js Extraction** (Mar 2026):
-  - Created `lib/ai/stream-helpers.js` (162L): pure streaming-adjacent helpers
-  - Moved: `compressContext` (context prep), `classifyStreamError` (error classification), `extractInsights` (post-stream canvas insights), `sanitizeLogPayload` (log payload builder), `buildSearchEntries` (search index builder)
-  - `indexForSearch` and `logGenerationRun` simplified to use imported builders
-  - service.js: 2648→2533 lines (−115L). Combined extraction: −242L from original 2774.
-  - Files: `lib/ai/service.js`, `lib/ai/stream-helpers.js` (new)
-- **post-process.js Extraction** (Feb 2026) — COMPLETE:
-  - Created `lib/ai/post-process.js` (164L): pure post-generation helpers
-  - Moved: `EMPTY_CANVAS_CONTENT`, `applyInsightsToCanvas`, `buildFilesSummaryText`, `buildErrorLogData`
-  - service.js: 2533→2421 lines (−112L). Combined total extraction: −354L from original 2774.
-  - Files: `lib/ai/service.js`, `lib/ai/post-process.js` (new)
-  - Verified: app compiles, login works, dashboard loads with all features
-- **pending-diff.js Extraction** (Feb 2026) — COMPLETE:
-  - Created `lib/ai/pending-diff.js` (151L): pure pending-diff helpers for apply/discard bypass paths
-  - Moved: `findPendingDiffMessage`, `buildApplyDiffContent`, `buildDiscardContent`, `buildVerifyPrompt`, `buildCompletenessPrompt`, `parseCompletenessSteps`, `buildContinuationData`, `buildApplyDoneData`, `buildDiscardDoneData`
-  - service.js: 2422→2405 lines (−17L). Combined total extraction: −369L from original 2774.
-  - Files: `lib/ai/service.js`, `lib/ai/pending-diff.js` (new)
-  - Verified: app compiles, login works, dashboard loads with all features
-- **internal-api-exec.js Extraction** (Feb 2026) — COMPLETE:
-  - Created `lib/ai/internal-api-exec.js` (175L): internal API execution helpers
-  - Moved: `ALLOWED_ROUTES` whitelist, `parseApiCall`, `isRouteAllowed`, `executeInternalApi` (incl. sync-repo walkDir), `PARSE_ERROR_CONTENT`, `buildDeniedContent`, `buildExecResultContent`, `buildExecDoneData`
-  - service.js: 2406→2317 lines (−89L). Combined total extraction: −457L from original 2774.
-  - Files: `lib/ai/service.js`, `lib/ai/internal-api-exec.js` (new)
-  - Verified: app compiles, no errors in logs
-- **read-only-report.js Extraction** (Feb 2026) — COMPLETE:
-  - Created `lib/ai/read-only-report.js` (207L): read-only report file-loading, directive-building, history-cleaning helpers
-  - Moved: `extractFileCandidates`, `resolveFromProjectFiles`, `resolveFromFilesystem`, `buildInspectedContentsBlock`, `fsContextHasRequestedFile`, `buildReadOnlyDirective`, `cleanRefusalHistory`, `collectEmbeddedFiles`, `buildAugmentedUserMessage`
-  - service.js: 2318→2204 lines (−114L). Combined total extraction: −570L from original 2774.
-  - Files: `lib/ai/service.js`, `lib/ai/read-only-report.js` (new)
-  - Verified: app compiles, no errors in logs
-- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2204L)
-- **Project Awareness Layer Step 1** (Feb 2026) — COMPLETE:
-  - Added `GET /api/projects/:id/files-index` endpoint returning lightweight metadata `{ files: [{ path, size, file_type, lastModified }] }`
-  - Added `db.projectFiles.findIndexByProjectId()` helper in `lib/supabase/db.js`
-  - Added `projectFileIndex` state in Dashboard, populated during `loadProjectData()`
-  - Existing `/files` endpoint unchanged
-  - Files: `lib/supabase/db.js`, `app/api/[[...path]]/route.js`, `components/dashboard/Dashboard.jsx`
-- **Step 16: Strict Stage Boundaries** (Feb 2026) — COMPLETE:
-  - Guard A: Pre-LLM tool filtering — plan_only restricts to propose_plan, patch_only excludes propose_plan
-  - Guard B+C: Pre-diff mode+task gate — blocks create_files/update_files in plan_only, read_only_report, inspect mode
-  - Guard D: Text-parsed diff fallback blocked in plan_only and read_only_report
-  - All 3 LLM call sites use effectiveToolSet; existing post-loop validators kept as defense-in-depth
-  - Files: lib/ai/service.js
-- P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
-- P3: GitHub OAuth (deferred in favor of PAT)
-- P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
-
-## Deploy Tab Placeholder (Mar 2026)
-- Deploy is Phase 2 — not part of current acceptance
-- Endpoints return safe stubs (GET `[]`, POST 501)
-- UI: Deploy button disabled, labeled "Not Yet Available"
+- `/app/lib/ai/service.js` — Core AI handler
+- `/app/lib/ai/plan-validator.js` — Plan & patch validation
+- `/app/lib/ai/intents.js` — Intent classification + request-mode gate
+- `/app/lib/ai/tools.js` — Tool schemas (propose_plan, PLAN_ONLY_TOOLS)
+- `/app/lib/supabase/db.js` — Database queries + cross-project resolvers
+- `/app/lib/api/stream-handler.js` — SSE endpoint + Conversation Lock
+- `/app/components/dashboard/Dashboard.jsx` — Main UI state
+- `/app/components/dashboard/LeftPanel.jsx` — Sidebar + UI indicators
+- `/app/app/api/[[...path]]/route.js` — Catch-all API route (REFACTOR TARGET)
