@@ -441,13 +441,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setMessages([])
           setSelectedProject(target)
         } else {
+          // No project tabs remain — fall back to Project Bin
           setSelectedProject(null)
-          setChats([])
           setSelectedChat(null)
           setMessages([])
-          setFiles([])
-          setCanvas(null)
-          setMediaBinFiles([])
         }
       }
 
@@ -478,10 +475,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setSelectedProject(null)
     setSelectedChat(null)
     setMessages([])
-    setChats([])
-    setFiles([])
-    setCanvas(null)
-    setMediaBinFiles([])
   }, [selectedProject, selectedChat])
 
   // Clear selfEditTarget when switching to a non-self-edit chat
@@ -2701,58 +2694,61 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         creditsBalance={creditsBalance}
       />
 
-      {/* ── Project Tabs Bar ── */}
-      {openProjectTabs.length > 0 && (
-        <div className="h-9 flex items-center gap-0.5 px-2 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(12,16,24,0.6)] shrink-0" data-testid="project-tabs-bar">
-          <button
-            onClick={goToProjectsGrid}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all duration-150 shrink-0 ${
-              !selectedProject
-                ? 'bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]'
-                : 'em-text-muted hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)]'
-            }`}
-            data-testid="tabs-projects-btn"
-          >
-            Projects
-          </button>
-          <div className="w-px h-4 bg-[rgba(255,255,255,0.08)] mx-1 shrink-0" />
-          <div className="flex items-center gap-0.5 overflow-x-auto min-w-0">
-            {openProjectTabs.map((tab) => {
-              const isActive = selectedProject?.id === tab.id
-              return (
-                <div
-                  key={tab.id}
-                  className={`group flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md text-[11px] font-medium transition-all duration-150 shrink-0 max-w-[180px] ${
-                    isActive
-                      ? 'bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]'
-                      : 'em-text-secondary hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
-                  }`}
-                  data-testid={`project-tab-${tab.id}`}
-                >
-                  <button
-                    onClick={() => switchToProjectTab(tab)}
-                    className="truncate min-w-0"
-                    data-testid={`project-tab-activate-${tab.id}`}
-                  >
-                    {tab.name}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); closeProjectWorkspaceTab(tab.id) }}
-                    className={`ml-0.5 p-0.5 rounded transition-all duration-100 shrink-0 ${
+      {/* ── Tab Bar — always visible ── */}
+      <div className="h-9 flex items-center gap-0.5 px-2 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(12,16,24,0.6)] shrink-0" data-testid="project-tabs-bar">
+        {/* Project Bin — permanent, not closable */}
+        <button
+          onClick={goToProjectsGrid}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all duration-150 shrink-0 ${
+            !selectedProject
+              ? 'bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]'
+              : 'em-text-muted hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
+          }`}
+          data-testid="tabs-project-bin"
+        >
+          Project Bin
+        </button>
+        {openProjectTabs.length > 0 && (
+          <>
+            <div className="w-px h-4 bg-[rgba(255,255,255,0.08)] mx-1 shrink-0" />
+            <div className="flex items-center gap-0.5 overflow-x-auto min-w-0">
+              {openProjectTabs.map((tab) => {
+                const isActive = selectedProject?.id === tab.id
+                return (
+                  <div
+                    key={tab.id}
+                    className={`group flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md text-[11px] font-medium transition-all duration-150 shrink-0 max-w-[180px] ${
                       isActive
-                        ? 'text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.15)]'
-                        : 'em-text-muted opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,255,255,0.10)]'
+                        ? 'bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]'
+                        : 'em-text-secondary hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
                     }`}
-                    data-testid={`project-tab-close-${tab.id}`}
+                    data-testid={`project-tab-${tab.id}`}
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+                    <button
+                      onClick={() => switchToProjectTab(tab)}
+                      className="truncate min-w-0"
+                      data-testid={`project-tab-activate-${tab.id}`}
+                    >
+                      {tab.name}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); closeProjectWorkspaceTab(tab.id) }}
+                      className={`ml-0.5 p-0.5 rounded transition-all duration-100 shrink-0 ${
+                        isActive
+                          ? 'text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.15)]'
+                          : 'em-text-muted opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,255,255,0.10)]'
+                      }`}
+                      data-testid={`project-tab-close-${tab.id}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
 
       {!selectedProject ? (
         renderProjectGrid()
