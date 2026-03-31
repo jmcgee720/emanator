@@ -227,7 +227,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - service.js: 2406→2317 lines (−89L). Combined total extraction: −457L from original 2774.
   - Files: `lib/ai/service.js`, `lib/ai/internal-api-exec.js` (new)
   - Verified: app compiles, no errors in logs
-- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2317L)
+- **read-only-report.js Extraction** (Feb 2026) — COMPLETE:
+  - Created `lib/ai/read-only-report.js` (207L): read-only report file-loading, directive-building, history-cleaning helpers
+  - Moved: `extractFileCandidates`, `resolveFromProjectFiles`, `resolveFromFilesystem`, `buildInspectedContentsBlock`, `fsContextHasRequestedFile`, `buildReadOnlyDirective`, `cleanRefusalHistory`, `collectEmbeddedFiles`, `buildAugmentedUserMessage`
+  - service.js: 2318→2204 lines (−114L). Combined total extraction: −570L from original 2774.
+  - Files: `lib/ai/service.js`, `lib/ai/read-only-report.js` (new)
+  - Verified: app compiles, no errors in logs
+- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2204L)
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
