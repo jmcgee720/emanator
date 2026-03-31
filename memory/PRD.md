@@ -234,6 +234,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Files: `lib/ai/service.js`, `lib/ai/read-only-report.js` (new)
   - Verified: app compiles, no errors in logs
 - P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2204L)
+- **Project Awareness Layer Step 1** (Feb 2026) — COMPLETE:
+  - Added `GET /api/projects/:id/files-index` endpoint returning lightweight metadata `{ files: [{ path, size, file_type, lastModified }] }`
+  - Added `db.projectFiles.findIndexByProjectId()` helper in `lib/supabase/db.js`
+  - Added `projectFileIndex` state in Dashboard, populated during `loadProjectData()`
+  - Existing `/files` endpoint unchanged
+  - Files: `lib/supabase/db.js`, `app/api/[[...path]]/route.js`, `components/dashboard/Dashboard.jsx`
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
