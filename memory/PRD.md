@@ -198,7 +198,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Fixed duplicate `_defaultModel` method and constructor indentation in `service.js`
   - Zero inline provider API calls remain in service.js — all delegated via `this.provider.*`
   - File: `lib/ai/service.js`
-- P2: Refactor `lib/ai/service.js` — remaining: extract intent routing, tool execution, streaming orchestration into separate modules (~2700→2770L after dedup fix)
+- **tool-executor.js Extraction** (Mar 2026):
+  - Created `lib/ai/tool-executor.js` (196L): pure functions extracted from AIService class
+  - Moved: `inspectToolCalls`, `detectFileType`, `tryParseFilesFromResponse`, `buildDeleteDiffs`, `parseSpriteOpts`, `parseIconOpts`, `formatPlanResponse`, `formatProposedPlanResponse`, `formatSummaryResponse`, `formatDiffSummary`, `formatDeleteSummary`
+  - service.js: 2774→2647 lines (−127L). All `this.` references replaced with imported functions.
+  - Files: `lib/ai/service.js`, `lib/ai/tool-executor.js` (new)
+- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration, retry/fallback, plan validation loops (~2647L)
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
