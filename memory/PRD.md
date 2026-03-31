@@ -240,6 +240,12 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Added `projectFileIndex` state in Dashboard, populated during `loadProjectData()`
   - Existing `/files` endpoint unchanged
   - Files: `lib/supabase/db.js`, `app/api/[[...path]]/route.js`, `components/dashboard/Dashboard.jsx`
+- **Step 16: Strict Stage Boundaries** (Feb 2026) — COMPLETE:
+  - Guard A: Pre-LLM tool filtering — plan_only restricts to propose_plan, patch_only excludes propose_plan
+  - Guard B+C: Pre-diff mode+task gate — blocks create_files/update_files in plan_only, read_only_report, inspect mode
+  - Guard D: Text-parsed diff fallback blocked in plan_only and read_only_report
+  - All 3 LLM call sites use effectiveToolSet; existing post-loop validators kept as defense-in-depth
+  - Files: lib/ai/service.js
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
