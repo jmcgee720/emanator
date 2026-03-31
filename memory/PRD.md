@@ -215,7 +215,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - service.js: 2533→2421 lines (−112L). Combined total extraction: −354L from original 2774.
   - Files: `lib/ai/service.js`, `lib/ai/post-process.js` (new)
   - Verified: app compiles, login works, dashboard loads with all features
-- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2421L)
+- **pending-diff.js Extraction** (Feb 2026) — COMPLETE:
+  - Created `lib/ai/pending-diff.js` (151L): pure pending-diff helpers for apply/discard bypass paths
+  - Moved: `findPendingDiffMessage`, `buildApplyDiffContent`, `buildDiscardContent`, `buildVerifyPrompt`, `buildCompletenessPrompt`, `parseCompletenessSteps`, `buildContinuationData`, `buildApplyDoneData`, `buildDiscardDoneData`
+  - service.js: 2422→2405 lines (−17L). Combined total extraction: −369L from original 2774.
+  - Files: `lib/ai/service.js`, `lib/ai/pending-diff.js` (new)
+  - Verified: app compiles, login works, dashboard loads with all features
+- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2405L)
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
