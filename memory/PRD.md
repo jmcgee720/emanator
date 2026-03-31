@@ -166,6 +166,16 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Tiles: Aurora glass styling, hover overlay (filename), hover delete icon, subtle lift + glow
   - Dashboard.jsx: `loadMediaBin` now fetches image preview data in parallel, `handleMediaBinUpload` preserves preview_data, added `handleMediaBinDelete` via `DELETE /api/projects/:id/files/:fileId`
   - Files: `ProjectHub.jsx`, `Dashboard.jsx`
+- **Multi-Project Tabs** (Mar 2026):
+  - Tab bar renders between TopBar and content when any project is open
+  - Tabs tracked via `openProjectTabs` state; no duplicates (same project → activate existing tab)
+  - Active tab: cyan bg/border; inactive: muted with hover-reveal × close button
+  - `switchToProjectTab()`: saves current `selectedChat?.id` to `tabChatStateRef`, restores target tab's saved chat via `pendingRestoreChatRef`
+  - `closeProjectWorkspaceTab()`: removes tab, switches to nearest remaining (right neighbor then left), returns to grid if last tab closed
+  - `goToProjectsGrid()`: shows project grid without closing tabs (tabs stay in bar)
+  - Project tile click wired to `openProjectWorkspace()` (was bypassing it before)
+  - Core System button already uses `openProjectWorkspace()` → singleton-safe
+  - File: `Dashboard.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
