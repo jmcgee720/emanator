@@ -222,6 +222,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [importLoading, setImportLoading] = useState(false)
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef(null)
+  const mediaBinInputRef = useRef(null)
+  const [mediaBinFiles, setMediaBinFiles] = useState([])
 
   // ── GitHub import state ──
   const [githubPat, setGithubPat] = useState('')
@@ -557,6 +559,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     } catch (error) {
       console.error('Error loading files:', error)
     }
+
+    loadMediaBin(projectId)
 
     try {
       const canvasResponse = await authFetch(`/api/projects/${projectId}/canvas`)
@@ -1584,6 +1588,68 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
+  const renameProject = async (projectId, newName) => {
+    try {
+      await authFetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      })
+      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, name: newName } : p))
+      if (selectedProject?.id === projectId) {
+        setSelectedProject(prev => ({ ...prev, name: newName }))
+      }
+    } catch (error) {
+      console.error('Error renaming project:', error)
+      toast({ title: 'Error', description: 'Failed to rename project', variant: 'destructive' })
+    }
+  }
+
+  const loadMediaBin = async (projectId) => {
+    try {
+      const res = await authFetch(`/api/projects/${projectId}/attachments`)
+      if (res.ok) {
+        const data = await res.json()
+        setMediaBinFiles(Array.isArray(data) ? data : [])
+      }
+    } catch (error) {
+      console.error('Error loading media bin:', error)
+    }
+  }
+
+  const handleMediaBinUpload = async (fileList) => {
+    if (!selectedProject || !fileList?.length) return
+    const toUpload = []
+    for (const file of fileList) {
+      const reader = new FileReader()
+      const result = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result)
+        if (file.type.startsWith('text/') || /\.(txt|md|json|csv|html|css|js|jsx|ts|tsx|py|sql)$/i.test(file.name)) {
+          reader.readAsText(file)
+        } else {
+          reader.readAsDataURL(file)
+        }
+      })
+      const isText = file.type.startsWith('text/') || /\.(txt|md|json|csv|html|css|js|jsx|ts|tsx|py|sql)$/i.test(file.name)
+      toUpload.push({
+        filename: file.name,
+        mime_type: file.type,
+        ...(isText ? { content: result } : { data: result })
+      })
+    }
+    const res = await uploadFiles(toUpload)
+    if (res?.uploads) {
+      const successes = res.uploads.filter(u => u.success)
+      if (successes.length > 0) {
+        toast({ title: 'Uploaded', description: `${successes.length} file(s) added to Media Bin` })
+        loadMediaBin(selectedProject.id)
+        // Refresh files so AI context picks them up
+        const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
+        if (filesRes.ok) { const d = await filesRes.json(); setFiles(Array.isArray(d) ? d : []) }
+      }
+    }
+  }
+
 
   const deleteProject = async (projectId) => {
     try {
@@ -2551,6 +2617,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           project={selectedProject}
           chats={chats}
           files={files}
+          mediaBinFiles={mediaBinFiles}
           onSelectChat={(chat) => handleSelectChat(chat)}
           onCreateChat={() => createChat()}
           onBack={() => {
@@ -2560,12 +2627,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             setMessages([])
             setFiles([])
             setCanvas(null)
+            setMediaBinFiles([])
           }}
           onDeleteProject={() => setDeleteConfirmProject(selectedProject)}
-          onOpenImport={() => setShowImportModal(true)}
+          onUploadMediaBin={() => mediaBinInputRef.current?.click()}
           onSyncRepo={handleSyncRepo}
           onRenameChat={renameChat}
-          creditsBalance={creditsBalance}
+          onRenameProject={(newName) => renameProject(selectedProject.id, newName)}
         />
       ) : (
         <>
@@ -2829,6 +2897,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           </div>
         </div>
       )}
+
+      {/* ── Media Bin hidden file input ── */}
+      <input
+        ref={mediaBinInputRef}
+        type="file"
+        multiple
+        accept=".txt,.md,.json,.csv,.html,.css,.js,.jsx,.ts,.tsx,.py,.sql,.pdf,.png,.jpg,.jpeg,.webp,.svg"
+        className="hidden"
+        onChange={(e) => { handleMediaBinUpload(e.target.files); e.target.value = '' }}
+        data-testid="media-bin-file-input"
+      />
 
       {/* ── Import Modal (top-level so it works in all views) ── */}
       {showImportModal && (
