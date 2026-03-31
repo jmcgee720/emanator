@@ -19,7 +19,7 @@ import requests
 import json
 
 # Test configuration
-BASE_URL = "https://emanator-core.preview.emergentagent.com/api"
+BASE_URL = "https://ai-refactor-hub-1.preview.emergentagent.com/api"
 
 class PermissionAnalysis:
     def __init__(self):

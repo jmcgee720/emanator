@@ -209,7 +209,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - `indexForSearch` and `logGenerationRun` simplified to use imported builders
   - service.js: 2648→2533 lines (−115L). Combined extraction: −242L from original 2774.
   - Files: `lib/ai/service.js`, `lib/ai/stream-helpers.js` (new)
-- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2533L)
+- **post-process.js Extraction** (Feb 2026) — COMPLETE:
+  - Created `lib/ai/post-process.js` (164L): pure post-generation helpers
+  - Moved: `EMPTY_CANVAS_CONTENT`, `applyInsightsToCanvas`, `buildFilesSummaryText`, `buildErrorLogData`
+  - service.js: 2533→2421 lines (−112L). Combined total extraction: −354L from original 2774.
+  - Files: `lib/ai/service.js`, `lib/ai/post-process.js` (new)
+  - Verified: app compiles, login works, dashboard loads with all features
+- P2: Refactor `lib/ai/service.js` — remaining: streaming orchestration core, plan validation loops (~2421L)
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
 - P3: Deploy integration (Vercel/Netlify) — Phase 2, currently mocked
