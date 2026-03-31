@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-03-31T05:30:00.000Z",
+  "iteration": 37,
+  "summary": "Tested refactored persistent Home/Project Bin tab model. All 13 test cases passed. Tab bar is now ALWAYS visible (not conditional). 'Project Bin' is the permanent leftmost tab with no close button. Critical regression test passed: tabs persist when switching to Project Bin.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "frontend_tests": {
+      "features_tested": [
+        {"feature": "Tab bar is ALWAYS visible (even on initial load with no project tabs open)", "status": "PASS"},
+        {"feature": "Project Bin tab is the permanent leftmost tab", "status": "PASS"},
+        {"feature": "Project Bin tab has label 'Project Bin'", "status": "PASS"},
+        {"feature": "Project Bin tab has NO close button", "status": "PASS"},
+        {"feature": "Project Bin tab is active (cyan) when on the project grid", "status": "PASS"},
+        {"feature": "Clicking a project tile opens it as a tab to the right of Project Bin", "status": "PASS"},
+        {"feature": "Going back to Project Bin does NOT clear open project tabs (tabs persist)", "status": "PASS"},
+        {"feature": "Opening second project from Project Bin creates second tab (first tab still exists)", "status": "PASS"},
+        {"feature": "Clicking an inactive project tab switches to that project", "status": "PASS"},
+        {"feature": "Closing active project tab switches to nearest remaining project tab", "status": "PASS"},
+        {"feature": "Closing last project tab returns to Project Bin (Project Bin becomes active)", "status": "PASS"},
+        {"feature": "Project Bin tab is inactive (muted) when a project tab is active", "status": "PASS"},
+        {"feature": "Core System button still opens as singleton tab", "status": "PASS"}
+      ],
+      "critical_regression_test": {
+        "description": "open project 1 → click Project Bin → verify project 1 tab still exists → open project 2 → both tabs exist",
+        "status": "PASS",
+        "details": "Tabs persist correctly when switching between Project Bin and project workspaces"
+      }
+    },
+    "code_verification": {
+      "tab_bar_testid": "project-tabs-bar",
+      "project_bin_testid": "tabs-project-bin",
+      "project_tab_testid_format": "project-tab-{id}",
+      "tab_activate_testid_format": "project-tab-activate-{id}",
+      "tab_close_testid_format": "project-tab-close-{id}",
+      "active_tab_classes": "bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]",
+      "inactive_tab_classes": "em-text-muted hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent",
+      "key_changes_from_iteration_36": [
+        "Tab bar now ALWAYS visible (not conditional on openProjectTabs.length > 0)",
+        "'Project Bin' replaces 'Projects' as permanent tab",
+        "data-testid changed from 'tabs-projects-btn' to 'tabs-project-bin'",
+        "goToProjectsGrid simplified - no longer clears chats/files/canvas",
+        "closeProjectWorkspaceTab falls back to Project Bin when last tab closed"
+      ]
+    }
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_37.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only test)",
+    "frontend": "100% (13/13 features verified)"
+  },
+  "test_credentials": "testprov@test.com / password123",
+  "seed_data_creation": "None - used existing projects",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Persistent Home/Project Bin tab model fully tested and working. Key change from iteration_36: tab bar is now ALWAYS visible (not conditional). 'Project Bin' is the permanent leftmost tab with data-testid='tabs-project-bin' and has NO close button. Tabs persist when switching to Project Bin - this was the critical regression test. Active tabs have cyan styling (bg-[rgba(0,229,255,0.10)]), inactive tabs have muted styling. Core System button works as singleton (requires owner role and existing core project)."
+}
