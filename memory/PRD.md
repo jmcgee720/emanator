@@ -184,6 +184,15 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Tabs persist when switching between Project Bin and project workspaces
   - data-testid: `tabs-project-bin` (replaces old `tabs-projects-btn`)
   - File: `Dashboard.jsx`
+- **Tab Strip Polish** (Mar 2026):
+  - Scrollable tab overflow: `overflow-x-auto`, `scroll-behavior: smooth`, hidden scrollbar
+  - Active tab: stronger glow (`shadow-[0_0_10px]`), brighter bg (`0.14`), stronger border (`0.30`)
+  - Consistent height: all tabs `h-7`, names truncated at `max-w-[180px]`
+  - Close button: `w-4 h-4` hit area, visible on active, hover-reveal on inactive
+  - Project Bin: LayoutGrid icon, slightly different styling from project tabs
+  - "+" button at far right opens Project Bin
+  - Smooth `duration-200` transitions on all tab interactions
+  - File: `Dashboard.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
