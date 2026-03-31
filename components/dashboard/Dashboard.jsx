@@ -2839,6 +2839,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   scope={scope}
                   onScopeChange={setScope}
                   projectName={selectedProject?.name}
+                  fileCount={projectFileIndex[selectedProject?.id]?.length ?? files?.length ?? 0}
                   loading={loading}
                   streamingMessageId={streamingMessageId}
                   streamingStatus={streamingStatus}
