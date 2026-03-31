@@ -68,6 +68,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [selectedChat, setSelectedChat] = useState(null)
   const [messages, setMessages] = useState([])
   const [files, setFiles] = useState([])
+  const [projectFileIndex, setProjectFileIndex] = useState({})
   const [canvas, setCanvas] = useState(null)
 
   const [showAdmin, setShowAdmin] = useState(false)
@@ -602,6 +603,16 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setFiles(Array.isArray(filesData) ? filesData : [])
     } catch (error) {
       console.error('Error loading files:', error)
+    }
+
+    try {
+      const indexRes = await authFetch(`/api/projects/${projectId}/files-index`)
+      if (indexRes.ok) {
+        const indexData = await indexRes.json()
+        setProjectFileIndex(prev => ({ ...prev, [projectId]: indexData.files }))
+      }
+    } catch (err) {
+      console.warn('[files-index] fetch failed:', err.message)
     }
 
     loadMediaBin(projectId)

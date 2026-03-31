@@ -1527,6 +1527,18 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(sanitized))
     }
 
+    // Get lightweight file index (metadata only, no content)
+    if (route.match(/^\/projects\/[^/]+\/files-index$/) && method === 'GET') {
+      const projectId = path[1]
+      const authUser = await getAuthUser(request)
+      if (!authUser) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      const files = await db.projectFiles.findIndexByProjectId(projectId)
+      return handleCORS(NextResponse.json({ files }))
+    }
+
     // Create/Update file
     if (route.match(/^\/projects\/[^/]+\/files$/) && method === 'POST') {
       const projectId = path[1]
