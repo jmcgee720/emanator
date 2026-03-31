@@ -9,7 +9,7 @@ import time
 
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-API_URL = "https://api-feature-extract.preview.emergentagent.com"
+API_URL = "https://api-refactor-27.preview.emergentagent.com"
 
 def get_token():
     r = requests.post(f"{SUPABASE_URL}/auth/v1/token?grant_type=password",

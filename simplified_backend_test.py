@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://api-feature-extract.preview.emergentagent.com"
+BASE_URL = "https://api-refactor-27.preview.emergentagent.com"
 AUTH_EMAIL = "REDACTED_LEAKED_USER"
 AUTH_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 
