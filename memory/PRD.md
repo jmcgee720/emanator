@@ -54,14 +54,34 @@ Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, i
   - `prompt-library.js` (3 endpoints: CRUD)
   - `learning.js` (9 endpoints: learning, rules, preferences)
 - Dispatcher pattern in route.js with preserved evaluation order
-- All Phase 2 routes remain inline (admin/users, projects, sandbox, chats, files, canvas, design, diffs, assets/upload)
 - Zero behavior changes — all endpoints verified working
+
+### Step 21: Phase 2 Route Modularization (COMPLETE — 2026-03-31)
+- **route.js reduced from 2038 to 119 lines (94.2% reduction from original 4113 lines)**
+- route.js is now a pure dispatcher (~119 lines) with zero inline route logic
+- Extracted 9 high-risk route modules into `lib/api/routes/`:
+  - `admin-users.js` (182 lines: GET/POST/PUT/DELETE /admin/users)
+  - `design.js` (42 lines: GET/PUT /projects/:id/design)
+  - `canvas.js` (78 lines: GET/PUT /projects/:id/canvas)
+  - `files.js` (140 lines: files CRUD, files-index, sync-repo)
+  - `sandbox.js` (452 lines: create, diff, test-before-apply, promote, rollback)
+  - `diffs.js` (174 lines: apply-diffs with DiffReviewGuard, dynamic imports preserved)
+  - `assets.js` (325 lines: generate-image SSE, upload, attachments — raw Response preserved)
+  - `chats.js` (389 lines: chats CRUD, messages, streaming, session forking)
+  - `projects.js` (212 lines: projects CRUD, account/cleanup)
+- Phase 2 dispatcher array with strict ordering (projectsRoutes LAST)
+- All critical preservations verified:
+  - Image generation SSE uses raw Response (not wrapped in handleCORS)
+  - Chat streaming via handleStreamMessage intact
+  - Dynamic imports in diffs.js remain dynamic
+  - Self-edit enforcement intact
+  - /projects/import (Phase 1) beats /projects/:id (Phase 2)
+- Validated 16+ endpoints via curl tests — all return correct status codes
 
 ## Prioritized Backlog
 
-### P0 — Next
-- Phase 2 extraction: remaining inline routes in route.js (~2038 lines -> target ~200 line dispatcher)
-  - admin/users, projects, account, sandbox, chats/messages, project files, canvas, design, diffs, assets/upload
+### P0 — COMPLETE
+- Phase 2 extraction DONE: route.js is now a 119-line pure dispatcher
 
 ### P1 — Growth
 - CSV export option
@@ -77,7 +97,7 @@ Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, i
 - `/app/lib/supabase/db.js` — Database queries + cross-project resolvers
 - `/app/lib/api/stream-handler.js` — SSE endpoint + Conversation Lock
 - `/app/lib/api/helpers.js` — Shared route helpers (handleCORS, getAuthUser, checkAllowlist, initializeOwner)
-- `/app/lib/api/routes/` — Phase 1 extracted route modules (17 files)
+- `/app/lib/api/routes/` — 26 extracted route modules (17 Phase 1 + 9 Phase 2)
 - `/app/components/dashboard/Dashboard.jsx` — Main UI state
 - `/app/components/dashboard/LeftPanel.jsx` — Sidebar + UI indicators
-- `/app/app/api/[[...path]]/route.js` — Catch-all API dispatcher + Phase 2 inline routes (~2038 lines)
+- `/app/app/api/[[...path]]/route.js` — Pure dispatcher (~119 lines)
