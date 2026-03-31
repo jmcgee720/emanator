@@ -176,6 +176,14 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - Project tile click wired to `openProjectWorkspace()` (was bypassing it before)
   - Core System button already uses `openProjectWorkspace()` → singleton-safe
   - File: `Dashboard.jsx`
+- **Persistent Project Bin Tab Model** (Mar 2026):
+  - Tab bar always visible (not conditional on open tabs)
+  - "Project Bin" as permanent leftmost tab (not closable, cyan when active)
+  - `goToProjectsGrid()` simplified: saves chat state, deselects project, does NOT clear chats/files/canvas
+  - `closeProjectWorkspaceTab()` falls back to Project Bin when last tab closed (not aggressive state clear)
+  - Tabs persist when switching between Project Bin and project workspaces
+  - data-testid: `tabs-project-bin` (replaces old `tabs-projects-btn`)
+  - File: `Dashboard.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
