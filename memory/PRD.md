@@ -159,6 +159,13 @@ Premium futuristic "AI engine" design with 3D aurora borealis S-curve depth effe
   - "Import Files" rewired to "Upload to Media Bin" — opens file picker, uploads via POST /api/projects/:id/upload
   - Media Bin files auto-included in AI context (uploaded as _uploads/ → part of project files → assembleFilesContext)
   - Files: `ProjectHub.jsx`, `Dashboard.jsx`
+- **ProjectHub Rename UX Fix + Media Bin Thumbnail Grid** (Mar 2026):
+  - Rename pencil: always visible at opacity-50 (not hover-dependent), cyan glow on hover
+  - Media Bin: upgraded from list to 3-column CSS grid (`grid-cols-3`, square `aspect-square` tiles, `max-h-[210px]` scroll)
+  - Thumbnails: images show actual preview via `preview_data`, non-images show file icon + extension label
+  - Tiles: Aurora glass styling, hover overlay (filename), hover delete icon, subtle lift + glow
+  - Dashboard.jsx: `loadMediaBin` now fetches image preview data in parallel, `handleMediaBinUpload` preserves preview_data, added `handleMediaBinDelete` via `DELETE /api/projects/:id/files/:fileId`
+  - Files: `ProjectHub.jsx`, `Dashboard.jsx`
 - P2: Refactor `lib/ai/service.js` (~2700 lines) into smaller modules
 - P2: Refactor `app/api/[[...path]]/route.js` (~4000+ lines) into smaller modules
 - P3: GitHub OAuth (deferred in favor of PAT)
