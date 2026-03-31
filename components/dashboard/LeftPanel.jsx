@@ -191,6 +191,7 @@ export default function LeftPanel({
   scope,
   onScopeChange,
   projectName,
+  fileCount,
   loading,
   streamingMessageId,
   streamingStatus,
@@ -292,6 +293,9 @@ export default function LeftPanel({
                 <ModeIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
               )}
               <span className="text-sm font-medium truncate">{selectedProject?.name || 'Select Project'}</span>
+              {fileCount > 0 && (
+                <span className="text-[9px] em-text-muted ml-1 flex-shrink-0" data-testid="file-count-badge">{fileCount} files</span>
+              )}
               {selectedProject?.settings?.is_sandbox && (
                 <Badge className="text-[8px] h-3.5 px-1 bg-amber-500/15 text-amber-400 border-amber-500/30 flex-shrink-0" data-testid="sandbox-badge">sandbox</Badge>
               )}
@@ -383,6 +387,17 @@ export default function LeftPanel({
         <div className="px-3 py-1 border-b border-[rgba(255,255,255,0.06)]" data-testid="project-context-label">
           <span className="text-[10px] em-text-muted">Project: </span>
           <span className="text-[10px] text-[var(--em-cyan)] font-medium">{projectName}</span>
+          {builderMode && (
+            <span className="text-[10px] em-text-muted"> · {builderMode.charAt(0).toUpperCase() + builderMode.slice(1)}</span>
+          )}
+        </div>
+      )}
+
+      {/* Wrong project warning — defense-in-depth, structurally near-impossible */}
+      {selectedChat && selectedProject && selectedChat.project_id !== selectedProject.id && (
+        <div className="px-3 py-1 bg-amber-500/8 border-b border-amber-500/15 flex items-center gap-1.5" data-testid="wrong-project-warning">
+          <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />
+          <span className="text-[10px] text-amber-400">Chat belongs to a different project</span>
         </div>
       )}
 
