@@ -20,7 +20,7 @@ import { SavePromptDialog } from './PromptLibrary'
 import BuilderMemory from './BuilderMemory'
 import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
-import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle } from 'lucide-react'
+import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus } from 'lucide-react'
 import { useAuroraState } from '@/hooks/useAuroraState'
 
 const EMANATOR_HEADLINES = [
@@ -2695,59 +2695,76 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       />
 
       {/* ── Tab Bar — always visible ── */}
-      <div className="h-9 flex items-center gap-0.5 px-2 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(12,16,24,0.6)] shrink-0" data-testid="project-tabs-bar">
-        {/* Project Bin — permanent, not closable */}
+      <div className="h-9 flex items-center px-2 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(12,16,24,0.6)] shrink-0" data-testid="project-tabs-bar">
+        {/* Project Bin — permanent, not closable, distinct styling */}
         <button
           onClick={goToProjectsGrid}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all duration-150 shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 h-7 rounded-md text-[11px] font-medium transition-all duration-200 shrink-0 ${
             !selectedProject
-              ? 'bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]'
+              ? 'bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.12)]'
               : 'em-text-muted hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
           }`}
           data-testid="tabs-project-bin"
         >
+          <LayoutGrid className="w-3 h-3" />
           Project Bin
         </button>
+
         {openProjectTabs.length > 0 && (
-          <>
-            <div className="w-px h-4 bg-[rgba(255,255,255,0.08)] mx-1 shrink-0" />
-            <div className="flex items-center gap-0.5 overflow-x-auto min-w-0">
-              {openProjectTabs.map((tab) => {
-                const isActive = selectedProject?.id === tab.id
-                return (
-                  <div
-                    key={tab.id}
-                    className={`group flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md text-[11px] font-medium transition-all duration-150 shrink-0 max-w-[180px] ${
-                      isActive
-                        ? 'bg-[rgba(0,229,255,0.10)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.20)]'
-                        : 'em-text-secondary hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
-                    }`}
-                    data-testid={`project-tab-${tab.id}`}
-                  >
-                    <button
-                      onClick={() => switchToProjectTab(tab)}
-                      className="truncate min-w-0"
-                      data-testid={`project-tab-activate-${tab.id}`}
-                    >
-                      {tab.name}
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); closeProjectWorkspaceTab(tab.id) }}
-                      className={`ml-0.5 p-0.5 rounded transition-all duration-100 shrink-0 ${
-                        isActive
-                          ? 'text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.15)]'
-                          : 'em-text-muted opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,255,255,0.10)]'
-                      }`}
-                      data-testid={`project-tab-close-${tab.id}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </>
+          <div className="w-px h-4 bg-[rgba(255,255,255,0.08)] mx-1.5 shrink-0" />
         )}
+
+        {/* Scrollable project tabs */}
+        <div className="flex-1 min-w-0 overflow-x-auto" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <style>{`[data-testid="project-tabs-bar"] div::-webkit-scrollbar { display: none; }`}</style>
+          <div className="flex items-center gap-0.5 w-max">
+            {openProjectTabs.map((tab) => {
+              const isActive = selectedProject?.id === tab.id
+              return (
+                <div
+                  key={tab.id}
+                  className={`group flex items-center h-7 pl-2.5 pr-1 rounded-md text-[11px] font-medium shrink-0 max-w-[180px] transition-all duration-200 ${
+                    isActive
+                      ? 'bg-[rgba(0,229,255,0.14)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.30)] shadow-[0_0_10px_rgba(0,229,255,0.10)]'
+                      : 'em-text-secondary hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
+                  }`}
+                  data-testid={`project-tab-${tab.id}`}
+                >
+                  <button
+                    onClick={() => switchToProjectTab(tab)}
+                    className="truncate min-w-0 leading-[28px]"
+                    data-testid={`project-tab-activate-${tab.id}`}
+                  >
+                    {tab.name}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); closeProjectWorkspaceTab(tab.id) }}
+                    className={`ml-1 w-4 h-4 flex items-center justify-center rounded transition-all duration-150 shrink-0 ${
+                      isActive
+                        ? 'text-[var(--em-cyan)] opacity-70 hover:opacity-100 hover:bg-[rgba(0,229,255,0.20)]'
+                        : 'em-text-muted opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-[rgba(255,255,255,0.12)]'
+                    }`}
+                    data-testid={`project-tab-close-${tab.id}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* "+" button — opens Project Bin */}
+        <div className="shrink-0 ml-1">
+          <button
+            onClick={goToProjectsGrid}
+            className="w-6 h-6 flex items-center justify-center rounded-md em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.08)] border border-transparent hover:border-[rgba(0,229,255,0.15)] transition-all duration-200"
+            title="Open Project Bin"
+            data-testid="tabs-add-btn"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {!selectedProject ? (
