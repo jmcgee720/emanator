@@ -78,13 +78,22 @@ Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, i
   - /projects/import (Phase 1) beats /projects/:id (Phase 2)
 - Validated 16+ endpoints via curl tests — all return correct status codes
 
+### Grounding Injection for AI Calls (COMPLETE — 2026-04-01)
+- Created `buildProjectGroundingBlock()` helper in `lib/ai/service.js`
+- Injects project identity (name, ID, core/project mode) + full file index into AI system prompts
+- Injected into all 3 AI entry points: `processMessageStream`, `executePlanStream`, `processMessage`
+- Prevents AI from hallucinating non-existent file paths during planning and code generation
+- Strict rules block: only reference files from the index, explicitly mark new files as NEW
+
 ## Prioritized Backlog
 
 ### P0 — COMPLETE
 - Phase 2 extraction DONE: route.js is now a 119-line pure dispatcher
+- Grounding Injection DONE: all AI calls now receive project file index
 
 ### P1 — Growth
 - CSV export option
+- Phase 2-5 conversational AI architecture (Intent Detection, Task Scope Classification, Silent Validation Retries, Learning System)
 
 ### P2 — Future
 - Deploy integration (Vercel/Netlify) — currently mocked
