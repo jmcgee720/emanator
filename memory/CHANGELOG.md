@@ -1,5 +1,12 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-01: Upgrade Direct-Edit System Prompt to Premium Quality
+- Replaced minimal 12-line prompt with comprehensive premium generation instructions
+- Mandatory 10-section page structure (nav, hero, social proof, features, stats, showcase, testimonials, pricing, final CTA, footer)
+- Visual quality requirements (spacing py-16+, container max-w-6xl, typography hierarchy, depth/polish)
+- Brand expression rules (theme-aware copy, visual tone matching, authentic placeholder content)
+- Single-file execution rules preserved
+
 ## 2026-04-01: Simple Frontend Direct-Edit Mode
 - Added `isSimpleFrontendEdit()` + `findMainPagePath()` in `lib/ai/intents.js`
 - Modified `processMessageStream` in `lib/ai/service.js` to detect simple frontend requests
