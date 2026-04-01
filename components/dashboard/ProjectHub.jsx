@@ -78,6 +78,7 @@ export default function ProjectHub({
   onRenameChat,
   onRenameProject,
   onDeleteMediaFile,
+  livePromoteState,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
   const [renamingId, setRenamingId] = useState(null)
@@ -146,6 +147,18 @@ export default function ProjectHub({
           </span>
         </div>
       </div>
+
+      {project?.settings?.is_core && livePromoteState?.lastApply && (
+        <div className="mx-4 mb-2 px-3 py-1.5 rounded-lg bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.15)] flex items-center justify-between" data-testid="core-promote-status">
+          <span className="text-[10px] em-text-muted">
+            Last applied: <span className="text-emerald-400 font-medium">{livePromoteState.lastApply.filesWritten} file(s)</span>
+            {' '}{formatRelativeTime(livePromoteState.lastApply.time)}
+          </span>
+          <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${livePromoteState.snapshotId ? 'bg-[rgba(52,211,153,0.10)] text-emerald-400' : 'bg-[rgba(255,255,255,0.04)] em-text-muted'}`}>
+            {livePromoteState.snapshotId ? 'Rollback available' : 'No rollback'}
+          </span>
+        </div>
+      )}
 
       {/* ── 3-Panel Layout ── */}
       <div className="flex-1 flex overflow-hidden">
