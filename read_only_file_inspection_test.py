@@ -6,7 +6,7 @@ This test suite validates the READ-ONLY FILE INSPECTION feature of the MyMergent
 Tests the specific scenarios mentioned in the review request.
 
 Test Configuration:
-- App URL: https://api-refactor-27.preview.emergentagent.com
+- App URL: https://prompt-grounding.preview.emergentagent.com
 - Test Project ID: 2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd (has 2 files: _meta/prompt_runs.json and components/dashboard/BuilderMemoryPanel.jsx)
 - Test Chat ID: 015c4e6d-06f0-4f13-b8f4-8c0f874c3923
 - Auth: Supabase Bearer Token
@@ -19,7 +19,7 @@ import time
 from datetime import datetime
 
 # Configuration from review request
-BASE_URL = "https://api-refactor-27.preview.emergentagent.com"
+BASE_URL = "https://prompt-grounding.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_ANON = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
