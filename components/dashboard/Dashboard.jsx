@@ -1663,6 +1663,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const data = await response.json()
       const saved = data.project || { name: newName }
       setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...saved } : p))
+      setOpenProjectTabs(prev => prev.map(t => t.id === projectId ? { ...t, ...saved } : t))
       if (selectedProject?.id === projectId) {
         setSelectedProject(prev => ({ ...prev, ...saved }))
       }
