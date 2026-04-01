@@ -43,7 +43,7 @@ jest.mock('../../lib/supabase/db', () => ({
   }
 }))
 
-const BASE_URL = 'https://api-refactor-27.preview.emergentagent.com'
+const BASE_URL = 'https://prompt-grounding.preview.emergentagent.com'
 
 describe('Phase 12 Step 9 — Self-Modification Safety Proof Tests', () => {
   let testResults = []

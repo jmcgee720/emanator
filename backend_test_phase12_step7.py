@@ -18,7 +18,7 @@ Test scenarios:
 7. Permission constants verification
 8. getUserRole + hasPermission function verification
 
-Environment: https://api-refactor-27.preview.emergentagent.com
+Environment: https://prompt-grounding.preview.emergentagent.com
 Auth: testprov@test.com / password123 (owner account)
 """
 
@@ -29,7 +29,7 @@ import os
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://api-refactor-27.preview.emergentagent.com/api"
+BASE_URL = "https://prompt-grounding.preview.emergentagent.com/api"
 TEST_EMAIL = "testprov@test.com"
 TEST_PASSWORD = "password123"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "

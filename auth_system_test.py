@@ -13,7 +13,7 @@ from datetime import datetime
 # Configuration from environment
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-APP_URL = "https://api-refactor-27.preview.emergentagent.com"
+APP_URL = "https://prompt-grounding.preview.emergentagent.com"
 TEST_EMAIL = "testprov@test.com"
 TEST_PASSWORD = "TestPass123!"
 
