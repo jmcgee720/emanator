@@ -141,7 +141,7 @@ export default function ProjectHub({
         </button>
         <div className="w-px h-6 bg-[rgba(255,255,255,0.10)]" />
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-medium em-text-primary truncate" data-testid="hub-project-name">{project?.name}</span>
+          <span className="text-sm font-medium em-text-primary truncate" data-testid="hub-project-name">{project?.settings?.is_core ? 'Core System Workspace' : project?.name}</span>
           <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[rgba(0,229,255,0.08)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.15)] shrink-0">
             {framework === 'node' ? 'Node.js' : framework}
           </span>
@@ -290,8 +290,9 @@ export default function ProjectHub({
               ) : (
                 <div className="flex items-center gap-2 mb-1.5">
                   <h1 className="text-2xl font-semibold em-text-primary tracking-tight" data-testid="hub-title">
-                    {project?.name}
+                    {project?.settings?.is_core ? 'Core System Workspace' : project?.name}
                   </h1>
+                  {!project?.settings?.is_core && (
                   <button
                     onClick={() => { setProjectRenameValue(project?.name || ''); setRenamingProject(true); }}
                     className="p-1 rounded-md em-text-muted opacity-50 hover:opacity-100 hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.08)] transition-all duration-150"
@@ -300,6 +301,7 @@ export default function ProjectHub({
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
+                  )}
                 </div>
               )}
               <div className="flex items-center gap-3">
