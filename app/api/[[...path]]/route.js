@@ -27,6 +27,7 @@ import * as designRoutes from '@/lib/api/routes/design'
 import * as canvasRoutes from '@/lib/api/routes/canvas'
 import * as filesRoutes from '@/lib/api/routes/files'
 import * as sandboxRoutes from '@/lib/api/routes/sandbox'
+import * as livePromoteRoutes from '@/lib/api/routes/live-promote'
 import * as diffsRoutes from '@/lib/api/routes/diffs'
 import * as assetsRoutes from '@/lib/api/routes/assets'
 import * as chatsRoutes from '@/lib/api/routes/chats'
@@ -64,6 +65,7 @@ const phase2Modules = [
   canvasRoutes,
   filesRoutes,
   sandboxRoutes,
+  livePromoteRoutes,
   diffsRoutes,
   assetsRoutes,
   chatsRoutes,
