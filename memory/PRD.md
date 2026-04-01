@@ -78,6 +78,15 @@ Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, i
   - /projects/import (Phase 1) beats /projects/:id (Phase 2)
 - Validated 16+ endpoints via curl tests — all return correct status codes
 
+### Simple Frontend Direct-Edit Mode (COMPLETE — 2026-04-01)
+- Added `isSimpleFrontendEdit()` detector in `intents.js` — regex-based classification with disqualifiers
+- Added `findMainPagePath()` to locate target page file (app/page.jsx, pages/index.js, etc.)
+- In `processMessageStream`: when detected, bypasses plan mode + task-mode enforcement
+- AI writes directly to target page via `saveFiles()` — no diff review, no PlanCard
+- `done` event carries `generatedFiles` with no `diffFiles` → frontend auto-refreshes + switches to Preview tab
+- Preview renders via srcdoc iframe (no install, no "Start Preview" button)
+- Planner UI reserved for multi-file/architecture/backend/risky changes
+
 ### Grounding Injection for AI Calls (COMPLETE — 2026-04-01)
 - Created `buildProjectGroundingBlock()` helper in `lib/ai/service.js`
 - Injects project identity (name, ID, core/project mode) + full file index into AI system prompts
@@ -90,6 +99,7 @@ Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, i
 ### P0 — COMPLETE
 - Phase 2 extraction DONE: route.js is now a 119-line pure dispatcher
 - Grounding Injection DONE: all AI calls now receive project file index
+- Simple Frontend Direct-Edit DONE: simple page requests bypass planner, save directly, preview instantly
 
 ### P1 — Growth
 - CSV export option
@@ -99,7 +109,8 @@ Continuously harden the Emanator AI Builder core system. Refine the Aurora UI, i
 - Deploy integration (Vercel/Netlify) — currently mocked
 
 ## Key Files
-- `/app/lib/ai/service.js` — Core AI handler
+- `/app/lib/ai/service.js` — Core AI handler (with direct-edit mode + grounding injection)
+- `/app/lib/ai/intents.js` — Intent classification + `isSimpleFrontendEdit` + `findMainPagePath`
 - `/app/lib/ai/plan-validator.js` — Plan & patch validation
 - `/app/lib/ai/intents.js` — Intent classification + request-mode gate
 - `/app/lib/ai/tools.js` — Tool schemas (propose_plan, PLAN_ONLY_TOOLS)
