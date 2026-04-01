@@ -657,7 +657,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         body: JSON.stringify({ title })
       })
       if (response.ok) {
-        const newChat = await response.json()
+        const text = await response.text()
+        const newChat = JSON.parse(text)
         setChats([newChat])
         setSelectedChat(newChat)
         setMessages([])
@@ -878,11 +879,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       })
 
       if (!response.ok) {
-        const err = await response.json()
+        const err = await response.json().catch(() => ({}))
         throw new Error(err.error || 'Failed to create chat')
       }
 
-      const newChat = await response.json()
+      const text = await response.text()
+      let newChat
+      try {
+        newChat = JSON.parse(text)
+      } catch {
+        throw new Error('Server returned invalid response')
+      }
       setChats(prev => [newChat, ...prev])
       setSelectedChat(newChat)
       setMessages([])
@@ -907,7 +914,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         toast({ title: 'Error', description: err.error || 'Failed to create Core System chat', variant: 'destructive' })
         return
       }
-      const newChat = await response.json()
+      const text = await response.text()
+      let newChat
+      try {
+        newChat = JSON.parse(text)
+      } catch {
+        toast({ title: 'Error', description: 'Server returned invalid response', variant: 'destructive' })
+        return
+      }
       setChats(prev => [newChat, ...prev])
       setSelectedChat(newChat)
       setSelfEditTarget(null)
@@ -1600,7 +1614,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     try {
       const response = await authFetch(`/api/chats/${chatId}/fork`, { method: 'POST' })
       if (!response.ok) throw new Error('Failed to fork chat')
-      const data = await response.json()
+      const text = await response.text()
+      const data = JSON.parse(text)
       const newChat = { id: data.id, title: data.title, project_id: data.project_id, chat_type: getChatType({ title: data.title }) }
       setChats(prev => [...prev, newChat])
       setSelectedChat(newChat)
