@@ -2064,7 +2064,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const renderProjectGrid = () => {
-    const cards = projects.filter(p => p.type !== 'core')
+    const cards = projects.filter(p => p.name !== 'Emanator Backend')
 
     const modes = [
       { key: 'fullstack', label: 'Full Stack App', icon: Monitor },
@@ -2202,7 +2202,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                         projects.find(p => p.type === 'core') ||
                         null
                       if (!coreProject) {
-                        coreProject = await createProject('Emanator Backend', 'core')
+                        coreProject = await createProject('Emanator Backend', 'app')
                         if (!coreProject) return
                       }
                       hubEntryRef.current = true
