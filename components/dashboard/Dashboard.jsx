@@ -2235,26 +2235,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                       let coreProject =
                         projects.find(p => p.settings?.is_core === true) ||
                         (coreProjectIdRef.current && projects.find(p => p.id === coreProjectIdRef.current)) ||
-                        projects.find(p => p.name === 'Emanator Backend') ||
-                        projects.find(p => p.name === 'Emanator') ||
                         null
                       if (!coreProject) {
-                        coreProject = await createProject('Emanator Backend', 'app')
-                        if (!coreProject) return
-                      }
-                      // Ensure is_core flag is set
-                      if (!coreProject.settings?.is_core) {
-                        const resp = await authFetch(`/api/projects/${coreProject.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ settings: { ...coreProject.settings, is_core: true } })
-                        })
-                        if (resp.ok) {
-                          const data = await resp.json().catch(() => ({}))
-                          coreProject = data.project || { ...coreProject, settings: { ...coreProject.settings, is_core: true } }
-                          setProjects(prev => prev.map(p => p.id === coreProject.id ? coreProject : p))
-                          setOpenProjectTabs(prev => prev.map(t => t.id === coreProject.id ? coreProject : t))
-                        }
+                        // Create core project with is_core flag set atomically
+                        try {
+                          const resp = await authFetch('/api/projects', {
+                            method: 'POST',
+                            headers: JSON_HEADERS,
+                            body: JSON.stringify({ name: 'Core System', type: 'app', settings: { is_core: true } })
+                          })
+                          if (!resp.ok) return
+                          const data = await resp.json()
+                          coreProject = data.project || data
+                          setProjects(prev => [coreProject, ...prev])
+                        } catch { return }
                       }
                       coreProjectIdRef.current = coreProject.id
                       hubEntryRef.current = true
