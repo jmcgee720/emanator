@@ -393,6 +393,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const pendingHeroPromptRef = useRef(null)
   const tabChatStateRef = useRef({})
   const pendingRestoreChatRef = useRef(null)
+  const coreProjectIdRef = useRef(null)
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -550,6 +551,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const data = await response.json()
       const projectList = Array.isArray(data) ? data : []
       setProjects(projectList)
+
+      // Seed core project ID ref from loaded data
+      const coreP = projectList.find(p => p.settings?.is_core === true)
+      if (coreP) coreProjectIdRef.current = coreP.id
 
       if (selectedProject) {
         const refreshedSelected = projectList.find(p => p.id === selectedProject.id)
@@ -2079,7 +2084,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const renderProjectGrid = () => {
-    const cards = projects.filter(p => p.name !== 'Emanator Backend')
+    const cards = projects.filter(p => !p.settings?.is_core)
 
     const modes = [
       { key: 'fullstack', label: 'Full Stack App', icon: Monitor },
@@ -2212,14 +2217,33 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                     onClick={async () => {
                       setBuilderMode('core')
                       let coreProject =
+                        projects.find(p => p.settings?.is_core === true) ||
+                        (coreProjectIdRef.current && projects.find(p => p.id === coreProjectIdRef.current)) ||
                         projects.find(p => p.name === 'Emanator Backend') ||
                         projects.find(p => p.name === 'Emanator') ||
-                        projects.find(p => p.type === 'core') ||
                         null
                       if (!coreProject) {
                         coreProject = await createProject('Emanator Backend', 'app')
                         if (!coreProject) return
+                        // Mark as core project via settings
+                        await authFetch(`/api/projects/${coreProject.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ settings: { ...coreProject.settings, is_core: true } })
+                        })
+                        coreProject = { ...coreProject, settings: { ...coreProject.settings, is_core: true } }
+                        setProjects(prev => prev.map(p => p.id === coreProject.id ? coreProject : p))
+                      } else if (!coreProject.settings?.is_core) {
+                        // Backfill: mark existing core project so future lookups use the stable flag
+                        await authFetch(`/api/projects/${coreProject.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ settings: { ...coreProject.settings, is_core: true } })
+                        })
+                        coreProject = { ...coreProject, settings: { ...coreProject.settings, is_core: true } }
+                        setProjects(prev => prev.map(p => p.id === coreProject.id ? coreProject : p))
                       }
+                      coreProjectIdRef.current = coreProject.id
                       hubEntryRef.current = true
                       setSelectedChat(null)
                       setMessages([])
