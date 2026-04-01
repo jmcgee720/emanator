@@ -82,23 +82,37 @@ export default function ProjectHub({
   const [hoveredChat, setHoveredChat] = useState(null)
   const [renamingId, setRenamingId] = useState(null)
   const [renameValue, setRenameValue] = useState('')
+  const [chatRenameSaving, setChatRenameSaving] = useState(false)
   const [renamingProject, setRenamingProject] = useState(false)
   const [projectRenameValue, setProjectRenameValue] = useState('')
+  const [projectRenameSaving, setProjectRenameSaving] = useState(false)
 
   const submitRename = async (chatId) => {
     const trimmed = renameValue.trim()
-    if (trimmed && onRenameChat) {
+    if (!trimmed || !onRenameChat) { setRenamingId(null); return }
+    setChatRenameSaving(true)
+    try {
       await onRenameChat(chatId, trimmed)
+      setRenamingId(null)
+    } catch {
+      // toast already shown by parent — keep input open
+    } finally {
+      setChatRenameSaving(false)
     }
-    setRenamingId(null)
   }
 
-  const submitProjectRename = () => {
+  const submitProjectRename = async () => {
     const trimmed = projectRenameValue.trim()
-    if (trimmed && trimmed !== project?.name && onRenameProject) {
-      onRenameProject(trimmed)
+    if (!trimmed || trimmed === project?.name || !onRenameProject) { setRenamingProject(false); return }
+    setProjectRenameSaving(true)
+    try {
+      await onRenameProject(trimmed)
+      setRenamingProject(false)
+    } catch {
+      // toast already shown by parent — keep input open
+    } finally {
+      setProjectRenameSaving(false)
     }
-    setRenamingProject(false)
   }
 
   const chatCount = chats?.length || 0
@@ -155,16 +169,32 @@ export default function ProjectHub({
             ) : (
               chats.map((chat) => (
                 renamingId === chat.id ? (
-                  <div key={chat.id} className="flex items-center gap-2 px-3 py-2">
+                  <div key={chat.id} className="flex items-center gap-1.5 px-3 py-2">
                     <input
                       autoFocus
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') submitRename(chat.id); if (e.key === 'Escape') setRenamingId(null); }}
-                      onBlur={() => submitRename(chat.id)}
-                      className="flex-1 text-xs bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.15)] rounded px-2 py-1 outline-none focus:border-[rgba(0,229,255,0.30)] em-text-primary"
+                      disabled={chatRenameSaving}
+                      className="flex-1 text-xs bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.15)] rounded px-2 py-1 outline-none focus:border-[rgba(0,229,255,0.30)] em-text-primary disabled:opacity-50"
                       data-testid={`hub-rename-input-${chat.id}`}
                     />
+                    <button
+                      onClick={() => submitRename(chat.id)}
+                      disabled={chatRenameSaving}
+                      className="px-1.5 py-1 rounded text-[10px] font-medium bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.20)] transition-all disabled:opacity-50"
+                      data-testid={`hub-rename-save-${chat.id}`}
+                    >
+                      {chatRenameSaving ? '...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setRenamingId(null)}
+                      disabled={chatRenameSaving}
+                      className="px-1.5 py-1 rounded text-[10px] font-medium em-text-muted border border-[rgba(255,255,255,0.10)] hover:bg-[rgba(255,255,255,0.06)] transition-all disabled:opacity-50"
+                      data-testid={`hub-rename-cancel-${chat.id}`}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 ) : (
                 <button
@@ -217,15 +247,33 @@ export default function ProjectHub({
             {/* Project Title — always-visible pencil */}
             <div className="mb-6">
               {renamingProject ? (
-                <input
-                  autoFocus
-                  value={projectRenameValue}
-                  onChange={(e) => setProjectRenameValue(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') submitProjectRename(); if (e.key === 'Escape') setRenamingProject(false); }}
-                  onBlur={submitProjectRename}
-                  className="text-2xl font-semibold em-text-primary tracking-tight mb-1.5 bg-transparent border-b border-[rgba(0,229,255,0.30)] outline-none w-full"
-                  data-testid="hub-rename-project-input"
-                />
+                <div className="flex items-center gap-2 mb-1.5">
+                  <input
+                    autoFocus
+                    value={projectRenameValue}
+                    onChange={(e) => setProjectRenameValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') submitProjectRename(); if (e.key === 'Escape') setRenamingProject(false); }}
+                    disabled={projectRenameSaving}
+                    className="text-2xl font-semibold em-text-primary tracking-tight bg-transparent border-b border-[rgba(0,229,255,0.30)] outline-none flex-1 min-w-0 disabled:opacity-50"
+                    data-testid="hub-rename-project-input"
+                  />
+                  <button
+                    onClick={submitProjectRename}
+                    disabled={projectRenameSaving}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.20)] transition-all disabled:opacity-50"
+                    data-testid="hub-rename-project-save"
+                  >
+                    {projectRenameSaving ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setRenamingProject(false)}
+                    disabled={projectRenameSaving}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-medium em-text-muted border border-[rgba(255,255,255,0.10)] hover:bg-[rgba(255,255,255,0.06)] transition-all disabled:opacity-50"
+                    data-testid="hub-rename-project-cancel"
+                  >
+                    Cancel
+                  </button>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 mb-1.5">
                   <h1 className="text-2xl font-semibold em-text-primary tracking-tight" data-testid="hub-title">

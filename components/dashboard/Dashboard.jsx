@@ -1645,6 +1645,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     } catch (error) {
       console.error('Error renaming chat:', error)
       toast({ title: 'Error', description: error.message || 'Failed to rename conversation', variant: 'destructive' })
+      throw error
     }
   }
 
@@ -1668,6 +1669,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     } catch (error) {
       console.error('Error renaming project:', error)
       toast({ title: 'Error', description: error.message || 'Failed to rename project', variant: 'destructive' })
+      throw error
     }
   }
 
