@@ -616,6 +616,7 @@ export default function PreviewTab({ project, files, onLog }) {
       const all = [...components, ...reactJs]
       const entry = all.find(f => f.path.match(/App\.(jsx|tsx|js)$/i)) ||
                     all.find(f => f.path.match(/index\.(jsx|tsx|js)$/i)) ||
+                    all.find(f => f.path.match(/page\.(jsx|tsx|js)$/i)) ||
                     all[0]
       log.push(`Entry: ${entry?.path || 'none'}`)
       log.push(`Files: ${all.map(f => f.path).join(', ')}`)

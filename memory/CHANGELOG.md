@@ -1,5 +1,12 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-01: Simple Frontend Direct-Edit Mode
+- Added `isSimpleFrontendEdit()` + `findMainPagePath()` in `lib/ai/intents.js`
+- Modified `processMessageStream` in `lib/ai/service.js` to detect simple frontend requests
+- Bypass: plan mode, task-mode enforcement, diff pipeline — files saved directly to DB
+- Preview auto-updates via existing srcdoc iframe path (no install/start-preview needed)
+- Planner UI now reserved for multi-file, architecture, backend, and risky changes only
+
 ## 2026-04-01: Grounding Injection for AI Calls
 - Created `buildProjectGroundingBlock()` helper in `lib/ai/service.js`
 - Injects project identity (name, ID, core/project mode) + full file index into all AI system prompts
