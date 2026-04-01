@@ -68,6 +68,7 @@ function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, o
   const [forking, setForking] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
+  const [renameSaving, setRenameSaving] = useState(false)
   const renameRef = useRef(null)
   const displayTitle = isSelfEdit ? chat.title.replace(SELF_EDIT_PREFIX, '') : chat.title
   const isActive = selectedChat?.id === chat.id
@@ -81,10 +82,16 @@ function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, o
 
   const submitRename = async () => {
     const trimmed = renameValue.trim()
-    if (trimmed && trimmed !== chat.title) {
+    if (!trimmed || trimmed === chat.title) { setRenaming(false); return }
+    setRenameSaving(true)
+    try {
       await onRenameChat(chat.id, trimmed)
+      setRenaming(false)
+    } catch {
+      // toast already shown by parent — keep input open
+    } finally {
+      setRenameSaving(false)
     }
-    setRenaming(false)
   }
 
   if (renaming) {
@@ -95,9 +102,25 @@ function ChatRow({ chat, selectedChat, onSelectChat, onDeleteChat, onForkChat, o
           value={renameValue}
           onChange={(e) => setRenameValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submitRename(); if (e.key === 'Escape') setRenaming(false); }}
-          onBlur={submitRename}
-          className="flex-1 text-[11.5px] bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 outline-none focus:border-primary/40"
+          disabled={renameSaving}
+          className="flex-1 text-[11.5px] bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 outline-none focus:border-primary/40 disabled:opacity-50"
         />
+        <button
+          onClick={submitRename}
+          disabled={renameSaving}
+          className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] hover:bg-[rgba(0,229,255,0.20)] transition-all disabled:opacity-50"
+          data-testid={`rename-save-${chat.id}`}
+        >
+          {renameSaving ? '...' : 'Save'}
+        </button>
+        <button
+          onClick={() => setRenaming(false)}
+          disabled={renameSaving}
+          className="px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground border border-[rgba(255,255,255,0.10)] hover:bg-muted/40 transition-all disabled:opacity-50"
+          data-testid={`rename-cancel-${chat.id}`}
+        >
+          Cancel
+        </button>
       </div>
     )
   }
