@@ -1627,35 +1627,47 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   const renameChat = async (chatId, newTitle) => {
     try {
-      await authFetch(`/api/chats/${chatId}`, {
+      const response = await authFetch(`/api/chats/${chatId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: newTitle })
       })
-      setChats(prev => prev.map(c => c.id === chatId ? { ...c, title: newTitle } : c))
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || `Rename failed (${response.status})`)
+      }
+      const data = await response.json()
+      const saved = data.chat || { title: newTitle }
+      setChats(prev => prev.map(c => c.id === chatId ? { ...c, ...saved } : c))
       if (selectedChat?.id === chatId) {
-        setSelectedChat(prev => ({ ...prev, title: newTitle }))
+        setSelectedChat(prev => ({ ...prev, ...saved }))
       }
     } catch (error) {
       console.error('Error renaming chat:', error)
-      toast({ title: 'Error', description: 'Failed to rename conversation', variant: 'destructive' })
+      toast({ title: 'Error', description: error.message || 'Failed to rename conversation', variant: 'destructive' })
     }
   }
 
   const renameProject = async (projectId, newName) => {
     try {
-      await authFetch(`/api/projects/${projectId}`, {
+      const response = await authFetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName })
       })
-      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, name: newName } : p))
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || `Rename failed (${response.status})`)
+      }
+      const data = await response.json()
+      const saved = data.project || { name: newName }
+      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...saved } : p))
       if (selectedProject?.id === projectId) {
-        setSelectedProject(prev => ({ ...prev, name: newName }))
+        setSelectedProject(prev => ({ ...prev, ...saved }))
       }
     } catch (error) {
       console.error('Error renaming project:', error)
-      toast({ title: 'Error', description: 'Failed to rename project', variant: 'destructive' })
+      toast({ title: 'Error', description: error.message || 'Failed to rename project', variant: 'destructive' })
     }
   }
 
