@@ -28,7 +28,9 @@ export default function RightPanel({
   logs = [],
   addLog = () => {},
   onOpenVariationStudio,
-  assetsRefreshKey
+  assetsRefreshKey,
+  livePromoteState,
+  setLivePromoteState,
 }) {
 
   if (!selectedProject) {
@@ -82,6 +84,8 @@ export default function RightPanel({
               files={files}
               setFiles={setFiles}
               addLog={addLog}
+              livePromoteState={livePromoteState}
+              setLivePromoteState={setLivePromoteState}
             />
           </TabsContent>
           

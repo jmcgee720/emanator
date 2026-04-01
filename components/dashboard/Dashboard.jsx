@@ -70,6 +70,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [files, setFiles] = useState([])
   const [projectFileIndex, setProjectFileIndex] = useState({})
   const [canvas, setCanvas] = useState(null)
+  const [livePromoteState, setLivePromoteState] = useState({ snapshotId: null, lastApply: null })
 
   const [showAdmin, setShowAdmin] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
@@ -2805,6 +2806,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           onRenameChat={renameChat}
           onRenameProject={(newName) => renameProject(selectedProject.id, newName)}
           onDeleteMediaFile={handleMediaBinDelete}
+          livePromoteState={livePromoteState}
         />
       ) : (
         <>
@@ -2891,6 +2893,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   addLog={addLog}
                   onOpenVariationStudio={openVariationStudio}
                   assetsRefreshKey={assetsRefreshKey}
+                  livePromoteState={livePromoteState}
+                  setLivePromoteState={setLivePromoteState}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>

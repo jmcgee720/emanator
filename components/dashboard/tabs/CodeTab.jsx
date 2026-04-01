@@ -14,16 +14,66 @@ import {
   Trash2,
   ChevronRight,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  Undo2
 } from 'lucide-react'
 
-export default function CodeTab({ project, files, setFiles, addLog }) {
+export default function CodeTab({ project, files, setFiles, addLog, livePromoteState, setLivePromoteState }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [fileContent, setFileContent] = useState('')
   const [newFileName, setNewFileName] = useState('')
   const [showNewFile, setShowNewFile] = useState(false)
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [promoting, setPromoting] = useState(false)
+  const [rollingBack, setRollingBack] = useState(false)
+
+  const isCore = project?.settings?.is_core === true
+
+  const handlePromoteToLive = async () => {
+    if (!project?.id || promoting) return
+    setPromoting(true)
+    try {
+      const response = await authFetch(`/api/projects/${project.id}/promote-to-live`, { method: 'POST' })
+      const text = await response.text()
+      const data = JSON.parse(text)
+      if (response.ok && data.success) {
+        setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
+        addLog('success', `Applied ${data.files_written} file(s) to live system`)
+      } else {
+        addLog('error', data.error || `Apply failed (${data.files_failed} errors)`)
+      }
+    } catch (err) {
+      addLog('error', 'Apply to live failed: ' + err.message)
+    } finally {
+      setPromoting(false)
+    }
+  }
+
+  const handleRollbackLive = async () => {
+    if (!project?.id || rollingBack || !livePromoteState?.snapshotId) return
+    setRollingBack(true)
+    try {
+      const response = await authFetch(`/api/projects/${project.id}/rollback-live`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot_id: livePromoteState.snapshotId })
+      })
+      const text = await response.text()
+      const data = JSON.parse(text)
+      if (response.ok && data.success) {
+        setLivePromoteState(prev => ({ ...prev, snapshotId: null, lastApply: null }))
+        addLog('success', `Rolled back ${data.files_restored} file(s)`)
+      } else {
+        addLog('error', data.error || 'Rollback failed')
+      }
+    } catch (err) {
+      addLog('error', 'Rollback failed: ' + err.message)
+    } finally {
+      setRollingBack(false)
+    }
+  }
 
   const handleSyncRepo = async () => {
     if (!project?.id || syncing) return
@@ -204,6 +254,33 @@ export default function CodeTab({ project, files, setFiles, addLog }) {
             </Button>
           </div>
         </div>
+
+        {isCore && (
+          <div className="px-3 py-2 border-b border-border/40 flex items-center gap-1.5" data-testid="core-live-controls">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handlePromoteToLive}
+              disabled={promoting || !files?.length}
+              className="h-7 text-[11px] px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+              data-testid="apply-to-live-btn"
+            >
+              {promoting ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+              {promoting ? 'Applying...' : 'Apply to Live'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRollbackLive}
+              disabled={rollingBack || !livePromoteState?.snapshotId}
+              className="h-7 text-[11px] px-2.5"
+              data-testid="rollback-live-btn"
+            >
+              {rollingBack ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Undo2 className="w-3 h-3 mr-1" />}
+              {rollingBack ? 'Rolling back...' : 'Rollback'}
+            </Button>
+          </div>
+        )}
         
         {showNewFile && (
           <div className="p-2 border-b border-border/40">
