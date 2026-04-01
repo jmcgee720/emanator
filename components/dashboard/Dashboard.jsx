@@ -2241,23 +2241,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                       if (!coreProject) {
                         coreProject = await createProject('Emanator Backend', 'app')
                         if (!coreProject) return
-                        // Mark as core project via settings
-                        await authFetch(`/api/projects/${coreProject.id}`, {
+                      }
+                      // Ensure is_core flag is set
+                      if (!coreProject.settings?.is_core) {
+                        const resp = await authFetch(`/api/projects/${coreProject.id}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ settings: { ...coreProject.settings, is_core: true } })
                         })
-                        coreProject = { ...coreProject, settings: { ...coreProject.settings, is_core: true } }
-                        setProjects(prev => prev.map(p => p.id === coreProject.id ? coreProject : p))
-                      } else if (!coreProject.settings?.is_core) {
-                        // Backfill: mark existing core project so future lookups use the stable flag
-                        await authFetch(`/api/projects/${coreProject.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ settings: { ...coreProject.settings, is_core: true } })
-                        })
-                        coreProject = { ...coreProject, settings: { ...coreProject.settings, is_core: true } }
-                        setProjects(prev => prev.map(p => p.id === coreProject.id ? coreProject : p))
+                        if (resp.ok) {
+                          const data = await resp.json().catch(() => ({}))
+                          coreProject = data.project || { ...coreProject, settings: { ...coreProject.settings, is_core: true } }
+                          setProjects(prev => prev.map(p => p.id === coreProject.id ? coreProject : p))
+                          setOpenProjectTabs(prev => prev.map(t => t.id === coreProject.id ? coreProject : t))
+                        }
                       }
                       coreProjectIdRef.current = coreProject.id
                       hubEntryRef.current = true
