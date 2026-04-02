@@ -2789,7 +2789,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           files={files}
           mediaBinFiles={mediaBinFiles}
           onSelectChat={(chat) => handleSelectChat(chat)}
-          onCreateChat={() => createChat()}
+          onCreateChat={() => builderMode === 'core' && isOwner ? createSelfEditChat() : createChat()}
           onBack={goToProjectsGrid}
           onDeleteProject={() => setDeleteConfirmProject(selectedProject)}
           onUploadMediaBin={() => mediaBinInputRef.current?.click()}
@@ -2818,7 +2818,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   }
                   selectedChat={selectedChat}
                   onSelectChat={handleSelectChat}
-                  onCreateChat={createChat}
+                  onCreateChat={builderMode === 'core' && isOwner ? createSelfEditChat : createChat}
                   onDeleteChat={deleteChat}
                   onForkChat={forkChat}
                   onRenameChat={renameChat}

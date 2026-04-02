@@ -1,5 +1,11 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Fix Core System Chat Creation
+- Root cause: "New Chat" in core mode created regular chats, but sidebar only shows SELF_EDIT chats — so chats appeared to fail/vanish
+- Fix: Route "New Chat" through `createSelfEditChat()` when `builderMode === 'core'` (both ProjectHub and LeftPanel)
+- Added try/catch + error logging to backend `db.chats.create` for better error visibility
+- Verified: self-edit chat creation returns 201 with `chat_type: "self_edit"`
+
 ## 2026-04-01: Upgrade Direct-Edit System Prompt to Premium Quality
 - Replaced minimal 12-line prompt with comprehensive premium generation instructions
 - Mandatory 10-section page structure (nav, hero, social proof, features, stats, showcase, testimonials, pricing, final CTA, footer)
