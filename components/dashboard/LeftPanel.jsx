@@ -590,7 +590,10 @@ export default function LeftPanel({
                             }
                             return (
                               <>
-                                <MessageRenderer content={message.content} />
+                                <MessageRenderer
+                                  content={message.content}
+                                  hideCodeBlocks={!!(message.metadata?.generatedFiles?.length || message.metadata?.diffFiles?.length || message.metadata?.directEditMode)}
+                                />
                                 {isMessageStreaming && (
                                   <span className="em-streaming-cursor" data-testid="streaming-cursor" />
                                 )}
