@@ -1,5 +1,13 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Fix Direct-Edit Response Card + Preview Clipping
+- **"Page Updated" card**: Was emitted by `service.js:1147` as `fullContent` fallback when AI produced no text. Replaced with natural sentence: "Done — I built the page in {path} and updated the preview."
+- **Preview clipping root causes**:
+  - `RightPanel.jsx:76` — `flex-1 overflow-hidden` missing `min-h-0` (flex item couldn't shrink below content height)
+  - `PreviewTab.jsx:746` — outer wrapper missing `min-h-0`
+  - `PreviewTab.jsx:794` — iframe container used `flex-1 overflow-auto` but iframe used `h-full` which doesn't resolve inside flex-1. Changed to `absolute inset-0 w-full h-full` inside a `relative` parent with `overflow-hidden`
+- **No generation/routing/planner changes**
+
 ## 2026-04-02: No Code in Chat + Preview Height Fix
 - Added CRITICAL text response rules to direct-edit system prompt: AI must give 2-3 sentence summary only, NEVER include code/JSON/file paths in chat text
 - Added `hideCodeBlocks` prop to `MessageRenderer.jsx` — strips fenced code blocks from AI messages that have generated files/diffs
