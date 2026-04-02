@@ -743,7 +743,7 @@ export default function PreviewTab({ project, files, onLog }) {
     projectInfo.type === 'css-only' ? 'CSS Only' : 'Preview'
 
   return (
-    <div className="h-full flex flex-col bg-background" data-testid="preview-tab">
+    <div className="h-full flex flex-col bg-background min-h-0" data-testid="preview-tab">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40">
         <div className="flex items-center gap-1">
           <Button size="sm" variant={viewportSize === 'mobile' ? 'secondary' : 'ghost'}
@@ -791,7 +791,7 @@ export default function PreviewTab({ project, files, onLog }) {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto bg-white flex justify-center relative">
+      <div className="flex-1 min-h-0 overflow-hidden bg-white flex justify-center relative">
         {!iframeLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10" data-testid="preview-loading">
             <div className="flex flex-col items-center gap-2">
@@ -806,8 +806,8 @@ export default function PreviewTab({ project, files, onLog }) {
           srcDoc={previewHtml}
           title="Preview"
           sandbox="allow-scripts allow-forms allow-modals allow-popups"
-          className="h-full border-0 transition-all"
-          style={{ width: viewports[viewportSize].width, maxWidth: '100%' }}
+          className="absolute inset-0 w-full h-full border-0"
+          style={{ maxWidth: viewports[viewportSize].width === '100%' ? '100%' : viewports[viewportSize].width, margin: viewports[viewportSize].width === '100%' ? undefined : '0 auto' }}
           onLoad={() => setIframeLoaded(true)}
           data-testid="preview-iframe"
         />

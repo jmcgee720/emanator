@@ -73,7 +73,7 @@ export default function RightPanel({
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <TabsContent value="preview" className="h-full m-0 p-0">
             <PreviewTab project={selectedProject} files={files} onLog={addLog} />
           </TabsContent>
