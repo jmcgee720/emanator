@@ -63,8 +63,18 @@ function InlineCode({ children }) {
   )
 }
 
-export default function MessageRenderer({ content }) {
+export default function MessageRenderer({ content, hideCodeBlocks }) {
   if (!content) return null
+
+  // Strip code blocks when the message is from a direct-edit / tool-call flow.
+  // The AI should never show code, JSON, or file contents to the user — only plain text.
+  let displayContent = content
+  if (hideCodeBlocks) {
+    displayContent = content
+      .replace(/```[\s\S]*?```/g, '')   // fenced code blocks
+      .replace(/\n{3,}/g, '\n\n')       // collapse excess newlines left behind
+      .trim()
+  }
 
   return (
     <div className="prose prose-invert prose-sm max-w-full min-w-0 break-words [overflow-wrap:anywhere]" data-testid="message-renderer">
@@ -126,7 +136,7 @@ export default function MessageRenderer({ content }) {
           em: ({ children }) => <em className="italic">{children}</em>,
         }}
       >
-        {content}
+        {displayContent}
       </ReactMarkdown>
     </div>
   )

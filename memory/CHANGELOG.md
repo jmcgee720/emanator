@@ -1,5 +1,12 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: No Code in Chat + Preview Height Fix
+- Added CRITICAL text response rules to direct-edit system prompt: AI must give 2-3 sentence summary only, NEVER include code/JSON/file paths in chat text
+- Added `hideCodeBlocks` prop to `MessageRenderer.jsx` — strips fenced code blocks from AI messages that have generated files/diffs
+- `LeftPanel.jsx` passes `hideCodeBlocks={true}` for messages with generatedFiles/diffFiles/directEditMode
+- Removed `mt-2` from Shadcn `TabsContent` base class — preview tab now fills full available height
+- Widened `isSimpleFrontendEdit` adjective pattern to cover section/hero/form/panel/navbar/header/footer/card/modal/banner/gallery/table
+
 ## 2026-04-02: Narrow PM Mode — Direct-Edit for Medium-Safe Builds
 - Widened `isSimpleFrontendEdit` to catch dashboards, settings screens, profiles, navbars, modals, tables, heroes, galleries, forms, cards, banners, etc.
 - Added `isLargeAppBuild()` — only triggers PM mode for full apps, multi-page, SaaS, CRM, marketplace, auth+billing combos
