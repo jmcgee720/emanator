@@ -514,10 +514,10 @@ export default function LeftPanel({
                       </div>
                     ) : (
                     <div className="w-full min-w-0">
-                    {!isUser && messageIntent && messageIntent !== 'chat' && (
+                    {!isUser && messageIntent && messageIntent !== 'chat' && messageIntent !== 'build' && (
                       <div className="flex items-center gap-1.5 mb-1" data-testid={`intent-badge-${message.id}`}>
                         <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wider">
-                          Intent: {messageIntent.replace(/_/g, ' ')}
+                          {messageIntent.replace(/_/g, ' ')}
                         </span>
                       </div>
                     )}

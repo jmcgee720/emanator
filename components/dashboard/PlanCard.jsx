@@ -60,13 +60,6 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
               <span className="text-sm font-medium em-text-primary truncate">
                 {isExecuted ? 'Plan Executed' : isCancelled ? 'Plan Cancelled' : 'Implementation Plan'}
               </span>
-              <Badge variant="outline" className={`text-[10px] ${
-                isExecuted ? 'text-emerald-400 border-emerald-500/25' :
-                isCancelled ? 'em-text-muted border-[rgba(124,58,237,0.15)]' :
-                'text-[#00E5FF] border-[rgba(0,229,255,0.2)]'
-              }`}>
-                {plan.intent || 'build'}
-              </Badge>
             </div>
             <div className="flex items-center gap-3 mt-0.5">
               {creates.length > 0 && <span className="text-[10px] text-emerald-400">{creates.length} create</span>}
@@ -111,18 +104,6 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
                       {action.reason && (
                         <p className="text-[11px] em-text-muted mt-0.5 leading-snug">{action.reason}</p>
                       )}
-                      {action.grounded_on?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1" data-testid={`plan-grounded-on-${i}`}>
-                          {action.grounded_on.slice(0, 3).map((anchor, j) => (
-                            <span key={j} className="text-[9px] text-amber-400/70 bg-amber-500/10 px-1.5 py-0.5 rounded font-mono truncate max-w-[260px]" title={anchor}>
-                              {anchor}
-                            </span>
-                          ))}
-                          {action.grounded_on.length > 3 && (
-                            <span className="text-[9px] em-text-muted">+{action.grounded_on.length - 3} more</span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )
@@ -145,21 +126,6 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
               {plan.reasoning}
             </div>
           ) : null}
-
-          {/* Grounding checks */}
-          {plan.constraints_checked && (
-            <div className="flex flex-wrap items-center gap-2 text-[10px]" data-testid="plan-grounding-checks">
-              {plan.constraints_checked.grounded_in_file_context && (
-                <span className="text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full">grounded</span>
-              )}
-              {plan.constraints_checked.minimal_patch && (
-                <span className="text-blue-400/80 bg-blue-500/10 px-2 py-0.5 rounded-full">minimal patch</span>
-              )}
-              {plan.constraints_checked.no_illegal_create && (
-                <span className="text-violet-400/80 bg-violet-500/10 px-2 py-0.5 rounded-full">actions verified</span>
-              )}
-            </div>
-          )}
 
           {/* Design preset */}
           {plan.design_preset && (
