@@ -1242,8 +1242,15 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           const updatedMeta = { intent: data.intent, scope: data.scope }
           if (data.tool_mode) updatedMeta.toolMode = data.tool_mode
           if (data.proposedPlan) {
-            updatedMeta.proposedPlan = data.proposedPlan
-            updatedMeta.planStatus = 'proposed'
+            if (data.proposedPlan.autoExecute) {
+              // Safe plan — auto-execute without showing approval card
+              updatedMeta.planExecuted = true
+              updatedMeta.proposedPlan = data.proposedPlan
+              updatedMeta.planStatus = 'executed'
+            } else {
+              updatedMeta.proposedPlan = data.proposedPlan
+              updatedMeta.planStatus = 'proposed'
+            }
           }
           if (data.planExecuted) {
             updatedMeta.planExecuted = true
@@ -1292,6 +1299,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             }
           }
           await refreshCanvas()
+
+          // Auto-execute safe plans without showing approval card
+          if (data.proposedPlan?.autoExecute && data.id) {
+            setTimeout(() => executePlan(data.id, data.proposedPlan), 100)
+          }
         },
 
         onError: (data) => {
