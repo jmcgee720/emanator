@@ -1,5 +1,11 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Auto-Execute Safe Plans — No PlanCard for Simple/Medium Requests
+- `lib/ai/service.js` — Plans tagged with `autoExecute: true` when ≤3 file actions AND not `isLargeAppBuild`
+- `Dashboard.jsx` — `onMessageSaved`: auto-executes plans with `autoExecute: true` immediately after save; sets `planStatus: 'executed'` directly
+- `LeftPanel.jsx` — PlanCard render condition now checks `!proposedPlan.autoExecute` — auto-executed plans never show the card
+- Approval card (Build it / Change something / Cancel) only appears for: multi-page apps, backend/auth/payments, large multi-file builds, ambiguous scope
+
 ## 2026-04-02: Conversational-Only Default Responses
 - `lib/ai/tool-executor.js` — `formatProposedPlanResponse()`: replaced "## Proposed Plan / File Actions / Grounding Checks" with plain summary + "Ready to go — click Execute"
 - `lib/ai/service.js` — replaced 7 dev-style fallbacks:
