@@ -1,5 +1,15 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Project Manager Conversational Mode + UI Jargon Cleanup
+- Added `isProceedSignal()` in `intents.js` — detects explicit "go ahead" / "build it" signals
+- For build intents without a proceed signal, AI now responds conversationally as a project manager
+  - Plain-language plan of action, no code, no file paths, no jargon
+  - User can discuss, adjust, then say "go ahead" to trigger actual building
+- Removed "Intent: BUILD" badge from chat messages (LeftPanel.jsx)
+- Removed "Grounded on: NONEXISTENT" display from PlanCard.jsx
+- Removed technical grounding check badges from PlanCard.jsx
+- Removed intent badge from plan card header
+
 ## 2026-04-02: Fix Core System Chat Creation
 - Root cause: "New Chat" in core mode created regular chats, but sidebar only shows SELF_EDIT chats — so chats appeared to fail/vanish
 - Fix: Route "New Chat" through `createSelfEditChat()` when `builderMode === 'core'` (both ProjectHub and LeftPanel)
