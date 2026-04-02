@@ -1,5 +1,11 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Narrow PM Mode — Direct-Edit for Medium-Safe Builds
+- Widened `isSimpleFrontendEdit` to catch dashboards, settings screens, profiles, navbars, modals, tables, heroes, galleries, forms, cards, banners, etc.
+- Added `isLargeAppBuild()` — only triggers PM mode for full apps, multi-page, SaaS, CRM, marketplace, auth+billing combos
+- PM mode no longer fires for "build a dashboard" or "build a pricing page" — those go straight to direct-edit
+- Classification chain: PROCEED → DIRECT-EDIT → PM MODE → NORMAL
+
 ## 2026-04-02: Project Manager Conversational Mode + UI Jargon Cleanup
 - Added `isProceedSignal()` in `intents.js` — detects explicit "go ahead" / "build it" signals
 - For build intents without a proceed signal, AI now responds conversationally as a project manager
