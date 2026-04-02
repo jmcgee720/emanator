@@ -1,5 +1,17 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Conversational-Only Default Responses
+- `lib/ai/tool-executor.js` — `formatProposedPlanResponse()`: replaced "## Proposed Plan / File Actions / Grounding Checks" with plain summary + "Ready to go — click Execute"
+- `lib/ai/service.js` — replaced 7 dev-style fallbacks:
+  - "## File Changes / N file(s) ready..." → "Done — I updated N files."
+  - "## Diff Preview" → "Done — N files updated and ready for review."
+  - "## Patch Rejected" (3 occurrences) → "I ran into an issue... Could you try rephrasing?"
+  - "## Task Mode Violation" → "I couldn't complete that request..."
+  - "## Request Mode Violation" → "I had trouble processing..."
+  - "## Discard Blocked" → "I couldn't discard those changes..."
+- `PlanCard.jsx` — rewritten: removed file action cards, file paths, grounding badges, reasoning blocks. Now shows only summary text + Build it / Change something / Cancel buttons
+- Internal planning/validation/diffing untouched — only visible output changed
+
 ## 2026-04-02: Fix Direct-Edit Response Card + Preview Clipping
 - **"Page Updated" card**: Was emitted by `service.js:1147` as `fullContent` fallback when AI produced no text. Replaced with natural sentence: "Done — I built the page in {path} and updated the preview."
 - **Preview clipping root causes**:
