@@ -604,7 +604,7 @@ export default function LeftPanel({
                             <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[rgba(20,20,56,0.5)] to-transparent" />
                           )}
                         </div>
-                        {message.metadata?.proposedPlan && !message.metadata?.proposedPlan?.autoExecute && message.metadata?.planStatus !== 'cancelled' && (
+                        {message.metadata?.proposedPlan && message.metadata?.planStatus !== 'cancelled' && (
                           <div className="mt-3" data-testid={`plan-card-wrapper-${message.id}`}>
                             <PlanCard
                               plan={message.metadata.proposedPlan}

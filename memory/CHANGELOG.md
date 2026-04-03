@@ -1,5 +1,13 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-02: Fix Auto-Execute — Files Saved Before Success Message
+- Root cause: auto-execute was a two-stream problem. Stream 1 emitted success text, then stream 2 (frontend `executePlan`) generated diffs that still needed "Apply". Success fired before files existed.
+- Fix: moved auto-execute to backend. Safe plans (≤3 files, not large app) now run `executePlanStream` inline within `processMessageStream`, save files directly via `saveFiles()`, and only THEN emit success text.
+- `generatedFiles` populated before `done` event → frontend refreshes files + preview automatically
+- Failure path: if execution fails or produces no files, conversational error message shown instead of success
+- Removed frontend auto-execute code (`Dashboard.jsx`) — no longer needed
+- Reverted PlanCard render condition (`LeftPanel.jsx`) — only large plans reach frontend now
+
 ## 2026-04-02: Auto-Execute Safe Plans — No PlanCard for Simple/Medium Requests
 - `lib/ai/service.js` — Plans tagged with `autoExecute: true` when ≤3 file actions AND not `isLargeAppBuild`
 - `Dashboard.jsx` — `onMessageSaved`: auto-executes plans with `autoExecute: true` immediately after save; sets `planStatus: 'executed'` directly
