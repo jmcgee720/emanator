@@ -19,7 +19,7 @@ import requests
 import json
 
 # Test configuration
-BASE_URL = "https://ai-builder-stream.preview.emergentagent.com/api"
+BASE_URL = "https://syntax-error-patch.preview.emergentagent.com/api"
 
 class PermissionAnalysis:
     def __init__(self):

@@ -1,39 +1,37 @@
-<analysis>**original_problem_statement**: The user wants to continuously harden the Emanator AI Builder core system. The main product requirements are resolving bugs in UI persistence, implementing a Core System self-editing architecture, and refining the conversational AI UX (like ChatGPT/Emergent) while keeping the complex planning and diffing engine internal for large-scale tasks. 
+<analysis>**original_problem_statement**: 
+1. Implement preview skeleton loading state for direct-build generation (show a premium dark Aurora skeleton instead of empty state during builds).
+2. Lock Emanator stability and prevent regression by implementing guardrails (direct-build integrity check, tool call enforcement, success message truth, streaming fallback, preview health check, and regression logging).
+3. Fix the Live Preview inline Babel runtime syntax error (generated pages fail to render due to invalid string construction/escaping in  mapping).
+
 PRODUCT REQUIREMENTS:
-1. Fix direct-build file persistence/preview handoff so auto-executed requests actually write files and correctly refresh the preview.
-2. Polish the assistant message UI so it feels like a finished conversational product (clean typography, no heavy cards, no intent badges).
-3. Implement live streaming preview updates during direct-builds so the user sees the page being built in real-time without full reloads.
+- Ensure the direct-build preview transitions smoothly between empty, skeleton (building), and live rendering states.
+- System must self-correct missing files or blank previews during direct-edit, rather than silently failing.
+- The inline Babel transpiler script in the iframe  must safely handle  replacements regardless of quotes, strings, or comments.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?**: A Next.js 14 App Router application. The application contains a polished conversational AI interface (, ) and a streaming backend (). The AI categorizes intents and streams responses, diffs, and file actions. Direct-edit mode now correctly forces  to ensure files are saved.
+**what currently exists?**: A Next.js 14 App Router application serving as a conversational AI builder. It features a polished UI, a direct-edit mode with forced tool calls, live streaming incremental previews (via ), a dark Aurora skeleton loading state, and built-in regression guardrails to auto-retry on failed/empty builds.
 
 **Last working item**: 
-    - Last item agent was working: **Implementing live streaming preview updates during direct-build.** The agent successfully set up the full data pipeline: LLM providers yield ,  throttles and emits  events,  stores this in , and  uses  to update the iframe smoothly without flickering. However, the agent was debugging an issue where the  wasn't reaching the frontend. They realized that the Anthropic model actually uses the  under the hood via the Emergent proxy. The agent *just* patched  to correctly yield the tool argument deltas.
+    - Last item agent was working: **Fixing the Live Preview inline Babel runtime syntax error.** The agent identified that regexes in  used to strip  were corrupting code inside string literals and producing invalid JS (). The agent *just* executed a  patch to use safer regex replacements and properly escape .
     - Status: IN PROGRESS
-    - Agent Testing Done: N (Context ended immediately after patching )
-    - Which testing method agent to use? manual testing by screenshot (or frontend testing agent) to verify progressive rendering in the preview pane.
+    - Agent Testing Done: N (The session ended immediately after the code edit, before any linting or screenshot verification).
+    - Which testing method agent to use? screenshot tool or testing agent (to verify a direct-build page renders without the iframe console throwing a Babel SyntaxError).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Issue 1: Live streaming preview updates not firing
-     - Attempted fixes: Added throttling and partial file parsing in , added  state in , and  injection in . Debugged why deltas were missing and found the proxy uses .
+  Issue 1: Live Preview inline Babel runtime syntax error
+     - Attempted fixes: Replaced the overly broad and unanchored regexes in  ( method) with safer alternatives that don't corrupt string literals. Also fixed missing double-quote escaping for .
      - Next debug checklist: 
-        - Verify if the recent modification to  (yielding ) successfully propagates to .
-        - Send a direct-build prompt (build a contact form page) and monitor the network tab / backend logs for  events.
-        - Check if the 's  successfully calls  to render partial code live.
-     - Why fix this issue and what will be achieved with the fix? Fulfills the user's requirement of seeing the code generated live in the preview pane, providing a premium real-time AI builder experience.
+        - Verify  changes.
+        - Run a direct-build using the prompt composer and capture a screenshot to ensure the iframe renders correctly without throwing a  in the browser console.
+     - Why fix this issue and what will be achieved with the fix? It prevents the live preview from breaking with a blank screen/syntax error when generating valid code that happens to include specific keywords.
      - Status: TESTING PENDING
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
+     - Should Test frontend/backend/both after fix? Frontend
 
 **In progress Task List**:
-  Task 1: Live streaming preview implementation
-     - Where to resume: Start by testing the direct-edit flow. Run a prompt like build a dashboard screen for a crypto app and watch if the preview updates incrementally.
-     - What will be achieved with this? Real-time visual feedback for AI-generated code.
-     - Status: TESTING PENDING
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on something: N/A
+None. All prior tasks from this session (Skeleton loading state, Regression Guardrails, Live Preview pipeline) were completed.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
@@ -41,70 +39,70 @@ PRODUCT REQUIREMENTS:
     - P1: Growth: Add CSV export option.
     Future Tasks:
     - P2: Deploy integration (Vercel/Netlify) — currently mocked.
-    - P2: Refactor  — Breakdown the ~2500 line file into smaller modules.
+    - P2: Refactor  — Breakdown the ~2600 line file into smaller, modular components.
 
 **Completed work in this session**
-- Direct-Build File Persistence & Preview Handoff (DONE): Forced  in direct-edit mode so AI strictly calls /. Guarded success messages so they only emit if files actually saved.
-- Assistant Message UI Polish (DONE): Removed heavy card backgrounds from assistant messages, tightened spacing, removed intent badges, reduced avatar size, and implemented clean  typography.
+- Live streaming preview pipeline (DONE): Fixed  throttling logic, enabled incremental  updates in  to eliminate flickering, and fixed a CSS layout issue with  collapsing iframe heights.
+- Preview Skeleton Loading State (DONE): Implemented a dark Aurora shimmer skeleton during direct-build generation, threaded via  prop through  and  to .
+- Regression Guardrails (DONE): Implemented 6 strict guardrails in  and  ensuring that missing files, missing tool calls, or blank iframe renders immediately trigger internal retries and error overlays.
 
 **Earlier issues found/mentioned but not fixed**
-None
+None.
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Next.js memory thrashing / OOM.
   - Recurrence count: 4+
   - Status: MITIGATED (Restart the supervisor process frontend: ERROR (not running)
-frontend: started if the frontend becomes unresponsive).
+frontend: started if the UI/API becomes unresponsive).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Direct-Edit Mode**: Highly scoped, single-file requests bypass the planner.  is forced.
-- **Live Preview Streaming**: Uses  emitted by providers, throttled by  to emit  SSE events. Frontend  uses  to update iframe HTML without triggering full  reloads (which cause flickering).
+- **Live Preview Streaming**: Uses  emitted by providers.  streams chunks to the frontend.  uses  to update HTML live.
+- **Babel Inline Transpilation**: The app injects a Babel standalone script inside the  iframe to compile raw React/JSX code on the fly into browser-executable JS. This relies on string-replacement of  before Babel parses it.
 
 **key DB schema**
-  - : stores chat sessions. 
-  - : stores project files. The preview relies on updating this DB.
+  - : stores chat sessions
+  - : stores conversation history
+  - : stores project code files.
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
--  (Updated to handle , extract partial files, and emit )
--  (Updated to yield  as chunks arrive)
--  (Added  state for throttling)
--  (Added  listener to iframe for flicker-free live updates)
-- , , ,  (Updated for UI polish)
--  &  (Updated)
+-  (Modified multiple times for postMessage live preview, skeleton states, blank-render health checks, and Babel regex fixes)
+-  (Modified for live streaming throttle fixes and direct-edit integrity/tool call guardrails)
+-  (Modified to pass  state and progressively buffer live preview data)
+-  (Modified to pass  prop)
+-  (Modified to add streaming fallback catch logic)
+-  (Fixed  absolute positioning bug)
 
 **Areas that need refactoring**: 
--  has grown very large (~2600 lines) and complex. Needs modular breakdown.
+-  is incredibly bloated (~2600 lines) and urgently needs refactoring.
 
 **key api endpoints**
-- : Core AI streaming endpoint handling Direct-Edit, Auto-Execute, and  events.
+- : Core AI streaming endpoint handling Direct-Edit, Auto-Execute, Guardrails, and  events.
 
 **Critical Info for New Agent** 
-- The Anthropic provider requests actually route through the Emergent proxy using the  structure under the hood. Changes meant for Claude streaming must be made/verified in .
-- During live preview streaming, DO NOT update the main  array state in . That triggers a full  recomputation and iframe  reload, causing severe flickering. State MUST flow through  and utilize the  method in .
+- You are directly in the middle of a bug fix. The regex patch in  (lines ~186-200 inside  / ) was applied but not tested. You must test this functionality immediately before modifying anything else.
+- The app operates a Next.js custom API server on port 3000 (supervisor: ). The  CRA supervisor process fails immediately—this is expected and harmless.
+- During direct-builds, if the AI fails to write a file or the iframe renders blank, internal guardrails now automatically trigger a retry or flag a visible warning overlay instead of failing silently.
 
 **documents and test reports created in this job**
-  - 
-  - 
-  -  (Passed - Direct Edit Persistence)
-  -  (Passed - UI Polish)
+  -  (Updated)
+  -  (Updated)
+  -  (Passed - Live preview streaming tests)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: Fix the direct-build file persistence / preview handoff...
-2. *Agent*: Traced failure (tool_choice wasn't forced). Applied fixes. Tested.
-3. *User*: proceed.
-4. *Agent*: Updated docs, finished task.
-5. *User*: build a dashboard screen for a fintech app (Agent verified the fix worked).
-6. *User*: Now polish the overall assistant message UI so Emanator feels like a finished conversational product...
-7. *Agent*: Implemented UI polish across 4 files. Tested.
-8. *Agent*: Updated docs, finished task.
-9. *User*: Implement live streaming preview updates during direct-build... Target behavior: preview updates incrementally as the AI generates content.
-10. *Agent*: Modified providers, service.js, stream-handler, and React components to handle  and  updates. Debugging missing deltas when context ended.
+1. *User*: proceed (User authorized initial live streaming fix plan)
+2. *Agent*: Fixed  throttling,  postMessage logic, and  layout. Tested thoroughly. Finished task.
+3. *User*: HARD TASK RESET. Implement preview skeleton loading state for direct-build generation.
+4. *Agent*: Implemented the skeleton in  hooked to . Tested with screenshots. Finished task.
+5. *User*: Lock Emanator stability and prevent regression. Implement guardrails.
+6. *Agent*: Added 6 guardrails including blank preview detection and direct-build retries. Tested. Finished task.
+7. *User*: Fix the Live Preview inline Babel runtime syntax error. (PENDING)
+8. *Agent*: Analyzed  inline babel generator. Identified regex logic replacing  was corrupting strings. Pushed a  fix. Context ended.
 
 **Project Health Check:**
 Healthy.
@@ -115,7 +113,7 @@ Healthy.
   • Supabase (DB/Auth) — Configured via 
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Iterations 39 & 41 passed 100%)
+  - Testing agent used after significant changes: YES (iteration_42.json generated)
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
@@ -126,14 +124,15 @@ Check
 - Password: 
 
 **What agent forgot to execute**
-The agent modified  to fix the missing  events for the live preview feature, but the context limit was reached before they could verify if the progressive streaming works on the UI. Testing and verification of Task 1 is pending.
+The agent pushed a code fix using  for the Babel runtime  in , but did not run lint, take a screenshot, trigger a fresh build to verify the fix works, or call the finish tool to close the task.
 
 **Debugging checklist for current issue**
-    Issue: Verify Live Streaming Preview feature
-
-    Backend files to check: 
-    -  -> Ensure  correctly yields .
-    -  -> Ensure  catches the delta, parses partial code via , and emits .
+    Issue: Verify Live Preview inline Babel syntax error is resolved.
 
     Frontend files to check: 
-    -  -> Ensure the  listening to  is successfully sending  and the injected script inside the iframe is evaluating the partial HTML/React code.</analysis>
+    -  -> Specifically the  function (lines ~186-200). Ensure the replaced strings properly map  without producing .
+    
+    Steps to verify:
+    - Trigger a direct-build for a React component (e.g., Build a simple counter).
+    - Wait for the build to finish.
+    - Check if the preview iframe renders successfully instead of displaying a red error banner at the bottom or throwing  in the browser console.</analysis>

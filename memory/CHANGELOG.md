@@ -1,5 +1,17 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-03 — Fix Live Preview Babel Runtime SyntaxError (Fork 4)
+
+### Babel Inline Transpilation Regex Fix (COMPLETE)
+- **Root Cause**: Unanchored regexes in `buildReactPreview()` (PreviewTab.jsx) were matching `export default` inside string literals and comments, corrupting code and producing invalid JS (e.g., `function $1;`).
+- **Fix**: Anchored all `export` replacement regexes to line start (`^\s*...` with `gm` flag) so they only match actual export statements. Added `safeMod` escaping for module names containing backslashes or double quotes.
+- **Verified**: 8/8 unit tests pass (basic exports, string preservation, class exports, named exports, special chars, indented exports, no broken $1 pattern, valid JS output). Live preview renders correctly in browser with no SyntaxErrors.
+
+### Files Modified
+- `/app/components/dashboard/tabs/PreviewTab.jsx` — Lines 186-197: Regex anchoring + safeMod escaping
+
+---
+
 ## 2026-04-03 — Live Streaming Preview & CSS Layout Fix (Fork 3)
 
 ### Live Streaming Preview Updates (COMPLETE)
