@@ -544,7 +544,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 // ═══════════════════════════════════════════════════════════════════
 // Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
-export default function PreviewTab({ project, files, onLog, livePreviewData }) {
+export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   const [iframeErrors, setIframeErrors] = useState([])
@@ -756,6 +756,63 @@ export default function PreviewTab({ project, files, onLog, livePreviewData }) {
   }
 
   if (projectInfo.type === 'empty' && !livePreviewData) {
+    // Building state → premium skeleton
+    if (isBuilding) {
+      return (
+        <div className="h-full flex flex-col bg-[#0C1018] overflow-hidden" data-testid="preview-building-skeleton">
+          <style>{`
+            @keyframes em-shimmer {
+              0% { background-position: -400px 0; }
+              100% { background-position: 400px 0; }
+            }
+            .em-skel {
+              background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(0,229,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+              background-size: 800px 100%;
+              animation: em-shimmer 2s ease-in-out infinite;
+              border-radius: 6px;
+            }
+          `}</style>
+          {/* Navbar skeleton */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-white/5">
+            <div className="em-skel w-7 h-7 rounded-md" />
+            <div className="em-skel h-3 w-24" />
+            <div className="flex-1" />
+            <div className="em-skel h-3 w-14" />
+            <div className="em-skel h-3 w-14" />
+            <div className="em-skel h-3 w-14" />
+            <div className="em-skel h-8 w-20 rounded-full" />
+          </div>
+          {/* Hero skeleton */}
+          <div className="flex flex-col items-center gap-4 pt-16 pb-10 px-8">
+            <div className="em-skel h-3 w-28 rounded-full" />
+            <div className="em-skel h-7 w-80 mt-2" />
+            <div className="em-skel h-4 w-64 mt-1" />
+            <div className="em-skel h-3 w-48 mt-1" />
+            <div className="flex gap-3 mt-5">
+              <div className="em-skel h-9 w-28 rounded-full" />
+              <div className="em-skel h-9 w-28 rounded-full" style={{ opacity: 0.5 }} />
+            </div>
+          </div>
+          {/* Content blocks skeleton */}
+          <div className="grid grid-cols-3 gap-4 px-8 mt-4">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="rounded-lg border border-white/5 bg-white/[0.015] p-5 flex flex-col gap-3" style={{ animationDelay: `${i * 150}ms` }}>
+                <div className="em-skel w-9 h-9 rounded-lg" style={{ animationDelay: `${i * 150}ms` }} />
+                <div className="em-skel h-4 w-3/4" style={{ animationDelay: `${i * 150}ms` }} />
+                <div className="em-skel h-3 w-full" style={{ animationDelay: `${i * 150}ms` }} />
+                <div className="em-skel h-3 w-5/6" style={{ animationDelay: `${i * 150}ms` }} />
+              </div>
+            ))}
+          </div>
+          {/* Generating label */}
+          <div className="flex items-center justify-center gap-2 mt-auto pb-6 text-xs text-cyan-400/60">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Building preview...
+          </div>
+        </div>
+      )
+    }
+    // True empty state — no build in progress
     return (
       <div className="h-full flex flex-col items-center justify-center bg-background text-muted-foreground gap-3" data-testid="preview-no-files">
         <FileCode className="w-10 h-10 opacity-30" />
