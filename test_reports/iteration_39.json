@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-04-03T15:45:00.000Z",
+  "iteration": 39,
+  "summary": "Tested auto-execute / direct-edit file persistence and preview handoff for Emanator AI Builder. All 9 test cases PASSED. The P0 fix is working correctly: proposedPlan = null is set after auto-execute, preventing PlanCard from showing for auto-executed requests.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "frontend_tests": {
+      "features_tested": [
+        {"feature": "Login with test credentials (testprov@test.com / password123)", "status": "PASS"},
+        {"feature": "Open 'Build a hello world page' project", "status": "PASS"},
+        {"feature": "Direct-edit response 'Done — I built the page in app/page.jsx' is visible", "status": "PASS"},
+        {"feature": "Preview tab shows 'React (Babel) + Tailwind' mode label", "status": "PASS", "details": "Mode label text: 'React (Babel) + Tailwind'"},
+        {"feature": "Preview iframe renders content (not 'No preview available yet')", "status": "PASS", "details": "Iframe #root innerHTML length: 1408 chars"},
+        {"feature": "No PlanCard shown for auto-executed 'Done — I built' message", "status": "PASS", "details": "The auto-executed message has no PlanCard wrapper. The 1 PlanCard found is from the OLD 'Build a hello world page' request."},
+        {"feature": "Preview iframe #root contains actual component content", "status": "PASS", "details": "Found: 'DashboardHomeProfileSettingsLogout10K+Active Users99.9%Uptime$2M+RevenueActivity Overview'"},
+        {"feature": "Files API returns app/page.jsx file with content", "status": "PASS", "details": "page.jsx file found in files list"},
+        {"feature": "No error banner or error count in preview tab", "status": "PASS"}
+      ],
+      "p0_fix_verification": {
+        "description": "After auto-execute succeeds or fails, proposedPlan = null is set in service.js to prevent PlanCard from showing",
+        "code_location": "/app/lib/ai/service.js lines 1206-1214",
+        "verified": true,
+        "evidence": "The 'Done — I built the page in app/page.jsx' message does NOT have a PlanCard wrapper, while the OLD 'Build a hello world page' request still shows its PlanCard (expected behavior)"
+      },
+      "preview_content_verification": {
+        "mode_label": "React (Babel) + Tailwind",
+        "iframe_root_content": "DashboardHomeProfileSettingsLogout10K+Active Users99.9%Uptime$2M+RevenueActivity Overview© 2023 Dashboard Inc.",
+        "content_length": 1408,
+        "has_dashboard": true,
+        "has_active_users": true,
+        "has_uptime": true,
+        "has_revenue": true
+      }
+    }
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_39.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only test)",
+    "frontend": "100% (9/9 features verified)"
+  },
+  "test_credentials": "testprov@test.com / password123",
+  "seed_data_creation": "None - used existing 'Build a hello world page' project with ID 5d73b561-3300-4c3d-9b6b-c6476ce45a33",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auto-execute / direct-edit file persistence and preview handoff fully tested and working. Key findings: (1) The P0 fix in service.js lines 1206-1214 correctly sets proposedPlan = null after auto-execute, preventing PlanCard from showing. (2) Preview iframe renders React/Babel/Tailwind content correctly with dashboard components. (3) Files are persisted to DB and visible in files tab. (4) The OLD PlanCard from the first 'Build a hello world page' request is expected to still show - only NEW auto-executed requests should not show PlanCard."
+}
