@@ -74,12 +74,12 @@ export default function RightPanel({
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-hidden min-h-0">
-          <TabsContent value="preview" className="h-full m-0 p-0">
+        <div className="flex-1 overflow-hidden min-h-0 relative">
+          <TabsContent value="preview" className="absolute inset-0 m-0 p-0" style={{height: '100%'}}>
             <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} />
           </TabsContent>
           
-          <TabsContent value="code" className="h-full m-0 p-0">
+          <TabsContent value="code" className="absolute inset-0 m-0 p-0 overflow-auto">
             <CodeTab
               project={selectedProject}
               files={files}
@@ -90,22 +90,22 @@ export default function RightPanel({
             />
           </TabsContent>
           
-          <TabsContent value="assets" className="h-full m-0 p-0">
+          <TabsContent value="assets" className="absolute inset-0 m-0 p-0 overflow-auto">
             <AssetsTab projectId={selectedProject.id} onOpenVariationStudio={onOpenVariationStudio} refreshKey={assetsRefreshKey} />
           </TabsContent>
           
-          <TabsContent value="logs" className="h-full m-0 p-0">
+          <TabsContent value="logs" className="absolute inset-0 m-0 p-0 overflow-auto">
             <LogsTab logs={logs} />
           </TabsContent>
           
-          <TabsContent value="export" className="h-full m-0 p-0">
+          <TabsContent value="export" className="absolute inset-0 m-0 p-0 overflow-auto">
             <ExportTab
               project={selectedProject}
               addLog={addLog}
             />
           </TabsContent>
           
-          <TabsContent value="deploy" className="h-full m-0 p-0">
+          <TabsContent value="deploy" className="absolute inset-0 m-0 p-0 overflow-auto">
             <DeployTab
               project={selectedProject}
               addLog={addLog}

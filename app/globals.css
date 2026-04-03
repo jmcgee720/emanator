@@ -484,6 +484,9 @@ input:-webkit-autofill:active {
   overflow: hidden;
   background: #0C1018;
 }
+/* Allow explicit absolute positioning to override em-aurora's relative */
+.em-aurora.absolute { position: absolute; }
+.em-aurora.fixed { position: fixed; }
 
 
 /* Containment — soft vignette for curtain formations */
