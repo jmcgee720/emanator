@@ -1,44 +1,53 @@
 # Emanator AI Builder — Product Requirements
 
 ## Original Problem Statement
-Build and continuously harden the Emanator AI Builder core system. Key goals:
-1. Inject real project file index into all AI prompts (Grounding Injection)
-2. Direct-edit mode for simple single-page frontend requests
-3. Suppress internal agent jargon from user-facing chats
-4. Auto-execute medium-safe plans inline without PlanCard
-5. PM Mode (Approval UI) reserved for large/risky tasks
-6. Ensure auto-executed direct-build requests write files and refresh preview
-7. Polish assistant message UI to feel like a finished conversational product
+Continuously harden the Emanator AI Builder core system:
+1. Fix direct-build file persistence/preview handoff (**DONE**)
+2. Polish assistant message UI (**DONE**)
+3. Implement live streaming preview updates during direct-builds (**DONE**)
 
 ## Architecture
-- Next.js 14 App Router
-- Supabase (Auth + DB)
-- OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key
-- Stripe for payments
+```
+/app (Next.js 14 App Router)
+├── app/api/[[...path]]/route.js     # Pure dispatcher
+├── lib/
+│   ├── ai/
+│   │   ├── service.js               # Core AI orchestrator (~2600 lines)
+│   │   ├── providers/
+│   │   │   ├── openai.js            # OpenAI/Proxy provider (tool_args_delta)
+│   │   │   └── anthropic.js         # Anthropic provider
+│   ├── api/
+│   │   └── stream-handler.js        # SSE event relay
+│   └── stream-client.js             # Frontend SSE parser
+├── components/dashboard/
+│   ├── Dashboard.jsx                # State orchestrator
+│   ├── LeftPanel.jsx                # Chat messages UI
+│   ├── RightPanel.jsx               # Tab layout
+│   └── tabs/PreviewTab.jsx          # Iframe preview
+```
 
-### Key Files
-- `/app/lib/ai/service.js` — Core AI orchestrator (~2500 lines)
-- `/app/lib/ai/intents.js` — Intent classification (direct-edit, auto-execute, PM mode)
-- `/app/lib/api/stream-handler.js` — SSE streaming + DB persistence
-- `/app/components/dashboard/Dashboard.jsx` — Frontend state orchestrator
-- `/app/components/dashboard/LeftPanel.jsx` — Message rendering, PlanCard
-- `/app/components/dashboard/MessageRenderer.jsx` — Markdown prose styling
-- `/app/components/dashboard/MessageActions.jsx` — Copy, regen, thumbs, collapse
-- `/app/components/dashboard/tabs/PreviewTab.jsx` — iframe preview
+## Key Technical Concepts
+- **Direct-Edit Mode**: Single-file scoped requests. `tool_choice` forced to `create_files`/`update_files`.
+- **Live Preview Streaming**: `tool_args_delta` → length-based throttle (300 chars) → `preview_partial` SSE → progressive buffer (200ms drain) → postMessage iframe updates.
+- **CSS Fix**: `.em-aurora.absolute { position: absolute; }` overrides the base `.em-aurora { position: relative; }`.
 
-## What's Implemented
-- Grounding Injection (real file index in prompts)
-- Direct-Edit Mode (single-page edits bypass planner)
-- Core System Chat Fix (Self-Edit routing)
-- Conversational UI Cleanup (no jargon)
-- Preview Height Fix (flex/iframe layout)
-- PlanCard Suppression for auto-executed plans
-- Auto-Execute File Persistence + Preview Refresh (P0 fix)
-- Direct-Edit tool_choice enforcement (P0 fix)
-- **Assistant Message UI Polish** (Apr 2026)
+## Completed (All Tested)
+- [x] Direct-Build File Persistence & Preview Handoff
+- [x] Assistant Message UI Polish
+- [x] Live Streaming Preview Updates
+- [x] Preview iframe height fix (em-aurora CSS specificity)
 
-## Upcoming Tasks
-- P1: Phase 2-5 conversational AI architecture (Intent Detection, Task Scope, Silent Validation, Learning)
-- P1: CSV export for Growth panel
-- P2: Deploy integration (Vercel/Netlify) — currently mocked
-- Refactor: service.js breakdown (~2500 lines)
+## P1 — Upcoming
+- [ ] Phase 2-5 conversational AI architecture
+- [ ] CSV export for Growth panel
+
+## P2 — Future
+- [ ] Deploy integration (Vercel/Netlify) — currently mocked
+- [ ] Refactor service.js (~2600 lines → modular breakdown)
+- [ ] Core System self-editing architecture
+- [ ] Growth analytics panel
+
+## 3rd Party Integrations
+- OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key (Proxy)
+- Stripe (Payments) via Emergent Test Key
+- Supabase (DB/Auth) via .env
