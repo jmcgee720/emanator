@@ -31,6 +31,7 @@ export default function RightPanel({
   assetsRefreshKey,
   livePromoteState,
   setLivePromoteState,
+  livePreviewData,
 }) {
 
   if (!selectedProject) {
@@ -75,7 +76,7 @@ export default function RightPanel({
 
         <div className="flex-1 overflow-hidden min-h-0">
           <TabsContent value="preview" className="h-full m-0 p-0">
-            <PreviewTab project={selectedProject} files={files} onLog={addLog} />
+            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} />
           </TabsContent>
           
           <TabsContent value="code" className="h-full m-0 p-0">

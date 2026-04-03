@@ -8,7 +8,7 @@ import ssl
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://file-persistence-fix-1.preview.emergentagent.com"
+BASE_URL = "https://ai-builder-stream.preview.emergentagent.com"
 TEST_CREDENTIALS = {"email": "testprov@test.com", "password": "password123"}
 
 class VariationStudioBackendTester:

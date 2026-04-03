@@ -3,7 +3,7 @@
  * Tests the critical API endpoints for self-modification safety
  */
 
-const BASE_URL = 'https://file-persistence-fix-1.preview.emergentagent.com'
+const BASE_URL = 'https://ai-builder-stream.preview.emergentagent.com'
 const SELF_EDIT_PREFIX = '⚙ Self-Edit: '
 
 describe('Phase 12 Step 9 — Backend API Proof Tests', () => {

@@ -1,125 +1,121 @@
-<analysis>**original_problem_statement**: The user wants to continuously harden the Emanator AI Builder core system. The immediate focus is resolving bugs in UI persistence (rename flows, chat creation) and implementing a Core System self-editing architecture allowing Emanator to safely edit its own source code via a Draft → Preview → Apply to Live model. Most recently, the user requested the implementation of grounding injection to pass project context and a strict file index into all AI service calls.
-PRODUCT REQUIREMENTS: 
-1. Fix all optimistic UI state bugs (Project/Chat renames reverting).
-2. Build the Core System self-editing workflow (drafts live in DB, Apply to Live writes to the  disk).
-3. Inject the real project file index into all AI prompts to ground the LLM and prevent file path hallucinations.
+<analysis>**original_problem_statement**: The user wants to continuously harden the Emanator AI Builder core system. The main product requirements are resolving bugs in UI persistence, implementing a Core System self-editing architecture, and refining the conversational AI UX (like ChatGPT/Emergent) while keeping the complex planning and diffing engine internal for large-scale tasks. 
+PRODUCT REQUIREMENTS:
+1. Fix direct-build file persistence/preview handoff so auto-executed requests actually write files and correctly refresh the preview.
+2. Polish the assistant message UI so it feels like a finished conversational product (clean typography, no heavy cards, no intent badges).
+3. Implement live streaming preview updates during direct-builds so the user sees the page being built in real-time without full reloads.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
-**what currently exists?**: A Next.js 14 App Router application. Phase 2 route modularization is completely finished ( is now a pure dispatcher of 120 lines). The frontend has been hardened with explicit Save/Cancel rename controls. A new  backend route exists that takes Core System drafts from the database () and safely writes them to the local Next.js disk () after taking a rollback snapshot.
+**what currently exists?**: A Next.js 14 App Router application. The application contains a polished conversational AI interface (, ) and a streaming backend (). The AI categorizes intents and streams responses, diffs, and file actions. Direct-edit mode now correctly forces  to ensure files are saved.
 
 **Last working item**: 
-    - Last item agent was working: **Implementing Grounding Injection into all AI calls**. The user requested that a system context block (containing project id, name, mode, and full file index) be injected into the system prompt *before* every AI call to prevent the AI from hallucinating files. The agent had just inspected  but did not yet apply the patch.
+    - Last item agent was working: **Implementing live streaming preview updates during direct-build.** The agent successfully set up the full data pipeline: LLM providers yield ,  throttles and emits  events,  stores this in , and  uses  to update the iframe smoothly without flickering. However, the agent was debugging an issue where the  wasn't reaching the frontend. They realized that the Anthropic model actually uses the  under the hood via the Emergent proxy. The agent *just* patched  to correctly yield the tool argument deltas.
     - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? manual testing by curl/ python -c / backend testing agent. (Must verify that the prompt injection successfully retrieves and passes the  data).
+    - Agent Testing Done: N (Context ended immediately after patching )
+    - Which testing method agent to use? manual testing by screenshot (or frontend testing agent) to verify progressive rendering in the preview pane.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Issue 1: Implement grounding injection in AI Service (P0)
-     - Attempted fixes: The agent successfully located  methods (, , ) but context ran out before patching.
+  Issue 1: Live streaming preview updates not firing
+     - Attempted fixes: Added throttling and partial file parsing in , added  state in , and  injection in . Debugged why deltas were missing and found the proxy uses .
      - Next debug checklist: 
-        - Modify  to fetch or receive the  data.
-        - Construct the required block: 
-        - Prepend this block to the  payload sent to the LLM.
-     - Why fix this issue and what will be achieved with the fix? It prevents the AI from inventing non-existent file paths during planning and code generation.
-     - Status: IN PROGRESS
+        - Verify if the recent modification to  (yielding ) successfully propagates to .
+        - Send a direct-build prompt (build a contact form page) and monitor the network tab / backend logs for  events.
+        - Check if the 's  successfully calls  to render partial code live.
+     - Why fix this issue and what will be achieved with the fix? Fulfills the user's requirement of seeing the code generated live in the preview pane, providing a premium real-time AI builder experience.
+     - Status: TESTING PENDING
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Backend (verify AI requests generate correctly).
-     - Blocked on other issue: None
+     - Should Test frontend/backend/both after fix? Both
 
-**In progress Task List**: 
-  Task 1: Complete Grounding Injection for AI Calls
-     - Where to resume: Open . Modify the AI call wrappers to inject the file index context block as outlined in the user's prompt. 
-     - What will be achieved with this? Conversational code editing becomes strictly grounded in actual workspace files.
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: None
+**In progress Task List**:
+  Task 1: Live streaming preview implementation
+     - Where to resume: Start by testing the direct-edit flow. Run a prompt like build a dashboard screen for a crypto app and watch if the preview updates incrementally.
+     - What will be achieved with this? Real-time visual feedback for AI-generated code.
+     - Status: TESTING PENDING
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: N/A
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
     - P1: Implement Phase 2-5 of the conversational AI architectural design (Intent Detection, Task Scope Classification, Silent Validation Retries, and Learning System).
-    - P1: Growth: Add CSV export option (from previous handoff).
+    - P1: Growth: Add CSV export option.
     Future Tasks:
     - P2: Deploy integration (Vercel/Netlify) — currently mocked.
+    - P2: Refactor  — Breakdown the ~2500 line file into smaller modules.
 
 **Completed work in this session**
-- Complete Phase 2 Modularization of  (Step 21 & Step 22 Audit) (DONE)
-- Remove Delete All button and cleanup modal from  (DONE)
-- Fix optimistic UI state updates so project/chat renames persist on refresh (DONE)
-- Replace blur/implicit save with explicit Save/Cancel UI for project/chat renames (DONE)
-- Fix JSON.parse crash bug on New Chat creation by utilizing safe  parsing (DONE)
-- Create  with  and  endpoints (DONE)
-- Add Apply to Live and Rollback buttons to  +  status to  (DONE)
-- Fix Core System button lookup to reliably use  atomically (DONE)
+- Direct-Build File Persistence & Preview Handoff (DONE): Forced  in direct-edit mode so AI strictly calls /. Guarded success messages so they only emit if files actually saved.
+- Assistant Message UI Polish (DONE): Removed heavy card backgrounds from assistant messages, tightened spacing, removed intent badges, reduced avatar size, and implemented clean  typography.
 
 **Earlier issues found/mentioned but not fixed**
-   - None. (All reported UI state/persistence bugs were resolved).
+None
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Next.js memory thrashing / OOM.
   - Recurrence count: 4+
   - Status: MITIGATED (Restart the supervisor process frontend: ERROR (not running)
-frontend: started if the frontend becomes unresponsive during testing).
+frontend: started if the frontend becomes unresponsive).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Core System Edit Mode**: Projects with  are treated as self-edits of Emanator itself. Drafts accumulate in the  DB table.
-- **Live Promote ()**: Converts DB drafts into actual filesystem writes at , with a pre-write  backup for rollback.
-- **Strict Route Ordering**: Phase 2 routes in  depend on precise array evaluation order (e.g.,  must be last).
+- **Direct-Edit Mode**: Highly scoped, single-file requests bypass the planner.  is forced.
+- **Live Preview Streaming**: Uses  emitted by providers, throttled by  to emit  SSE events. Frontend  uses  to update iframe HTML without triggering full  reloads (which cause flickering).
 
 **key DB schema**
-  - : core entities.  JSONB column stores  for the Emanator source project.
-  - : stores both standard project files and the draft state of the Core System edits.
-  - : stores pre-promote disk backups of Emanator source code.
+  - : stores chat sessions. 
+  - : stores project files. The preview relies on updating this DB.
 
 **changes in tech stack**
-  - None.
+  - None
 
 **All files of reference** 
--  (Must be edited next)
--  (Created in this session)
--  (Modified heavily)
--  (Modified heavily)
+-  (Updated to handle , extract partial files, and emit )
+-  (Updated to yield  as chunks arrive)
+-  (Added  state for throttling)
+-  (Added  listener to iframe for flicker-free live updates)
+- , , ,  (Updated for UI polish)
+-  &  (Updated)
 
 **Areas that need refactoring**: 
-- None currently. Route dispatcher is highly optimized.
+-  has grown very large (~2600 lines) and complex. Needs modular breakdown.
 
 **key api endpoints**
-- : Writes DB drafts to  disk.
-- : Reverts disk to snapshot.
-- : Returns raw file tree layout.
+- : Core AI streaming endpoint handling Direct-Edit, Auto-Execute, and  events.
 
 **Critical Info for New Agent** 
-- **DO NOT REVERT**: The codebase was heavily refactored successfully in this session.
-- **Safety**: Do NOT alter the  logic in . It prevents path traversal during disk writes.
-- The immediate next task is modifying the  payload generation. You must retrieve the file index (likely utilizing ) and inject it seamlessly into the LLM .
+- The Anthropic provider requests actually route through the Emergent proxy using the  structure under the hood. Changes meant for Claude streaming must be made/verified in .
+- During live preview streaming, DO NOT update the main  array state in . That triggers a full  recomputation and iframe  reload, causing severe flickering. State MUST flow through  and utilize the  method in .
 
 **documents and test reports created in this job**
-  - None created explicitly in this job, but  remains relevant.
+  - 
+  - 
+  -  (Passed - Direct Edit Persistence)
+  -  (Passed - UI Polish)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: Start Option A: system hardening... Add a project file index system. (Agent found it already existed).
-2. *User*: ARCHITECTURE ONLY... Design the self-editing Core System workflow. (Agent designed Draft -> Preview -> Apply).
-3. *User*: Implement promote-to-live endpoint. (Agent built ).
-4. *User*: Implement the Core System Apply / Rollback UI. (Agent added buttons to CodeTab and status to ProjectHub).
-5. *User*: Core System button goes back to Emanator Backend... (Agent fixed the  flag persistence).
-6. *User*: Still wrong... location of the core system was switched. (Agent fixed the Core System Workspace generation and cleanup of orphaned core projects).
-7. *User*: Design Emanator as a fully conversational coding AI... (Agent output architecture).
-8. *User (PENDING)*: Implement grounding injection into all AI calls. Ensure the AI always knows the real project structure. (Agent checked  but did not patch).
+1. *User*: Fix the direct-build file persistence / preview handoff...
+2. *Agent*: Traced failure (tool_choice wasn't forced). Applied fixes. Tested.
+3. *User*: proceed.
+4. *Agent*: Updated docs, finished task.
+5. *User*: build a dashboard screen for a fintech app (Agent verified the fix worked).
+6. *User*: Now polish the overall assistant message UI so Emanator feels like a finished conversational product...
+7. *Agent*: Implemented UI polish across 4 files. Tested.
+8. *Agent*: Updated docs, finished task.
+9. *User*: Implement live streaming preview updates during direct-build... Target behavior: preview updates incrementally as the AI generates content.
+10. *Agent*: Modified providers, service.js, stream-handler, and React components to handle  and  updates. Debugging missing deltas when context ended.
 
 **Project Health Check:**
 Healthy.
 
 **3rd Party Integrations** 
-  • OpenAI GPT-4o / Anthropic Claude — uses Emergent LLM Key
+  • OpenAI GPT-4o / Anthropic Claude — uses Emergent LLM Key (via Proxy)
   • Stripe (Payments) — uses Emergent Test Key
   • Supabase (DB/Auth) — Configured via 
 
 **Testing status**
-  - Testing agent used after significant changes: NO
+  - Testing agent used after significant changes: YES (Iterations 39 & 41 passed 100%)
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
@@ -130,4 +126,14 @@ Check
 - Password: 
 
 **What agent forgot to execute**
-The agent inspected  for the Implement grounding injection into all AI calls task, but the context window ended before the patch was written. The new agent must immediately inject the file index context block into  inside .</analysis>
+The agent modified  to fix the missing  events for the live preview feature, but the context limit was reached before they could verify if the progressive streaming works on the UI. Testing and verification of Task 1 is pending.
+
+**Debugging checklist for current issue**
+    Issue: Verify Live Streaming Preview feature
+
+    Backend files to check: 
+    -  -> Ensure  correctly yields .
+    -  -> Ensure  catches the delta, parses partial code via , and emits .
+
+    Frontend files to check: 
+    -  -> Ensure the  listening to  is successfully sending  and the injected script inside the iframe is evaluating the partial HTML/React code.</analysis>

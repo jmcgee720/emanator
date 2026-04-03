@@ -68,6 +68,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [selectedChat, setSelectedChat] = useState(null)
   const [messages, setMessages] = useState([])
   const [files, setFiles] = useState([])
+  const [livePreviewData, setLivePreviewData] = useState(null)
   const [projectFileIndex, setProjectFileIndex] = useState({})
   const [canvas, setCanvas] = useState(null)
   const [livePromoteState, setLivePromoteState] = useState({ snapshotId: null, lastApply: null })
@@ -1026,6 +1027,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           addLog('info', `Diff ready: ${data.action} ${data.path}`)
         },
 
+        onPreviewPartial: (data) => {
+          // Send live preview data for postMessage updates (no srcdoc reload)
+          if (!data?.path || !data?.content) return
+          setLivePreviewData(data)
+          setActiveTab('preview')
+        },
+
         onImageGenerated: (data) => {
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
@@ -1270,6 +1278,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setStreamingStatus(null)
 
           if (data.generatedFiles?.length > 0 && !diffs?.length) {
+            setLivePreviewData(null)  // Clear streaming preview — final files coming
             const filesResponse = await authFetch(`/api/projects/${selectedProject.id}/files`)
             const filesData = await filesResponse.json()
             setFiles(Array.isArray(filesData) ? filesData : [])
@@ -2886,6 +2895,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   assetsRefreshKey={assetsRefreshKey}
                   livePromoteState={livePromoteState}
                   setLivePromoteState={setLivePromoteState}
+                  livePreviewData={livePreviewData}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>

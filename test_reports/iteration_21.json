@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-03-19T15:08:36.960666",
   "test_suite": "Intent Classification Routing Fix",
-  "app_url": "https://file-persistence-fix-1.preview.emergentagent.com",
+  "app_url": "https://ai-builder-stream.preview.emergentagent.com",
   "auth": "testprov@test.com / password123",
   "iteration": 21,
   "tests": {

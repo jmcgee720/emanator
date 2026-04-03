@@ -218,12 +218,28 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     assembledCode,
     'try {',
     "  var _Entry = window.__COMPONENTS__['" + safeEntryName + "'] || window.__COMPONENTS__['App'] || Object.values(window.__COMPONENTS__)[0];",
-    '  if (_Entry) { createRoot(document.getElementById("root")).render(createElement(_Entry)); }',
+    '  if (_Entry) { window.__root__ = createRoot(document.getElementById("root")); window.__root__.render(createElement(_Entry)); }',
     "  else { document.getElementById('root').innerHTML = '<div style=\"padding:2rem;color:#888;font-family:system-ui;\">No renderable component found. Files: " + safeDebugFiles + "</div>'; }",
     '} catch (_e) {',
     "  document.getElementById('root').innerHTML = '<div style=\"padding:2rem;color:#ef4444;font-family:monospace;white-space:pre-wrap;\">Render Error: ' + _e.message + '</div>';",
     "  window.parent.postMessage({ type: '__PREVIEW_ERROR__', error: _e.message, stack: _e.stack }, '*');",
     '}',
+    // ── Live update listener for streaming preview ──
+    'window.addEventListener("message", function(e) {',
+    '  if (!e.data || e.data.type !== "live_update") return;',
+    '  try {',
+    '    window.__COMPONENTS__ = {};',
+    '    var _code = e.data.code;',
+    '    _code = _code.replace(/^\\s*import\\s+.*/gm, "");',
+    '    _code = _code.replace(/export\\s+default\\s+function\\s+/gm, "window.__COMPONENTS__[\\"" + e.data.entryName + "\\"] = function ");',
+    '    _code = _code.replace(/export\\s+default\\s+/gm, "window.__COMPONENTS__[\\"" + e.data.entryName + "\\"] = ");',
+    '    _code = _code.replace(/export\\s+(const|let|var|function|class)\\s+/gm, "$1 ");',
+    '    var _t = Babel.transform(_code, { presets: ["react"] }).code;',
+    '    eval(_t);',
+    '    var _C = window.__COMPONENTS__[e.data.entryName] || Object.values(window.__COMPONENTS__)[0];',
+    '    if (_C && window.__root__) { window.__root__.render(createElement(_C)); }',
+    '  } catch(_err) { /* ignore errors during streaming — code is partial */ }',
+    '});',
     '<\/script></body></html>'
   ].join('\n')
 
@@ -528,7 +544,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 // ═══════════════════════════════════════════════════════════════════
 // Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
-export default function PreviewTab({ project, files, onLog }) {
+export default function PreviewTab({ project, files, onLog, livePreviewData }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   const [iframeErrors, setIframeErrors] = useState([])
@@ -636,6 +652,53 @@ export default function PreviewTab({ project, files, onLog }) {
     return { previewHtml: html, projectInfo: info, buildLog: log }
   }, [files, refreshKey, isNodeProject])
 
+  // ── Live streaming preview via postMessage ──
+  // When livePreviewData arrives during streaming, send it to the iframe
+  // via postMessage for smooth updates without iframe reload.
+  const livePreviewSentRef = useRef(false)
+  useEffect(() => {
+    if (!livePreviewData?.content) {
+      livePreviewSentRef.current = false
+      return
+    }
+    const iframe = iframeRef.current
+    if (!iframe?.contentWindow) return
+
+    // Compute the entry name from the file path
+    const entryName = livePreviewData.path
+      .replace(/^\.\//, '')
+      .replace(/\.(jsx|tsx|js|ts)$/, '')
+      .split('/')
+      .pop() || 'page'
+
+    iframe.contentWindow.postMessage({
+      type: 'live_update',
+      code: livePreviewData.content,
+      entryName
+    }, '*')
+    livePreviewSentRef.current = true
+  }, [livePreviewData])
+
+  // If livePreviewData arrives but there's no previewHtml yet (empty project),
+  // generate a shell with CDN scripts + message listener so postMessage works.
+  const effectivePreviewHtml = useMemo(() => {
+    if (previewHtml) return previewHtml
+    if (!livePreviewData?.content) return null
+    // Build a minimal React preview shell with the initial partial content
+    const shellInfo = {
+      type: 'react',
+      jsxFiles: [{ path: livePreviewData.path, content: livePreviewData.content }],
+      cssFiles: [],
+      jsFiles: [],
+      tsFiles: [],
+      htmlFiles: [],
+      usesTailwind: livePreviewData.content.includes('className'),
+      usesShadcn: false,
+    }
+    return buildReactPreview(shellInfo)
+  }, [previewHtml, livePreviewData])
+
+
   const handleRefresh = useCallback(() => {
     setRefreshKey(k => k + 1)
     setIframeErrors([])
@@ -675,7 +738,7 @@ export default function PreviewTab({ project, files, onLog }) {
     return <NodePreviewRunner project={project} files={files} onLog={onLog} />
   }
 
-  if (projectInfo.type === 'empty') {
+  if (projectInfo.type === 'empty' && !livePreviewData) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-background text-muted-foreground gap-3" data-testid="preview-no-files">
         <FileCode className="w-10 h-10 opacity-30" />
@@ -718,7 +781,7 @@ export default function PreviewTab({ project, files, onLog }) {
     )
   }
 
-  if (!previewHtml) {
+  if (!effectivePreviewHtml) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-background text-muted-foreground gap-3" data-testid="preview-render-error">
         <AlertCircle className="w-10 h-10 text-red-400 opacity-60" />
@@ -737,7 +800,8 @@ export default function PreviewTab({ project, files, onLog }) {
     )
   }
 
-  const modeLabel = projectInfo.type === 'react' ? 'React (Babel)' :
+  const modeLabel = livePreviewData ? 'Live Preview' :
+    projectInfo.type === 'react' ? 'React (Babel)' :
     projectInfo.type === 'html' ? 'HTML' :
     projectInfo.type === 'js' ? 'JavaScript' :
     projectInfo.type === 'css-only' ? 'CSS Only' : 'Preview'
@@ -803,7 +867,7 @@ export default function PreviewTab({ project, files, onLog }) {
         <iframe
           ref={iframeRef}
           key={refreshKey}
-          srcDoc={previewHtml}
+          srcDoc={effectivePreviewHtml}
           title="Preview"
           sandbox="allow-scripts allow-forms allow-modals allow-popups"
           className="absolute inset-0 w-full h-full border-0"
