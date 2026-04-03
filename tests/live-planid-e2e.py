@@ -7,7 +7,7 @@ import requests, json, time, sys
 
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-API_URL = "https://ai-builder-stream.preview.emergentagent.com"
+API_URL = "https://syntax-error-patch.preview.emergentagent.com"
 
 def get_token():
     r = requests.post(f"{SUPABASE_URL}/auth/v1/token?grant_type=password",

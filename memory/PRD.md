@@ -43,6 +43,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Preview iframe height fix (em-aurora CSS specificity)
 - [x] Preview skeleton loading state
 - [x] Regression guardrails
+- [x] Fix Live Preview inline Babel runtime syntax error (regex anchoring + modName escaping)
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture

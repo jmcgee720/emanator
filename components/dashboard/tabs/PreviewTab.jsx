@@ -183,12 +183,15 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     code = code.replace(/^\s*export\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
     code = code.replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, '')
 
-    code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = class ')
-    code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + modName + '"] = function ')
-    code = code.replace(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g, 'function $1; window.__COMPONENTS__["' + modName + '"] = $1')
-    code = code.replace(/export\s+default\s+class\s+([A-Za-z0-9_]+)/g, 'class $1; window.__COMPONENTS__["' + modName + '"] = $1')
-    code = code.replace(/export\s+default\s+(.+)/g, 'window.__COMPONENTS__["' + modName + '"] = $1')
+    // Escape modName for safe insertion into double-quoted strings
+    const safeMod = modName.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
+    // Transform export default (anchored to line start only — never match inside strings/comments)
+    code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + safeMod + '"] = class ')
+    code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + safeMod + '"] = function ')
+    code = code.replace(/^\s*export\s+default\s+/gm, 'window.__COMPONENTS__["' + safeMod + '"] = ')
+
+    // Strip remaining named exports (anchored to line start)
     code = code.replace(/^\s*export\s+(async\s+function)\s+/gm, '$1 ')
     code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
     code = code.replace(/^\s*export\b.*$/gm, '')
