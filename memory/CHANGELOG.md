@@ -1,105 +1,25 @@
 # Emanator AI Builder — Changelog
 
-## 2026-04-02: Fix Auto-Execute — Files Saved Before Success Message
-- Root cause: auto-execute was a two-stream problem. Stream 1 emitted success text, then stream 2 (frontend `executePlan`) generated diffs that still needed "Apply". Success fired before files existed.
-- Fix: moved auto-execute to backend. Safe plans (≤3 files, not large app) now run `executePlanStream` inline within `processMessageStream`, save files directly via `saveFiles()`, and only THEN emit success text.
-- `generatedFiles` populated before `done` event → frontend refreshes files + preview automatically
-- Failure path: if execution fails or produces no files, conversational error message shown instead of success
-- Removed frontend auto-execute code (`Dashboard.jsx`) — no longer needed
-- Reverted PlanCard render condition (`LeftPanel.jsx`) — only large plans reach frontend now
+## 2026-04-03 — Auto-Execute File Persistence Fix (P0)
+- **Fixed**: Direct-edit and auto-execute now properly save files to DB and refresh the preview
+- **Fixed**: `proposedPlan` cleared after auto-execute → PlanCard no longer shows for auto-executed/direct-edited requests
+- **Added**: Debug logging in `service.js` (`[Done]`) and `stream-handler.js` (`[StreamHandler]`) for data flow tracing
+- **Verified**: 9/9 frontend tests passed — files persist, preview renders React/Babel/Tailwind content, no PlanCard for auto-executed messages
 
-## 2026-04-02: Auto-Execute Safe Plans — No PlanCard for Simple/Medium Requests
-- `lib/ai/service.js` — Plans tagged with `autoExecute: true` when ≤3 file actions AND not `isLargeAppBuild`
-- `Dashboard.jsx` — `onMessageSaved`: auto-executes plans with `autoExecute: true` immediately after save; sets `planStatus: 'executed'` directly
-- `LeftPanel.jsx` — PlanCard render condition now checks `!proposedPlan.autoExecute` — auto-executed plans never show the card
-- Approval card (Build it / Change something / Cancel) only appears for: multi-page apps, backend/auth/payments, large multi-file builds, ambiguous scope
+## 2026-03-29 — System Hardening Session
+- Grounding Injection: `buildProjectGroundingBlock()` passes real file index to LLM
+- Direct-Edit Mode: Bypass planner for single-page edits, premium layout system prompt
+- Core System Chat Fix: Fixed "New Chat" routing to `createSelfEditChat()`
+- Conversational UI Cleanup: Stripped "Intent: BUILD", raw JSON, "Implementation Plan" from chat
+- Preview Height Fix: `min-h-0` and `absolute inset-0` in RightPanel/PreviewTab
+- PlanCard Suppression: Hidden for medium/safe edits (`autoExecute: true`)
 
-## 2026-04-02: Conversational-Only Default Responses
-- `lib/ai/tool-executor.js` — `formatProposedPlanResponse()`: replaced "## Proposed Plan / File Actions / Grounding Checks" with plain summary + "Ready to go — click Execute"
-- `lib/ai/service.js` — replaced 7 dev-style fallbacks:
-  - "## File Changes / N file(s) ready..." → "Done — I updated N files."
-  - "## Diff Preview" → "Done — N files updated and ready for review."
-  - "## Patch Rejected" (3 occurrences) → "I ran into an issue... Could you try rephrasing?"
-  - "## Task Mode Violation" → "I couldn't complete that request..."
-  - "## Request Mode Violation" → "I had trouble processing..."
-  - "## Discard Blocked" → "I couldn't discard those changes..."
-- `PlanCard.jsx` — rewritten: removed file action cards, file paths, grounding badges, reasoning blocks. Now shows only summary text + Build it / Change something / Cancel buttons
-- Internal planning/validation/diffing untouched — only visible output changed
-
-## 2026-04-02: Fix Direct-Edit Response Card + Preview Clipping
-- **"Page Updated" card**: Was emitted by `service.js:1147` as `fullContent` fallback when AI produced no text. Replaced with natural sentence: "Done — I built the page in {path} and updated the preview."
-- **Preview clipping root causes**:
-  - `RightPanel.jsx:76` — `flex-1 overflow-hidden` missing `min-h-0` (flex item couldn't shrink below content height)
-  - `PreviewTab.jsx:746` — outer wrapper missing `min-h-0`
-  - `PreviewTab.jsx:794` — iframe container used `flex-1 overflow-auto` but iframe used `h-full` which doesn't resolve inside flex-1. Changed to `absolute inset-0 w-full h-full` inside a `relative` parent with `overflow-hidden`
-- **No generation/routing/planner changes**
-
-## 2026-04-02: No Code in Chat + Preview Height Fix
-- Added CRITICAL text response rules to direct-edit system prompt: AI must give 2-3 sentence summary only, NEVER include code/JSON/file paths in chat text
-- Added `hideCodeBlocks` prop to `MessageRenderer.jsx` — strips fenced code blocks from AI messages that have generated files/diffs
-- `LeftPanel.jsx` passes `hideCodeBlocks={true}` for messages with generatedFiles/diffFiles/directEditMode
-- Removed `mt-2` from Shadcn `TabsContent` base class — preview tab now fills full available height
-- Widened `isSimpleFrontendEdit` adjective pattern to cover section/hero/form/panel/navbar/header/footer/card/modal/banner/gallery/table
-
-## 2026-04-02: Narrow PM Mode — Direct-Edit for Medium-Safe Builds
-- Widened `isSimpleFrontendEdit` to catch dashboards, settings screens, profiles, navbars, modals, tables, heroes, galleries, forms, cards, banners, etc.
-- Added `isLargeAppBuild()` — only triggers PM mode for full apps, multi-page, SaaS, CRM, marketplace, auth+billing combos
-- PM mode no longer fires for "build a dashboard" or "build a pricing page" — those go straight to direct-edit
-- Classification chain: PROCEED → DIRECT-EDIT → PM MODE → NORMAL
-
-## 2026-04-02: Project Manager Conversational Mode + UI Jargon Cleanup
-- Added `isProceedSignal()` in `intents.js` — detects explicit "go ahead" / "build it" signals
-- For build intents without a proceed signal, AI now responds conversationally as a project manager
-  - Plain-language plan of action, no code, no file paths, no jargon
-  - User can discuss, adjust, then say "go ahead" to trigger actual building
-- Removed "Intent: BUILD" badge from chat messages (LeftPanel.jsx)
-- Removed "Grounded on: NONEXISTENT" display from PlanCard.jsx
-- Removed technical grounding check badges from PlanCard.jsx
-- Removed intent badge from plan card header
-
-## 2026-04-02: Fix Core System Chat Creation
-- Root cause: "New Chat" in core mode created regular chats, but sidebar only shows SELF_EDIT chats — so chats appeared to fail/vanish
-- Fix: Route "New Chat" through `createSelfEditChat()` when `builderMode === 'core'` (both ProjectHub and LeftPanel)
-- Added try/catch + error logging to backend `db.chats.create` for better error visibility
-- Verified: self-edit chat creation returns 201 with `chat_type: "self_edit"`
-
-## 2026-04-01: Upgrade Direct-Edit System Prompt to Premium Quality
-- Replaced minimal 12-line prompt with comprehensive premium generation instructions
-- Mandatory 10-section page structure (nav, hero, social proof, features, stats, showcase, testimonials, pricing, final CTA, footer)
-- Visual quality requirements (spacing py-16+, container max-w-6xl, typography hierarchy, depth/polish)
-- Brand expression rules (theme-aware copy, visual tone matching, authentic placeholder content)
-- Single-file execution rules preserved
-
-## 2026-04-01: Simple Frontend Direct-Edit Mode
-- Added `isSimpleFrontendEdit()` + `findMainPagePath()` in `lib/ai/intents.js`
-- Modified `processMessageStream` in `lib/ai/service.js` to detect simple frontend requests
-- Bypass: plan mode, task-mode enforcement, diff pipeline — files saved directly to DB
-- Preview auto-updates via existing srcdoc iframe path (no install/start-preview needed)
-- Planner UI now reserved for multi-file, architecture, backend, and risky changes only
-
-## 2026-04-01: Grounding Injection for AI Calls
-- Created `buildProjectGroundingBlock()` helper in `lib/ai/service.js`
-- Injects project identity (name, ID, core/project mode) + full file index into all AI system prompts
-- Injected into all 3 AI entry points: `processMessageStream`, `executePlanStream`, `processMessage`
-- Prevents AI from hallucinating non-existent file paths during planning and code generation
-
-## 2026-03-31: Phase 2 Route Modularization
-- route.js reduced from 2038 to 119 lines (94.2% reduction from original 4113 lines)
-- Extracted 9 high-risk route modules into `lib/api/routes/`
-- Phase 2 dispatcher array with strict ordering
-
-## 2026-03-31: Phase 1 Route Modularization
-- route.js reduced from 4113 to 2038 lines (50.4% reduction)
-- Created `lib/api/helpers.js` — shared helpers
-- Extracted 17 route modules into `lib/api/routes/`
-
-## 2026-03-31: Core System Self-Editing
-- Created `lib/api/routes/live-promote.js` with promote-to-live and rollback endpoints
-- Added Apply to Live / Rollback UI to CodeTab + ProjectHub
-- Fixed Core System button lookup to use `settings.is_core === true`
-
-## 2026-03-31: UI Hardening
-- Fixed optimistic UI state updates for project/chat renames
-- Replaced blur/implicit save with explicit Save/Cancel rename controls
-- Fixed JSON.parse crash on "New Chat" creation
+## Earlier Changes
+- Initial Emanator AI Builder implementation
+- Dashboard, chat interface, project management
+- Supabase auth integration
+- Stripe payments integration
+- Preview system (HTML, React/JSX, Node.js)
+- Core System self-editing architecture
+- Growth analytics panel
 - Removed "Delete All" button from Dashboard
