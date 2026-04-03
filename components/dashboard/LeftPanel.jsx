@@ -431,7 +431,7 @@ export default function LeftPanel({
         className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
         data-testid="messages-area"
       >
-        <div className="p-3 space-y-4 w-full min-w-0">
+        <div className="p-3 space-y-3 w-full min-w-0">
           {messages.length === 0 ? (
             <div className="text-center py-20 relative z-10 em-panel-enter">
               <div className="w-11 h-11 mx-auto rounded-lg flex items-center justify-center mb-4 em-glow-cyan" style={{background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(124,58,237,0.08))'}}>
@@ -457,18 +457,18 @@ export default function LeftPanel({
                 <div
                   key={message.id}
                   data-testid={`message-${message.id}`}
-                  className={`em-message-enter flex gap-3 w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}
+                  className={`em-message-enter flex gap-2.5 w-full min-w-0 group/msg ${isUser ? 'flex-row-reverse' : ''}`}
                 >
                   {/* Avatar */}
-                  <div className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center mt-0.5 transition-all duration-200 ${
-                    isUser ? 'bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.15)]' : isProviderError ? 'bg-amber-900/20 border border-amber-500/10' : `bg-[rgba(124,58,237,0.08)] border border-[rgba(124,58,237,0.12)] ${isMessageStreaming ? 'em-streaming-breathe em-streaming-glow' : ''}`
+                  <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-1 ${
+                    isUser ? 'bg-[rgba(0,229,255,0.1)]' : isProviderError ? 'bg-amber-900/20' : `bg-[rgba(124,58,237,0.1)] ${isMessageStreaming ? 'em-streaming-breathe em-streaming-glow' : ''}`
                   }`}>
                     {isUser ? (
-                      <User className="w-3 h-3 text-[#00E5FF]/70" />
+                      <User className="w-2.5 h-2.5 text-[#00E5FF]/70" />
                     ) : isProviderError ? (
-                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                      <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
                     ) : (
-                      <Zap className="w-3 h-3 text-[#7C3AED]/70" />
+                      <Zap className="w-2.5 h-2.5 text-[#7C3AED]/70" />
                     )}
                   </div>
 
@@ -514,21 +514,14 @@ export default function LeftPanel({
                       </div>
                     ) : (
                     <div className="w-full min-w-0">
-                    {!isUser && messageIntent && messageIntent !== 'chat' && messageIntent !== 'build' && (
-                      <div className="flex items-center gap-1.5 mb-1" data-testid={`intent-badge-${message.id}`}>
-                        <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wider">
-                          {messageIntent.replace(/_/g, ' ')}
-                        </span>
-                      </div>
-                    )}
-                    <div className={`rounded-xl px-3.5 py-2.5 min-w-0 overflow-hidden transition-all duration-200 ${
+                    <div className={`rounded-xl min-w-0 overflow-hidden ${
                       isUser
-                        ? 'bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.12)] text-[var(--em-text-primary)] max-w-[85%]'
-                        : 'bg-[rgba(20,20,56,0.5)] border border-[rgba(124,58,237,0.1)] w-full'
+                        ? 'bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.10)] px-3.5 py-2.5 text-[var(--em-text-primary)] max-w-[85%]'
+                        : 'w-full px-1 py-0.5'
                     } ${isTemp ? 'opacity-50' : ''}`}>
                       {isUser ? (
                         <div>
-                          <p className="text-sm whitespace-pre-wrap break-words overflow-hidden">{message.content}</p>
+                          <p className="text-[13.5px] whitespace-pre-wrap break-words overflow-hidden leading-[1.6]">{message.content}</p>
                           <AttachmentChips attachments={message.metadata?.attachments} />
                         </div>
                       ) : (
@@ -601,11 +594,11 @@ export default function LeftPanel({
                             )
                           })()}
                           {isCollapsed && (
-                            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[rgba(20,20,56,0.5)] to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent" />
                           )}
                         </div>
                         {message.metadata?.proposedPlan && message.metadata?.planStatus !== 'cancelled' && (
-                          <div className="mt-3" data-testid={`plan-card-wrapper-${message.id}`}>
+                          <div className="mt-2" data-testid={`plan-card-wrapper-${message.id}`}>
                             <PlanCard
                               plan={message.metadata.proposedPlan}
                               status={message.metadata.planStatus || 'proposed'}
@@ -624,7 +617,7 @@ export default function LeftPanel({
                           </div>
                         )}
                         {message.metadata?.diffFiles?.length > 0 && (
-                          <div className="mt-3" data-testid={`diff-review-wrapper-${message.id}`}>
+                          <div className="mt-2" data-testid={`diff-review-wrapper-${message.id}`}>
                             {isMonitored ? (
                               <div className="text-[10px] text-red-400/60 px-2 py-1.5 rounded-md bg-red-500/5 border border-red-500/10">
                                 Diff apply/discard restricted for monitored accounts
@@ -672,20 +665,20 @@ export default function LeftPanel({
 
           {/* Streaming status indicator (non-image generation) */}
           {isStreaming && streamingStatus && !imageGenProgress && (
-            <div className="flex gap-3 em-message-enter" data-testid="streaming-indicator">
-              <div className={`w-6 h-6 rounded-md border flex items-center justify-center em-streaming-breathe ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20 border-amber-500/20' : 'bg-[rgba(124,58,237,0.08)] border-[rgba(124,58,237,0.12)] em-streaming-glow'
+            <div className="flex gap-2.5 em-message-enter" data-testid="streaming-indicator">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center em-streaming-breathe ${
+                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20' : 'bg-[rgba(124,58,237,0.1)] em-streaming-glow'
               }`}>
                 {streamingStatus.stage === 'provider_fallback'
-                  ? <Clock className="w-3 h-3 text-amber-400" />
-                  : <Zap className="w-3 h-3 text-[var(--em-text-muted)]" />}
+                  ? <Clock className="w-2.5 h-2.5 text-amber-400" />
+                  : <Zap className="w-2.5 h-2.5 text-[var(--em-text-muted)]" />}
               </div>
-              <div className={`rounded-xl px-3.5 py-2.5 transition-all duration-200 ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : 'bg-[rgba(20,20,56,0.5)] border border-[rgba(124,58,237,0.1)]'
+              <div className={`rounded-lg px-3 py-2 ${
+                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : ''
               }`}>
                 <div className="flex items-center gap-2">
-                  <Loader2 className={`w-4 h-4 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-[var(--em-violet)]'}`} />
-                  <span className={`text-sm ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'em-text-secondary'}`}>{streamingStatus.detail || 'Generating...'}</span>
+                  <Loader2 className={`w-3.5 h-3.5 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-muted-foreground/60'}`} />
+                  <span className={`text-[13px] ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>{streamingStatus.detail || 'Generating...'}</span>
                 </div>
               </div>
             </div>
