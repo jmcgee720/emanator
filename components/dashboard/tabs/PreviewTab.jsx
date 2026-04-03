@@ -652,51 +652,68 @@ export default function PreviewTab({ project, files, onLog, livePreviewData }) {
     return { previewHtml: html, projectInfo: info, buildLog: log }
   }, [files, refreshKey, isNodeProject])
 
-  // ── Live streaming preview via postMessage ──
-  // When livePreviewData arrives during streaming, send it to the iframe
-  // via postMessage for smooth updates without iframe reload.
-  const livePreviewSentRef = useRef(false)
+  // ── Live streaming preview ──
+  // Create the shell HTML only ONCE when streaming starts.
+  // Use postMessage for subsequent updates to avoid iframe reload flicker.
+  const [streamShellHtml, setStreamShellHtml] = useState(null)
+  const iframeReadyForLiveRef = useRef(false)
+  const pendingLiveRef = useRef(null)
+
+  // Create shell when streaming starts (only once per streaming session)
   useEffect(() => {
-    if (!livePreviewData?.content) {
-      livePreviewSentRef.current = false
+    if (livePreviewData?.content && !previewHtml && !streamShellHtml) {
+      const shellInfo = {
+        type: 'react',
+        jsxFiles: [{ path: livePreviewData.path, content: livePreviewData.content }],
+        cssFiles: [], jsFiles: [], tsFiles: [], htmlFiles: [],
+        usesTailwind: livePreviewData.content.includes('className'),
+        usesShadcn: false,
+      }
+      setStreamShellHtml(buildReactPreview(shellInfo))
+      iframeReadyForLiveRef.current = false
+      pendingLiveRef.current = livePreviewData
+    }
+    // Only clear stream shell when real previewHtml is available (not when livePreviewData clears)
+    if (previewHtml && streamShellHtml) {
+      setStreamShellHtml(null)
+      iframeReadyForLiveRef.current = false
+      pendingLiveRef.current = null
+    }
+  }, [livePreviewData, previewHtml, streamShellHtml])
+
+  // Send live updates via postMessage (after shell iframe has loaded)
+  useEffect(() => {
+    if (!livePreviewData?.content || !streamShellHtml) return
+    if (!iframeReadyForLiveRef.current) {
+      // iframe not ready yet — store as pending
+      pendingLiveRef.current = livePreviewData
       return
     }
     const iframe = iframeRef.current
     if (!iframe?.contentWindow) return
-
-    // Compute the entry name from the file path
     const entryName = livePreviewData.path
       .replace(/^\.\//, '')
       .replace(/\.(jsx|tsx|js|ts)$/, '')
-      .split('/')
-      .pop() || 'page'
+      .split('/').pop() || 'page'
+    iframe.contentWindow.postMessage({ type: 'live_update', code: livePreviewData.content, entryName }, '*')
+  }, [livePreviewData, streamShellHtml])
 
-    iframe.contentWindow.postMessage({
-      type: 'live_update',
-      code: livePreviewData.content,
-      entryName
-    }, '*')
-    livePreviewSentRef.current = true
-  }, [livePreviewData])
-
-  // If livePreviewData arrives but there's no previewHtml yet (empty project),
-  // generate a shell with CDN scripts + message listener so postMessage works.
-  const effectivePreviewHtml = useMemo(() => {
-    if (previewHtml) return previewHtml
-    if (!livePreviewData?.content) return null
-    // Build a minimal React preview shell with the initial partial content
-    const shellInfo = {
-      type: 'react',
-      jsxFiles: [{ path: livePreviewData.path, content: livePreviewData.content }],
-      cssFiles: [],
-      jsFiles: [],
-      tsFiles: [],
-      htmlFiles: [],
-      usesTailwind: livePreviewData.content.includes('className'),
-      usesShadcn: false,
+  // Handle iframe load — send any pending live data
+  const handleLiveIframeLoad = useCallback(() => {
+    iframeReadyForLiveRef.current = true
+    if (pendingLiveRef.current?.content) {
+      const iframe = iframeRef.current
+      if (!iframe?.contentWindow) return
+      const entryName = pendingLiveRef.current.path
+        .replace(/^\.\//, '')
+        .replace(/\.(jsx|tsx|js|ts)$/, '')
+        .split('/').pop() || 'page'
+      iframe.contentWindow.postMessage({ type: 'live_update', code: pendingLiveRef.current.content, entryName }, '*')
+      pendingLiveRef.current = null
     }
-    return buildReactPreview(shellInfo)
-  }, [previewHtml, livePreviewData])
+  }, [])
+
+  const effectivePreviewHtml = previewHtml || streamShellHtml || null
 
 
   const handleRefresh = useCallback(() => {
@@ -872,7 +889,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData }) {
           sandbox="allow-scripts allow-forms allow-modals allow-popups"
           className="absolute inset-0 w-full h-full border-0"
           style={{ maxWidth: viewports[viewportSize].width === '100%' ? '100%' : viewports[viewportSize].width, margin: viewports[viewportSize].width === '100%' ? undefined : '0 auto' }}
-          onLoad={() => setIframeLoaded(true)}
+          onLoad={() => { setIframeLoaded(true); handleLiveIframeLoad() }}
           data-testid="preview-iframe"
         />
       </div>

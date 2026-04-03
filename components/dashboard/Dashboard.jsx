@@ -69,6 +69,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [messages, setMessages] = useState([])
   const [files, setFiles] = useState([])
   const [livePreviewData, setLivePreviewData] = useState(null)
+  const previewQueueRef = useRef([])
+  const previewDrainTimerRef = useRef(null)
   const [projectFileIndex, setProjectFileIndex] = useState({})
   const [canvas, setCanvas] = useState(null)
   const [livePromoteState, setLivePromoteState] = useState({ snapshotId: null, lastApply: null })
@@ -1028,10 +1030,23 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
 
         onPreviewPartial: (data) => {
-          // Send live preview data for postMessage updates (no srcdoc reload)
+          // Buffer partials and drain progressively for visible incremental updates
           if (!data?.path || !data?.content) return
-          setLivePreviewData(data)
+          previewQueueRef.current.push(data)
           setActiveTab('preview')
+          // Start draining if not already
+          if (!previewDrainTimerRef.current) {
+            // Show first partial immediately
+            setLivePreviewData(previewQueueRef.current.shift())
+            previewDrainTimerRef.current = setInterval(() => {
+              if (previewQueueRef.current.length > 0) {
+                setLivePreviewData(previewQueueRef.current.shift())
+              } else {
+                clearInterval(previewDrainTimerRef.current)
+                previewDrainTimerRef.current = null
+              }
+            }, 200)
+          }
         },
 
         onImageGenerated: (data) => {
@@ -1278,6 +1293,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setStreamingStatus(null)
 
           if (data.generatedFiles?.length > 0 && !diffs?.length) {
+            // Flush remaining preview queue and clear drain timer
+            if (previewDrainTimerRef.current) {
+              clearInterval(previewDrainTimerRef.current)
+              previewDrainTimerRef.current = null
+            }
+            // Show the last queued partial before clearing
+            if (previewQueueRef.current.length > 0) {
+              setLivePreviewData(previewQueueRef.current[previewQueueRef.current.length - 1])
+              previewQueueRef.current = []
+            }
+            // Small delay to let the last partial render, then load final files
+            await new Promise(r => setTimeout(r, 300))
             setLivePreviewData(null)  // Clear streaming preview — final files coming
             const filesResponse = await authFetch(`/api/projects/${selectedProject.id}/files`)
             const filesData = await filesResponse.json()
