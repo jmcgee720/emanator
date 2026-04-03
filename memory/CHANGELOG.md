@@ -1,10 +1,13 @@
 # Emanator AI Builder — Changelog
 
-## 2026-04-03 — Auto-Execute File Persistence Fix (P0)
-- **Fixed**: Direct-edit and auto-execute now properly save files to DB and refresh the preview
-- **Fixed**: `proposedPlan` cleared after auto-execute → PlanCard no longer shows for auto-executed/direct-edited requests
-- **Added**: Debug logging in `service.js` (`[Done]`) and `stream-handler.js` (`[StreamHandler]`) for data flow tracing
-- **Verified**: 9/9 frontend tests passed — files persist, preview renders React/Babel/Tailwind content, no PlanCard for auto-executed messages
+## 2026-04-03 — Direct-Edit tool_choice Enforcement (P0)
+- **Root cause**: In direct-edit mode, `tool_choice` was NOT forced → AI could respond with text only, never calling `create_files` → zero files saved → preview empty
+- **Fix 1**: Force `tool_choice: { type: 'function', function: { name: directEditFileAction } }` in direct-edit mode — AI MUST call the file tool
+- **Fix 2**: Hoisted `directEditFileAction` (create_files vs update_files) to be computed at detection time and reused for both system prompt and tool_choice
+- **Fix 3**: Success text guard — "Done — I built..." only emits when `savedFiles.length > 0`
+- **Fix 4**: Text-parse fallback — if tool call somehow produces no files, attempts to parse and auto-save from response text
+- **Fix 5**: `proposedPlan = null` after auto-execute — prevents PlanCard from showing for auto-executed plans
+- **Verified**: 15/15 frontend tests passed across two fresh projects (fintech dashboard + SaaS landing page)
 
 ## 2026-03-29 — System Hardening Session
 - Grounding Injection: `buildProjectGroundingBlock()` passes real file index to LLM
@@ -22,4 +25,3 @@
 - Preview system (HTML, React/JSX, Node.js)
 - Core System self-editing architecture
 - Growth analytics panel
-- Removed "Delete All" button from Dashboard
