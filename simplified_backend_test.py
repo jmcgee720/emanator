@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://file-persistence-fix-1.preview.emergentagent.com"
+BASE_URL = "https://ai-builder-stream.preview.emergentagent.com"
 AUTH_EMAIL = "REDACTED_LEAKED_USER"
 AUTH_PASSWORD = "REDACTED_LEAKED_PASSWORD"
 
