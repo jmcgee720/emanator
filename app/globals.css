@@ -1264,6 +1264,18 @@ input:-webkit-autofill:active {
   animation: em-cursor-pulse 1s ease-in-out infinite;
 }
 
+/* ══════════════════════════════════════════════════════
+   CONVERSATIONAL PROSE — Clean assistant text
+   ══════════════════════════════════════════════════════ */
+.em-prose {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--em-text-secondary);
+}
+.em-prose > *:first-child { margin-top: 0; }
+.em-prose > *:last-child  { margin-bottom: 0; }
+
+
 
 /* ══════════════════════════════════════════════════════
    BUTTON MOTION — Phase H4

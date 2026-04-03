@@ -77,7 +77,7 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   }
 
   return (
-    <div className="prose prose-invert prose-sm max-w-full min-w-0 break-words [overflow-wrap:anywhere]" data-testid="message-renderer">
+    <div className="em-prose max-w-full min-w-0 break-words [overflow-wrap:anywhere]" data-testid="message-renderer">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -87,9 +87,9 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
             }
             return <CodeBlock className={className}>{children}</CodeBlock>
           },
-          h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2 text-foreground break-words">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-semibold mt-3 mb-2 text-foreground break-words">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-base font-semibold mt-3 mb-1 text-foreground break-words">{children}</h3>,
+          h1: ({ children }) => <h1 className="text-lg font-semibold mt-3 mb-1.5 text-foreground break-words">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-base font-semibold mt-2.5 mb-1.5 text-foreground break-words">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1 text-foreground break-words">{children}</h3>,
           p: ({ children }) => {
             const hasBlock =
               Array.isArray(children) &&
@@ -105,33 +105,33 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
             }
 
             return (
-              <p className="mb-2 leading-relaxed text-foreground/90 break-words">
+              <p className="mb-1.5 leading-[1.65] text-[13.5px] text-foreground/90 break-words">
                 {children}
               </p>
             )
           },
-          ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-          li: ({ children }) => <li className="text-foreground/90 break-words">{children}</li>,
+          ul: ({ children }) => <ul className="list-disc pl-5 mb-1.5 space-y-0.5 text-[13.5px]">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-5 mb-1.5 space-y-0.5 text-[13.5px]">{children}</ol>,
+          li: ({ children }) => <li className="text-foreground/90 break-words leading-[1.6]">{children}</li>,
           a: ({ href, children }) => (
             <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 break-all">
               {children}
             </a>
           ),
           table: ({ children }) => (
-            <div className="overflow-x-auto my-3 rounded-lg border border-border">
-              <table className="w-full text-sm">{children}</table>
+            <div className="overflow-x-auto my-2 rounded-lg border border-border">
+              <table className="w-full text-xs">{children}</table>
             </div>
           ),
           thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
-          th: ({ children }) => <th className="px-3 py-2 text-left font-medium text-foreground border-b border-border">{children}</th>,
-          td: ({ children }) => <td className="px-3 py-2 text-foreground/90 border-b border-border/50">{children}</td>,
+          th: ({ children }) => <th className="px-2.5 py-1.5 text-left font-medium text-foreground text-xs border-b border-border">{children}</th>,
+          td: ({ children }) => <td className="px-2.5 py-1.5 text-foreground/90 text-xs border-b border-border/50">{children}</td>,
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-primary/50 pl-4 my-2 text-muted-foreground italic">
+            <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic text-[13px]">
               {children}
             </blockquote>
           ),
-          hr: () => <hr className="my-4 border-border" />,
+          hr: () => <hr className="my-3 border-border/50" />,
           strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
         }}

@@ -53,28 +53,28 @@ export default function MessageActions({ message, onRegenerate, onEditPrompt, co
   }
 
   return (
-    <div className="flex items-center gap-0.5 mt-1.5" data-testid="message-actions">
+    <div className="flex items-center gap-0.5 mt-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150" data-testid="message-actions">
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+        className="h-6 w-6 p-0 text-muted-foreground/50 hover:text-foreground"
         onClick={handleCopy}
         title="Copy message"
         data-testid="copy-message-btn"
       >
-        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
       </Button>
 
       {message.role === 'assistant' && onRegenerate && (
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 p-0 text-muted-foreground/50 hover:text-foreground"
           onClick={() => onRegenerate(message)}
           title="Regenerate response"
           data-testid="regenerate-btn"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3 h-3" />
         </Button>
       )}
 
@@ -82,12 +82,12 @@ export default function MessageActions({ message, onRegenerate, onEditPrompt, co
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 p-0 text-muted-foreground/50 hover:text-foreground"
           onClick={() => onEditPrompt(message)}
           title="Edit prompt"
           data-testid="edit-prompt-btn"
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil className="w-3 h-3" />
         </Button>
       )}
 
@@ -96,22 +96,22 @@ export default function MessageActions({ message, onRegenerate, onEditPrompt, co
           <Button
             size="sm"
             variant="ghost"
-            className={`h-7 w-7 p-0 ${feedback === 'up' ? 'text-green-500' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`h-6 w-6 p-0 ${feedback === 'up' ? 'text-green-500 opacity-100' : 'text-muted-foreground/50 hover:text-foreground'}`}
             onClick={() => handleFeedback('up')}
             title="Good response"
             data-testid="thumbs-up-btn"
           >
-            <ThumbsUp className="w-3.5 h-3.5" />
+            <ThumbsUp className="w-3 h-3" />
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            className={`h-7 w-7 p-0 ${feedback === 'down' ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`h-6 w-6 p-0 ${feedback === 'down' ? 'text-red-500 opacity-100' : 'text-muted-foreground/50 hover:text-foreground'}`}
             onClick={() => handleFeedback('down')}
             title="Needs improvement"
             data-testid="thumbs-down-btn"
           >
-            <ThumbsDown className="w-3.5 h-3.5" />
+            <ThumbsDown className="w-3 h-3" />
           </Button>
         </>
       )}
@@ -120,12 +120,12 @@ export default function MessageActions({ message, onRegenerate, onEditPrompt, co
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 p-0 text-muted-foreground/50 hover:text-foreground"
           onClick={() => onSavePrompt(message.content, { message_id: message.id, intent: message.metadata?.intent })}
           title="Save to Prompt Library"
           data-testid="save-to-library-btn"
         >
-          <BookmarkPlus className="w-3.5 h-3.5" />
+          <BookmarkPlus className="w-3 h-3" />
         </Button>
       )}
 
@@ -133,12 +133,12 @@ export default function MessageActions({ message, onRegenerate, onEditPrompt, co
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 p-0 text-muted-foreground/50 hover:text-foreground"
           onClick={onToggleCollapse}
           title={collapsed ? 'Expand' : 'Collapse'}
           data-testid="collapse-btn"
         >
-          {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+          {collapsed ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
         </Button>
       )}
     </div>
