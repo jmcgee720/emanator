@@ -715,6 +715,25 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
 
   const effectivePreviewHtml = previewHtml || streamShellHtml || null
 
+  // ── Guardrail 5: Preview blank health check ──
+  const [previewBlank, setPreviewBlank] = useState(false)
+  useEffect(() => {
+    if (!iframeLoaded || !effectivePreviewHtml) { setPreviewBlank(false); return }
+    const timer = setTimeout(() => {
+      try {
+        const doc = iframeRef.current?.contentDocument || iframeRef.current?.contentWindow?.document
+        const root = doc?.getElementById('root')
+        if (root && root.innerHTML.trim().length === 0 && iframeErrors.length === 0) {
+          setPreviewBlank(true)
+          console.warn('[Guardrail] Preview rendered blank — #root is empty after load')
+        } else {
+          setPreviewBlank(false)
+        }
+      } catch { setPreviewBlank(false) }
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [iframeLoaded, effectivePreviewHtml, refreshKey, iframeErrors.length])
+
 
   const handleRefresh = useCallback(() => {
     setRefreshKey(k => k + 1)
@@ -936,6 +955,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Loading preview...</span>
             </div>
+          </div>
+        )}
+        {previewBlank && iframeLoaded && (
+          <div className="absolute bottom-3 left-3 right-3 z-20 bg-amber-950/80 border border-amber-800/50 rounded-lg px-3 py-2 text-amber-200 text-[11px] backdrop-blur-sm" data-testid="preview-blank-warning">
+            Preview rendered blank. The component may have a runtime error or missing dependencies. Check the console below.
           </div>
         )}
         <iframe

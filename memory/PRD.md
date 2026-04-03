@@ -6,6 +6,7 @@ Continuously harden the Emanator AI Builder core system:
 2. Polish assistant message UI (**DONE**)
 3. Implement live streaming preview updates during direct-builds (**DONE**)
 4. Implement preview skeleton loading state for direct-build generation (**DONE**)
+5. Lock stability — implement regression guardrails (**DONE**)
 
 ## Architecture
 ```
@@ -13,32 +14,35 @@ Continuously harden the Emanator AI Builder core system:
 ├── app/api/[[...path]]/route.js     # Pure dispatcher
 ├── lib/
 │   ├── ai/
-│   │   ├── service.js               # Core AI orchestrator (~2600 lines)
+│   │   ├── service.js               # Core AI orchestrator + guardrails
 │   │   ├── providers/
 │   │   │   ├── openai.js            # OpenAI/Proxy provider (tool_args_delta)
 │   │   │   └── anthropic.js         # Anthropic provider
 │   ├── api/
 │   │   └── stream-handler.js        # SSE event relay
-│   └── stream-client.js             # Frontend SSE parser
+│   └── stream-client.js             # Frontend SSE parser + streaming fallback
 ├── components/dashboard/
-│   ├── Dashboard.jsx                # State orchestrator (isBuilding, livePreviewData)
+│   ├── Dashboard.jsx                # State orchestrator
 │   ├── LeftPanel.jsx                # Chat messages UI
-│   ├── RightPanel.jsx               # Tab layout (forwards isBuilding)
-│   └── tabs/PreviewTab.jsx          # Iframe preview + building skeleton
+│   ├── RightPanel.jsx               # Tab layout
+│   └── tabs/PreviewTab.jsx          # Iframe preview + blank health check
 ```
 
-## Key Technical Concepts
-- **Direct-Edit Mode**: Single-file scoped requests. `tool_choice` forced to `create_files`/`update_files`.
-- **Live Preview Streaming**: `tool_args_delta` → length-based throttle (300 chars) → `preview_partial` SSE → progressive buffer (200ms drain) → postMessage iframe updates.
-- **Building Skeleton**: `isBuilding` (from `!!streamingMessageId`) triggers dark Aurora shimmer skeleton in PreviewTab when project is empty and no live preview data yet.
-- **CSS Fix**: `.em-aurora.absolute { position: absolute; }` overrides the base `.em-aurora { position: relative; }`.
+## Guardrails (Implemented)
+1. **Direct-build integrity**: auto-retry if 0 files saved, conversational error on 2nd fail
+2. **Tool call enforcement**: retry with explicit instruction if model returns text-only in direct-edit
+3. **Success message truth**: only emitted when savedFiles.length > 0
+4. **Streaming fallback**: user-friendly error message, never raw errors
+5. **Preview health check**: detects blank #root after 3s, shows amber warning overlay
+6. **Regression logging**: 7 structured console warnings/errors covering all failure modes
 
 ## Completed (All Tested)
 - [x] Direct-Build File Persistence & Preview Handoff
 - [x] Assistant Message UI Polish
 - [x] Live Streaming Preview Updates
 - [x] Preview iframe height fix (em-aurora CSS specificity)
-- [x] Preview skeleton loading state for direct-build generation
+- [x] Preview skeleton loading state
+- [x] Regression guardrails
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
