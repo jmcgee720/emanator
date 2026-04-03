@@ -5,6 +5,7 @@ Continuously harden the Emanator AI Builder core system:
 1. Fix direct-build file persistence/preview handoff (**DONE**)
 2. Polish assistant message UI (**DONE**)
 3. Implement live streaming preview updates during direct-builds (**DONE**)
+4. Implement preview skeleton loading state for direct-build generation (**DONE**)
 
 ## Architecture
 ```
@@ -20,15 +21,16 @@ Continuously harden the Emanator AI Builder core system:
 │   │   └── stream-handler.js        # SSE event relay
 │   └── stream-client.js             # Frontend SSE parser
 ├── components/dashboard/
-│   ├── Dashboard.jsx                # State orchestrator
+│   ├── Dashboard.jsx                # State orchestrator (isBuilding, livePreviewData)
 │   ├── LeftPanel.jsx                # Chat messages UI
-│   ├── RightPanel.jsx               # Tab layout
-│   └── tabs/PreviewTab.jsx          # Iframe preview
+│   ├── RightPanel.jsx               # Tab layout (forwards isBuilding)
+│   └── tabs/PreviewTab.jsx          # Iframe preview + building skeleton
 ```
 
 ## Key Technical Concepts
 - **Direct-Edit Mode**: Single-file scoped requests. `tool_choice` forced to `create_files`/`update_files`.
 - **Live Preview Streaming**: `tool_args_delta` → length-based throttle (300 chars) → `preview_partial` SSE → progressive buffer (200ms drain) → postMessage iframe updates.
+- **Building Skeleton**: `isBuilding` (from `!!streamingMessageId`) triggers dark Aurora shimmer skeleton in PreviewTab when project is empty and no live preview data yet.
 - **CSS Fix**: `.em-aurora.absolute { position: absolute; }` overrides the base `.em-aurora { position: relative; }`.
 
 ## Completed (All Tested)
@@ -36,6 +38,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Assistant Message UI Polish
 - [x] Live Streaming Preview Updates
 - [x] Preview iframe height fix (em-aurora CSS specificity)
+- [x] Preview skeleton loading state for direct-build generation
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture

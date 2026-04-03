@@ -2923,6 +2923,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   livePromoteState={livePromoteState}
                   setLivePromoteState={setLivePromoteState}
                   livePreviewData={livePreviewData}
+                  isBuilding={!!streamingMessageId}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>

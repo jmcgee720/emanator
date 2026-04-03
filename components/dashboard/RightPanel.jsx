@@ -32,6 +32,7 @@ export default function RightPanel({
   livePromoteState,
   setLivePromoteState,
   livePreviewData,
+  isBuilding,
 }) {
 
   if (!selectedProject) {
@@ -76,7 +77,7 @@ export default function RightPanel({
 
         <div className="flex-1 overflow-hidden min-h-0 relative">
           <TabsContent value="preview" className="absolute inset-0 m-0 p-0" style={{height: '100%'}}>
-            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} />
+            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} />
           </TabsContent>
           
           <TabsContent value="code" className="absolute inset-0 m-0 p-0 overflow-auto">
