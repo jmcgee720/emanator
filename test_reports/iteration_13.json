@@ -1,7 +1,7 @@
 {
   "test_session": "child_monitored_role_ui_testing",
   "timestamp": "2026-03-19T12:53:00Z",
-  "app_url": "https://prompt-grounding.preview.emergentagent.com",
+  "app_url": "https://file-persistence-fix-1.preview.emergentagent.com",
   "credentials": "REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD (role: owner)",
   "test_scenarios": {
     "1_login_and_open_admin_panel": {
