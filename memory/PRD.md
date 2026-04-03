@@ -23,7 +23,7 @@ Build and continuously harden the Emanator AI Builder core system. Key goals:
 - `/app/components/dashboard/LeftPanel.jsx` — Message rendering, PlanCard
 - `/app/components/dashboard/tabs/PreviewTab.jsx` — iframe preview
 
-## What's Implemented ✅
+## What's Implemented
 - Grounding Injection (real file index in prompts)
 - Direct-Edit Mode (single-page edits bypass planner)
 - Core System Chat Fix (Self-Edit routing)
@@ -31,6 +31,7 @@ Build and continuously harden the Emanator AI Builder core system. Key goals:
 - Preview Height Fix (flex/iframe layout)
 - PlanCard Suppression for auto-executed plans
 - **Auto-Execute File Persistence + Preview Refresh** (P0 fix — Apr 2026)
+- **Direct-Edit tool_choice enforcement** (P0 fix — Apr 2026): Forces AI to call create_files/update_files via tool_choice, preventing text-only responses. Includes success-text guard (only emits "Done" when savedFiles.length > 0) and text-parse fallback safety net.
 
 ## Upcoming Tasks
 - P1: Phase 2-5 conversational AI architecture (Intent Detection, Task Scope, Silent Validation, Learning)
