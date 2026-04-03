@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://prompt-grounding.preview.emergentagent.com"
+BASE_URL = "https://file-persistence-fix-1.preview.emergentagent.com"
 AUTH_EMAIL = "testprov@test.com"
 AUTH_PASSWORD = "password123"
 
