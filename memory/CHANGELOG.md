@@ -1,6 +1,39 @@
 # Emanator AI Builder — Changelog
 
-## 2026-04-04 — System-Wide Task Modes: build/inspect/config (Fork 5)
+## 2026-04-04 — Reactive Canvas Aurora Background (Fork 6)
+
+### Added: Canvas-based aurora background from user's GitHub repo
+- Pulled `AuroraBackground.jsx` and `auroraEngine.js` from `github.com/jmcgee720/emanator`
+- Canvas aurora replaces the old CSS-based `.em-aurora-containment` veil system on both Login and Dashboard pages
+- `auroraEngine.js` — 1168-line SimplexNoise-driven canvas renderer with wiremesh curve-following light curtains
+- `AuroraBackground.jsx` — 601-line React component with layer management toolbar (Shift+L), demo mode (Shift+D), and activity level visualization
+
+### Wired: `activityLevel` prop (0→1) to chat state
+- Spikes to 1 when `sendMessage` is called
+- Maintains at 1 while `streamingMessageId` is non-null (AI generating)
+- Decays ~6s back to 0 after streaming completes (0.008 per 50ms interval)
+- Bumps +0.05 on each keystroke in the hero prompt textarea
+- Engine smoothly interpolates via `_lerp(current, target, 0.008)` at 60fps
+
+### Infrastructure
+- Created `/api/aurora/config` (GET/POST) for layer/effect config persistence
+- Made `<body>` background transparent so canvas (position:fixed, z-index:0) shows through
+- Dashboard content at z-index:1 sits above canvas
+- `<html>` retains dark `--em-void` background as fallback before JS hydrates
+
+### Files Created
+- `/app/components/AuroraBackground.jsx`
+- `/app/lib/auroraEngine.js`
+- `/app/lib/api/routes/aurora.js`
+
+### Files Modified
+- `/app/components/dashboard/Dashboard.jsx` — Import AuroraBackground, activityLevel state + decay useEffect, replace CSS veil divs
+- `/app/components/auth/LoginPage.jsx` — Import AuroraBackground, replace CSS veil divs
+- `/app/app/layout.js` — body background transparent
+- `/app/app/globals.css` — html bg em-void, body bg transparent
+- `/app/app/api/[[...path]]/route.js` — Register aurora route
+
+---
 
 ### Added: `detectTaskMode()` in `intents.js`
 - New function classifying user messages into `build` (default), `inspect` (read-only), or `config` (system settings)

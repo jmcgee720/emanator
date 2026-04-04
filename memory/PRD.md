@@ -47,6 +47,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Fix create-project JSON.parse error (defensive parsing in frontend + proxy raw passthrough)
 - [x] Replace regex-based preview compiler with Babel AST plugin (robust for all code shapes)
 - [x] System-wide task modes (build/inspect/config) — detected in intents.js, enforced in service.js
+- [x] Reactive canvas aurora background — pulled from GitHub repo, replaces CSS aurora, activityLevel wired to chat state
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
