@@ -1,5 +1,29 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-04 — Replace Preview Compiler with Babel AST Plugin (Fork 5)
+
+### Removed: Regex-based module rewriting (REPLACED)
+- Deleted `stripReactBindings()` — 10 chained regex replacements for stripping React/CSS imports
+- Deleted `stripTypeScript()` — regex-based TypeScript annotation stripping
+- Deleted all regex chains in `buildReactPreview()` for import stripping, export transforms, named export transforms
+- Deleted regex-based transforms in the live update listener (streaming preview)
+
+### Added: AST-based `__mkPlugin` Babel plugin
+- Custom Babel plugin defined inline in the iframe `<script>` tag
+- Uses `babel.types` API to handle `ImportDeclaration`, `ExportDefaultDeclaration`, `ExportNamedDeclaration`, `ExportAllDeclaration` via AST visitors
+- Handles ALL code shapes: `export default function`, `export default () =>`, `const X = ...; export default X`, named exports, TypeScript, re-exports, strings containing "export" text
+- Each file processed individually through `Babel.transform()` with `['react', ['typescript', { isTSX: true, allExtensions: true }]]` presets
+- Files embedded as JSON data (`JSON.stringify` + `<` escaping) — eliminates all string concatenation/escaping issues
+- Error overlay shows per-file compile errors via DOM API (no innerHTML injection)
+
+### Verified: 27/27 unit tests + 10/10 e2e tests pass
+- All 10 code shapes tested: function exports, arrow exports, class exports, named exports, TypeScript, re-exports, strings with "export", special chars in module names, anonymous arrows
+
+### Files Modified
+- `/app/components/dashboard/tabs/PreviewTab.jsx` — Replaced `buildReactPreview` function entirely + removed dead `stripReactBindings` and `stripTypeScript`
+
+---
+
 ## 2026-04-04 — Fix Create-Project JSON.parse Error (Fork 5)
 
 ### Create-Project JSON.parse "column 5" Error (FIXED)
