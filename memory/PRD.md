@@ -46,6 +46,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Fix Live Preview inline Babel runtime syntax error (regex anchoring + modName escaping)
 - [x] Fix create-project JSON.parse error (defensive parsing in frontend + proxy raw passthrough)
 - [x] Replace regex-based preview compiler with Babel AST plugin (robust for all code shapes)
+- [x] System-wide task modes (build/inspect/config) — detected in intents.js, enforced in service.js
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture

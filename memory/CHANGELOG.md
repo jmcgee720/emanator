@@ -1,5 +1,27 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-04 — System-Wide Task Modes: build/inspect/config (Fork 5)
+
+### Added: `detectTaskMode()` in `intents.js`
+- New function classifying user messages into `build` (default), `inspect` (read-only), or `config` (system settings)
+- Config detection: system/emanator settings patterns, model/provider changes, enable/disable flags
+- Inspect detection: question forms, analysis verbs, explicit read-only directives
+- Inspect hard locks (read-only, inspection, no file-actions) always win even when build verbs present
+- Build override: action verbs (fix, build, create, etc.) override soft inspect signals
+- 29/29 unit tests pass
+
+### Added: Task Mode Gate in `service.js`
+- Runs immediately after `classifyRequestMode()`, BEFORE any build/plan logic
+- **Config mode**: Streams a config-only response with system prompt directive, returns early. Never enters planner/builder/direct-edit.
+- **Inspect mode**: Forces `requestMode = 'read_only_report'`, blocks `directEditMode`, blocks `projectManagerMode`. Existing enforcement handles the rest (chat_only tool mode, no plan, file_actions blocked, output validation with retry).
+- **Build mode**: No change to existing pipeline.
+
+### Files Modified
+- `/app/lib/ai/intents.js` — Added `detectTaskMode()` with CONFIG/INSPECT/BUILD_OVERRIDE pattern arrays, exported
+- `/app/lib/ai/service.js` — Added Task Mode Gate after classifyRequestMode(); config early-return; inspect → read_only_report override; build-only guards on directEditMode and projectManagerMode
+
+---
+
 ## 2026-04-04 — Replace Preview Compiler with Babel AST Plugin (Fork 5)
 
 ### Removed: Regex-based module rewriting (REPLACED)
