@@ -104,9 +104,12 @@ input:-webkit-autofill:active {
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
+  html {
     background-color: var(--em-void);
+  }
+  body {
+    @apply text-foreground;
+    background: transparent;
     color: var(--em-text-primary);
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;

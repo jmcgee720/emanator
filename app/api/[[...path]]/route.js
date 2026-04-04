@@ -20,6 +20,7 @@ import * as memoryRoutes from '@/lib/api/routes/memory'
 import * as builderStatusRoutes from '@/lib/api/routes/builder-status'
 import * as promptLibraryRoutes from '@/lib/api/routes/prompt-library'
 import * as learningRoutes from '@/lib/api/routes/learning'
+import * as auroraRoutes from '@/lib/api/routes/aurora'
 
 // Phase 2 route modules
 import * as adminUsersRoutes from '@/lib/api/routes/admin-users'
@@ -56,6 +57,7 @@ const phase1Modules = [
   builderStatusRoutes,
   promptLibraryRoutes,
   learningRoutes,
+  auroraRoutes,
 ]
 
 // Phase 2 module dispatch order (CRITICAL: projectsRoutes MUST be last — its regex swallows /projects/:id)

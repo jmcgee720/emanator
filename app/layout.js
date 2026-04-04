@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
       <head>
         <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
       </head>
-      <body className="min-h-screen bg-background antialiased">
+      <body className="min-h-screen antialiased" style={{ background: 'transparent' }}>
         {children}
         <Toaster />
       </body>
