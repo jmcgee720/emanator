@@ -1,5 +1,18 @@
 # Emanator AI Builder — Changelog
 
+## 2026-04-04 — Fix Create-Project JSON.parse Error (Fork 5)
+
+### Create-Project JSON.parse "column 5" Error (FIXED)
+- **Root Cause**: The Python proxy (`server.py`) was parsing upstream JSON via `response.json()` then re-serializing with `JSONResponse(content=body)`. This double-serialization could corrupt responses in edge cases (e.g., content-type mismatch, chunked encoding). Additionally, the frontend used `response.json()` directly without safe error handling, so any malformed response crashed the entire create-project flow.
+- **Backend Fix**: Changed proxy to pass through raw upstream response bytes (`Response(content=response.content)`) instead of parse/re-serialize. Eliminates any possibility of data corruption.
+- **Frontend Fix**: Replaced all `response.json()` calls in `createProject`, `loadProjects`, `loadProjectData`, and `loadMessages` with safe `response.text()` + `try { JSON.parse(text) } catch` pattern. Malformed responses now gracefully degrade instead of crashing.
+
+### Files Modified
+- `/app/backend/server.py` — Proxy catch-all: raw response passthrough instead of JSON parse/re-serialize
+- `/app/components/dashboard/Dashboard.jsx` — Safe JSON parsing in `createProject`, `loadProjects`, `loadProjectData`, `loadMessages`
+
+---
+
 ## 2026-04-03 — Fix Live Preview Babel Runtime SyntaxError (Fork 4)
 
 ### Babel Inline Transpilation Regex Fix (COMPLETE)
