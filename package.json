@@ -75,6 +75,8 @@
         "zod": "^3.25.67"
     },
     "devDependencies": {
+        "@babel/preset-react": "^7.28.5",
+        "@babel/preset-typescript": "^7.28.5",
         "autoprefixer": "^10.4.19",
         "globals": "^16.2.0",
         "jest": "^30.3.0",

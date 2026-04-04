@@ -80,25 +80,7 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-// ─── Strip ALL React-related imports and declarations from a code string ──
-function stripReactBindings(code) {
-  code = code.replace(/import\s+(?:React\s*,\s*)?\{[^}]*\}\s+from\s+['"]react['"];?\s*/g, '')
-  code = code.replace(/import\s+(?:\*\s+as\s+\w+|\w+)\s+from\s+['"]react['"];?\s*/g, '')
-  code = code.replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+['"]react-dom(?:\/client)?['"];?\s*/g, '')
-  code = code.replace(/(?:const|let|var)\s+(?:\{[^}]*\}|\w+)\s*=\s*require\s*\(\s*['"]react(?:-dom)?(?:\/client)?['"]\s*\)\s*;?\s*/g, '')
-  code = code.replace(/(?:const|let|var)\s+\{[^}]*\}\s*=\s*React\s*;?\s*/g, '')
-  code = code.replace(/import\s+.*?\s+from\s+['"]\.\.?\/[^'"]+['"];?\s*/g, '')
-  code = code.replace(/import\s+['"][^'"]+\.css['"];?\s*/g, '')
-  code = code.replace(/import\s+type\s+.*?from\s+['"][^'"]+['"]\s*;?/g, '')
-  return code
-}
-
-// ─── Strip simple TypeScript annotations ───────────────────────────
-function stripTypeScript(code) {
-  code = code.replace(/(?<=\w\??)\s*:\s*(?:string|number|boolean|any|void|never|unknown|React\.\w+(?:<[^>]*>)?|JSX\.Element)(?:\[\])?\s*(?=[,)=;{\n])/g, '')
-  code = code.replace(/(?:export\s+)?(?:interface|type)\s+\w+\s*(?:<[^>]*>)?\s*(?:extends\s+[^{]+)?\{[^}]*\}/g, '')
-  return code
-}
+// ─── Build: React/JSX preview uses AST-based transforms (see buildReactPreview) ──
 
 // ─── Build: HTML/CSS/JS ────────────────────────────────────────────
 function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
@@ -129,7 +111,7 @@ function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
   return wrapWithErrorHandler(html)
 }
 
-// ─── Build: React/JSX ──────────────────────────────────────────────
+// ─── Build: React/JSX (AST-based module transform — no regex hacks) ──
 function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind }) {
   const allCss = cssFiles?.map(f => f.content).join('\n') || ''
   const normalizePreviewPath = (p = '') => String(p).replace(/^\.\//, '')
@@ -165,42 +147,16 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     .split('/')
     .pop()
 
-  const debugFiles = allComponents.map(f => f.path).join(', ')
+  // Collect raw file data — Babel AST plugin handles all module transforms
+  const fileEntries = allComponents.map(f => ({
+    path: f.path,
+    modName: f.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop(),
+    code: f.content || ''
+  }))
 
-  let assembledCode = ''
-  for (const f of allComponents) {
-    let code = f.content
-    code = stripTypeScript(code)
-    code = stripReactBindings(code)
-
-    const modName = f.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop()
-
-    code = code.replace(/import[\s\S]*?from\s+['"][^'"]+['"];?/g, '')
-    code = code.replace(/import\s+['"][^'"]+['"];?/g, '')
-    code = code.replace(/^\s*import\s.*$/gm, '')
-
-    code = code.replace(/^\s*export\s+\*\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
-    code = code.replace(/^\s*export\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
-    code = code.replace(/^\s*export\s+\{[^}]+\};?\s*$/gm, '')
-
-    // Escape modName for safe insertion into double-quoted strings
-    const safeMod = modName.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-
-    // Transform export default (anchored to line start only — never match inside strings/comments)
-    code = code.replace(/^\s*export\s+default\s+class\s+/gm, 'window.__COMPONENTS__["' + safeMod + '"] = class ')
-    code = code.replace(/^\s*export\s+default\s+function\s+/gm, 'window.__COMPONENTS__["' + safeMod + '"] = function ')
-    code = code.replace(/^\s*export\s+default\s+/gm, 'window.__COMPONENTS__["' + safeMod + '"] = ')
-
-    // Strip remaining named exports (anchored to line start)
-    code = code.replace(/^\s*export\s+(async\s+function)\s+/gm, '$1 ')
-    code = code.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ')
-    code = code.replace(/^\s*export\b.*$/gm, '')
-
-    assembledCode += '\n\n// FILE: ' + f.path + '\n' + code
-  }
-
-  const safeEntryName = entryName.replace(/'/g, "\\'")
-  const safeDebugFiles = debugFiles.replace(/'/g, "\\'")
+  // JSON-safe embedding: escape < to prevent </script> breakout in srcDoc
+  const filesJson = JSON.stringify(fileEntries).replace(/</g, '\\u003c')
+  const entryJson = JSON.stringify(entryName).replace(/</g, '\\u003c')
 
   const html = [
     '<!DOCTYPE html><html lang="en"><head>',
@@ -214,31 +170,76 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     '<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>',
     '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
     '</head><body><div id="root"></div>',
-    '<script type="text/babel" data-presets="react">',
+    '<script>',
     'var { useState, useEffect, useRef, useCallback, useMemo, useContext, useReducer, useLayoutEffect, useDeferredValue, useTransition, useId, useSyncExternalStore, createContext, createElement, Fragment, memo, forwardRef, lazy, Suspense } = React;',
     'var createRoot = ReactDOM.createRoot;',
     'window.__COMPONENTS__ = {};',
-    assembledCode,
-    'try {',
-    "  var _Entry = window.__COMPONENTS__['" + safeEntryName + "'] || window.__COMPONENTS__['App'] || Object.values(window.__COMPONENTS__)[0];",
-    '  if (_Entry) { window.__root__ = createRoot(document.getElementById("root")); window.__root__.render(createElement(_Entry)); }',
-    "  else { document.getElementById('root').innerHTML = '<div style=\"padding:2rem;color:#888;font-family:system-ui;\">No renderable component found. Files: " + safeDebugFiles + "</div>'; }",
-    '} catch (_e) {',
-    "  document.getElementById('root').innerHTML = '<div style=\"padding:2rem;color:#ef4444;font-family:monospace;white-space:pre-wrap;\">Render Error: ' + _e.message + '</div>';",
-    "  window.parent.postMessage({ type: '__PREVIEW_ERROR__', error: _e.message, stack: _e.stack }, '*');",
+    '',
+    '/* AST-based module transform plugin — replaces all regex rewriting */',
+    'function __mkPlugin(mn) {',
+    '  return function(b) {',
+    '    var t = b.types;',
+    '    function tgt() { return t.memberExpression(t.memberExpression(t.identifier("window"), t.identifier("__COMPONENTS__")), t.stringLiteral(mn), true); }',
+    '    return { visitor: {',
+    '      ImportDeclaration: function(p) { p.remove(); },',
+    '      ExportDefaultDeclaration: function(p) {',
+    '        var d = p.node.declaration;',
+    '        if (t.isFunctionDeclaration(d) || t.isClassDeclaration(d)) {',
+    '          if (!d.id) d.id = t.identifier("_Default");',
+    '          p.replaceWithMultiple([d, t.expressionStatement(t.assignmentExpression("=", tgt(), d.id))]);',
+    '        } else { p.replaceWith(t.expressionStatement(t.assignmentExpression("=", tgt(), d))); }',
+    '      },',
+    '      ExportNamedDeclaration: function(p) { p.node.declaration ? p.replaceWith(p.node.declaration) : p.remove(); },',
+    '      ExportAllDeclaration: function(p) { p.remove(); }',
+    '    }};',
+    '  };',
     '}',
-    // ── Live update listener for streaming preview ──
+    '',
+    '/* Process each file through Babel with AST module transform */',
+    'var __files = ' + filesJson + ';',
+    'var __errs = [];',
+    'for (var __i = 0; __i < __files.length; __i++) {',
+    '  try {',
+    '    var __r = Babel.transform(__files[__i].code, {',
+    '      presets: ["react", ["typescript", { isTSX: true, allExtensions: true }]],',
+    '      plugins: [__mkPlugin(__files[__i].modName)],',
+    '      filename: __files[__i].path',
+    '    });',
+    '    (0, eval)(__r.code);',
+    '  } catch(__e) {',
+    '    __errs.push(__files[__i].path + ": " + __e.message);',
+    '    console.error("[preview] Compile error in " + __files[__i].path + ":", __e);',
+    '  }',
+    '}',
+    '',
+    '/* Mount entry component */',
+    'try {',
+    '  var _Entry = window.__COMPONENTS__[' + entryJson + '] || window.__COMPONENTS__["App"] || Object.values(window.__COMPONENTS__)[0];',
+    '  if (_Entry) { window.__root__ = createRoot(document.getElementById("root")); window.__root__.render(createElement(_Entry)); }',
+    '  else if (__errs.length) {',
+    '    var _d = document.createElement("div"); _d.style.cssText = "padding:2rem;font-family:monospace;font-size:13px;white-space:pre-wrap;";',
+    '    var _h = document.createElement("div"); _h.style.cssText = "color:#ff6b6b;font-weight:bold;margin-bottom:1rem;"; _h.textContent = "Preview Compile Error";',
+    '    var _b = document.createElement("div"); _b.style.color = "#ef4444"; _b.textContent = __errs.join("\\n");',
+    '    _d.appendChild(_h); _d.appendChild(_b); document.getElementById("root").appendChild(_d);',
+    '    window.parent.postMessage({ type: "__PREVIEW_ERROR__", error: __errs.join("; ") }, "*");',
+    '  }',
+    '  else { document.getElementById("root").innerHTML = \'<div style="padding:2rem;color:#888;font-family:system-ui;">No renderable component found.</div>\'; }',
+    '} catch (_e) {',
+    '  document.getElementById("root").innerHTML = \'<div style="padding:2rem;color:#ef4444;font-family:monospace;white-space:pre-wrap;">Render Error: \' + String(_e.message).replace(/</g,"&lt;") + \'</div>\';',
+    '  window.parent.postMessage({ type: "__PREVIEW_ERROR__", error: _e.message, stack: _e.stack }, "*");',
+    '}',
+    '',
+    '/* Live update listener — streaming preview uses same AST transform */',
     'window.addEventListener("message", function(e) {',
     '  if (!e.data || e.data.type !== "live_update") return;',
     '  try {',
     '    window.__COMPONENTS__ = {};',
-    '    var _code = e.data.code;',
-    '    _code = _code.replace(/^\\s*import\\s+.*/gm, "");',
-    '    _code = _code.replace(/export\\s+default\\s+function\\s+/gm, "window.__COMPONENTS__[\\"" + e.data.entryName + "\\"] = function ");',
-    '    _code = _code.replace(/export\\s+default\\s+/gm, "window.__COMPONENTS__[\\"" + e.data.entryName + "\\"] = ");',
-    '    _code = _code.replace(/export\\s+(const|let|var|function|class)\\s+/gm, "$1 ");',
-    '    var _t = Babel.transform(_code, { presets: ["react"] }).code;',
-    '    eval(_t);',
+    '    var _r = Babel.transform(e.data.code, {',
+    '      presets: ["react", ["typescript", { isTSX: true, allExtensions: true }]],',
+    '      plugins: [__mkPlugin(e.data.entryName)],',
+    '      filename: e.data.entryName + ".jsx"',
+    '    });',
+    '    (0, eval)(_r.code);',
     '    var _C = window.__COMPONENTS__[e.data.entryName] || Object.values(window.__COMPONENTS__)[0];',
     '    if (_C && window.__root__) { window.__root__.render(createElement(_C)); }',
     '  } catch(_err) { /* ignore errors during streaming — code is partial */ }',
