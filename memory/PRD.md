@@ -44,6 +44,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Preview skeleton loading state
 - [x] Regression guardrails
 - [x] Fix Live Preview inline Babel runtime syntax error (regex anchoring + modName escaping)
+- [x] Fix create-project JSON.parse error (defensive parsing in frontend + proxy raw passthrough)
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture

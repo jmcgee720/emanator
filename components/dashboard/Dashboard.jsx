@@ -548,11 +548,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const loadProjects = async () => {
     try {
       const response = await authFetch('/api/projects')
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Failed to load projects')
+      const text = await response.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        console.error('[loadProjects] JSON parse failed, raw:', text.slice(0, 200))
+        throw new Error('Failed to load projects')
       }
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load projects')
+      }
       const projectList = Array.isArray(data) ? data : []
       setProjects(projectList)
 
@@ -583,7 +589,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const loadProjectData = async (projectId, skipChatSelect = false, chatTitle = 'New Conversation', restoreChatId = null) => {
     try {
       const chatsResponse = await authFetch(`/api/projects/${projectId}/chats`)
-      const chatsData = await chatsResponse.json()
+      const chatsText = await chatsResponse.text()
+      let chatsData
+      try { chatsData = JSON.parse(chatsText) } catch { chatsData = [] }
       const chatList = Array.isArray(chatsData) ? chatsData : []
       setChats(chatList)
 
@@ -607,7 +615,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     try {
       const filesResponse = await authFetch(`/api/projects/${projectId}/files`)
-      const filesData = await filesResponse.json()
+      const filesText = await filesResponse.text()
+      let filesData
+      try { filesData = JSON.parse(filesText) } catch { filesData = [] }
       setFiles(Array.isArray(filesData) ? filesData : [])
     } catch (error) {
       console.error('Error loading files:', error)
@@ -676,7 +686,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const loadMessages = async (chatId) => {
     try {
       const response = await authFetch(`/api/chats/${chatId}/messages`)
-      const data = await response.json()
+      const text = await response.text()
+      let data
+      try { data = JSON.parse(text) } catch { data = [] }
       setMessages(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error loading messages:', error)
@@ -693,12 +705,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         body: JSON.stringify({ name, type })
       })
 
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Failed to create project')
+      const text = await response.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (parseErr) {
+        console.error('[createProject] JSON parse failed, raw:', text.slice(0, 200))
+        throw new Error('Server returned invalid response. Please try again.')
       }
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create project')
+      }
+
       const newProject = data.project || data
       const initialChat = data.initialChat || null
 
