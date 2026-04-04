@@ -107,7 +107,7 @@ export default function LoginPage({ onAuthSuccess }) {
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" data-testid="login-page">
 
       {/* ── CANVAS AURORA BACKGROUND ── */}
-      <AuroraBackground activityLevel={0} />
+      <AuroraBackground activityLevel={1} />
 
 
       {/* ── BRAND LOCKUP ── */}
