@@ -231,6 +231,7 @@ const AuroraBackground = ({
       streakDensity,
       glowStrength
     });
+    engineRef.current.updateActivityLevel(activityLevel);
     engineRef.current.start();
     window.addEventListener('resize', handleResize);
 
