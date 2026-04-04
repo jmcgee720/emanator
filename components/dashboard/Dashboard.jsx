@@ -2568,8 +2568,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   return (
     <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)', zIndex: 1 }} data-testid="dashboard">
-      {/* Canvas aurora background — behind everything */}
-      <AuroraBackground activityLevel={activityLevel} />
+      {/* Canvas aurora background — full energy on Project Bin, chat-driven otherwise */}
+      <AuroraBackground activityLevel={selectedProject ? activityLevel : 1} />
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
           Self-Builder Active
