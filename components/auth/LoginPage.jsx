@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Lock } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { getEmailRedirectUrl } from '@/lib/auth-config'
+import AuroraBackground from '@/components/AuroraBackground'
 
 export default function LoginPage({ onAuthSuccess }) {
   const [email, setEmail] = useState('')
@@ -103,19 +104,10 @@ export default function LoginPage({ onAuthSuccess }) {
   const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#7A7E98] autofill:shadow-[inset_0_0_0_1000px_rgba(5,5,26,0.9)] autofill:[-webkit-text-fill-color:#FFFFFF]"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden em-aurora em-aurora--login" data-testid="login-page">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" data-testid="login-page">
 
-      {/* ── AURORA BOREALIS BACKGROUND (dramatic login variant) ── */}
-      <div className="em-aurora-containment">
-        <div className="em-aurora-veil-1" />
-        <div className="em-aurora-veil-2" />
-        <div className="em-aurora-veil-3" />
-        <div className="em-aurora-veil-4" />
-        <div className="em-aurora-veil-5" />
-        <div className="em-aurora-veil-6" />
-        <div className="em-aurora-horizon" />
-      </div>
-      <div className="em-aurora-noise" />
+      {/* ── CANVAS AURORA BACKGROUND ── */}
+      <AuroraBackground activityLevel={0} />
 
 
       {/* ── BRAND LOCKUP ── */}

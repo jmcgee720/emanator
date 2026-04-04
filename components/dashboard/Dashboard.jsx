@@ -22,6 +22,7 @@ import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
 import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus } from 'lucide-react'
 import { useAuroraState } from '@/hooks/useAuroraState'
+import AuroraBackground from '@/components/AuroraBackground'
 
 const EMANATOR_HEADLINES = [
   "What wants to be built through you today?",
@@ -390,6 +391,36 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   // Aurora control system — Phase H6
   const pageVariant = selectedProject ? 'focused' : 'dashboard'
   const aurora = useAuroraState(pageVariant)
+
+  // ── Canvas aurora: activityLevel (0–1) — spikes on chat, decays when idle ──
+  const [activityLevel, setActivityLevel] = useState(0)
+  const activityDecayRef = useRef(null)
+
+  useEffect(() => {
+    if (streamingMessageId) {
+      setActivityLevel(1)
+      if (activityDecayRef.current) {
+        clearInterval(activityDecayRef.current)
+        activityDecayRef.current = null
+      }
+      return
+    }
+    // Start decay when streaming stops
+    activityDecayRef.current = setInterval(() => {
+      setActivityLevel(prev => {
+        const next = prev - 0.008
+        if (next <= 0) {
+          clearInterval(activityDecayRef.current)
+          activityDecayRef.current = null
+          return 0
+        }
+        return next
+      })
+    }, 50)
+    return () => {
+      if (activityDecayRef.current) clearInterval(activityDecayRef.current)
+    }
+  }, [streamingMessageId])
 
   const streamAbortRef = useRef(null)
   const hubEntryRef = useRef(false)
@@ -981,6 +1012,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     if (!selectedChat || !content.trim()) return
     if (streamingMessageId) return
 
+    setActivityLevel(1)
     streamAbortRef.current?.abort()
 
     const streamingAssistantId = `streaming-${Date.now()}`
@@ -1881,7 +1913,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       await createProject('New Project', type)
       setPromptInput('')
       aurora.triggerEnergyFlow?.()
-    } catch (error) {
+      setActivityLevel(1)    } catch (error) {
       pendingHeroPromptRef.current = null
     } finally {
       setHeroSubmitting(false)
@@ -2213,7 +2245,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
               <div className="relative">
                 <textarea
                   value={promptInput}
-                  onChange={(e) => { setPromptInput(e.target.value); aurora.onTyping(); }}
+                  onChange={(e) => { setPromptInput(e.target.value); aurora.onTyping(); setActivityLevel(prev => Math.min(1, prev + 0.05)); }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
@@ -2535,18 +2567,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
 
   return (
-    <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)' }} data-testid="dashboard">
-      {/* Aurora borealis background — contained in center */}
-      <div className="em-aurora-containment">
-        <div className="em-aurora-veil-1" />
-        <div className="em-aurora-veil-2" />
-        <div className="em-aurora-veil-3" />
-        <div className="em-aurora-veil-4" />
-        <div className="em-aurora-veil-5" />
-        <div className="em-aurora-veil-6" />
-        <div className="em-aurora-horizon" />
-      </div>
-      <div className="em-aurora-noise" />
+    <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)', zIndex: 1 }} data-testid="dashboard">
+      {/* Canvas aurora background — behind everything */}
+      <AuroraBackground activityLevel={activityLevel} />
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
           Self-Builder Active
