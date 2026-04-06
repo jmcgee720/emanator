@@ -52,6 +52,10 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Follow-up refinement routing — detects visual/content/layout edits on existing pages, injects current file content, routes through direct-edit
 - [x] Preview refresh after refinement — robust hash (updated_at + content.length), directEditMode SSE flag, manual Refresh re-fetches files
 - [x] Disable propose_plan as final output — build/edit requests that fail to produce executable diffs now return `PATCH FAILED` with `toolMode: patch_failed` instead of surfacing a non-actionable plan card
+- [x] Fix const toolMode reassignment compile error
+- [x] Fix trailing brace syntax error at EOF in service.js
+- [x] JSON content sanitizer — intercepts model dumping tool-call JSON as plain text, auto-executes file writes, replaces with clean user message
+- [x] Image prompt enhancement — Unsplash URLs with concrete examples, explicit "NEVER say you can't add images" instruction in both refinement and build modes
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
