@@ -35,6 +35,17 @@ export default function RightPanel({
   isBuilding,
 }) {
 
+  const handleRefreshFiles = async () => {
+    if (!selectedProject?.id) return
+    try {
+      const res = await authFetch(`/api/projects/${selectedProject.id}/files`)
+      const data = await res.json()
+      setFiles(Array.isArray(data) ? data : [])
+    } catch (e) {
+      console.warn('[RightPanel] File refresh failed:', e.message)
+    }
+  }
+
   if (!selectedProject) {
     return (
       <div className="h-full flex items-center justify-center em-aurora em-aurora--focused">
@@ -77,7 +88,7 @@ export default function RightPanel({
 
         <div className="flex-1 overflow-hidden min-h-0 relative">
           <TabsContent value="preview" className="absolute inset-0 m-0 p-0" style={{height: '100%'}}>
-            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} />
+            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} />
           </TabsContent>
           
           <TabsContent value="code" className="absolute inset-0 m-0 p-0 overflow-auto">

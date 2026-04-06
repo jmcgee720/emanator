@@ -548,7 +548,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 // ═══════════════════════════════════════════════════════════════════
 // Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
-export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding }) {
+export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   const [iframeErrors, setIframeErrors] = useState([])
@@ -566,7 +566,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
 
   useEffect(() => {
     const prevHash = prevFilesRef.current
-    const currentHash = files?.map(f => `${f.path}:${f.version || 0}`).join('|') || ''
+    const currentHash = files?.map(f => `${f.path}:${f.version || 0}:${f.updated_at || ''}:${typeof f.content === 'string' ? f.content.length : 0}`).join('|') || ''
     if (prevHash !== null && prevHash !== currentHash) {
       setRefreshKey(k => k + 1)
       setIframeErrors([])
@@ -744,7 +744,9 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     setIframeErrors([])
     setConsoleLogs([])
     setIframeLoaded(false)
-  }, [])
+    // Also re-fetch files from server to ensure latest state
+    onRefreshFiles?.()
+  }, [onRefreshFiles])
 
   const isCoreSystemProject =
     project?.name === 'Emanator Backend' ||

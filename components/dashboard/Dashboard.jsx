@@ -1343,7 +1343,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setStreamingMessageId(null)
           setStreamingStatus(null)
 
-          if (data.generatedFiles?.length > 0 && !diffs?.length) {
+          if ((data.generatedFiles?.length > 0 || data.directEditMode) && !diffs?.length) {
             // Flush remaining preview queue and clear drain timer
             if (previewDrainTimerRef.current) {
               clearInterval(previewDrainTimerRef.current)
