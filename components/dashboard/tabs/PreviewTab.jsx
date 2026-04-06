@@ -567,11 +567,16 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   useEffect(() => {
     const prevHash = prevFilesRef.current
     const currentHash = files?.map(f => `${f.path}:${f.version || 0}:${f.updated_at || ''}:${typeof f.content === 'string' ? f.content.length : 0}`).join('|') || ''
-    if (prevHash !== null && prevHash !== currentHash) {
+    const hashChanged = prevHash !== null && prevHash !== currentHash
+    const forceRefresh = forceRefreshRef.current
+    if (hashChanged || forceRefresh) {
       setRefreshKey(k => k + 1)
-      setIframeErrors([])
-      setConsoleLogs([])
-      setIframeLoaded(false)
+      if (!forceRefresh) {
+        setIframeErrors([])
+        setConsoleLogs([])
+        setIframeLoaded(false)
+      }
+      forceRefreshRef.current = false
     }
     prevFilesRef.current = currentHash
   }, [files])
@@ -739,13 +744,18 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [iframeLoaded, effectivePreviewHtml, refreshKey, iframeErrors.length])
 
 
+  const forceRefreshRef = useRef(false)
+
   const handleRefresh = useCallback(() => {
-    setRefreshKey(k => k + 1)
     setIframeErrors([])
     setConsoleLogs([])
     setIframeLoaded(false)
-    // Also re-fetch files from server to ensure latest state
-    onRefreshFiles?.()
+    if (onRefreshFiles) {
+      forceRefreshRef.current = true
+      onRefreshFiles()
+    } else {
+      setRefreshKey(k => k + 1)
+    }
   }, [onRefreshFiles])
 
   const isCoreSystemProject =
