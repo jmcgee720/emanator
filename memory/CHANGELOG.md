@@ -1,6 +1,40 @@
 # Emanator AI Builder — Changelog
 
-## 2026-04-04 — Reactive Canvas Aurora Background (Fork 6)
+## 2026-04-06 — Platform Billing + Credits System (Fork 7)
+
+### Added: Credit enforcement in generation pipeline
+- Pre-check in `stream-handler.js`: if credits < estimated cost, injects conversational upsell message ("You're out of credits. Tap Buy Credits...") instead of calling provider
+- Post-generation deduction: credits deducted after successful generation based on model cost
+- SSE events: `credits_exhausted`, `credits_update`, `fallback_notice` propagated to frontend
+
+### Added: Model-aware pricing
+- `MODEL_COSTS` in `credits/service.js`: per-model credit costs (GPT-4o: 1.0, Haiku: 0.25, Opus: 2.5, etc.)
+- `ModelSelector.jsx`: cost labels ("1.0 cr", "0.25 cr") with tier-colored indicators next to each model
+- `/api/credits` GET endpoint now returns `modelCosts` alongside balance
+
+### Added: Automatic model fallback
+- `FALLBACK_MAP` in `service.js`: gpt-4o→gpt-4o-mini, claude-sonnet→gpt-4o, etc.
+- `_switchToFallback()` now functional: swaps provider/model on provider errors
+- `_streamWithFallback()` attempts fallback before surfacing errors, emits `_fallback_used` signal
+
+### Added: Error translation layer
+- `errors.js`: "budget" keyword added to billing classifier; unknown errors now say "Something went wrong" instead of exposing provider details
+- Dashboard: toast says "Generation Issue" not "Generation Failed"
+
+### Files Created
+- `/app/backend/tests/test_credits_api.py`
+
+### Files Modified
+- `/app/lib/credits/service.js` — MODEL_COSTS, getModelCost(), estimateRequestCost()
+- `/app/lib/api/routes/credits.js` — Returns modelCosts in GET response
+- `/app/lib/api/stream-handler.js` — Credit pre-check, fallback interception, post-generation deduction
+- `/app/lib/ai/service.js` — FALLBACK_MAP populated, _switchToFallback() wired, _streamWithFallback() with fallback attempt
+- `/app/lib/ai/errors.js` — Budget keyword, product-level unknown error message
+- `/app/lib/stream-client.js` — onCreditsExhausted, onCreditsUpdate, onFallbackNotice callbacks
+- `/app/components/dashboard/Dashboard.jsx` — Credit event handlers in both stream callback blocks
+- `/app/components/dashboard/ModelSelector.jsx` — MODEL_COST_TIERS, cost labels with tier colors
+
+---
 
 ### Added: Canvas-based aurora background from user's GitHub repo
 - Pulled `AuroraBackground.jsx` and `auroraEngine.js` from `github.com/jmcgee720/emanator`
