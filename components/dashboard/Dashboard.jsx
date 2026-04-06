@@ -1336,6 +1336,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             return {
               ...m,
               id: data.id,
+              content: data.contentOverride || m.content,
               streaming: false,
               clientMessageKey: m.clientMessageKey,  // Preserve stable identity across id swap
               metadata: { ...updatedMeta, generatedImage: existingImage || null }
