@@ -51,6 +51,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Platform billing + credits system — credit pre-check before generation, deduction after success, in-chat upsell, model fallback, cost labels, error translation
 - [x] Follow-up refinement routing — detects visual/content/layout edits on existing pages, injects current file content, routes through direct-edit
 - [x] Preview refresh after refinement — robust hash (updated_at + content.length), directEditMode SSE flag, manual Refresh re-fetches files
+- [x] Disable propose_plan as final output — build/edit requests that fail to produce executable diffs now return `PATCH FAILED` with `toolMode: patch_failed` instead of surfacing a non-actionable plan card
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
@@ -58,7 +59,7 @@ Continuously harden the Emanator AI Builder core system:
 
 ## P2 — Future
 - [ ] Deploy integration (Vercel/Netlify) — currently mocked
-- [ ] Refactor service.js (~2600 lines → modular breakdown)
+- [ ] Refactor service.js (~2850 lines → modular breakdown)
 - [ ] Core System self-editing architecture
 - [ ] Growth analytics panel
 
