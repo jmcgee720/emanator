@@ -49,6 +49,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] System-wide task modes (build/inspect/config) — detected in intents.js, enforced in service.js
 - [x] Reactive canvas aurora background — pulled from GitHub repo, replaces CSS aurora, activityLevel wired to chat state
 - [x] Platform billing + credits system — credit pre-check before generation, deduction after success, in-chat upsell, model fallback, cost labels, error translation
+- [x] Follow-up refinement routing — detects visual/content/layout edits on existing pages, injects current file content, routes through direct-edit
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture

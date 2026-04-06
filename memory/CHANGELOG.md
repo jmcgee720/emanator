@@ -1,6 +1,33 @@
 # Emanator AI Builder — Changelog
 
-## 2026-04-06 — Platform Billing + Credits System (Fork 7)
+## 2026-04-06 — Follow-up Refinement Routing (Fork 7)
+
+### Added: isRefinementRequest() detection
+- 11 regex pattern groups in `intents.js` covering: add/change/make/remove/hide/move/reorder/concise/intent-driven/style/apply refinements
+- COMPLEX_DISQUALIFIERS block backend/auth/routing/database requests
+- 100% accuracy on all 85 test cases
+
+### Added: Refinement routing in service.js (block 6a)
+- Triggers when: taskMode='build' + project has files + main page exists with content + isRefinementRequest() matches
+- Fetches existing file content via `db.projectFiles.findByPath()`
+- Sets `refinementMode=true`, `directEditMode=true`, `directEditFileAction='update_files'`
+
+### Added: Refinement-specific AI system prompt
+- Injects full current file content into system message
+- Instructs AI to PRESERVE existing structure and APPLY requested changes precisely
+- Requires COMPLETE updated file output (not diffs/snippets)
+- Requires SHORT text response (1-2 sentences)
+
+### Changed: Failure/success messages
+- Refinement failure: "I couldn't safely update the current page layout on that pass. I can retry with a simpler edit — try breaking it into smaller changes."
+- Refinement success: "Done — I updated {path} with your changes. Check the preview!"
+- Retry instruction for refinement: "Read the existing file content provided above and apply the requested changes."
+
+### Files Modified
+- `/app/lib/ai/intents.js` — REFINEMENT_PATTERNS, isRefinementRequest()
+- `/app/lib/ai/service.js` — Refinement routing block 6a, refinement system prompt, refinement-aware messages
+
+---
 
 ### Added: Credit enforcement in generation pipeline
 - Pre-check in `stream-handler.js`: if credits < estimated cost, injects conversational upsell message ("You're out of credits. Tap Buy Credits...") instead of calling provider
