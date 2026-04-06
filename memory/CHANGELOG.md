@@ -1,6 +1,27 @@
 # Emanator AI Builder — Changelog
 
-## 2026-04-06 — Follow-up Refinement Routing (Fork 7)
+## 2026-04-06 — Preview Refresh After Refinement (Fork 7)
+
+### Where preview refresh was NOT being triggered
+- `Dashboard.jsx` line 1346: `if (data.generatedFiles?.length > 0 ...)` only checked for `generatedFiles`, which could be empty for refinement-mode direct-edits even when files were saved
+- `PreviewTab.jsx` line 569: hash used only `f.version` which may not change or exist in Supabase response, so identical hashes prevented `refreshKey` increment
+
+### How automatic refresh now works
+1. `stream-handler.js` passes `directEditMode: true` in the `message_saved` SSE event
+2. `Dashboard.jsx` triggers file refresh when `data.directEditMode || data.generatedFiles?.length > 0` (was only generatedFiles before)
+3. `PreviewTab.jsx` hash now includes `updated_at` + `content.length` alongside `version`, guaranteeing any file content change produces a different hash → `refreshKey` increments → preview rebuilds
+
+### How manual Refresh works
+- PreviewTab's Refresh button (`data-testid="preview-refresh"`) now calls `onRefreshFiles?.()` alongside resetting iframe state
+- `RightPanel.jsx` provides `handleRefreshFiles` callback that fetches `/api/projects/{id}/files` and calls `setFiles()`
+
+### Files Modified
+- `/app/components/dashboard/tabs/PreviewTab.jsx` — Hash includes updated_at + content.length; handleRefresh calls onRefreshFiles
+- `/app/components/dashboard/RightPanel.jsx` — handleRefreshFiles callback; passes to PreviewTab
+- `/app/components/dashboard/Dashboard.jsx` — onMessageSaved condition includes directEditMode
+- `/app/lib/api/stream-handler.js` — directEditMode passed in message_saved event
+
+---
 
 ### Added: isRefinementRequest() detection
 - 11 regex pattern groups in `intents.js` covering: add/change/make/remove/hide/move/reorder/concise/intent-driven/style/apply refinements
