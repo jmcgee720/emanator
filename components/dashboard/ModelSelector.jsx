@@ -44,6 +44,21 @@ const STATUS_CONFIG = {
   unknown:       { label: 'Unknown',       color: 'text-zinc-500 border-zinc-500/30',  icon: CircleAlert },
 }
 
+const MODEL_COST_TIERS = {
+  'gpt-4o':            { credits: 1.0, label: 'High' },
+  'gpt-4o-mini':       { credits: 0.25, label: 'Standard' },
+  'o3':                { credits: 2.0, label: 'Premium' },
+  'claude-sonnet-4-6': { credits: 1.0, label: 'High' },
+  'claude-opus-4-6':   { credits: 2.5, label: 'Premium' },
+  'claude-haiku-4-5':  { credits: 0.25, label: 'Standard' },
+}
+
+const COST_COLORS = {
+  Standard: 'text-emerald-400/70',
+  High:     'text-amber-400/70',
+  Premium:  'text-rose-400/70',
+}
+
 export default function ModelSelector({ provider, model, onProviderChange, onModelChange, providerStatus }) {
   const currentProvider = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0]
   const currentModel = currentProvider.models.find(m => m.id === model) ||
@@ -125,6 +140,11 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
                         <Badge variant="outline" className={`text-[10px] ${m.badgeColor}`}>
                           {m.badge}
                         </Badge>
+                        {MODEL_COST_TIERS[m.id] && (
+                          <span className={`text-[9px] font-normal ml-1 ${COST_COLORS[MODEL_COST_TIERS[m.id].label] || 'text-zinc-500'}`} data-testid={`model-cost-${m.id}`}>
+                            {MODEL_COST_TIERS[m.id].credits} cr
+                          </span>
+                        )}
                       </div>
                     </DropdownMenuItem>
                   )
