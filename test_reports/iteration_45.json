@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-04-06T13:45:00.000Z",
+  "iteration": 45,
+  "summary": "Tested platform-managed billing + credits system for Emanator. All 8 backend API tests PASSED. Frontend UI verified: credits display in TopBar (59.50), Buy Credits button, Credits modal with balance/costs/packages. Code review confirms model cost labels implemented in ModelSelector.jsx with data-testid attributes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_tests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "features_tested": [
+        {"feature": "GET /api/credits unauthenticated returns 401", "status": "PASS"},
+        {"feature": "GET /api/credits returns balance, costs, packages, modelCosts", "status": "PASS"},
+        {"feature": "POST /api/credits/use deducts credits and returns new balance", "status": "PASS"},
+        {"feature": "POST /api/credits/use returns 400 for invalid action_type", "status": "PASS"},
+        {"feature": "POST /api/credits/add adds credits and returns new balance", "status": "PASS"},
+        {"feature": "POST /api/credits/add returns 400 for invalid amounts", "status": "PASS"},
+        {"feature": "modelCosts contains correct cost tiers for all models", "status": "PASS"},
+        {"feature": "Supabase login works with test credentials", "status": "PASS"}
+      ]
+    },
+    "frontend_tests": {
+      "features_tested": [
+        {"feature": "Login flow works (email/password via Enter key)", "status": "PASS"},
+        {"feature": "Credits display visible in TopBar showing balance (59.50)", "status": "PASS"},
+        {"feature": "Buy Credits button visible in TopBar", "status": "PASS"},
+        {"feature": "Credits modal opens with balance, cost per action table, purchase options", "status": "PASS"},
+        {"feature": "Dashboard loads correctly after login", "status": "PASS"}
+      ]
+    },
+    "code_review": {
+      "model_cost_labels": {
+        "file": "/app/components/dashboard/ModelSelector.jsx",
+        "status": "IMPLEMENTED",
+        "details": "MODEL_COST_TIERS with credits/tier/label for each model, COST_COLORS for tier coloring, cost labels rendered with data-testid='model-cost-{model-id}' showing '{credits} cr' format"
+      },
+      "stream_handler_credit_precheck": {
+        "file": "/app/lib/api/stream-handler.js",
+        "status": "IMPLEMENTED",
+        "details": "Lines 93-119: Credit pre-check before provider call, emits credits_exhausted SSE event with upsell message when balance < estimated cost"
+      },
+      "stream_client_callbacks": {
+        "file": "/app/lib/stream-client.js",
+        "status": "IMPLEMENTED",
+        "details": "onCreditsExhausted, onCreditsUpdate, onFallbackNotice callbacks added at lines 91-93"
+      },
+      "fallback_map": {
+        "file": "/app/lib/ai/service.js",
+        "status": "IMPLEMENTED",
+        "details": "FALLBACK_MAP populated at line 69 with gpt-4o→gpt-4o-mini, claude-sonnet→gpt-4o, etc."
+      },
+      "error_classification": {
+        "file": "/app/lib/ai/errors.js",
+        "status": "IMPLEMENTED",
+        "details": "'budget' keyword added to billing classifier at line 62, unknown errors translated to product language at line 144"
+      },
+      "dashboard_credit_handlers": {
+        "file": "/app/components/dashboard/Dashboard.jsx",
+        "status": "IMPLEMENTED",
+        "details": "onCreditsExhausted, onCreditsUpdate, onFallbackNotice handlers at lines 1410-1421 and 1535-1546"
+      }
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_credits_api.py",
+    "/app/test_reports/pytest/pytest_credits_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "All credit system features are correctly implemented",
+    "Model cost labels in ModelSelector.jsx show credits with tier-based coloring",
+    "Stream-handler credit pre-check prevents generation when credits are insufficient",
+    "SSE events (credits_exhausted, credits_update, fallback_notice) properly emitted and handled",
+    "FALLBACK_MAP correctly maps premium models to fallback options",
+    "Error classification translates provider errors to user-friendly product language"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (5/5 features verified)"
+  },
+  "test_credentials": "REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD",
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Credits system fully tested. Key findings: (1) GET /api/credits returns balance, costs, packages, and modelCosts. (2) POST /api/credits/use deducts credits correctly. (3) POST /api/credits/add increases balance. (4) Credits display shows in TopBar with Buy Credits button. (5) Credits modal shows balance, cost per action, and purchase options. (6) Model cost labels implemented in ModelSelector.jsx with data-testid attributes. (7) Stream-handler has credit pre-check that emits credits_exhausted SSE event. (8) FALLBACK_MAP and error classification properly implemented. Note: Model selector with cost labels is inside project conversation view (ChatComposer) - couldn't navigate to project view in UI test but code review confirms implementation."
+}

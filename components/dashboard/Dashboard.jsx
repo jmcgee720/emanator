@@ -1399,11 +1399,25 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           ))
           setStreamingMessageId(null)
           setStreamingStatus(null)
-          addLog('error', `Provider error: ${data.message}`)
+          addLog('error', `Error: ${data.message}`)
 
           if (!data.partial) {
-            toast({ title: 'Generation Failed', description: data.message, variant: 'destructive' })
+            toast({ title: 'Generation Issue', description: data.message, variant: 'destructive' })
           }
+        },
+
+        // ── Platform billing events ──
+        onCreditsExhausted: (data) => {
+          // The upsell message is already streamed as tokens — just update balance
+          setCreditsBalance(data.balance)
+          setStreamingMessageId(null)
+          setStreamingStatus(null)
+        },
+        onCreditsUpdate: (data) => {
+          setCreditsBalance(data.balance)
+        },
+        onFallbackNotice: (data) => {
+          toast({ title: 'Model Fallback', description: `Used ${data.model} for this request.` })
         }
       }
     )
@@ -1516,7 +1530,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setStreamingStatus(null)
           setExecutingPlan(false)
           addLog('error', `Diff generation failed: ${data.message}`)
-          toast({ title: 'Generation Failed', description: data.message, variant: 'destructive' })
+          toast({ title: 'Generation Issue', description: data.message, variant: 'destructive' })
+        },
+        onCreditsExhausted: (data) => {
+          setCreditsBalance(data.balance)
+          setStreamingMessageId(null)
+          setStreamingStatus(null)
+          setExecutingPlan(false)
+        },
+        onCreditsUpdate: (data) => {
+          setCreditsBalance(data.balance)
+        },
+        onFallbackNotice: (data) => {
+          toast({ title: 'Model Fallback', description: `Used ${data.model} for this request.` })
         }
       }
     )
