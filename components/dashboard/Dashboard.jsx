@@ -20,7 +20,7 @@ import { SavePromptDialog } from './PromptLibrary'
 import BuilderMemory from './BuilderMemory'
 import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
-import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus } from 'lucide-react'
+import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus, Sparkles, Camera } from 'lucide-react'
 import { useAuroraState } from '@/hooks/useAuroraState'
 import AuroraBackground from '@/components/AuroraBackground'
 
@@ -90,6 +90,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [aiModel, setAiModel] = useState('gpt-4o')
   const [providerStatus, setProviderStatus] = useState({})
   const [scope, setScope] = useState('project')
+  const [visualMode, setVisualMode] = useState('stock')
   const [selfEditTarget, setSelfEditTarget] = useState(null)
 
   const [streamingMessageId, setStreamingMessageId] = useState(null)
@@ -1042,7 +1043,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setStreamingStatus({ stage: 'connecting', detail: 'Connecting...' })
 
     const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
-    const streamOpts = { provider: aiProvider, model: aiModel, scope, designPrefs, attachments }
+    const streamOpts = { provider: aiProvider, model: aiModel, scope, designPrefs, attachments, visualMode }
     if (isSelfEditChat && selfEditTarget) {
       streamOpts.selfEditTarget = selfEditTarget
     }
@@ -2298,6 +2299,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)]" data-testid="ai-model-selector">
                     <span>Claude 4.5 Opus</span>
                   </div>
+                  <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
+                  <button
+                    onClick={() => setVisualMode(visualMode === 'stock' ? 'custom' : 'stock')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                      visualMode === 'custom'
+                        ? 'text-amber-400 bg-[rgba(245,158,11,0.1)] border-[rgba(245,158,11,0.25)]'
+                        : 'text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]'
+                    }`}
+                    data-testid="hero-visual-mode-toggle"
+                    title={visualMode === 'custom' ? 'Custom AI images (3x credits)' : 'Stock photos (included)'}
+                  >
+                    {visualMode === 'custom' ? <Sparkles className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
+                    <span>{visualMode === 'custom' ? 'Custom' : 'Stock'}</span>
+                  </button>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -2972,6 +2987,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                   onOpenBuilderMemory={() => setShowBuilderMemory(true)}
                   onSavePrompt={(text, metadata) => setSavePromptData({ text, metadata })}
                   onCreateSandbox={createSandbox}
+                  visualMode={visualMode}
+                  onVisualModeChange={setVisualMode}
                 />
               </ResizablePanel>
 

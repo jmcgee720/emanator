@@ -233,7 +233,9 @@ export default function LeftPanel({
   onOpenPromptLibrary,
   onOpenBuilderMemory,
   onSavePrompt,
-  onCreateSandbox
+  onCreateSandbox,
+  visualMode,
+  onVisualModeChange
 }) {
   const [sending, setSending] = useState(false)
   const [forkingChat, setForkingChat] = useState(false)
@@ -729,6 +731,8 @@ export default function LeftPanel({
         scope={scope}
         onScopeChange={onScopeChange}
         onUploadFiles={onUploadFiles}
+        visualMode={visualMode}
+        onVisualModeChange={onVisualModeChange}
       />
     </div>
   )

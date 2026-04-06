@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Send, Paperclip, Loader2, Layers, Globe, Image as ImageIcon, FileText,
-  X, File, FileCode, FileImage, Upload
+  X, File, FileCode, FileImage, Upload, Sparkles, Camera
 } from 'lucide-react'
 import ModelSelector from './ModelSelector'
 import RecipeSelector from './RecipeSelector'
@@ -83,6 +83,8 @@ const ChatComposer = forwardRef(function ChatComposer({
   scope,
   onScopeChange,
   onUploadFiles,
+  visualMode = 'stock',
+  onVisualModeChange,
   placeholder = 'Describe what you want to build...'
 }, ref) {
   const [input, setInput] = useState('')
@@ -303,6 +305,21 @@ const ChatComposer = forwardRef(function ChatComposer({
 
         <RecipeSelector onSelectRecipe={handleRecipeSelect} />
         <ScopeSelector scope={scope} onScopeChange={onScopeChange} />
+
+        {/* Visual Mode Toggle */}
+        <button
+          onClick={() => onVisualModeChange?.(visualMode === 'stock' ? 'custom' : 'stock')}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+            visualMode === 'custom'
+              ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.15)]'
+              : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50 hover:text-foreground'
+          }`}
+          title={visualMode === 'custom' ? 'Custom AI images (3x credits)' : 'Stock photos (included)'}
+          data-testid="visual-mode-toggle"
+        >
+          {visualMode === 'custom' ? <Sparkles className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
+          {visualMode === 'custom' ? 'Custom' : 'Stock'}
+        </button>
 
         {(sending || uploading) && (
           <Badge variant="outline" className="text-xs gap-1 px-2 py-0.5 text-amber-400 border-amber-400/30">
