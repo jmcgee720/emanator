@@ -58,6 +58,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Image prompt enhancement — Unsplash URLs with concrete examples, explicit "NEVER say you can't add images" instruction in both refinement and build modes
 - [x] Two-tier image system — Stock (curated Unsplash, auto-detect keywords, "Finding images..." status) + Custom/Premium (AI-generated via GPT Image 1, 3x credits). Toggle in homepage prompt bar and in-project ChatComposer. Backend: image-prefetch.js module, service.js integration, stream-handler passthrough, credits multiplier.
 - [x] Code completeness validator — Detects truncated/incomplete JSX/JS/CSS before saving (bracket balance, JSX tag balance, truncation signals). Auto-repairs via AI completion call. Prevents broken previews from incomplete generation.
+- [x] PatchGroundingValidator fallback — When grounding validator rejects a patch (stale anchors), falls back to full file rewrite instead of silently producing 0 files. Applied across all 3 validation sites in service.js.
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
