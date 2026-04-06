@@ -50,6 +50,7 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Reactive canvas aurora background — pulled from GitHub repo, replaces CSS aurora, activityLevel wired to chat state
 - [x] Platform billing + credits system — credit pre-check before generation, deduction after success, in-chat upsell, model fallback, cost labels, error translation
 - [x] Follow-up refinement routing — detects visual/content/layout edits on existing pages, injects current file content, routes through direct-edit
+- [x] Preview refresh after refinement — robust hash (updated_at + content.length), directEditMode SSE flag, manual Refresh re-fetches files
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
