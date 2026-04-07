@@ -51,7 +51,7 @@ export default function SharedPreviewPage({ params }) {
           <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.15)' }}>
             <Globe className="w-7 h-7 text-red-400" />
           </div>
-          <h1 className="text-lg font-bold text-white mb-2">Preview Not Found</h1>
+          <h1 className="text-lg font-bold text-white mb-2">{error.includes('expired') ? 'Link Expired' : 'Preview Not Found'}</h1>
           <p className="text-sm text-white/40">{error}</p>
         </div>
       </div>

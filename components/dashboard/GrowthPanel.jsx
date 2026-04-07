@@ -46,6 +46,8 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
   const [selectedMonitor, setSelectedMonitor] = useState(null)
   const [checkingMonitor, setCheckingMonitor] = useState(null)
   const [sidebarTab, setSidebarTab] = useState('pages') // 'pages' | 'monitors'
+  const [schedule, setSchedule] = useState({ enabled: false, frequency: '24h', last_run: null, next_run: null })
+  const [savingSchedule, setSavingSchedule] = useState(false)
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -447,6 +449,31 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
     } catch {}
   }
 
+  const fetchSchedule = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/growth/monitors/schedule')
+      const data = await res.json()
+      if (data.schedule) setSchedule(data.schedule)
+    } catch {}
+  }, [])
+
+  useEffect(() => { fetchSchedule() }, [fetchSchedule])
+
+  const updateSchedule = async (updates) => {
+    setSavingSchedule(true)
+    try {
+      const newConfig = { ...schedule, ...updates }
+      const res = await authFetch('/api/growth/monitors/schedule', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ enabled: newConfig.enabled, frequency: newConfig.frequency }),
+      })
+      const data = await res.json()
+      if (data.schedule) setSchedule(data.schedule)
+    } catch {}
+    finally { setSavingSchedule(false) }
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--em-void)' }} data-testid="growth-panel">
 
@@ -806,6 +833,53 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
                   >
                     {checkingMonitor ? <><Loader2 className="w-3 h-3 animate-spin" /> Checking...</> : <><RefreshCw className="w-3 h-3" /> Check All</>}
                   </button>
+                </div>
+
+                {/* Auto-Crawl Schedule */}
+                <div className="mx-3 mb-3 p-2.5 rounded-xl" style={{ background: 'rgba(52,211,153,0.03)', border: '1px solid rgba(52,211,153,0.08)' }} data-testid="schedule-config">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold text-emerald-400">Auto-Crawl</span>
+                    <button
+                      onClick={() => updateSchedule({ enabled: !schedule.enabled })}
+                      disabled={savingSchedule}
+                      className="relative w-8 h-4 rounded-full transition-all duration-300 cursor-pointer"
+                      style={{
+                        background: schedule.enabled ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)',
+                        border: schedule.enabled ? '1px solid rgba(52,211,153,0.4)' : '1px solid rgba(255,255,255,0.12)',
+                      }}
+                      data-testid="schedule-toggle"
+                    >
+                      <div
+                        className="absolute top-0.5 w-3 h-3 rounded-full transition-all duration-300"
+                        style={{
+                          left: schedule.enabled ? '16px' : '2px',
+                          background: schedule.enabled ? '#34D399' : 'rgba(255,255,255,0.3)',
+                        }}
+                      />
+                    </button>
+                  </div>
+                  {schedule.enabled && (
+                    <div className="space-y-1.5">
+                      <select
+                        value={schedule.frequency}
+                        onChange={(e) => updateSchedule({ frequency: e.target.value })}
+                        disabled={savingSchedule}
+                        className="w-full px-2 py-1 rounded-lg text-[10px] font-medium outline-none"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-secondary)' }}
+                        data-testid="schedule-frequency-select"
+                      >
+                        <option value="6h">Every 6 hours</option>
+                        <option value="12h">Every 12 hours</option>
+                        <option value="24h">Every 24 hours</option>
+                        <option value="48h">Every 48 hours</option>
+                        <option value="7d">Weekly</option>
+                      </select>
+                      <div className="flex items-center gap-2 text-[9px] text-[var(--em-text-muted)]" style={{ opacity: 0.6 }}>
+                        {schedule.last_run && <span>Last: {new Date(schedule.last_run).toLocaleString()}</span>}
+                        {schedule.next_run && <span>Next: {new Date(schedule.next_run).toLocaleString()}</span>}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {monitors.map((mon) => {
                   const isActive = selectedMonitor?.id === mon.id
