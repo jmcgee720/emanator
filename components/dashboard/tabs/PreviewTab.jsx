@@ -154,6 +154,9 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     code: f.content || ''
   }))
 
+  // Sort: entry file goes last so all dependencies compile first
+  fileEntries.sort((a, b) => (a.modName === entryName ? 1 : 0) - (b.modName === entryName ? 1 : 0))
+
   // JSON-safe embedding: escape < to prevent </script> breakout in srcDoc
   const filesJson = JSON.stringify(fileEntries).replace(/</g, '\\u003c')
   const entryJson = JSON.stringify(entryName).replace(/</g, '\\u003c')
@@ -288,6 +291,26 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     '              if (stubs[imp] && !window[s.local.name]) { try { window[s.local.name] = stubs[imp]; } catch(e){} }',
     '            }',
     '          }',
+    '          p.remove();',
+    '          return;',
+    '        }',
+    '        /* Local imports: resolve from __COMPONENTS__ registry */',
+    '        if (src.charAt(0) === "." || src.charAt(0) === "/") {',
+    '          var localMod = src.replace(/^\\.\\//,"").replace(/\\.(jsx|tsx|js|ts)$/,"").split("/").pop();',
+    '          var decls = [];',
+    '          var localSpecs = p.node.specifiers || [];',
+    '          for (var li = 0; li < localSpecs.length; li++) {',
+    '            var ls = localSpecs[li];',
+    '            var compRef = t.memberExpression(t.memberExpression(t.identifier("window"),t.identifier("__COMPONENTS__")),t.stringLiteral(localMod),true);',
+    '            if (ls.type === "ImportDefaultSpecifier") {',
+    '              decls.push(t.variableDeclaration("var",[t.variableDeclarator(ls.local, compRef)]));',
+    '            } else if (ls.type === "ImportSpecifier") {',
+    '              var impN = ls.imported ? ls.imported.name : ls.local.name;',
+    '              decls.push(t.variableDeclaration("var",[t.variableDeclarator(ls.local, t.logicalExpression("||",t.memberExpression(t.logicalExpression("||",compRef,t.objectExpression([])),t.identifier(impN)),t.memberExpression(t.memberExpression(t.identifier("window"),t.identifier("__COMPONENTS__")),t.stringLiteral(impN),true)))]));',
+    '            }',
+    '          }',
+    '          if (decls.length > 0) { p.replaceWithMultiple(decls); } else { p.remove(); }',
+    '          return;',
     '        }',
     '        p.remove();',
     '      },',
@@ -321,6 +344,8 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     '      var _cjs = module.exports.default || module.exports;',
     '      if (typeof _cjs === "function") window.__COMPONENTS__[__files[__i].modName] = _cjs;',
     '    }',
+    '    /* Expose compiled component as global for cross-file references */',
+    '    if (window.__COMPONENTS__[__files[__i].modName]) { window[__files[__i].modName] = window.__COMPONENTS__[__files[__i].modName]; }',
     '  } catch(__e) {',
     '    __errs.push(__files[__i].path + ": " + __e.message);',
     '    console.error("[preview] Compile error in " + __files[__i].path + ":", __e);',
