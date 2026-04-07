@@ -337,17 +337,57 @@ export default function GrowthPanel({ onClose }) {
       .then(d => { if (d.page) { setSelectedPage(d.page); setPersonaResults({}); setActiveResultTab(null); loadFeedback(d.page.id) } })
   }
 
-  const handleExport = async () => {
+  const handleExport = async (format = 'csv') => {
     try {
-      const res = await authFetch('/api/growth/pages/export')
+      const res = await authFetch('/api/growth/pages')
       const data = await res.json()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `growth-export-${new Date().toISOString().slice(0, 10)}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      const exportPages = data.pages || pages
+
+      if (format === 'json') {
+        const blob = new Blob([JSON.stringify(exportPages, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `growth-export-${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      } else {
+        // CSV export
+        const csvRows = [
+          ['URL', 'Title', 'Meta Description', 'Word Count', 'Internal Links', 'External Links', 'Images', 'Images with Alt', 'Title Issues', 'Meta Issues', 'Content Issues', 'Structure Issues', 'Recommendations', 'Crawled At'].join(',')
+        ]
+        for (const p of exportPages) {
+          const ext = p.extracted_data || {}
+          const opps = p.opportunities || {}
+          const escCsv = (v) => `"${String(v || '').replace(/"/g, '""')}"`
+          const countArr = (arr) => Array.isArray(arr) ? arr.length : 0
+          const joinArr = (arr) => Array.isArray(arr) ? arr.map(i => typeof i === 'string' ? i : i?.issue || i?.recommendation || i?.text || JSON.stringify(i)).join('; ') : ''
+          csvRows.push([
+            escCsv(p.url),
+            escCsv(ext.title),
+            escCsv(ext.meta_description),
+            ext.word_count || 0,
+            ext.internal_links || 0,
+            ext.external_links || 0,
+            ext.total_images || 0,
+            ext.images_with_alt || 0,
+            countArr(opps.title_issues),
+            countArr(opps.meta_issues),
+            countArr(opps.content_issues),
+            countArr(opps.structure_issues),
+            escCsv(joinArr(opps.recommendations)),
+            escCsv(p.created_at || ''),
+          ].join(','))
+        }
+        const csvContent = csvRows.join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `growth-export-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
     } catch { /* silent */ }
   }
 
@@ -374,14 +414,24 @@ export default function GrowthPanel({ onClose }) {
             <span className="text-[11px] text-[var(--em-text-muted)] font-medium tabular-nums">
               {pages.length} page{pages.length !== 1 ? 's' : ''} crawled
             </span>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-secondary)' }}
-              data-testid="growth-export-btn"
-            >
-              <Download className="w-3 h-3" />Export
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handleExport('csv')}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 hover:bg-[rgba(0,229,255,0.08)]"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-secondary)' }}
+                data-testid="growth-export-csv-btn"
+              >
+                <Download className="w-3 h-3" />CSV
+              </button>
+              <button
+                onClick={() => handleExport('json')}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 hover:bg-[rgba(124,58,237,0.08)]"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-secondary)' }}
+                data-testid="growth-export-json-btn"
+              >
+                <Download className="w-3 h-3" />JSON
+              </button>
+            </div>
           </div>
         )}
       </div>
