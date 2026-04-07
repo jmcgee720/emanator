@@ -55,6 +55,12 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Increased max file count limit from 10 to 30 (initial builds from Creative Brief easily exceed 10 files)
 - Warning threshold raised from 5 to 15 files
 
+### Preview Import Resolution Fix (Feb 2026)
+- Fixed `ReferenceError: Home is not defined` — Babel AST plugin now resolves local imports (`./components/Home`) to `window.__COMPONENTS__["Home"]`
+- Entry file (App.jsx) sorted to compile last so all dependencies are available
+- Each compiled component exposed as window global for cross-file references
+- Clean success message without file listing
+
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
 - `GET/POST /api/projects` - Project CRUD
