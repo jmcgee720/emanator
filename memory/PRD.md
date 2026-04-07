@@ -42,6 +42,14 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - "Start Building" button saves brief + creates chat + auto-sends prompt to AI
 - Brief data persists via canvas API and auto-injects into AI system prompt via context.js
 
+### PATCH FAILED Fix + Auto-Execute Flow (Feb 2026)
+- Eliminated all 3 hardcoded `PATCH FAILED: no executable changes produced` suppression paths in `message-stream.js`
+- Revised/self-critique plans that exceed safe thresholds now surface as PlanCard for user approval instead of failing
+- New projects from Creative Brief auto-execute immediately (no PlanCard pause)
+- All auto-execute paths now emit `preview_partial` events for real-time live preview during generation
+- New project success message includes next-step suggestions (customize, add pages, add features)
+- Large plans on existing projects surface PlanCard for approval
+
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
 - `GET/POST /api/projects` - Project CRUD
@@ -63,4 +71,6 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - `canvas` - stores creative_brief JSON
 
 ## Backlog
-- No outstanding tasks specified by user.
+- Refactor `message-stream.js` (~1800 lines, very complex nested logic)
+- Refactor `service.js` (~2600 lines)
+- Deploy integration (Vercel/Netlify) — currently partially mocked
