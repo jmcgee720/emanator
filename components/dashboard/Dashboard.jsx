@@ -2383,10 +2383,14 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         <div className="px-8 pb-12">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium em-text-secondary tracking-wide" data-testid="projects-heading">
-                Your Projects
-              </h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm" data-testid="projects-nav-tabs">
+                <button
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)] transition-all duration-200"
+                  data-testid="projects-tab-btn"
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                  Projects
+                </button>
                 {isOwner && (
                   <button
                     onClick={async () => {
@@ -2396,7 +2400,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                         (coreProjectIdRef.current && projects.find(p => p.id === coreProjectIdRef.current)) ||
                         null
                       if (!coreProject) {
-                        // Create core project with is_core flag set atomically
                         try {
                           const resp = await authFetch('/api/projects', {
                             method: 'POST',
@@ -2415,7 +2418,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                       setMessages([])
                       openProjectWorkspace(coreProject)
                     }}
-                    className="px-3.5 py-1.5 rounded-xl text-[11px] font-semibold border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.06)] text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.25)] backdrop-blur-sm transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
                     data-testid="core-system-btn"
                   >
                     Core System
@@ -2423,9 +2426,10 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                 )}
                 <button
                   onClick={() => setShowNewProjectModal(true)}
-                  className="px-3.5 py-1.5 rounded-xl text-[11px] font-semibold em-btn-brand"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
                   data-testid="new-project-btn"
                 >
+                  <Plus className="w-3 h-3" />
                   New Project
                 </button>
               </div>
@@ -2590,12 +2594,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
     <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)', zIndex: 1 }} data-testid="dashboard">
       {/* Canvas aurora background — full energy on Project Bin, chat-driven otherwise */}
       <AuroraBackground activityLevel={selectedProject ? activityLevel : 1} />
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none" data-testid="self-builder-badge">
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-          Self-Builder Active
-        </span>
-      </div>
-
       {selectedProject?.settings?.is_sandbox && (() => {
         const testResult = sandboxTestResult || selectedProject.settings.last_test_result
         const canPromote = isOwner && testResult?.passed && selectedProject.settings.sandbox_status === 'active'
@@ -2804,79 +2802,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         onAuroraIntensityChange={aurora.setIntensity}
         creditsBalance={creditsBalance}
       />
-
-      {/* ── Tab Bar — always visible ── */}
-      <div className="h-9 flex items-center px-2 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(12,16,24,0.6)] shrink-0" data-testid="project-tabs-bar">
-        {/* Project Bin — permanent, not closable, distinct styling */}
-        <button
-          onClick={goToProjectsGrid}
-          className={`flex items-center gap-1.5 px-3 h-7 rounded-md text-[11px] font-medium transition-all duration-200 shrink-0 ${
-            !selectedProject
-              ? 'bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.12)]'
-              : 'em-text-muted hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
-          }`}
-          data-testid="tabs-project-bin"
-        >
-          <LayoutGrid className="w-3 h-3" />
-          Project Bin
-        </button>
-
-        {openProjectTabs.length > 0 && (
-          <div className="w-px h-4 bg-[rgba(255,255,255,0.08)] mx-1.5 shrink-0" />
-        )}
-
-        {/* Scrollable project tabs */}
-        <div className="flex-1 min-w-0 overflow-x-auto" style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <style>{`[data-testid="project-tabs-bar"] div::-webkit-scrollbar { display: none; }`}</style>
-          <div className="flex items-center gap-0.5 w-max">
-            {openProjectTabs.map((tab) => {
-              const isActive = selectedProject?.id === tab.id
-              return (
-                <div
-                  key={tab.id}
-                  className={`group flex items-center h-7 pl-2.5 pr-1 rounded-md text-[11px] font-medium shrink-0 max-w-[180px] transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[rgba(0,229,255,0.14)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.30)] shadow-[0_0_10px_rgba(0,229,255,0.10)]'
-                      : 'em-text-secondary hover:text-[var(--em-text-primary)] hover:bg-[rgba(255,255,255,0.06)] border border-transparent'
-                  }`}
-                  data-testid={`project-tab-${tab.id}`}
-                >
-                  <button
-                    onClick={() => switchToProjectTab(tab)}
-                    className="truncate min-w-0 leading-[28px]"
-                    data-testid={`project-tab-activate-${tab.id}`}
-                  >
-                    {tab.name}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); closeProjectWorkspaceTab(tab.id) }}
-                    className={`ml-1 w-4 h-4 flex items-center justify-center rounded transition-all duration-150 shrink-0 ${
-                      isActive
-                        ? 'text-[var(--em-cyan)] opacity-70 hover:opacity-100 hover:bg-[rgba(0,229,255,0.20)]'
-                        : 'em-text-muted opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-[rgba(255,255,255,0.12)]'
-                    }`}
-                    data-testid={`project-tab-close-${tab.id}`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* "+" button — opens Project Bin */}
-        <div className="shrink-0 ml-1">
-          <button
-            onClick={goToProjectsGrid}
-            className="w-6 h-6 flex items-center justify-center rounded-md em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.08)] border border-transparent hover:border-[rgba(0,229,255,0.15)] transition-all duration-200"
-            title="Open Project Bin"
-            data-testid="tabs-add-btn"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
 
       {!selectedProject ? (
         renderProjectGrid()
