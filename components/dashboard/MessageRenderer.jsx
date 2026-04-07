@@ -66,14 +66,17 @@ function InlineCode({ children }) {
 export default function MessageRenderer({ content, hideCodeBlocks }) {
   if (!content) return null
 
-  // Strip code blocks when the message is from a direct-edit / tool-call flow.
-  // The AI should never show code, JSON, or file contents to the user — only plain text.
+  // Strip code blocks from AI responses.
+  // The AI should communicate through conversation and tool calls, not by dumping code/JSON.
   let displayContent = content
-  if (hideCodeBlocks) {
-    displayContent = content
-      .replace(/```[\s\S]*?```/g, '')   // fenced code blocks
-      .replace(/\n{3,}/g, '\n\n')       // collapse excess newlines left behind
-      .trim()
+    .replace(/```json[\s\S]*?```/g, '')    // always strip JSON blocks (plan dumps)
+    .replace(/```[\s\S]*?```/g, '')        // strip all fenced code blocks
+    .replace(/\n{3,}/g, '\n\n')            // collapse excess newlines
+    .trim()
+
+  // If stripping removed everything, show a clean fallback
+  if (!displayContent) {
+    displayContent = 'Building your project...'
   }
 
   return (
