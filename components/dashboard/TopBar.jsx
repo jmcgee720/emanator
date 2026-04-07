@@ -153,14 +153,14 @@ export default function TopBar({
         {selectedProject && (
           <Button
             variant="ghost"
-            size="icon"
             onClick={onOpenCanvas}
-            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
-            title={isMonitored ? 'Restricted for monitored accounts' : 'Project Knowledge Canvas'}
+            className="h-7 px-2.5 em-text-muted hover:text-[#A78BFA] hover:bg-[rgba(167,139,250,0.07)] rounded-lg transition-colors duration-200 flex items-center gap-1.5"
+            title={isMonitored ? 'Restricted for monitored accounts' : 'Creative Brief'}
             disabled={isMonitored}
             data-testid="canvas-btn"
           >
             <BookOpen className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-medium">Brief</span>
           </Button>
         )}
 
