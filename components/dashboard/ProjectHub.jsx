@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen } from 'lucide-react'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -78,6 +78,7 @@ export default function ProjectHub({
   onRenameChat,
   onRenameProject,
   onDeleteMediaFile,
+  onOpenCanvas,
   livePromoteState,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
@@ -322,7 +323,7 @@ export default function ProjectHub({
             {/* Quick Actions */}
             <div className="mb-8">
               <h3 className="text-[10px] font-semibold uppercase tracking-wider em-text-muted mb-3">Quick Actions</h3>
-              <div className="grid grid-cols-2 gap-3" data-testid="hub-quick-actions">
+              <div className="grid grid-cols-3 gap-3" data-testid="hub-quick-actions">
                 <button
                   onClick={onCreateChat}
                   className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(0,229,255,0.25)] hover:shadow-[0_4px_24px_rgba(0,229,255,0.08)] hover:-translate-y-px transition-all duration-200"
@@ -334,6 +335,20 @@ export default function ProjectHub({
                   <div className="text-left">
                     <div className="text-xs font-medium em-text-primary">New Chat</div>
                     <div className="text-[10px] em-text-muted mt-0.5">Start a new conversation</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={onOpenCanvas}
+                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(167,139,250,0.25)] hover:shadow-[0_4px_24px_rgba(167,139,250,0.08)] hover:-translate-y-px transition-all duration-200"
+                  data-testid="hub-action-creative-brief"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(167,139,250,0.08)] border border-[rgba(167,139,250,0.15)] flex items-center justify-center shrink-0 group-hover:border-[rgba(167,139,250,0.30)] transition-all">
+                    <BookOpen className="w-3.5 h-3.5 text-[#A78BFA]" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-medium em-text-primary">Creative Brief</div>
+                    <div className="text-[10px] em-text-muted mt-0.5">Project goals, specs & notes</div>
                   </div>
                 </button>
 
