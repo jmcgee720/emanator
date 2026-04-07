@@ -1,34 +1,29 @@
-# Emanator AI Builder — Product Requirements
+# Emanator AI Builder — PRD
 
-## Architecture
-```
-/app (Next.js 14 App Router)
-├── lib/ai/
-│   ├── service.js (2627 lines), prompt-builder.js, canvas-ops.js
-│   ├── context-loader.js, file-operations.js, image-generation.js
-│   ├── image-prefetch.js, code-validator.js, adaptive-learning.js
-│   ├── intents.js (confidence scoring + LLM disambiguation)
-├── components/dashboard/
-│   ├── Dashboard.jsx — glass workspace layout, aurora background
-│   ├── LeftPanel.jsx, RightPanel.jsx — inside em-glass panels
-│   ├── CreativeBriefCard.jsx, SuggestionChips.jsx
-│   ├── GrowthPanel.jsx — SEO + CSV/JSON + Fix + Build Better
-```
+## Product Overview
+Conversational AI builder allowing users to generate, preview, and deploy React-based web applications through natural language conversation.
 
-## Completed
-- [x] All core features (streaming, guardrails, Art Director, suggestions, etc.)
-- [x] service.js Modular Refactor (3111→2627, 6 modules + prompt-builder)
-- [x] LLM Intent Disambiguation + COMPLEX_DISQUALIFIERS fix
-- [x] CSV Export, One-click SEO Fix, Build from SEO Analysis
-- [x] **UI Redesign: Workspace glassmorphism layout** — em-glass rounded panels, aurora showing through, pill tabs, preview toolbar, dead code removed
+## Core Architecture
+- **Framework**: Next.js 14 App Router
+- **Frontend**: Custom dashboard with glassmorphism UI (`.em-glass`)
+- **Backend**: AI orchestrator with modular architecture (service.js refactored into message-stream.js, plan-executor.js, message-processor.js, prompt-builder.js, image-generation.js, canvas-ops.js, file-operations.js, context-loader.js)
+- **Database**: MongoDB/Supabase
+- **Integrations**: OpenAI/Anthropic (via Emergent LLM Key), Stripe, Unsplash
 
-## P1 — Remaining Steps
-- [ ] Step 1: Extract executePlanStream → plan-executor.js
-- [ ] Step 2: Extract processMessage → message-processor.js
-- [ ] Step 3: Extract applyDiffs → file-operations.js
-- [ ] Step 4: Growth analytics dashboard enhancements
-- [ ] Step 5: Full UI Redesign polish (TopBar, project grid, etc.)
+## Completed Features
+- Live streaming preview with postMessage incremental updates
+- Dark Aurora skeleton loading state during builds
+- 6 regression guardrails (blank preview detection, tool call enforcement, etc.)
+- AI Art Director pipeline for curated imagery
+- Creative Brief Cards & Enhancement Suggestion Chips
+- Growth Panel: SEO analysis, CSV/JSON export, One-Click SEO Fixes, Build Better Version, Persona-based analysis, Batch crawl, Site Map view
+- **Site Monitor**: Auto-crawl tracking, change detection (baseline comparison), counter-move suggestions (P1 Growth feature)
+- Visual Quality Prompt Overhaul (Tailwind, glass-morphism, Unsplash in prompts)
+- Glassmorphism UI redesign for workspace
+- Dashboard UI cleanup: removed Self-Builder badge, removed broken tab bar, pill-style navigation tabs
+- service.js Phase 2 refactoring: 2627 → 318 lines (extracted processMessageStream, executePlanStream, applyDiffs, processMessage)
 
-## 3rd Party Integrations
-- OpenAI / Anthropic via Emergent LLM Key
-- Stripe via Emergent Test Key, Supabase via .env, Unsplash
+## Pending / Backlog
+- P2: Deploy integration (Vercel/Netlify) — currently mocked
+- P2: Further service.js cleanup (remaining delegated helpers)
+- Known: Next.js OOM memory thrashing (mitigated via supervisor restart)
