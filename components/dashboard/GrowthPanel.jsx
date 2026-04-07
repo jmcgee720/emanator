@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List, Download, Zap } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List, Download, Zap, Eye, RefreshCw, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -41,6 +41,11 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
   const [pagesView, setPagesView] = useState('list') // 'list' | 'map'
   const [batchProgress, setBatchProgress] = useState(null) // { pages_attempted, pages_saved, pages_failed, max_pages, current_url }
   const [bulkAnalyzeProgress, setBulkAnalyzeProgress] = useState(null) // { current, total, currentTitle }
+  const [monitors, setMonitors] = useState([])
+  const [loadingMonitors, setLoadingMonitors] = useState(false)
+  const [selectedMonitor, setSelectedMonitor] = useState(null)
+  const [checkingMonitor, setCheckingMonitor] = useState(null)
+  const [sidebarTab, setSidebarTab] = useState('pages') // 'pages' | 'monitors'
 
   const fetchPersonas = useCallback(async () => {
     try {
@@ -391,6 +396,57 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
     } catch { /* silent */ }
   }
 
+  // ── Monitor Functions ──
+  const fetchMonitors = useCallback(async () => {
+    setLoadingMonitors(true)
+    try {
+      const res = await authFetch('/api/growth/monitors')
+      const data = await res.json()
+      if (data.monitors) setMonitors(data.monitors)
+    } catch {} finally { setLoadingMonitors(false) }
+  }, [])
+
+  useEffect(() => { fetchMonitors() }, [fetchMonitors])
+
+  const addToMonitor = async (pageUrl, baseline) => {
+    try {
+      const res = await authFetch('/api/growth/monitors', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ url: pageUrl, baseline }),
+      })
+      const data = await res.json()
+      if (data.monitor && !data.monitor.already_exists) {
+        setMonitors(prev => [data.monitor, ...prev])
+      }
+      return data.monitor
+    } catch { return null }
+  }
+
+  const checkMonitor = async (monitorId) => {
+    setCheckingMonitor(monitorId)
+    try {
+      const res = await authFetch(`/api/growth/monitors/${monitorId}/check`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+      })
+      const data = await res.json()
+      if (data.monitor) {
+        setMonitors(prev => prev.map(m => m.id === monitorId ? data.monitor : m))
+        setSelectedMonitor(data.monitor)
+      }
+      return data
+    } catch { return null } finally { setCheckingMonitor(null) }
+  }
+
+  const deleteMonitor = async (monitorId) => {
+    try {
+      await authFetch(`/api/growth/monitors/${monitorId}`, { method: 'DELETE' })
+      setMonitors(prev => prev.filter(m => m.id !== monitorId))
+      if (selectedMonitor?.id === monitorId) setSelectedMonitor(null)
+    } catch {}
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--em-void)' }} data-testid="growth-panel">
 
@@ -603,18 +659,43 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
             </div>
           )}
 
-          {/* Pages Header with View Toggle */}
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Pages</span>
-            {pages.length > 1 && (
-              <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Pages/Monitors Tab Toggle */}
+          <div className="flex items-center gap-1 px-4 py-2" data-testid="sidebar-tab-toggle">
+            <button
+              onClick={() => { setSidebarTab('pages'); setSelectedMonitor(null) }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200"
+              style={{
+                background: sidebarTab === 'pages' ? 'rgba(0,229,255,0.12)' : 'transparent',
+                border: sidebarTab === 'pages' ? '1px solid rgba(0,229,255,0.2)' : '1px solid transparent',
+                color: sidebarTab === 'pages' ? 'var(--em-cyan)' : 'var(--em-text-muted)',
+              }}
+              data-testid="sidebar-tab-pages"
+            >
+              <Globe className="w-3 h-3" />
+              Pages {pages.length > 0 && <span className="text-[9px] opacity-70">({pages.length})</span>}
+            </button>
+            <button
+              onClick={() => { setSidebarTab('monitors'); setSelectedPage(null) }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200"
+              style={{
+                background: sidebarTab === 'monitors' ? 'rgba(52,211,153,0.12)' : 'transparent',
+                border: sidebarTab === 'monitors' ? '1px solid rgba(52,211,153,0.2)' : '1px solid transparent',
+                color: sidebarTab === 'monitors' ? '#34D399' : 'var(--em-text-muted)',
+              }}
+              data-testid="sidebar-tab-monitors"
+            >
+              <Eye className="w-3 h-3" />
+              Monitors {monitors.length > 0 && <span className="text-[9px] opacity-70">({monitors.length})</span>}
+            </button>
+            {sidebarTab === 'pages' && pages.length > 1 && (
+              <div className="ml-auto flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                 <button
                   onClick={() => setPagesView('list')}
                   className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium transition-colors"
                   style={{ background: pagesView === 'list' ? 'rgba(0,229,255,0.1)' : 'transparent', color: pagesView === 'list' ? 'var(--em-cyan)' : 'var(--em-text-muted)' }}
                   data-testid="pages-view-list"
                 >
-                  <List className="w-3 h-3" />List
+                  <List className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => setPagesView('map')}
@@ -622,13 +703,14 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
                   style={{ background: pagesView === 'map' ? 'rgba(124,58,237,0.1)' : 'transparent', color: pagesView === 'map' ? 'var(--em-violet)' : 'var(--em-text-muted)' }}
                   data-testid="pages-view-map"
                 >
-                  <Network className="w-3 h-3" />Map
+                  <Network className="w-3 h-3" />
                 </button>
               </div>
             )}
           </div>
 
           {/* Pages Content */}
+          {sidebarTab === 'pages' && (
           <div className="flex-1 overflow-y-auto py-1">
             {loadingPages ? (
               <div className="flex flex-col items-center justify-center py-16" data-testid="growth-pages-loading">
@@ -690,11 +772,92 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
               </div>
             )}
           </div>
+          )}
+
+          {/* Monitors Content */}
+          {sidebarTab === 'monitors' && (
+          <div className="flex-1 overflow-y-auto py-1">
+            {loadingMonitors ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-400" style={{ opacity: 0.5 }} />
+              </div>
+            ) : monitors.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-6" data-testid="monitors-empty">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.1)' }}>
+                  <Eye className="w-5 h-5 text-emerald-400" style={{ opacity: 0.4 }} />
+                </div>
+                <p className="text-xs text-[var(--em-text-muted)] font-medium">No monitors yet</p>
+                <p className="text-[10px] text-[var(--em-text-muted)] mt-1 text-center" style={{ opacity: 0.6 }}>Crawl a page first, then add it to monitoring</p>
+              </div>
+            ) : (
+              <div data-testid="monitors-list">
+                {monitors.map((mon) => {
+                  const isActive = selectedMonitor?.id === mon.id
+                  const isChecking = checkingMonitor === mon.id
+                  const hasChanges = mon.changes && mon.changes.length > 0
+                  const degraded = mon.changes?.filter(c => c.type === 'degraded').length || 0
+                  const improved = mon.changes?.filter(c => c.type === 'improved').length || 0
+                  return (
+                    <div
+                      key={mon.id}
+                      onClick={() => setSelectedMonitor(mon)}
+                      className="group relative mx-2 mb-0.5 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
+                      style={{
+                        background: isActive ? 'rgba(52,211,153,0.06)' : 'transparent',
+                        border: isActive ? '1px solid rgba(52,211,153,0.12)' : '1px solid transparent',
+                      }}
+                      data-testid={`monitor-item-${mon.id}`}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-r-full" style={{ background: '#34D399' }} />
+                      )}
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-[var(--em-text-primary)] truncate leading-snug">{mon.label}</p>
+                          <p className="text-[10px] text-[var(--em-text-muted)] truncate mt-0.5">{mon.url}</p>
+                          {mon.last_checked_at && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[9px] text-[var(--em-text-muted)]" style={{ opacity: 0.5 }}>
+                                Checked {new Date(mon.last_checked_at).toLocaleDateString()}
+                              </span>
+                              {hasChanges && (
+                                <span className="flex items-center gap-1 text-[9px]">
+                                  {improved > 0 && <span className="text-emerald-400 flex items-center gap-0.5"><ArrowUpRight className="w-2.5 h-2.5" />{improved}</span>}
+                                  {degraded > 0 && <span className="text-red-400 flex items-center gap-0.5"><ArrowDownRight className="w-2.5 h-2.5" />{degraded}</span>}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); checkMonitor(mon.id) }}
+                            disabled={isChecking}
+                            className="flex items-center justify-center w-6 h-6 rounded-md transition-all duration-150 hover:bg-[rgba(52,211,153,0.12)]"
+                            title="Re-check now"
+                            data-testid={`monitor-check-${mon.id}`}
+                          >
+                            {isChecking ? <Loader2 className="w-3 h-3 animate-spin text-emerald-400" /> : <RefreshCw className="w-3 h-3 text-emerald-400" />}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteMonitor(mon.id) }}
+                            className="flex items-center justify-center w-5 h-5 rounded-md opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-[rgba(248,113,113,0.12)]"
+                            data-testid={`monitor-delete-${mon.id}`}
+                          >
+                            <Trash2 className="w-3 h-3 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          )}
 
           {/* Divider */}
           <div className="mx-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.12), rgba(0,229,255,0.08), transparent)' }} />
-
-          {/* Personas Section */}
           <div className="shrink-0 border-t border-[rgba(255,255,255,0.06)]">
             <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2">
@@ -829,7 +992,127 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
 
         {/* ── Right Detail ── */}
         <div className="flex-1 overflow-y-auto">
-          {!selectedPage ? (
+          {selectedMonitor ? (
+            <div className="p-8 max-w-4xl mx-auto space-y-8" data-testid="monitor-detail">
+              {/* Monitor Header */}
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Eye className="w-4 h-4 text-emerald-400" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-400">Site Monitor</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-[var(--em-text-primary)] leading-tight tracking-tight">{selectedMonitor.label}</h2>
+                    <a href={selectedMonitor.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-1 text-xs text-[var(--em-text-muted)] hover:text-emerald-400 transition-colors">
+                      {selectedMonitor.url} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <button
+                    onClick={() => checkMonitor(selectedMonitor.id)}
+                    disabled={checkingMonitor === selectedMonitor.id}
+                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 disabled:opacity-40"
+                    style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399' }}
+                    data-testid="monitor-recheck-btn"
+                  >
+                    {checkingMonitor === selectedMonitor.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    {checkingMonitor === selectedMonitor.id ? 'Checking...' : 'Re-check Now'}
+                  </button>
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex items-center gap-4 text-[11px]">
+                  <span className="text-[var(--em-text-muted)]">Checks: <span className="font-bold text-[var(--em-text-primary)]">{selectedMonitor.checks || 0}</span></span>
+                  {selectedMonitor.last_checked_at && (
+                    <span className="text-[var(--em-text-muted)]">Last: <span className="font-bold text-[var(--em-text-primary)]">{new Date(selectedMonitor.last_checked_at).toLocaleString()}</span></span>
+                  )}
+                </div>
+              </div>
+
+              {/* Changes Section */}
+              {selectedMonitor.changes && selectedMonitor.changes.length > 0 ? (
+                <div className="space-y-3" data-testid="monitor-changes">
+                  <h3 className="text-sm font-semibold text-[var(--em-text-primary)]">Detected Changes</h3>
+                  <div className="grid gap-2">
+                    {selectedMonitor.changes.map((change, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
+                        style={{
+                          background: change.type === 'improved' ? 'rgba(52,211,153,0.04)' : change.type === 'degraded' ? 'rgba(248,113,113,0.04)' : 'rgba(255,255,255,0.02)',
+                          border: change.type === 'improved' ? '1px solid rgba(52,211,153,0.12)' : change.type === 'degraded' ? '1px solid rgba(248,113,113,0.12)' : '1px solid rgba(255,255,255,0.06)',
+                        }}
+                        data-testid={`monitor-change-${i}`}
+                      >
+                        <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center" style={{
+                          background: change.type === 'improved' ? 'rgba(52,211,153,0.1)' : change.type === 'degraded' ? 'rgba(248,113,113,0.1)' : 'rgba(255,255,255,0.06)',
+                        }}>
+                          {change.type === 'improved' ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" /> : change.type === 'degraded' ? <ArrowDownRight className="w-3.5 h-3.5 text-red-400" /> : <Minus className="w-3.5 h-3.5 text-[var(--em-text-muted)]" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-[var(--em-text-primary)]">{change.field}</p>
+                          <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5 truncate">
+                            <span style={{ opacity: 0.6 }}>{String(change.old)}</span>
+                            <span className="mx-1.5 text-[var(--em-text-muted)]">&rarr;</span>
+                            <span className="font-medium" style={{ color: change.type === 'improved' ? '#34D399' : change.type === 'degraded' ? '#F87171' : 'var(--em-text-secondary)' }}>{String(change.new)}</span>
+                          </p>
+                        </div>
+                        {change.delta !== undefined && (
+                          <span className={`shrink-0 text-[11px] font-bold tabular-nums ${change.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {change.delta > 0 ? '+' : ''}{change.delta}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : selectedMonitor.checks > 0 ? (
+                <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.12)' }} data-testid="monitor-no-changes">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-300">No changes detected</p>
+                    <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">The page content matches the baseline snapshot.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }} data-testid="monitor-initial">
+                  <RefreshCw className="w-5 h-5 text-[var(--em-text-muted)] shrink-0" style={{ opacity: 0.4 }} />
+                  <div>
+                    <p className="text-xs font-medium text-[var(--em-text-secondary)]">Ready to check</p>
+                    <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Click &quot;Re-check Now&quot; to establish a baseline and start tracking changes.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Counter Moves Section */}
+              {selectedMonitor.counter_moves && selectedMonitor.counter_moves.length > 0 && (
+                <div className="space-y-3" data-testid="monitor-counter-moves">
+                  <h3 className="text-sm font-semibold text-[var(--em-text-primary)]">Counter Moves</h3>
+                  <div className="grid gap-2">
+                    {selectedMonitor.counter_moves.map((move, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-xl"
+                        style={{
+                          background: move.priority === 'high' ? 'rgba(248,113,113,0.04)' : move.priority === 'info' ? 'rgba(52,211,153,0.04)' : 'rgba(245,158,11,0.04)',
+                          border: move.priority === 'high' ? '1px solid rgba(248,113,113,0.12)' : move.priority === 'info' ? '1px solid rgba(52,211,153,0.12)' : '1px solid rgba(245,158,11,0.12)',
+                        }}
+                        data-testid={`counter-move-${i}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded" style={{
+                            background: move.priority === 'high' ? 'rgba(248,113,113,0.1)' : move.priority === 'info' ? 'rgba(52,211,153,0.1)' : 'rgba(245,158,11,0.1)',
+                            color: move.priority === 'high' ? '#F87171' : move.priority === 'info' ? '#34D399' : '#FBBF24',
+                          }}>{move.priority}</span>
+                          <span className="text-[11px] font-semibold text-[var(--em-text-primary)]">{move.field}</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--em-text-secondary)] leading-relaxed">{move.suggestion}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : !selectedPage ? (
             <div className="flex flex-col items-center justify-center h-full" data-testid="growth-detail-empty">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(0,229,255,0.04)', border: '1px solid rgba(0,229,255,0.06)' }}>
                 <BarChart3 className="w-7 h-7 text-[var(--em-cyan)]" style={{ opacity: 0.25 }} />
@@ -858,6 +1141,29 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
+                  <button
+                    onClick={() => {
+                      const baseline = ext ? {
+                        title: ext.title || '',
+                        meta_description: ext.meta_description || '',
+                        word_count: ext.word_count || 0,
+                        h1_count: ext.headings?.h1?.length || 0,
+                        h2_count: ext.headings?.h2?.length || 0,
+                        image_count: ext.images?.length || 0,
+                        link_count: (ext.internal_links?.length || 0) + (ext.external_links?.length || 0),
+                        score: null,
+                      } : null
+                      addToMonitor(selectedPage.url, baseline).then(m => {
+                        if (m) setSidebarTab('monitors')
+                      })
+                    }}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-200 hover:bg-[rgba(52,211,153,0.12)]"
+                    style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)', color: '#34D399' }}
+                    data-testid="monitor-page-btn"
+                  >
+                    <Eye className="w-3 h-3" />
+                    Monitor
+                  </button>
                 </div>
 
                 {/* Persona selector + Analyze */}
