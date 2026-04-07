@@ -6,65 +6,45 @@ Continuously harden the Emanator AI Builder core system with modular architectur
 ## Architecture
 ```
 /app (Next.js 14 App Router)
-├── app/api/[[...path]]/route.js     # Pure dispatcher
-├── lib/
-│   ├── ai/
-│   │   ├── service.js               # Core orchestrator (2627 lines, from 3111)
-│   │   ├── prompt-builder.js        # System prompt templates (PM, Refinement, New Build)
-│   │   ├── canvas-ops.js            # Canvas updates, search indexing, run logging
-│   │   ├── context-loader.js        # Scoped/platform/workspace/project context
-│   │   ├── file-operations.js       # Save/delete with code validation + image replacement
-│   │   ├── image-generation.js      # Image intent processing, variations, sprites
-│   │   ├── image-prefetch.js        # AI Art Director / Creative Brief / Stock Photos
-│   │   ├── code-validator.js        # Truncated JSX detection & auto-repair
-│   │   ├── adaptive-learning.js     # User/project preference learning
-│   │   ├── intents.js               # Intent detection + confidence scoring + LLM disambiguation
-│   │   ├── providers/
-│   ├── api/
-│   │   ├── stream-handler.js        # SSE event relay
-│   │   └── routes/diffs.js          # Diff approval + learning events
-│   └── stream-client.js             # Frontend SSE parser
+├── lib/ai/
+│   ├── service.js               # Core orchestrator (2627 lines)
+│   ├── prompt-builder.js        # System prompt templates
+│   ├── canvas-ops.js            # Canvas updates, search, logging
+│   ├── context-loader.js        # Scoped context loading
+│   ├── file-operations.js       # Save/delete with validation
+│   ├── image-generation.js      # Image intent processing
+│   ├── image-prefetch.js        # AI Art Director / Stock Photos
+│   ├── code-validator.js        # Truncated JSX auto-repair
+│   ├── adaptive-learning.js     # User preference learning
+│   ├── intents.js               # Intent detection + confidence + LLM disambiguation
+│   ├── providers/
 ├── components/dashboard/
-│   ├── Dashboard.jsx                # State orchestrator
-│   ├── ChatComposer.jsx             # Input + Visual Mode toggle
-│   ├── LeftPanel.jsx                # Chat + CreativeBriefCard + SuggestionChips
-│   ├── CreativeBriefCard.jsx        # Detected creative direction display
-│   ├── SuggestionChips.jsx          # Organic AI enhancement suggestion chips
-│   ├── GrowthPanel.jsx              # SEO + CSV/JSON export + Fix it + Build Better Version
-│   └── tabs/PreviewTab.jsx          # Iframe preview + health check
+│   ├── Dashboard.jsx, LeftPanel.jsx, ChatComposer.jsx
+│   ├── CreativeBriefCard.jsx, SuggestionChips.jsx
+│   ├── GrowthPanel.jsx          # SEO + CSV/JSON + Fix + Build Better
 ```
 
 ## Completed (All Tested)
-- [x] Direct-Build File Persistence & Preview Handoff
-- [x] Live Streaming Preview Updates + Skeleton Loading
-- [x] Regression guardrails (8 types)
-- [x] System-wide task modes + billing + credits
-- [x] Disable propose_plan + JSON sanitizer
-- [x] Two-tier image system (Stock + Custom)
-- [x] Code completeness validator + PatchGroundingValidator fallback
-- [x] AI Art Director pipeline (LLM creative brief + design intelligence)
-- [x] Creative Brief Preview Card
-- [x] Enhancement Suggestion Chips (organic, AI-driven)
-- [x] CSV + JSON Export for Growth Panel
-- [x] Response Truncation Detection & Auto-Retry
-- [x] Adaptive Learning Events for Diff Approval/Rejection
-- [x] **service.js Modular Refactor** (3111→2627 lines, 5 extracted modules + prompt-builder)
-- [x] **One-click SEO Fix** (Fix it / Fix all buttons)
-- [x] **Build from SEO Analysis** (Build Better Version button → competitor analysis → AI build)
-- [x] **LLM Intent Disambiguation** (confidence scoring + lightweight LLM call for ambiguous prompts)
-- [x] **Prompt Template Extraction** (prompt-builder.js: PM, Refinement, New Build modes)
+- [x] All previous features (live streaming, skeleton, guardrails, etc.)
+- [x] AI Art Director pipeline + Creative Brief + Suggestion Chips
+- [x] CSV/JSON Export + Response Truncation Detection
+- [x] service.js Modular Refactor (3111→2627, 6 modules)
+- [x] One-click SEO Fix + Build from SEO Analysis
+- [x] LLM Intent Disambiguation with confidence scoring
+- [x] Prompt Template Extraction (prompt-builder.js)
+- [x] **CRITICAL FIX: COMPLEX_DISQUALIFIERS too broad** — "subscription" alone was blocking landing page requests from premium direct-edit mode. Fixed to require specific backend signals (stripe integration, payment gateway, etc.)
 
 ## P1 — Upcoming
-- [ ] Further service.js breakdown (executePlanStream, processMessage extraction)
+- [ ] Further service.js breakdown (executePlanStream, processMessage)
 - [ ] Growth analytics dashboard enhancements
 
 ## P2 — Future
-- [ ] Deploy integration (Vercel/Netlify) — currently mocked
+- [ ] Deploy integration (Vercel/Netlify)
 - [ ] Core System self-editing architecture
 - [ ] Multi-page project generation
 
 ## 3rd Party Integrations
-- OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key (Proxy)
-- Stripe (Payments) via Emergent Test Key
-- Supabase (DB/Auth) via .env
-- Unsplash (Stock Photos) — royalty-free
+- OpenAI / Anthropic via Emergent LLM Key
+- Stripe via Emergent Test Key
+- Supabase via .env
+- Unsplash — royalty-free
