@@ -26,7 +26,9 @@ Continuously harden the Emanator AI Builder core system:
 ├── components/dashboard/
 │   ├── Dashboard.jsx                # State orchestrator
 │   ├── ChatComposer.jsx             # Input + Visual Mode toggle
-│   ├── LeftPanel.jsx                # Chat messages UI
+│   ├── LeftPanel.jsx                # Chat messages UI + CreativeBriefCard + SuggestionChips
+│   ├── CreativeBriefCard.jsx        # Shows detected creative direction (mood/colors/subjects)
+│   ├── SuggestionChips.jsx          # Organic AI enhancement suggestion chips
 │   ├── RightPanel.jsx               # Tab layout
 │   └── tabs/PreviewTab.jsx          # Iframe preview + blank health check
 ```
@@ -55,14 +57,13 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Follow-up refinement routing
 - [x] Preview refresh after refinement
 - [x] Disable propose_plan as final output
-- [x] Fix const toolMode reassignment compile error
-- [x] Fix trailing brace syntax error at EOF in service.js
 - [x] JSON content sanitizer
-- [x] Image prompt enhancement — Unsplash URLs with concrete examples
-- [x] Two-tier image system — Stock (curated Unsplash) + Custom/Premium (AI-generated via GPT Image 1)
-- [x] Code completeness validator — Truncated JSX detection & auto-repair
-- [x] PatchGroundingValidator fallback — full file rewrite on grounding failure
-- [x] AI Art Director pipeline — LLM-based creative brief generator, vibe lexicon, design intelligence prompt injection into system message (replaces keyword-based image detection)
+- [x] Two-tier image system — Stock + Custom/Premium
+- [x] Code completeness validator
+- [x] PatchGroundingValidator fallback
+- [x] AI Art Director pipeline — creative brief generator + design intelligence injection
+- [x] Creative Brief Preview Card — shows detected mood/subjects/colors/lighting during builds
+- [x] Enhancement Suggestion Chips — organic AI-driven next-step suggestions as clickable chips
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
@@ -70,7 +71,7 @@ Continuously harden the Emanator AI Builder core system:
 
 ## P2 — Future
 - [ ] Deploy integration (Vercel/Netlify) — currently mocked
-- [ ] Refactor service.js (~3060 lines → modular breakdown)
+- [ ] Refactor service.js (~3070 lines → modular breakdown)
 - [ ] Core System self-editing architecture
 - [ ] Growth analytics panel
 
