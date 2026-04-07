@@ -1110,6 +1110,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           addLog('success', `Image generated: ${data.filename} (${data.mode})`)
         },
 
+        onCreativeBrief: (data) => {
+          setMessages(prev => prev.map(m =>
+            m.id === streamingAssistantId
+              ? { ...m, metadata: { ...m.metadata, creativeBrief: data } }
+              : m
+          ))
+        },
+
         onImageIntent: async (data) => {
           // ── HARD GUARD: Block image generation for BUILD / plan_patch requests ──
           const isBuildIntent = /\bINTENT:\s*BUILD\b/i.test(data.prompt || '')
