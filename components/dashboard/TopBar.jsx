@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, BookOpen, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3 } from 'lucide-react'
+import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3 } from 'lucide-react'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -30,7 +30,6 @@ export default function TopBar({
   onSignOut, 
   onOpenAdmin, 
   onOpenSearch,
-  onOpenCanvas,
   onOpenDesign,
   onOpenCredits,
   onOpenImport,
@@ -149,20 +148,6 @@ export default function TopBar({
         >
           <Search className="w-3.5 h-3.5" />
         </Button>
-
-        {selectedProject && (
-          <Button
-            variant="ghost"
-            onClick={onOpenCanvas}
-            className="h-7 px-2.5 em-text-muted hover:text-[#A78BFA] hover:bg-[rgba(167,139,250,0.07)] rounded-lg transition-colors duration-200 flex items-center gap-1.5"
-            title={isMonitored ? 'Restricted for monitored accounts' : 'Creative Brief'}
-            disabled={isMonitored}
-            data-testid="canvas-btn"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-medium">Brief</span>
-          </Button>
-        )}
 
         {selectedProject && (
           <Button

@@ -2787,7 +2787,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         onSignOut={onSignOut}
         onOpenAdmin={() => setShowAdmin(true)}
         onOpenSearch={() => setShowSearch(true)}
-        onOpenCanvas={() => setShowCanvas(true)}
         onOpenDesign={() => setShowDesign(true)}
         onOpenCredits={() => setShowCreditsModal(true)}
         onOpenImport={() => setShowImportModal(true)}
@@ -3011,10 +3010,19 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
 
       {showCanvas && selectedProject && (
         <CanvasPanel
-          projectId={selectedProject.id}
-          canvas={canvas}
-          onUpdate={updateCanvas}
+          project={selectedProject}
           onClose={() => setShowCanvas(false)}
+          onStartBuilding={async (prompt) => {
+            setShowCanvas(false)
+            // Ensure we have a chat to send to
+            if (!selectedChat) {
+              await createChat('Build from Brief')
+              // Wait for chat state to settle
+              await new Promise(r => setTimeout(r, 300))
+            }
+            pendingHeroPromptRef.current = prompt
+            setMessagesReadyTick(t => t + 1)
+          }}
         />
       )}
 
