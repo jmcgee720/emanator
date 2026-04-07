@@ -2217,7 +2217,15 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   if (showGrowth) {
     return (
       <div className="flex flex-col h-screen em-bg-base">
-        <GrowthPanel onClose={() => setShowGrowth(false)} />
+        <GrowthPanel
+          onClose={() => setShowGrowth(false)}
+          onFixIssue={(issueText, pageUrl) => {
+            setShowGrowth(false)
+            const fixPrompt = `Fix this SEO issue on ${pageUrl}: ${issueText}`
+            // Small delay to let the panel close and chat render
+            setTimeout(() => sendMessage(fixPrompt), 300)
+          }}
+        />
       </div>
     )
   }

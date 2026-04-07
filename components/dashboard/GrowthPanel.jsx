@@ -15,7 +15,7 @@ const ISSUE_SECTIONS = [
   { key: 'recommendations', label: 'Recommendations', icon: Sparkles, gradient: 'linear-gradient(135deg, #34D399, #6EE7B7)' },
 ]
 
-export default function GrowthPanel({ onClose }) {
+export default function GrowthPanel({ onClose, onFixIssue }) {
   const [url, setUrl] = useState('')
   const [pages, setPages] = useState([])
   const [selectedPage, setSelectedPage] = useState(null)
@@ -1001,12 +1001,32 @@ export default function GrowthPanel({ onClose }) {
                           <span className="ml-auto text-[10px] font-bold tabular-nums rounded-md px-1.5 py-0.5" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--em-text-muted)' }}>
                             {items.length}
                           </span>
+                          {onFixIssue && items.length > 1 && (
+                            <button
+                              onClick={() => onFixIssue(items.join('; '), selectedPage?.url || '')}
+                              className="text-[9px] font-semibold px-2 py-0.5 rounded-md transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)]"
+                              style={{ color: 'var(--em-cyan)', border: '1px solid rgba(0,229,255,0.12)' }}
+                              data-testid={`growth-fix-all-${key}`}
+                            >
+                              Fix all
+                            </button>
+                          )}
                         </div>
                         <div className="px-5 py-3 space-y-2.5">
                           {items.map((item, i) => (
-                            <div key={i} className="flex items-start gap-3">
+                            <div key={i} className="group/issue flex items-start gap-3">
                               <ChevronRight className="w-3 h-3 mt-1 shrink-0 text-[var(--em-text-muted)]" style={{ opacity: 0.4 }} />
-                              <span className="text-xs text-[var(--em-text-secondary)] leading-relaxed">{item}</span>
+                              <span className="flex-1 text-xs text-[var(--em-text-secondary)] leading-relaxed">{item}</span>
+                              {onFixIssue && (
+                                <button
+                                  onClick={() => onFixIssue(item, selectedPage?.url || '')}
+                                  className="shrink-0 opacity-0 group-hover/issue:opacity-100 px-2 py-0.5 rounded-md text-[9px] font-semibold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)]"
+                                  style={{ color: 'var(--em-cyan)', border: '1px solid rgba(0,229,255,0.15)' }}
+                                  data-testid={`growth-fix-btn-${key}-${i}`}
+                                >
+                                  Fix it
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
