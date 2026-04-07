@@ -85,3 +85,4 @@ node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
 .env.development.local
 .env.production.local
 .env.test.local
+node_modules/.cache/webpack/client-development/1.pack
