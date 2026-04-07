@@ -50,6 +50,11 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - New project success message includes next-step suggestions (customize, add pages, add features)
 - Large plans on existing projects surface PlanCard for approval
 
+### Plan Validator Fixes (Feb 2026)
+- Fixed "Invalid plan: Plan targets wrong project" — projectId check downgraded from blocking error to warning (redundant check since message-stream stamps projectId)
+- Increased max file count limit from 10 to 30 (initial builds from Creative Brief easily exceed 10 files)
+- Warning threshold raised from 5 to 15 files
+
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
 - `GET/POST /api/projects` - Project CRUD
