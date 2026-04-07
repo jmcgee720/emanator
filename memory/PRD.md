@@ -15,6 +15,8 @@ Continuously harden the Emanator AI Builder core system:
 ├── lib/
 │   ├── ai/
 │   │   ├── service.js               # Core AI orchestrator + guardrails
+│   │   ├── image-prefetch.js        # AI Art Director / Creative Brief / Stock Photos
+│   │   ├── code-validator.js        # Truncated JSX detection & auto-repair
 │   │   ├── providers/
 │   │   │   ├── openai.js            # OpenAI/Proxy provider (tool_args_delta)
 │   │   │   └── anthropic.js         # Anthropic provider
@@ -23,6 +25,7 @@ Continuously harden the Emanator AI Builder core system:
 │   └── stream-client.js             # Frontend SSE parser + streaming fallback
 ├── components/dashboard/
 │   ├── Dashboard.jsx                # State orchestrator
+│   ├── ChatComposer.jsx             # Input + Visual Mode toggle
 │   ├── LeftPanel.jsx                # Chat messages UI
 │   ├── RightPanel.jsx               # Tab layout
 │   └── tabs/PreviewTab.jsx          # Iframe preview + blank health check
@@ -43,22 +46,23 @@ Continuously harden the Emanator AI Builder core system:
 - [x] Preview iframe height fix (em-aurora CSS specificity)
 - [x] Preview skeleton loading state
 - [x] Regression guardrails
-- [x] Fix Live Preview inline Babel runtime syntax error (regex anchoring + modName escaping)
-- [x] Fix create-project JSON.parse error (defensive parsing in frontend + proxy raw passthrough)
-- [x] Replace regex-based preview compiler with Babel AST plugin (robust for all code shapes)
-- [x] System-wide task modes (build/inspect/config) — detected in intents.js, enforced in service.js
-- [x] Reactive canvas aurora background — pulled from GitHub repo, replaces CSS aurora, activityLevel wired to chat state
-- [x] Platform billing + credits system — credit pre-check before generation, deduction after success, in-chat upsell, model fallback, cost labels, error translation
-- [x] Follow-up refinement routing — detects visual/content/layout edits on existing pages, injects current file content, routes through direct-edit
-- [x] Preview refresh after refinement — robust hash (updated_at + content.length), directEditMode SSE flag, manual Refresh re-fetches files
-- [x] Disable propose_plan as final output — build/edit requests that fail to produce executable diffs now return `PATCH FAILED` with `toolMode: patch_failed` instead of surfacing a non-actionable plan card
+- [x] Fix Live Preview inline Babel runtime syntax error
+- [x] Fix create-project JSON.parse error
+- [x] Replace regex-based preview compiler with Babel AST plugin
+- [x] System-wide task modes (build/inspect/config)
+- [x] Reactive canvas aurora background
+- [x] Platform billing + credits system
+- [x] Follow-up refinement routing
+- [x] Preview refresh after refinement
+- [x] Disable propose_plan as final output
 - [x] Fix const toolMode reassignment compile error
 - [x] Fix trailing brace syntax error at EOF in service.js
-- [x] JSON content sanitizer — intercepts model dumping tool-call JSON as plain text, auto-executes file writes, replaces with clean user message
-- [x] Image prompt enhancement — Unsplash URLs with concrete examples, explicit "NEVER say you can't add images" instruction in both refinement and build modes
-- [x] Two-tier image system — Stock (curated Unsplash, auto-detect keywords, "Finding images..." status) + Custom/Premium (AI-generated via GPT Image 1, 3x credits). Toggle in homepage prompt bar and in-project ChatComposer. Backend: image-prefetch.js module, service.js integration, stream-handler passthrough, credits multiplier.
-- [x] Code completeness validator — Detects truncated/incomplete JSX/JS/CSS before saving (bracket balance, JSX tag balance, truncation signals). Auto-repairs via AI completion call. Prevents broken previews from incomplete generation.
-- [x] PatchGroundingValidator fallback — When grounding validator rejects a patch (stale anchors), falls back to full file rewrite instead of silently producing 0 files. Applied across all 3 validation sites in service.js.
+- [x] JSON content sanitizer
+- [x] Image prompt enhancement — Unsplash URLs with concrete examples
+- [x] Two-tier image system — Stock (curated Unsplash) + Custom/Premium (AI-generated via GPT Image 1)
+- [x] Code completeness validator — Truncated JSX detection & auto-repair
+- [x] PatchGroundingValidator fallback — full file rewrite on grounding failure
+- [x] AI Art Director pipeline — LLM-based creative brief generator, vibe lexicon, design intelligence prompt injection into system message (replaces keyword-based image detection)
 
 ## P1 — Upcoming
 - [ ] Phase 2-5 conversational AI architecture
@@ -66,7 +70,7 @@ Continuously harden the Emanator AI Builder core system:
 
 ## P2 — Future
 - [ ] Deploy integration (Vercel/Netlify) — currently mocked
-- [ ] Refactor service.js (~2850 lines → modular breakdown)
+- [ ] Refactor service.js (~3060 lines → modular breakdown)
 - [ ] Core System self-editing architecture
 - [ ] Growth analytics panel
 
@@ -74,3 +78,4 @@ Continuously harden the Emanator AI Builder core system:
 - OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key (Proxy)
 - Stripe (Payments) via Emergent Test Key
 - Supabase (DB/Auth) via .env
+- Unsplash (Stock Photos) — direct URLs, royalty-free
