@@ -381,9 +381,9 @@ export default function NewProjectModal({
 
           {modalTab === 'templates' && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 const name = newProjectName.trim() || (selectedTemplate ? selectedTemplate.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'New Project')
-                createProject(name, newProjectType, selectedTemplate)
+                await createProject(name, newProjectType, selectedTemplate)
                 closeModal()
               }}
               className="px-4 py-2 text-xs em-btn-brand rounded-xl"
