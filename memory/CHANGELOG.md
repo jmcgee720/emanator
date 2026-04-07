@@ -1,31 +1,39 @@
 # Changelog
 
-## 2026-04-07 (Session 4)
-- Implemented Project Templates gallery (5 starters: Landing Page, Portfolio, SaaS Dashboard, Blog, E-Commerce)
-  - Backend: GET /templates listing, project creation with template_id auto-populates files
-  - Frontend: New Project modal redesigned with 6-card template gallery (Blank + 5 templates)
-- Implemented Netlify deploy integration
-  - Backend: POST /projects/:id/deploy/netlify with JSZip packaging and Netlify API v1
-  - Frontend: 3-column Deploy tab grid with Netlify card, token input, deploy button
-- Implemented Scheduled Auto-Crawl batch endpoint (POST /growth/monitors/check-all)
-- Fixed OOM memory thrashing
-  - Increased NODE_OPTIONS max-old-space-size from 512MB to 2048MB
-  - Enabled webpack filesystem cache in next.config.js
-  - Optimized watch polling interval and ignored directories
-- Fixed `toolArgsAccum` scoping bug in message-stream.js from Phase 2 refactoring
-- Testing: All tests passed (iteration 60, 100% backend 11/11, 100% frontend)
+## 2026-02 (Previous Sessions)
+- Dashboard UI anomalies fixed
+- `service.js` Phase 2 refactoring
+- Site Monitor feature
+- Deploy Tab (ZIP, Vercel, Netlify)
+- Share Public Preview Link
+- Project Templates Gallery
+- Next.js OOM Memory Fix
+- Testing: iterations 57-60, all passed
 
-## 2026-04-07 (Session 3)
-- Share Public Preview Link (backend API + /share/:token public page)
-- Testing: iteration 59, 100% passed
+## 2026-04-07 - Final Feature Batch
+### Template Marketplace
+- New `/api/marketplace` routes: list, publish, clone, delete
+- Uses Supabase snapshots table with `__marketplace__` prefix
+- NewProjectModal component with Templates/Marketplace/Publish tabs
+- Community templates with clone count tracking
 
-## 2026-04-07 (Session 2)
-- Real Deploy Tab (Download ZIP, Vercel deploy, deployment history)
-- Check All Monitors bulk action
-- Testing: iteration 58, 100% passed
+### Share Link Expiry Settings
+- Added `expires_in` parameter to share creation (1h/24h/7d/30d/never)
+- Expiry validation in public GET endpoint (returns 410 for expired links)
+- Expiry picker dropdown in RightPanel share flow
+- `is_expired` field in shares list endpoint
 
-## 2026-04-07 (Session 1)
-- Dashboard UI fixes (badge, tab bar, pill navigation)
-- service.js Phase 2 refactoring (2627 → 318 lines)
-- Site Monitor feature (CRUD + change detection + counter-moves)
-- Testing: iteration 57, 100% passed
+### Deployment Status Polling
+- New `GET /api/projects/:id/deployments/:id/status` endpoint
+- Proxies to Vercel/Netlify APIs for live build state
+- Auto-polls every 5s in DeployTab until terminal state
+- Status badges: QUEUED/BUILDING/READY/ERROR
+
+### Cron-based Scheduled Auto-Crawl
+- `scripts/cron-worker.js` background worker (5-min polling)
+- `GET/POST /api/growth/monitors/schedule` config endpoints
+- Schedule stored in MongoDB `monitor_schedules` collection
+- GrowthPanel UI: toggle + frequency selector (6h/12h/24h/48h/7d)
+- Auto-updates baseline and detects degradations
+
+### Testing: iteration 61 - 8/8 backend tests passed, all frontend components verified
