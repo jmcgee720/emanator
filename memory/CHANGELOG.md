@@ -1,18 +1,23 @@
 # Changelog
 
+## 2026-04-07 (Session 3)
+- Implemented Share Public Preview Link feature:
+  - Backend: POST /projects/:id/share (snapshot files), GET /projects/:id/shares (list), DELETE /projects/:id/share/:id (revoke), GET /shared/:token (public, no auth)
+  - Frontend: Share button in RightPanel toolbar with copy-to-clipboard
+  - Public preview page at /share/:token with iframe rendering, code view toggle, view counter, "Build Your Own" CTA
+  - Storage: Uses existing `snapshots` table with `__share__` prefix (no new table needed)
+- Testing: All tests passed (iteration 59, 100% backend 10/10, 100% frontend)
+
 ## 2026-04-07 (Session 2)
-- Implemented real Deploy functionality:
-  - Backend: GET /projects/:id/download (returns files for client-side ZIP), POST /projects/:id/deploy/vercel (Vercel API v13 deploy), GET /projects/:id/deployments (history)
-  - Frontend: Redesigned DeployTab with glassmorphism styling, Download ZIP (JSZip + FileSaver), Vercel deploy with token input, deployment history
-  - DB: Added deployments.create and deployments.findByProjectId to Supabase db helper
-- Added "Check All Monitors" bulk action button in Growth Panel sidebar
-- Testing: All tests passed (iteration 58, 100% backend 5/5, 100% frontend)
+- Implemented real Deploy functionality (Download ZIP via JSZip, Vercel deploy with token, deployment history)
+- Added "Check All Monitors" bulk action button in Growth Panel
+- Testing: All tests passed (iteration 58)
 
 ## 2026-04-07 (Session 1)
-- Fixed 3 Dashboard UI anomalies: removed green "Self-Builder Active" badge, removed broken "x" tab bar row, restyled "Projects | New Project" navigation as pill button tabs
-- Completed Phase 2 service.js refactoring: extracted processMessageStream (1758 lines) → message-stream.js, executePlanStream + applyDiffs → plan-executor.js, processMessage → message-processor.js. service.js reduced from 2627 to 318 lines
-- Implemented Site Monitor feature in Growth Panel (backend CRUD + frontend tabs, detail view, change detection, counter-moves)
-- Testing: All tests passed (iteration 57, 100% backend 11/11, 100% frontend)
+- Fixed 3 Dashboard UI anomalies (Self-Builder badge, broken tab bar, pill-style navigation)
+- Completed service.js Phase 2 refactoring (2627 → 318 lines)
+- Implemented Site Monitor feature (backend CRUD + frontend tabs, detail view, change detection, counter-moves)
+- Testing: All tests passed (iteration 57)
 
 ## Previous Sessions
 - Live streaming preview pipeline, Babel fix, Preview skeleton loading state
