@@ -20,31 +20,27 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - [x] Service.js modular refactoring
 - [x] Site Monitor (Growth Panel auto-crawl)
 - [x] Deploy Tab (ZIP, Vercel, Netlify)
-- [x] Share Public Preview Link
+- [x] Share Public Preview Link with expiry
 - [x] Next.js OOM Memory Fix
-- [x] **Template Marketplace** (publish/clone/delete)
-- [x] **Marketplace Ratings & Reviews** (1-5 stars, text comments, avg rating display)
-- [x] **25 Project Templates** (5 per category: Marketing, Business, Personal, Content, Commerce)
-- [x] **Template Category Filter** (filter by all/Marketing/Business/Personal/Content/Commerce)
-- [x] **Template Flow Fix** (creating from template now populates files correctly)
-- [x] **Share Link Expiry Settings** (1h/24h/7d/30d/never)
-- [x] **Deployment Status Polling** (live Vercel/Netlify build progress)
-- [x] **Cron-based Scheduled Auto-Crawl** (6h/12h/24h/48h/7d)
-- [x] **Creative Brief Modal** (centered popup form, replaces old side panel, "Start Building" auto-sends AI prompt)
+- [x] Template Marketplace (publish/clone/delete, 25 templates, ratings & reviews)
+- [x] Creative Brief Modal (centered popup, "Start Building" auto-sends AI prompt)
+- [x] **Preview Third-Party Library Support** (React Router DOM CDN, icon lib stubs, framer-motion stubs, Babel import resolver)
 
-### Creative Brief Feature (Updated Apr 7 2026)
+### Preview Third-Party Library Support (Apr 7 2026)
+**Problem**: AI-generated code using react-router-dom, lucide-react, framer-motion, etc. crashed the inline Babel preview with `ReferenceError` because only React/ReactDOM were available.
+**Solution**:
+- Added React Router DOM v6 UMD from CDN
+- Added global bindings for all Router exports (BrowserRouter, Routes, Route, Link, NavLink, Navigate, Outlet, useNavigate, useParams, useLocation, useSearchParams)
+- Added Proxy-based SVG stub components for icon libraries (lucide-react, heroicons, react-icons)
+- Added framer-motion stubs (motion proxy, AnimatePresence, useAnimation, useInView, useScroll)
+- Enhanced Babel AST plugin ImportDeclaration visitor to resolve named/aliased imports from `__MODULE_STUBS__` before removing
+
+### Creative Brief Feature (Apr 7 2026)
 - Removed "Brief" button from TopBar — accessible only from ProjectHub quick actions
 - Converted from right-side panel to centered modal popup (580px, glass-morphism styled)
 - Form has 6 collapsible sections: Big Picture, Brand & Style, Pages & Structure, Key Features, Content Direction, Technical & Constraints
 - "Start Building" button saves brief + creates chat + auto-sends prompt to AI
 - Brief data persists via canvas API and auto-injects into AI system prompt via context.js
-
-### Template Categories (25 total)
-**Marketing** (5): SaaS Landing, Product Launch, Agency Site, Newsletter Landing, App Download
-**Business** (5): Admin Dashboard, CRM Lite, Invoice Generator, Project Tracker, Analytics Dashboard
-**Personal** (5): Dev Portfolio, Creative Portfolio, Resume/CV, Link-in-Bio, Personal Blog
-**Content** (5): Blog Platform, Docs Site, Recipe Collection, Podcast Landing, Course Platform
-**Commerce** (5): Storefront, Digital Products, Restaurant Menu, Booking System, Marketplace
 
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
@@ -53,22 +49,18 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - `POST /api/marketplace/publish` - Publish template
 - `POST /api/marketplace/:id/clone` - Clone template
 - `POST /api/marketplace/:id/reviews` - Add review
-- `GET /api/marketplace/:id/reviews` - Get reviews
 - `GET/POST /api/share` - Share links with expiry
-- `GET /api/shared/:token` - Public preview (with expiry check, returns 410 if expired)
 - `POST /api/deployments` - Deploy to Vercel/Netlify
-- `GET /api/projects/:id/deployments/:id/status` - Poll deploy status
 - `GET/POST /api/growth/monitors/schedule` - Auto-crawl config
 
 ### Key DB Schema
 - `projects` - User projects
-- `snapshots` - Shared previews (`__share__`), marketplace templates (`__marketplace__`)
+- `snapshots` - Shared previews, marketplace templates
 - `chats`, `messages` - Conversation history
 - `project_files` - Project code files
-- `deployments` - Deploy records with `findById`, `updateStatus` methods
+- `deployments` - Deploy records
 - `growth_monitors` (MongoDB) - Site monitors
-- `monitor_schedules` (MongoDB) - Auto-crawl config
 - `canvas` - stores creative_brief JSON
 
 ## Backlog
-- App is feature-complete for current roadmap. No remaining tasks.
+- No outstanding tasks specified by user.
