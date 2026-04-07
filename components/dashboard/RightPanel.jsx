@@ -1,7 +1,7 @@
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Eye, Code, FolderOpen, Terminal, Download, Rocket, Share2, Check, Copy, Loader2, Link } from 'lucide-react'
+import { Eye, Code, FolderOpen, Terminal, Download, Rocket, Share2, Check, Copy, Loader2, Link, Clock } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
 import { useState } from 'react'
 import PreviewTab from './tabs/PreviewTab'
@@ -50,6 +50,9 @@ export default function RightPanel({
   const [sharing, setSharing] = useState(false)
   const [shareUrl, setShareUrl] = useState(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [shareExpiry, setShareExpiry] = useState('never')
+  const [showExpiryPicker, setShowExpiryPicker] = useState(false)
+  const [shareExpiresAt, setShareExpiresAt] = useState(null)
 
   const handleShare = async () => {
     if (!selectedProject?.id) return
@@ -59,10 +62,12 @@ export default function RightPanel({
       const res = await authFetch(`/api/projects/${selectedProject.id}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expires_in: shareExpiry }),
       })
       const data = await res.json()
       if (data.share_url) {
         setShareUrl(data.share_url)
+        setShareExpiresAt(data.expires_at)
         addLog('success', `Share link created: ${data.share_url}`)
       } else {
         addLog('error', data.error || 'Failed to create share link')
@@ -71,6 +76,7 @@ export default function RightPanel({
       addLog('error', 'Failed to create share link')
     } finally {
       setSharing(false)
+      setShowExpiryPicker(false)
     }
   }
 
@@ -111,11 +117,16 @@ export default function RightPanel({
           </TabsList>
 
           {/* Share Button */}
-          <div className="flex items-center gap-2 shrink-0 pb-1">
+          <div className="flex items-center gap-2 shrink-0 pb-1 relative">
             {shareUrl ? (
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
                 <Link className="w-3 h-3 text-emerald-400 shrink-0" />
-                <span className="text-[10px] text-emerald-300 font-medium truncate max-w-[180px]">{shareUrl.replace(/^https?:\/\//, '')}</span>
+                <span className="text-[10px] text-emerald-300 font-medium truncate max-w-[140px]">{shareUrl.replace(/^https?:\/\//, '')}</span>
+                {shareExpiresAt && (
+                  <span className="text-[9px] text-amber-400 shrink-0 flex items-center gap-0.5" title={`Expires: ${new Date(shareExpiresAt).toLocaleString()}`}>
+                    <Clock className="w-2.5 h-2.5" />
+                  </span>
+                )}
                 <button
                   onClick={copyShareUrl}
                   className="ml-1 w-5 h-5 flex items-center justify-center rounded transition-all duration-150 hover:bg-[rgba(52,211,153,0.15)]"
@@ -123,17 +134,56 @@ export default function RightPanel({
                 >
                   {shareCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-emerald-400" />}
                 </button>
+                <button
+                  onClick={() => { setShareUrl(null); setShareExpiresAt(null) }}
+                  className="w-5 h-5 flex items-center justify-center rounded transition-all duration-150 hover:bg-[rgba(255,255,255,0.08)]"
+                  data-testid="share-new-btn"
+                >
+                  <Share2 className="w-3 h-3 text-emerald-400" />
+                </button>
+              </div>
+            ) : showExpiryPicker ? (
+              <div className="flex items-center gap-1.5" data-testid="share-expiry-picker">
+                <select
+                  value={shareExpiry}
+                  onChange={(e) => setShareExpiry(e.target.value)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-medium outline-none"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--em-text-secondary)' }}
+                  data-testid="share-expiry-select"
+                >
+                  <option value="never">Never expires</option>
+                  <option value="1h">1 hour</option>
+                  <option value="24h">24 hours</option>
+                  <option value="7d">7 days</option>
+                  <option value="30d">30 days</option>
+                </select>
+                <button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 disabled:opacity-40"
+                  style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)', color: 'var(--em-cyan)' }}
+                  data-testid="share-confirm-btn"
+                >
+                  {sharing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
+                  {sharing ? '...' : 'Share'}
+                </button>
+                <button
+                  onClick={() => setShowExpiryPicker(false)}
+                  className="px-1.5 py-1 text-[10px] text-[var(--em-text-muted)] hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
             ) : (
               <button
-                onClick={handleShare}
+                onClick={() => setShowExpiryPicker(true)}
                 disabled={sharing}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 disabled:opacity-40"
                 style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.15)', color: 'var(--em-cyan)' }}
                 data-testid="share-project-btn"
               >
-                {sharing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
-                {sharing ? 'Creating...' : 'Share'}
+                <Share2 className="w-3 h-3" />
+                Share
               </button>
             )}
           </div>

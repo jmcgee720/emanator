@@ -29,9 +29,14 @@ export default function DeployTab({ project, addLog }) {
   const [showNetlifySetup, setShowNetlifySetup] = useState(false)
   const [netlifyResult, setNetlifyResult] = useState(null)
   const [deployingNetlify, setDeployingNetlify] = useState(false)
+  const [pollingIds, setPollingIds] = useState({}) // { dbId: intervalRef }
 
   useEffect(() => {
     loadDeployments()
+    return () => {
+      // Clean up polling intervals on unmount
+      Object.values(pollingIds).forEach(clearInterval)
+    }
   }, [project.id])
 
   const loadDeployments = async () => {
@@ -44,6 +49,34 @@ export default function DeployTab({ project, addLog }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const startPolling = (dbId, platformToken) => {
+    if (!dbId || pollingIds[dbId]) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await authFetch(`/api/projects/${project.id}/deployments/${dbId}/status?token=${encodeURIComponent(platformToken)}`)
+        const data = await res.json()
+        if (data.status) {
+          // Update the deployment in the list
+          setDeployments(prev => prev.map(d => d.id === dbId ? { ...d, status: data.status, url: data.url || d.url } : d))
+          // If reached terminal state, stop polling
+          const terminal = ['ready', 'completed', 'success', 'error', 'failed', 'cancelled']
+          if (terminal.includes((data.status || '').toLowerCase())) {
+            clearInterval(interval)
+            setPollingIds(prev => { const next = { ...prev }; delete next[dbId]; return next })
+            if (['ready', 'completed', 'success'].includes((data.status || '').toLowerCase())) {
+              addLog?.('success', `Deployment is live: ${data.url || 'URL available'}`)
+            } else {
+              addLog?.('error', `Deployment ${data.status}`)
+            }
+          }
+        }
+      } catch {
+        // Silently retry
+      }
+    }, 5000) // Poll every 5 seconds
+    setPollingIds(prev => ({ ...prev, [dbId]: interval }))
   }
 
   const handleDownloadZip = async () => {
@@ -89,6 +122,8 @@ export default function DeployTab({ project, addLog }) {
         setDeployResult({ url: data.url, status: data.status })
         addLog?.('success', `Deployed to Vercel: ${data.url}`)
         loadDeployments()
+        // Start status polling
+        if (data.db_id) startPolling(data.db_id, vercelToken)
       }
     } catch (err) {
       setDeployResult({ error: err.message })
@@ -116,6 +151,8 @@ export default function DeployTab({ project, addLog }) {
         setNetlifyResult({ url: data.url, status: data.status })
         addLog?.('success', `Deployed to Netlify: ${data.url}`)
         loadDeployments()
+        // Start status polling
+        if (data.db_id) startPolling(data.db_id, netlifyToken)
       }
     } catch (err) {
       setNetlifyResult({ error: err.message })
@@ -128,8 +165,9 @@ export default function DeployTab({ project, addLog }) {
   const statusBadge = (status) => {
     const s = (status || '').toLowerCase()
     if (['completed', 'success', 'ready'].includes(s)) return { bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)', color: '#34D399', label: 'Live', icon: <CheckCircle className="w-3 h-3" /> }
-    if (['failed', 'error'].includes(s)) return { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', color: '#F87171', label: 'Failed', icon: <AlertCircle className="w-3 h-3" /> }
-    return { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', color: '#FBBF24', label: status || 'Building', icon: <Clock className="w-3 h-3" /> }
+    if (['failed', 'error', 'cancelled'].includes(s)) return { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', color: '#F87171', label: 'Failed', icon: <AlertCircle className="w-3 h-3" /> }
+    if (['building', 'queued', 'initializing', 'uploading', 'uploaded', 'processing'].includes(s)) return { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', color: '#FBBF24', label: status || 'Building', icon: <Loader2 className="w-3 h-3 animate-spin" /> }
+    return { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', color: '#FBBF24', label: status || 'Pending', icon: <Clock className="w-3 h-3" /> }
   }
 
   return (
