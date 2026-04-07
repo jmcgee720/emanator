@@ -13,18 +13,19 @@ Conversational AI builder allowing users to generate, preview, and deploy React-
 ## Completed Features
 - Live streaming preview with postMessage incremental updates
 - Dark Aurora skeleton loading state during builds
-- 6 regression guardrails (blank preview detection, tool call enforcement, etc.)
+- 6 regression guardrails (blank preview, tool call enforcement, etc.)
 - AI Art Director pipeline for curated imagery
 - Creative Brief Cards & Enhancement Suggestion Chips
-- Growth Panel: SEO analysis, CSV/JSON export, One-Click SEO Fixes, Build Better Version, Persona-based analysis, Batch crawl, Site Map view
+- Growth Panel: SEO analysis, CSV/JSON export, One-Click SEO Fixes, Build Better Version, Persona analysis, Batch crawl, Site Map view
 - Site Monitor: Auto-crawl tracking, change detection (baseline comparison), counter-move suggestions, Check All Monitors bulk action
 - Visual Quality Prompt Overhaul (Tailwind, glass-morphism, Unsplash in prompts)
 - Glassmorphism UI redesign for workspace
-- Dashboard UI: pill-style navigation tabs (Projects | Core System | + New Project), no Self-Builder badge, no broken tab bar
-- service.js Refactoring: 2627 → 318 lines (extracted processMessageStream, executePlanStream, applyDiffs, processMessage)
-- **Deploy Tab**: Real Download ZIP (via JSZip client-side packaging) + Vercel deploy with user-provided API token + Deployment history tracking
-- **Deploy Backend**: Auth-protected endpoints for file download, Vercel API v13 integration, deployment record storage
+- Dashboard UI: pill-style navigation tabs (Projects | Core System | + New Project)
+- service.js Refactoring: 2627 → 318 lines (extracted 3 major methods into modules)
+- Deploy Tab: Real Download ZIP (JSZip) + Vercel deploy with user-provided token + Deployment history
+- **Share Public Preview Link**: Snapshot project files into a shareable URL, public preview page at /share/:token with iframe rendering, code view toggle, view counter, copy-to-clipboard. Share button in project workspace toolbar.
 
 ## Pending / Backlog
 - P2: Netlify deploy integration
+- P2: Scheduled weekly auto-crawl for monitors (cron)
 - Known: Next.js OOM memory thrashing (mitigated via supervisor restart)
