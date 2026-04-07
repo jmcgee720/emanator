@@ -136,7 +136,8 @@ function ChipPicker({ selected = [], options, onChange, label, testId }) {
 
 function buildPromptFromBrief(brief) {
   const parts = []
-  if (brief.elevator_pitch) parts.push(`Build this: ${brief.elevator_pitch}`)
+  parts.push('Build this project now with COMPLETE, production-ready pages. Every component must have full UI with real layouts, navigation, forms, cards, and proper styling — no placeholder pages with just a title.')
+  if (brief.elevator_pitch) parts.push(`Project: ${brief.elevator_pitch}`)
   if (brief.target_audience) parts.push(`Target audience: ${brief.target_audience}`)
   if (brief.primary_goal) parts.push(`Primary goal: ${brief.primary_goal}`)
   if (brief.brand_name) parts.push(`Brand name: ${brief.brand_name}`)
@@ -145,7 +146,7 @@ function buildPromptFromBrief(brief) {
   if (brief.reference_sites) parts.push(`Reference sites: ${brief.reference_sites}`)
   const allPages = [...(brief.pages || []), ...(brief.custom_pages ? brief.custom_pages.split(',').map(p => p.trim()).filter(Boolean) : [])]
   if (allPages.length > 0) parts.push(`Pages needed: ${allPages.join(', ')}`)
-  if (brief.most_important_page) parts.push(`Most important page: ${brief.most_important_page}`)
+  if (brief.most_important_page) parts.push(`Most important page (build with the most detail): ${brief.most_important_page}`)
   if (brief.must_have_features) parts.push(`Must-have features: ${brief.must_have_features}`)
   if (brief.nice_to_have_features) parts.push(`Nice-to-have: ${brief.nice_to_have_features}`)
   if (brief.headline) parts.push(`Headline/tagline: ${brief.headline}`)
@@ -154,7 +155,7 @@ function buildPromptFromBrief(brief) {
   if (brief.integrations) parts.push(`Integrations: ${brief.integrations}`)
   if (brief.budget_tier) parts.push(`Budget tier: ${brief.budget_tier}`)
   if (brief.things_to_avoid) parts.push(`Avoid: ${brief.things_to_avoid}`)
-  if (parts.length === 0) return null
+  if (parts.length <= 1) return null
   return parts.join('\n')
 }
 
