@@ -2584,58 +2584,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
     )
   }
 
-  const renderWorkspaceTabs = () => (
-    <div className="h-12 flex items-center gap-2 px-3 overflow-x-auto relative z-10 em-glass-topbar">
-      <button
-        onClick={() => {
-          setSelectedProject(null)
-          setChats([])
-          setSelectedChat(null)
-          setMessages([])
-          setFiles([])
-          setCanvas(null)
-        }}
-        className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] text-sm em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
-        data-testid="workspace-back-to-grid"
-      >
-        ← Projects
-      </button>
-
-      <div className="w-px h-6 bg-[rgba(255,255,255,0.10)] shrink-0" />
-
-      {/* Hub link — go back to project hub */}
-      <button
-        onClick={() => {
-          setSelectedChat(null)
-          setMessages([])
-        }}
-        className="shrink-0 px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-sm em-text-secondary hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
-        data-testid="workspace-back-to-hub"
-      >
-        {selectedProject?.name || 'Hub'}
-      </button>
-
-      <div className="w-px h-6 bg-[rgba(255,255,255,0.10)] shrink-0" />
-
-      {/* Current chat indicator with rename */}
-      {selectedChat && (
-        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(0,229,255,0.25)] bg-[rgba(0,229,255,0.06)] text-sm text-[var(--em-text-primary)]">
-          <span className="truncate max-w-[200px]">{selectedChat.title || 'Chat'}</span>
-          <button
-            onClick={() => {
-              const newTitle = prompt('Rename conversation:', selectedChat.title)
-              if (newTitle?.trim()) renameChat(selectedChat.id, newTitle.trim())
-            }}
-            className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
-            data-testid="workspace-rename-chat"
-            title="Rename conversation"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-          </button>
-        </div>
-      )}
-    </div>
-  )
 
 
   return (
@@ -2951,12 +2899,86 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         />
       ) : (
         <>
-          {renderWorkspaceTabs()}
+          {/* ── Workspace Tabs Row ── */}
+          <div className="flex items-center justify-between px-6 pt-3 pb-2 relative z-10">
+            {/* Left: Project navigation */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setSelectedProject(null)
+                  setChats([])
+                  setSelectedChat(null)
+                  setMessages([])
+                  setFiles([])
+                  setCanvas(null)
+                }}
+                className="shrink-0 px-4 py-2 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 border border-white/10 transition-all duration-300 backdrop-blur-sm"
+                data-testid="workspace-back-to-grid"
+              >
+                Project Bin
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedChat(null)
+                  setMessages([])
+                }}
+                className="shrink-0 px-4 py-2 rounded-full text-xs font-medium bg-white/10 text-white border border-white/20 backdrop-blur-md shadow-[0_-4px_12px_-4px_rgba(255,255,255,0.05)]"
+                data-testid="workspace-back-to-hub"
+              >
+                {selectedProject?.name || 'Hub'}
+              </button>
+              {selectedChat && (
+                <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-white/80 backdrop-blur-sm">
+                  <span className="truncate max-w-[180px]">{selectedChat.title || 'Chat'}</span>
+                  <button
+                    onClick={() => {
+                      const newTitle = prompt('Rename conversation:', selectedChat.title)
+                      if (newTitle?.trim()) renameChat(selectedChat.id, newTitle.trim())
+                    }}
+                    className="ml-1 opacity-40 hover:opacity-100 transition-opacity"
+                    data-testid="workspace-rename-chat"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                </div>
+              )}
+            </div>
 
-          <div className="flex-1 overflow-hidden">
-            <ResizablePanelGroup direction="horizontal">
-              <ResizablePanel defaultSize={35} minSize={25} maxSize={50} className="overflow-hidden">
-                <LeftPanel
+            {/* Right: Preview toolbar */}
+            <div className="flex items-center gap-1.5">
+              {[
+                { label: 'New Tab', icon: 'ExternalLink', testid: 'preview-open-tab', action: () => { if (selectedProject?.id) window.open(`/api/projects/${selectedProject.id}/preview`, '_blank') } },
+                { label: 'Refresh', icon: 'RefreshCw', testid: 'preview-refresh', action: () => { setActiveTab('preview') } },
+              ].map(btn => (
+                <button
+                  key={btn.testid}
+                  onClick={btn.action}
+                  className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors backdrop-blur-sm"
+                  data-testid={btn.testid}
+                  title={btn.label}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    {btn.icon === 'ExternalLink' && <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>}
+                    {btn.icon === 'RefreshCw' && <><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>}
+                  </svg>
+                </button>
+              ))}
+              <button
+                onClick={() => setActiveTab('deploy')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold bg-white text-black hover:bg-gray-200 transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                data-testid="preview-deploy-btn"
+              >
+                Deploy
+              </button>
+            </div>
+          </div>
+
+          {/* ── Main Workspace: Chat + Preview glass panels ── */}
+          <div className="flex-1 px-6 pb-6 min-h-0 overflow-hidden">
+            <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
+              <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+                <div className="em-glass rounded-[2rem] h-full overflow-hidden" data-testid="chat-glass-panel">
+                  <LeftPanel
                   projects={projects}
                   selectedProject={selectedProject}
                   onSelectProject={openProjectWorkspace}
@@ -3021,12 +3043,14 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   visualMode={visualMode}
                   onVisualModeChange={setVisualMode}
                 />
+                </div>
               </ResizablePanel>
 
-              <ResizableHandle className="w-px bg-[rgba(255,255,255,0.10)] hover:bg-[rgba(0,229,255,0.3)] transition-colors duration-200" />
+              <ResizableHandle className="w-1 bg-transparent hover:bg-white/10 transition-colors duration-200 rounded-full" />
 
-              <ResizablePanel defaultSize={65} className="overflow-hidden">
-                <RightPanel
+              <ResizablePanel defaultSize={65}>
+                <div className="em-glass rounded-[2rem] h-full overflow-hidden" data-testid="preview-glass-panel">
+                  <RightPanel
                   selectedProject={selectedProject}
                   files={files}
                   setFiles={setFiles}
@@ -3041,6 +3065,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   livePreviewData={livePreviewData}
                   isBuilding={!!streamingMessageId}
                 />
+                </div>
               </ResizablePanel>
             </ResizablePanelGroup>
           </div>

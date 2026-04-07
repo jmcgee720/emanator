@@ -48,36 +48,26 @@ export default function RightPanel({
 
   if (!selectedProject) {
     return (
-      <div className="h-full flex items-center justify-center em-aurora em-aurora--focused">
-        <div className="em-aurora-veil-1" style={{ opacity: 0.4 }} />
-        <div className="em-aurora-veil-2" style={{ opacity: 0.3 }} />
-        <div className="em-aurora-veil-3" style={{ opacity: 0.3 }} />
-        <div className="em-aurora-veil-4" style={{ opacity: 0.25 }} />
-        <div className="em-aurora-noise" />
+      <div className="h-full flex items-center justify-center">
         <div className="text-center relative z-10">
-          <FolderOpen className="w-12 h-12 mx-auto em-text-muted mb-4" style={{ opacity: 0.3 }} />
-          <h3 className="text-sm font-medium em-text-secondary mb-1">No Project Selected</h3>
-          <p className="text-xs em-text-muted">Select or create a project to get started</p>
+          <FolderOpen className="w-12 h-12 mx-auto text-white/20 mb-4" />
+          <h3 className="text-sm font-medium text-white/50 mb-1">No Project Selected</h3>
+          <p className="text-xs text-white/30">Select or create a project to get started</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col em-aurora em-aurora--focused" data-testid="right-panel">
-      <div className="em-aurora-veil-1" style={{ opacity: 0.3 }} />
-      <div className="em-aurora-veil-2" style={{ opacity: 0.2 }} />
-      <div className="em-aurora-veil-3" style={{ opacity: 0.2 }} />
-      <div className="em-aurora-veil-4" style={{ opacity: 0.15 }} />
-      <div className="em-aurora-noise" />
+    <div className="absolute inset-0 flex flex-col" data-testid="right-panel">
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col relative z-5">
-        <div className="px-4" style={{ borderBottom: '1px solid rgba(0, 229, 255, 0.06)' }}>
-          <TabsList className="h-11 bg-transparent justify-start gap-0.5">
+        <div className="px-5 pt-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <TabsList className="h-10 bg-transparent justify-start gap-0.5">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="data-[state=active]:bg-[rgba(0,229,255,0.06)] data-[state=active]:text-[var(--em-text-primary)] data-[state=active]:shadow-none rounded-lg px-3.5 text-xs font-medium em-text-muted transition-colors duration-200"
+                className="data-[state=active]:bg-white/8 data-[state=active]:text-white data-[state=active]:shadow-none rounded-lg px-3.5 text-xs font-medium text-white/40 hover:text-white/70 transition-colors duration-200"
               >
                 <tab.icon className="w-3.5 h-3.5 mr-1.5" />
                 {tab.name}
