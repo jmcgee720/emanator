@@ -62,6 +62,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectType, setNewProjectType] = useState('app')
+  const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [selectedProject, setSelectedProject] = useState(null)
   const [openProjectTabs, setOpenProjectTabs] = useState([])
 
@@ -728,13 +729,15 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setMessagesReadyTick(t => t + 1)
   }
 
-  const createProject = async (name, type = 'app') => {
+  const createProject = async (name, type = 'app', templateId = null) => {
     try {
       addLog('info', `Creating project: ${name}`)
+      const body = { name, type }
+      if (templateId) body.template_id = templateId
       const response = await authFetch('/api/projects', {
         method: 'POST',
         headers: JSON_HEADERS,
-        body: JSON.stringify({ name, type })
+        body: JSON.stringify(body)
       })
 
       const text = await response.text()
@@ -2488,41 +2491,104 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
           </div>
         </div>
 
-        {/* ── New Project Modal ── */}
+        {/* ── New Project Modal with Templates ── */}
         {showNewProjectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="em-glass rounded-2xl p-6 w-[400px] border border-[rgba(255,255,255,0.15)]" data-testid="new-project-modal">
-              <h2 className="text-sm font-semibold mb-4 em-text-primary">Create Project</h2>
-              <input
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="Project name"
-                className="w-full mb-3 px-3 py-2 text-sm em-input"
-                data-testid="new-project-name-input"
-              />
-              <select
-                value={newProjectType}
-                onChange={(e) => setNewProjectType(e.target.value)}
-                className="w-full mb-4 px-3 py-2 text-sm em-input"
-                data-testid="new-project-type-select"
-              >
-                <option value="app">App Builder</option>
-                <option value="core">Core System</option>
-              </select>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setShowNewProjectModal(false)} className="px-3 py-1.5 text-xs em-btn-ghost" data-testid="cancel-new-project">Cancel</button>
+            <div className="em-glass rounded-2xl w-[680px] max-h-[80vh] border border-[rgba(255,255,255,0.15)] overflow-hidden flex flex-col" data-testid="new-project-modal">
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <h2 className="text-sm font-semibold em-text-primary">Create New Project</h2>
+                <button onClick={() => setShowNewProjectModal(false)} className="text-[var(--em-text-muted)] hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                {/* Project Name & Type */}
+                <div className="flex gap-3">
+                  <input
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Project name"
+                    className="flex-1 px-3 py-2 text-sm em-input rounded-xl"
+                    data-testid="new-project-name-input"
+                  />
+                  <select
+                    value={newProjectType}
+                    onChange={(e) => setNewProjectType(e.target.value)}
+                    className="px-3 py-2 text-sm em-input rounded-xl"
+                    data-testid="new-project-type-select"
+                  >
+                    <option value="app">App</option>
+                    <option value="website">Website</option>
+                  </select>
+                </div>
+
+                {/* Template Gallery */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)] mb-3">Start from a Template</p>
+                  <div className="grid grid-cols-3 gap-3" data-testid="template-gallery">
+                    {/* Blank Project */}
+                    <div
+                      onClick={() => setSelectedTemplate(null)}
+                      className="group relative rounded-xl p-4 cursor-pointer transition-all duration-200"
+                      style={{
+                        background: !selectedTemplate ? 'rgba(0,229,255,0.06)' : 'rgba(255,255,255,0.02)',
+                        border: !selectedTemplate ? '1px solid rgba(0,229,255,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                      }}
+                      data-testid="template-blank"
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                        <Plus className="w-4 h-4 text-[var(--em-text-muted)]" />
+                      </div>
+                      <p className="text-xs font-bold em-text-primary">Blank Project</p>
+                      <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Start from scratch</p>
+                    </div>
+
+                    {/* Template Cards */}
+                    {[
+                      { id: 'landing-page', name: 'Landing Page', desc: 'Hero, features, CTA', color: '#00E5FF', icon: '🚀', cat: 'Marketing' },
+                      { id: 'portfolio', name: 'Portfolio', desc: 'Projects & contact', color: '#A78BFA', icon: '👤', cat: 'Personal' },
+                      { id: 'saas-dashboard', name: 'SaaS Dashboard', desc: 'Metrics & analytics', color: '#34D399', icon: '📊', cat: 'Business' },
+                      { id: 'blog', name: 'Blog', desc: 'Articles & newsletter', color: '#F59E0B', icon: '📝', cat: 'Content' },
+                      { id: 'ecommerce', name: 'E-Commerce', desc: 'Products & cart', color: '#EC4899', icon: '🛍️', cat: 'Commerce' },
+                    ].map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        onClick={() => setSelectedTemplate(tmpl.id)}
+                        className="group relative rounded-xl p-4 cursor-pointer transition-all duration-200"
+                        style={{
+                          background: selectedTemplate === tmpl.id ? `${tmpl.color}10` : 'rgba(255,255,255,0.02)',
+                          border: selectedTemplate === tmpl.id ? `1px solid ${tmpl.color}33` : '1px solid rgba(255,255,255,0.06)',
+                        }}
+                        data-testid={`template-${tmpl.id}`}
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: `${tmpl.color}15`, border: `1px solid ${tmpl.color}25` }}>
+                          <span className="text-sm">{tmpl.icon}</span>
+                        </div>
+                        <p className="text-xs font-bold em-text-primary">{tmpl.name}</p>
+                        <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">{tmpl.desc}</p>
+                        <span className="text-[9px] mt-2 inline-block px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--em-text-muted)]">{tmpl.cat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <button onClick={() => setShowNewProjectModal(false)} className="px-4 py-2 text-xs em-btn-ghost rounded-xl" data-testid="cancel-new-project">Cancel</button>
                 <button
                   onClick={() => {
-                    if (!newProjectName.trim()) return
-                    createProject(newProjectName, newProjectType)
+                    const name = newProjectName.trim() || (selectedTemplate ? selectedTemplate.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'New Project')
+                    createProject(name, newProjectType, selectedTemplate)
                     setShowNewProjectModal(false)
                     setNewProjectName('')
                     setNewProjectType('app')
+                    setSelectedTemplate(null)
                   }}
-                  className="px-3 py-1.5 text-xs em-btn-brand"
+                  className="px-4 py-2 text-xs em-btn-brand rounded-xl"
                   data-testid="create-project-submit"
                 >
-                  Create
+                  {selectedTemplate ? 'Create from Template' : 'Create Project'}
                 </button>
               </div>
             </div>
