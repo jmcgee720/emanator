@@ -30,6 +30,14 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - [x] **Share Link Expiry Settings** (1h/24h/7d/30d/never)
 - [x] **Deployment Status Polling** (live Vercel/Netlify build progress)
 - [x] **Cron-based Scheduled Auto-Crawl** (6h/12h/24h/48h/7d)
+- [x] **Creative Brief Modal** (centered popup form, replaces old side panel, "Start Building" auto-sends AI prompt)
+
+### Creative Brief Feature (Updated Apr 7 2026)
+- Removed "Brief" button from TopBar — accessible only from ProjectHub quick actions
+- Converted from right-side panel to centered modal popup (580px, glass-morphism styled)
+- Form has 6 collapsible sections: Big Picture, Brand & Style, Pages & Structure, Key Features, Content Direction, Technical & Constraints
+- "Start Building" button saves brief + creates chat + auto-sends prompt to AI
+- Brief data persists via canvas API and auto-injects into AI system prompt via context.js
 
 ### Template Categories (25 total)
 **Marketing** (5): SaaS Landing, Product Launch, Agency Site, Newsletter Landing, App Download
@@ -60,6 +68,7 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - `deployments` - Deploy records with `findById`, `updateStatus` methods
 - `growth_monitors` (MongoDB) - Site monitors
 - `monitor_schedules` (MongoDB) - Auto-crawl config
+- `canvas` - stores creative_brief JSON
 
 ## Backlog
 - App is feature-complete for current roadmap. No remaining tasks.
