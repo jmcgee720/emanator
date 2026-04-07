@@ -2,20 +2,29 @@
 
 import { useState, useEffect } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 import {
   Rocket,
   ExternalLink,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Loader2,
+  Key,
+  Globe,
+  ArrowUpRight,
 } from 'lucide-react'
 
 export default function DeployTab({ project, addLog }) {
   const [deployments, setDeployments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState(false)
+  const [deploying, setDeploying] = useState(false)
+  const [vercelToken, setVercelToken] = useState('')
+  const [showVercelSetup, setShowVercelSetup] = useState(false)
+  const [deployResult, setDeployResult] = useState(null)
 
   useEffect(() => {
     loadDeployments()
@@ -26,135 +35,275 @@ export default function DeployTab({ project, addLog }) {
       const response = await authFetch(`/api/projects/${project.id}/deployments`)
       const data = await response.json()
       setDeployments(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Error loading deployments:', error)
+    } catch {
+      setDeployments([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDeploy = async (platform) => {
-    addLog('info', `Deployment to ${platform} is not yet available. Coming in Phase 2.`)
-  }
-
-  const statusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-      case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'pending':
-      case 'building':
-        return <Clock className="w-4 h-4 text-yellow-500" />
-      case 'failed':
-        return <AlertCircle className="w-4 h-4 text-red-500" />
-      default:
-        return <Clock className="w-4 h-4 text-muted-foreground" />
+  const handleDownloadZip = async () => {
+    setDownloading(true)
+    try {
+      const res = await authFetch(`/api/projects/${project.id}/download`)
+      const data = await res.json()
+      if (!res.ok || !data.files) {
+        addLog?.('error', data.error || 'No files to download')
+        return
+      }
+      const zip = new JSZip()
+      data.files.forEach(f => {
+        const path = f.path.startsWith('/') ? f.path.slice(1) : f.path
+        zip.file(path, f.content || '')
+      })
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const name = (project.name || 'project').replace(/[^a-zA-Z0-9-_]/g, '-')
+      saveAs(blob, `${name}.zip`)
+      addLog?.('success', `Downloaded ${data.files.length} files as ZIP`)
+    } catch (err) {
+      addLog?.('error', `Download failed: ${err.message}`)
+    } finally {
+      setDownloading(false)
     }
   }
 
+  const handleVercelDeploy = async () => {
+    if (!vercelToken.trim()) return
+    setDeploying(true)
+    setDeployResult(null)
+    try {
+      const res = await authFetch(`/api/projects/${project.id}/deploy/vercel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: vercelToken, projectName: project.name }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDeployResult({ error: data.error || 'Deployment failed' })
+        addLog?.('error', `Vercel deploy failed: ${data.error}`)
+      } else {
+        setDeployResult({ url: data.url, status: data.status })
+        addLog?.('success', `Deployed to Vercel: ${data.url}`)
+        loadDeployments()
+      }
+    } catch (err) {
+      setDeployResult({ error: err.message })
+      addLog?.('error', `Deploy error: ${err.message}`)
+    } finally {
+      setDeploying(false)
+    }
+  }
+
+  const statusBadge = (status) => {
+    const s = (status || '').toLowerCase()
+    if (['completed', 'success', 'ready'].includes(s)) return { bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)', color: '#34D399', label: 'Live', icon: <CheckCircle className="w-3 h-3" /> }
+    if (['failed', 'error'].includes(s)) return { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', color: '#F87171', label: 'Failed', icon: <AlertCircle className="w-3 h-3" /> }
+    return { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', color: '#FBBF24', label: status || 'Building', icon: <Clock className="w-3 h-3" /> }
+  }
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" style={{ background: 'transparent' }}>
       {/* Header */}
-      <div className="h-10 border-b border-border/40 flex items-center px-4">
-        <span className="text-sm text-muted-foreground">Deploy Project</span>
+      <div className="h-10 flex items-center px-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <Rocket className="w-3.5 h-3.5 mr-2" style={{ color: 'var(--em-cyan)', opacity: 0.7 }} />
+        <span className="text-[11px] font-semibold tracking-wide" style={{ color: 'var(--em-text-secondary)' }}>Deploy</span>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        {/* Deploy Targets */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 76 65" fill="currentColor">
-                    <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
-                  </svg>
-                </div>
-                <div>
-                  <CardTitle className="text-base">Vercel</CardTitle>
-                  <CardDescription className="text-xs">Deploy to Vercel</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button
-                className="w-full"
-                size="sm"
-                variant="outline"
-                disabled
-              >
-                <Rocket className="w-4 h-4 mr-2" /> Not Yet Available
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Integration coming in Phase 2
-              </p>
-            </CardContent>
-          </Card>
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Deploy Options Grid */}
+        <div className="grid grid-cols-2 gap-4">
 
-          <Card className="opacity-50">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
-                </div>
-                <div>
-                  <CardTitle className="text-base">Netlify</CardTitle>
-                  <CardDescription className="text-xs">Deploy to Netlify</CardDescription>
-                </div>
+          {/* Download ZIP */}
+          <div
+            className="group rounded-2xl p-5 transition-all duration-300 cursor-pointer hover:scale-[1.01]"
+            style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(0,229,255,0.1)',
+              backdropFilter: 'blur(12px)',
+            }}
+            onClick={!downloading ? handleDownloadZip : undefined}
+            data-testid="deploy-download-zip"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.15)' }}>
+                <Download className="w-5 h-5" style={{ color: 'var(--em-cyan)' }} />
               </div>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" size="sm" disabled>
-                Coming Soon
-              </Button>
-            </CardContent>
-          </Card>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: 'var(--em-text-primary)' }}>Download ZIP</h3>
+                <p className="text-[10px]" style={{ color: 'var(--em-text-muted)' }}>Export all project files</p>
+              </div>
+            </div>
+            <button
+              disabled={downloading}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all duration-200 disabled:opacity-40"
+              style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)', color: 'var(--em-cyan)' }}
+              data-testid="deploy-zip-btn"
+            >
+              {downloading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Packaging...</> : <><Download className="w-3.5 h-3.5" /> Download</>}
+            </button>
+          </div>
+
+          {/* Vercel Deploy */}
+          <div
+            className="group rounded-2xl p-5 transition-all duration-300"
+            style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(12px)',
+            }}
+            data-testid="deploy-vercel-card"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                <svg className="w-5 h-5" viewBox="0 0 76 65" fill="white"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z" /></svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: 'var(--em-text-primary)' }}>Vercel</h3>
+                <p className="text-[10px]" style={{ color: 'var(--em-text-muted)' }}>Deploy to production</p>
+              </div>
+            </div>
+
+            {!showVercelSetup ? (
+              <button
+                onClick={() => setShowVercelSetup(true)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--em-text-secondary)' }}
+                data-testid="deploy-vercel-setup-btn"
+              >
+                <Key className="w-3.5 h-3.5" /> Connect Vercel
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="password"
+                  placeholder="Vercel API Token"
+                  value={vercelToken}
+                  onChange={(e) => setVercelToken(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'var(--em-text-primary)',
+                  }}
+                  data-testid="deploy-vercel-token-input"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleVercelDeploy}
+                    disabled={deploying || !vercelToken.trim()}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 disabled:opacity-30"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'white' }}
+                    data-testid="deploy-vercel-go-btn"
+                  >
+                    {deploying ? <><Loader2 className="w-3 h-3 animate-spin" /> Deploying...</> : <><Rocket className="w-3 h-3" /> Deploy</>}
+                  </button>
+                  <button
+                    onClick={() => { setShowVercelSetup(false); setVercelToken(''); setDeployResult(null) }}
+                    className="px-3 py-2 rounded-xl text-xs transition-all duration-200"
+                    style={{ color: 'var(--em-text-muted)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p className="text-[9px] leading-relaxed" style={{ color: 'var(--em-text-muted)', opacity: 0.6 }}>
+                  Get your token at vercel.com/account/tokens
+                </p>
+              </div>
+            )}
+
+            {deployResult && (
+              <div
+                className="mt-3 p-2.5 rounded-lg text-[11px]"
+                style={{
+                  background: deployResult.error ? 'rgba(248,113,113,0.06)' : 'rgba(52,211,153,0.06)',
+                  border: deployResult.error ? '1px solid rgba(248,113,113,0.15)' : '1px solid rgba(52,211,153,0.15)',
+                  color: deployResult.error ? '#F87171' : '#34D399',
+                }}
+                data-testid="deploy-result"
+              >
+                {deployResult.error ? (
+                  <span>{deployResult.error}</span>
+                ) : (
+                  <a href={deployResult.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 font-medium">
+                    <Globe className="w-3 h-3" />
+                    {deployResult.url}
+                    <ArrowUpRight className="w-3 h-3 ml-auto" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Deployment History */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Deployment History</h3>
+          <h3 className="text-[11px] uppercase tracking-widest font-bold mb-3" style={{ color: 'var(--em-text-muted)' }}>Deployment History</h3>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--em-text-muted)', opacity: 0.3 }} />
+            </div>
           ) : deployments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No deployments yet</p>
+            <div className="flex flex-col items-center justify-center py-12" data-testid="deploy-history-empty">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Rocket className="w-5 h-5" style={{ color: 'var(--em-text-muted)', opacity: 0.25 }} />
+              </div>
+              <p className="text-xs font-medium" style={{ color: 'var(--em-text-muted)' }}>No deployments yet</p>
+              <p className="text-[10px] mt-1" style={{ color: 'var(--em-text-muted)', opacity: 0.5 }}>Deploy your project to see it here</p>
+            </div>
           ) : (
-            <div className="space-y-2">
-              {deployments.map((deployment) => (
-                <div key={deployment.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/40">
-                  <div className="flex items-center gap-3">
-                    {statusIcon(deployment.status)}
-                    <div>
-                      <p className="text-sm font-medium capitalize">{deployment.platform}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {deployment.created_at ? new Date(deployment.created_at).toLocaleString() : 'Unknown date'}
-                      </p>
+            <div className="space-y-2" data-testid="deploy-history-list">
+              {deployments.map((dep) => {
+                const badge = statusBadge(dep.status)
+                return (
+                  <div
+                    key={dep.id || dep.deployment_id}
+                    className="flex items-center justify-between p-3 rounded-xl transition-all duration-200"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    data-testid={`deployment-item-${dep.id || dep.deployment_id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: badge.bg, border: `1px solid ${badge.border}` }}>
+                        {dep.platform === 'vercel' ? (
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 76 65" fill="white"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z" /></svg>
+                        ) : (
+                          <Download className="w-3.5 h-3.5" style={{ color: badge.color }} />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold capitalize" style={{ color: 'var(--em-text-primary)' }}>{dep.platform}</p>
+                        <p className="text-[10px]" style={{ color: 'var(--em-text-muted)', opacity: 0.6 }}>
+                          {dep.created_at ? new Date(dep.created_at).toLocaleString() : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {dep.url && (
+                        <a
+                          href={dep.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all duration-200"
+                          style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.12)', color: 'var(--em-cyan)' }}
+                          data-testid={`deployment-link-${dep.id || dep.deployment_id}`}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Visit
+                        </a>
+                      )}
+                      <span
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold"
+                        style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}
+                      >
+                        {badge.icon} {badge.label}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {deployment.url && (
-                      <Button size="sm" variant="ghost" asChild>
-                        <a href={deployment.url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    )}
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      deployment.status === 'completed' ? 'bg-green-500/10 text-green-500' :
-                      deployment.status === 'failed' ? 'bg-red-500/10 text-red-500' :
-                      'bg-yellow-500/10 text-yellow-500'
-                    }`}>
-                      {deployment.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

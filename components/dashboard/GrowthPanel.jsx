@@ -791,6 +791,22 @@ export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
               </div>
             ) : (
               <div data-testid="monitors-list">
+                {/* Check All Button */}
+                <div className="px-3 mb-2">
+                  <button
+                    onClick={async () => {
+                      for (const mon of monitors) {
+                        await checkMonitor(mon.id)
+                      }
+                    }}
+                    disabled={!!checkingMonitor}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-200 disabled:opacity-30"
+                    style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.12)', color: '#34D399' }}
+                    data-testid="monitors-check-all-btn"
+                  >
+                    {checkingMonitor ? <><Loader2 className="w-3 h-3 animate-spin" /> Checking...</> : <><RefreshCw className="w-3 h-3" /> Check All</>}
+                  </button>
+                </div>
                 {monitors.map((mon) => {
                   const isActive = selectedMonitor?.id === mon.id
                   const isChecking = checkingMonitor === mon.id
