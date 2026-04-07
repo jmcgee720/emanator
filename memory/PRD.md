@@ -6,8 +6,8 @@ Conversational AI builder allowing users to generate, preview, and deploy React-
 ## Core Architecture
 - **Framework**: Next.js 14 App Router
 - **Frontend**: Custom dashboard with glassmorphism UI (`.em-glass`)
-- **Backend**: AI orchestrator with modular architecture (service.js refactored into message-stream.js, plan-executor.js, message-processor.js, prompt-builder.js, image-generation.js, canvas-ops.js, file-operations.js, context-loader.js)
-- **Database**: MongoDB/Supabase
+- **Backend**: AI orchestrator with modular architecture (service.js → message-stream.js, plan-executor.js, message-processor.js, prompt-builder.js, image-generation.js, canvas-ops.js, file-operations.js, context-loader.js)
+- **Database**: Supabase (PostgreSQL)
 - **Integrations**: OpenAI/Anthropic (via Emergent LLM Key), Stripe, Unsplash
 
 ## Completed Features
@@ -17,13 +17,14 @@ Conversational AI builder allowing users to generate, preview, and deploy React-
 - AI Art Director pipeline for curated imagery
 - Creative Brief Cards & Enhancement Suggestion Chips
 - Growth Panel: SEO analysis, CSV/JSON export, One-Click SEO Fixes, Build Better Version, Persona-based analysis, Batch crawl, Site Map view
-- **Site Monitor**: Auto-crawl tracking, change detection (baseline comparison), counter-move suggestions (P1 Growth feature)
+- Site Monitor: Auto-crawl tracking, change detection (baseline comparison), counter-move suggestions, Check All Monitors bulk action
 - Visual Quality Prompt Overhaul (Tailwind, glass-morphism, Unsplash in prompts)
 - Glassmorphism UI redesign for workspace
-- Dashboard UI cleanup: removed Self-Builder badge, removed broken tab bar, pill-style navigation tabs
-- service.js Phase 2 refactoring: 2627 → 318 lines (extracted processMessageStream, executePlanStream, applyDiffs, processMessage)
+- Dashboard UI: pill-style navigation tabs (Projects | Core System | + New Project), no Self-Builder badge, no broken tab bar
+- service.js Refactoring: 2627 → 318 lines (extracted processMessageStream, executePlanStream, applyDiffs, processMessage)
+- **Deploy Tab**: Real Download ZIP (via JSZip client-side packaging) + Vercel deploy with user-provided API token + Deployment history tracking
+- **Deploy Backend**: Auth-protected endpoints for file download, Vercel API v13 integration, deployment record storage
 
 ## Pending / Backlog
-- P2: Deploy integration (Vercel/Netlify) — currently mocked
-- P2: Further service.js cleanup (remaining delegated helpers)
+- P2: Netlify deploy integration
 - Known: Next.js OOM memory thrashing (mitigated via supervisor restart)
