@@ -56,6 +56,8 @@ import DiffReviewPanel from './DiffReviewPanel'
 import GeneratedImageCard from './GeneratedImageCard'
 import ImageGenerationProgress from './ImageGenerationProgress'
 import { AttachmentChips } from './AttachmentPreview'
+import CreativeBriefCard from './CreativeBriefCard'
+import SuggestionChips, { parseSuggestions } from './SuggestionChips'
 
 const modeIcons = {
   app: Layers,
@@ -585,13 +587,30 @@ export default function LeftPanel({
                             }
                             return (
                               <>
-                                <MessageRenderer
-                                  content={message.content}
-                                  hideCodeBlocks={!!(message.metadata?.generatedFiles?.length || message.metadata?.diffFiles?.length || message.metadata?.directEditMode)}
-                                />
-                                {isMessageStreaming && (
-                                  <span className="em-streaming-cursor" data-testid="streaming-cursor" />
+                                {message.metadata?.creativeBrief && (
+                                  <CreativeBriefCard brief={message.metadata.creativeBrief} />
                                 )}
+                                {(() => {
+                                  const { cleanContent, suggestions } = parseSuggestions(message.content)
+                                  return (
+                                    <>
+                                      <MessageRenderer
+                                        content={cleanContent}
+                                        hideCodeBlocks={!!(message.metadata?.generatedFiles?.length || message.metadata?.diffFiles?.length || message.metadata?.directEditMode)}
+                                      />
+                                      {isMessageStreaming && (
+                                        <span className="em-streaming-cursor" data-testid="streaming-cursor" />
+                                      )}
+                                      {!isMessageStreaming && suggestions.length > 0 && (
+                                        <SuggestionChips
+                                          suggestions={suggestions}
+                                          onSend={(text) => onSendMessage?.(text)}
+                                          disabled={!!streamingMessageId}
+                                        />
+                                      )}
+                                    </>
+                                  )
+                                })()}
                               </>
                             )
                           })()}
