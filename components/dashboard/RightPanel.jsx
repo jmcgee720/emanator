@@ -1,8 +1,9 @@
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Eye, Code, FolderOpen, Terminal, Download, Rocket } from 'lucide-react'
+import { Eye, Code, FolderOpen, Terminal, Download, Rocket, Share2, Check, Copy, Loader2, Link } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
+import { useState } from 'react'
 import PreviewTab from './tabs/PreviewTab'
 import CodeTab from './tabs/CodeTab'
 import AssetsTab from './tabs/AssetsTab'
@@ -46,6 +47,40 @@ export default function RightPanel({
     }
   }
 
+  const [sharing, setSharing] = useState(false)
+  const [shareUrl, setShareUrl] = useState(null)
+  const [shareCopied, setShareCopied] = useState(false)
+
+  const handleShare = async () => {
+    if (!selectedProject?.id) return
+    setSharing(true)
+    setShareUrl(null)
+    try {
+      const res = await authFetch(`/api/projects/${selectedProject.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (data.share_url) {
+        setShareUrl(data.share_url)
+        addLog('success', `Share link created: ${data.share_url}`)
+      } else {
+        addLog('error', data.error || 'Failed to create share link')
+      }
+    } catch {
+      addLog('error', 'Failed to create share link')
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  const copyShareUrl = () => {
+    if (!shareUrl) return
+    navigator.clipboard.writeText(shareUrl)
+    setShareCopied(true)
+    setTimeout(() => setShareCopied(false), 2000)
+  }
+
   if (!selectedProject) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -61,7 +96,7 @@ export default function RightPanel({
   return (
     <div className="absolute inset-0 flex flex-col" data-testid="right-panel">
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col relative z-5">
-        <div className="px-5 pt-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-5 pt-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <TabsList className="h-10 bg-transparent justify-start gap-0.5">
             {tabs.map((tab) => (
               <TabsTrigger
@@ -74,6 +109,34 @@ export default function RightPanel({
               </TabsTrigger>
             ))}
           </TabsList>
+
+          {/* Share Button */}
+          <div className="flex items-center gap-2 shrink-0 pb-1">
+            {shareUrl ? (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
+                <Link className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="text-[10px] text-emerald-300 font-medium truncate max-w-[180px]">{shareUrl.replace(/^https?:\/\//, '')}</span>
+                <button
+                  onClick={copyShareUrl}
+                  className="ml-1 w-5 h-5 flex items-center justify-center rounded transition-all duration-150 hover:bg-[rgba(52,211,153,0.15)]"
+                  data-testid="share-copy-btn"
+                >
+                  {shareCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-emerald-400" />}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 disabled:opacity-40"
+                style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.15)', color: 'var(--em-cyan)' }}
+                data-testid="share-project-btn"
+              >
+                {sharing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
+                {sharing ? 'Creating...' : 'Share'}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden min-h-0 relative">
