@@ -2,14 +2,34 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
-import { X, Plus, Store, Loader2, Download, Upload } from 'lucide-react'
+import { X, Plus, Store, Loader2, Download, Upload, Star } from 'lucide-react'
 
 const BUILT_IN_TEMPLATES = [
-  { id: 'landing-page', name: 'Landing Page', desc: 'Hero, features, CTA', color: '#00E5FF', cat: 'Marketing' },
-  { id: 'portfolio', name: 'Portfolio', desc: 'Projects & contact', color: '#A78BFA', cat: 'Personal' },
-  { id: 'saas-dashboard', name: 'SaaS Dashboard', desc: 'Metrics & analytics', color: '#34D399', cat: 'Business' },
-  { id: 'blog', name: 'Blog', desc: 'Articles & newsletter', color: '#F59E0B', cat: 'Content' },
-  { id: 'ecommerce', name: 'E-Commerce', desc: 'Products & cart', color: '#EC4899', cat: 'Commerce' },
+  { id: 'saas-landing', name: 'SaaS Landing Page', desc: 'Hero, pricing, testimonials', color: '#00E5FF', cat: 'Marketing' },
+  { id: 'product-launch', name: 'Product Launch', desc: 'Countdown, email capture', color: '#F59E0B', cat: 'Marketing' },
+  { id: 'agency-site', name: 'Agency Website', desc: 'Services, case studies', color: '#A78BFA', cat: 'Marketing' },
+  { id: 'newsletter-landing', name: 'Newsletter Landing', desc: 'Email capture, social proof', color: '#34D399', cat: 'Marketing' },
+  { id: 'app-download', name: 'App Download', desc: 'Mobile mockup, badges', color: '#EC4899', cat: 'Marketing' },
+  { id: 'admin-dashboard', name: 'Admin Dashboard', desc: 'KPIs, tables, sidebar', color: '#6366F1', cat: 'Business' },
+  { id: 'crm-lite', name: 'CRM Lite', desc: 'Pipeline, contacts', color: '#00E5FF', cat: 'Business' },
+  { id: 'invoice-generator', name: 'Invoice Generator', desc: 'Line items, totals', color: '#34D399', cat: 'Business' },
+  { id: 'project-tracker', name: 'Project Tracker', desc: 'Kanban, assignments', color: '#F59E0B', cat: 'Business' },
+  { id: 'analytics-dashboard', name: 'Analytics Dashboard', desc: 'Charts, filters, export', color: '#EC4899', cat: 'Business' },
+  { id: 'dev-portfolio', name: 'Developer Portfolio', desc: 'Projects, skills, links', color: '#A78BFA', cat: 'Personal' },
+  { id: 'creative-portfolio', name: 'Creative Portfolio', desc: 'Masonry gallery', color: '#EC4899', cat: 'Personal' },
+  { id: 'resume-cv', name: 'Resume / CV', desc: 'Timeline, skills bars', color: '#00E5FF', cat: 'Personal' },
+  { id: 'link-in-bio', name: 'Link-in-Bio', desc: 'Social links, profile', color: '#F59E0B', cat: 'Personal' },
+  { id: 'personal-blog', name: 'Personal Blog', desc: 'Articles, categories', color: '#34D399', cat: 'Personal' },
+  { id: 'blog-platform', name: 'Blog Platform', desc: 'Articles, newsletter', color: '#F59E0B', cat: 'Content' },
+  { id: 'docs-site', name: 'Documentation Site', desc: 'Sidebar nav, code blocks', color: '#6366F1', cat: 'Content' },
+  { id: 'recipe-collection', name: 'Recipe Collection', desc: 'Cards, filters, ingredients', color: '#F87171', cat: 'Content' },
+  { id: 'podcast-landing', name: 'Podcast Landing', desc: 'Episodes, player', color: '#A78BFA', cat: 'Content' },
+  { id: 'course-platform', name: 'Course Platform', desc: 'Lessons, progress', color: '#34D399', cat: 'Content' },
+  { id: 'storefront', name: 'Storefront', desc: 'Product grid, cart', color: '#EC4899', cat: 'Commerce' },
+  { id: 'digital-products', name: 'Digital Products', desc: 'Downloads, pricing', color: '#6366F1', cat: 'Commerce' },
+  { id: 'restaurant-menu', name: 'Restaurant Menu', desc: 'Menu, order cart', color: '#F59E0B', cat: 'Commerce' },
+  { id: 'booking-system', name: 'Booking System', desc: 'Calendar, confirmation', color: '#00E5FF', cat: 'Commerce' },
+  { id: 'marketplace-listings', name: 'Marketplace', desc: 'Listings, filters, search', color: '#34D399', cat: 'Commerce' },
 ]
 
 const CAT_COLORS = {
@@ -29,6 +49,7 @@ export default function NewProjectModal({
   toast,
 }) {
   const [modalTab, setModalTab] = useState('templates') // 'templates' | 'marketplace' | 'publish'
+  const [templateCategory, setTemplateCategory] = useState('all')
   const [marketplaceTemplates, setMarketplaceTemplates] = useState([])
   const [loadingMarketplace, setLoadingMarketplace] = useState(false)
   const [selectedMarketplaceId, setSelectedMarketplaceId] = useState(null)
@@ -179,41 +200,63 @@ export default function NewProjectModal({
               </div>
 
               <div>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)] mb-3">Start from a Template</p>
-                <div className="grid grid-cols-3 gap-3" data-testid="template-gallery">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--em-text-muted)]">Start from a Template</p>
+                  <div className="flex gap-1" data-testid="template-category-filter">
+                    {['all', 'Marketing', 'Business', 'Personal', 'Content', 'Commerce'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setTemplateCategory(cat)}
+                        className="px-2 py-0.5 rounded-md text-[9px] font-medium transition-all duration-150"
+                        style={{
+                          background: templateCategory === cat ? 'rgba(0,229,255,0.08)' : 'transparent',
+                          border: templateCategory === cat ? '1px solid rgba(0,229,255,0.15)' : '1px solid transparent',
+                          color: templateCategory === cat ? 'var(--em-cyan)' : 'var(--em-text-muted)',
+                          textTransform: 'capitalize',
+                        }}
+                        data-testid={`template-cat-${cat}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2.5" style={{ maxHeight: '380px', overflowY: 'auto', paddingRight: 4 }} data-testid="template-gallery">
                   <div
                     onClick={() => setSelectedTemplate(null)}
-                    className="group relative rounded-xl p-4 cursor-pointer transition-all duration-200"
+                    className="group relative rounded-xl p-3 cursor-pointer transition-all duration-200"
                     style={{
                       background: !selectedTemplate ? 'rgba(0,229,255,0.06)' : 'rgba(255,255,255,0.02)',
                       border: !selectedTemplate ? '1px solid rgba(0,229,255,0.2)' : '1px solid rgba(255,255,255,0.06)',
                     }}
                     data-testid="template-blank"
                   >
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <Plus className="w-4 h-4 text-[var(--em-text-muted)]" />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <Plus className="w-3.5 h-3.5 text-[var(--em-text-muted)]" />
                     </div>
-                    <p className="text-xs font-bold em-text-primary">Blank Project</p>
-                    <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Start from scratch</p>
+                    <p className="text-[11px] font-bold em-text-primary">Blank</p>
+                    <p className="text-[9px] text-[var(--em-text-muted)] mt-0.5">From scratch</p>
                   </div>
 
-                  {BUILT_IN_TEMPLATES.map((tmpl) => (
+                  {BUILT_IN_TEMPLATES
+                    .filter(tmpl => templateCategory === 'all' || tmpl.cat === templateCategory)
+                    .map((tmpl) => (
                     <div
                       key={tmpl.id}
                       onClick={() => setSelectedTemplate(tmpl.id)}
-                      className="group relative rounded-xl p-4 cursor-pointer transition-all duration-200"
+                      className="group relative rounded-xl p-3 cursor-pointer transition-all duration-200"
                       style={{
                         background: selectedTemplate === tmpl.id ? `${tmpl.color}10` : 'rgba(255,255,255,0.02)',
                         border: selectedTemplate === tmpl.id ? `1px solid ${tmpl.color}33` : '1px solid rgba(255,255,255,0.06)',
                       }}
                       data-testid={`template-${tmpl.id}`}
                     >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: `${tmpl.color}15`, border: `1px solid ${tmpl.color}25` }}>
-                        <span className="text-[10px] font-bold" style={{ color: tmpl.color }}>{tmpl.cat.charAt(0)}</span>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-2" style={{ background: `${tmpl.color}12`, border: `1px solid ${tmpl.color}20` }}>
+                        <span className="text-[9px] font-bold" style={{ color: tmpl.color }}>{tmpl.cat.charAt(0)}</span>
                       </div>
-                      <p className="text-xs font-bold em-text-primary">{tmpl.name}</p>
-                      <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">{tmpl.desc}</p>
-                      <span className="text-[9px] mt-2 inline-block px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--em-text-muted)]">{tmpl.cat}</span>
+                      <p className="text-[11px] font-bold em-text-primary leading-tight">{tmpl.name}</p>
+                      <p className="text-[9px] text-[var(--em-text-muted)] mt-0.5">{tmpl.desc}</p>
+                      <span className="text-[8px] mt-1.5 inline-block px-1 py-0.5 rounded bg-white/[0.04] text-[var(--em-text-muted)]">{tmpl.cat}</span>
                     </div>
                   ))}
                 </div>
@@ -264,6 +307,12 @@ export default function NewProjectModal({
                           <div className="flex items-center gap-3 text-[10px] text-[var(--em-text-muted)]">
                             <span>{tmpl.file_count} files</span>
                             <span>{tmpl.clones || 0} clones</span>
+                            {tmpl.avg_rating > 0 && (
+                              <span className="flex items-center gap-0.5" style={{ color: '#FBBF24' }}>
+                                <Star className="w-2.5 h-2.5 fill-current" />
+                                {tmpl.avg_rating} ({tmpl.review_count})
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleCloneMarketplace(tmpl.id) }}

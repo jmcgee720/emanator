@@ -766,10 +766,25 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         setMessages([])
       }
 
-      setFiles([])
+      // If template was used, fetch the populated files from backend
+      if (templateId) {
+        try {
+          const filesRes = await authFetch(`/api/projects/${newProject.id}/files`)
+          if (filesRes.ok) {
+            const filesData = await filesRes.json()
+            setFiles(Array.isArray(filesData) ? filesData : [])
+          } else {
+            setFiles([])
+          }
+        } catch {
+          setFiles([])
+        }
+      } else {
+        setFiles([])
+      }
       setCanvas(null)
 
-      addLog('success', `Project "${name}" created`)
+      addLog('success', `Project "${name}" created${templateId ? ' from template' : ''}`)
       toast({ title: 'Project Created', description: `"${name}" is ready to go.` })
 
       return newProject
