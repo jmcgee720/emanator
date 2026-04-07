@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List, Download } from 'lucide-react'
+import { ArrowLeft, Globe, Search, BarChart3, Loader2, Trash2, ExternalLink, AlertCircle, CheckCircle2, ChevronRight, Sparkles, TrendingUp, FileSearch, Copy, Check, Users, Plus, X, ThumbsUp, ThumbsDown, Network, List, Download, Zap } from 'lucide-react'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -15,7 +15,7 @@ const ISSUE_SECTIONS = [
   { key: 'recommendations', label: 'Recommendations', icon: Sparkles, gradient: 'linear-gradient(135deg, #34D399, #6EE7B7)' },
 ]
 
-export default function GrowthPanel({ onClose, onFixIssue }) {
+export default function GrowthPanel({ onClose, onFixIssue, onBuildBetter }) {
   const [url, setUrl] = useState('')
   const [pages, setPages] = useState([])
   const [selectedPage, setSelectedPage] = useState(null)
@@ -906,6 +906,38 @@ export default function GrowthPanel({ onClose, onFixIssue }) {
                       <><FileSearch className="w-3.5 h-3.5" />Generate Drafts</>
                     )}
                   </button>
+                  {onBuildBetter && displayOpportunities && Object.keys(displayOpportunities).some(k => displayOpportunities[k]?.length > 0) && (
+                    <button
+                      onClick={() => {
+                        const ext = selectedPage?.extracted_data || {}
+                        const opps = displayOpportunities
+                        const allIssues = Object.entries(opps)
+                          .filter(([, items]) => items?.length > 0)
+                          .map(([key, items]) => {
+                            const section = ISSUE_SECTIONS.find(s => s.key === key)
+                            return `${section?.label || key}: ${items.join('; ')}`
+                          })
+                          .join('\n')
+                        onBuildBetter({
+                          url: selectedPage?.url,
+                          title: ext.title,
+                          meta: ext.meta_description,
+                          headings: ext.headings,
+                          wordCount: ext.word_count,
+                          issues: allIssues,
+                        })
+                      }}
+                      className="shrink-0 h-9 px-5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-[1.02]"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(249,115,22,0.12) 100%)',
+                        border: '1px solid rgba(251,191,36,0.30)',
+                        color: '#FBBF24',
+                      }}
+                      data-testid="growth-build-better-btn"
+                    >
+                      <Zap className="w-3.5 h-3.5" />Build Better Version
+                    </button>
+                  )}
                 </div>
               </div>
 

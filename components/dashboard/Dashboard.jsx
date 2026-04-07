@@ -2222,8 +2222,22 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           onFixIssue={(issueText, pageUrl) => {
             setShowGrowth(false)
             const fixPrompt = `Fix this SEO issue on ${pageUrl}: ${issueText}`
-            // Small delay to let the panel close and chat render
             setTimeout(() => sendMessage(fixPrompt), 300)
+          }}
+          onBuildBetter={(pageData) => {
+            setShowGrowth(false)
+            const buildPrompt = `Build a better version of this page. Here's the competitor analysis:
+
+URL: ${pageData.url}
+Title: ${pageData.title || 'None'}
+Meta: ${pageData.meta || 'None'}
+Word Count: ${pageData.wordCount || 'Unknown'}
+
+SEO Issues Found:
+${pageData.issues}
+
+Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it visually impressive with proper headings, meta tags, structured content, and a modern design. Outperform the competitor in every metric.`
+            setTimeout(() => sendMessage(buildPrompt), 300)
           }}
         />
       </div>
