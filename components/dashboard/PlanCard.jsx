@@ -56,7 +56,7 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
               {executing ? (
                 <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Building...</>
               ) : (
-                <><Play className="w-3.5 h-3.5" /> Build it</>
+                <><Play className="w-3.5 h-3.5" /> Proceed</>
               )}
             </Button>
             <Button
@@ -67,7 +67,7 @@ export default function PlanCard({ plan, status, onExecute, onRevise, onCancel, 
               className="h-8 gap-1.5"
               data-testid="plan-revise-btn"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Change something
+              <RotateCcw className="w-3.5 h-3.5" /> Change
             </Button>
             <Button
               size="sm"
