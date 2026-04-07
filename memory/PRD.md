@@ -14,66 +14,68 @@ Continuously harden the Emanator AI Builder core system:
 ├── app/api/[[...path]]/route.js     # Pure dispatcher
 ├── lib/
 │   ├── ai/
-│   │   ├── service.js               # Core AI orchestrator + guardrails
+│   │   ├── service.js               # Core AI orchestrator + guardrails + truncation retry
 │   │   ├── image-prefetch.js        # AI Art Director / Creative Brief / Stock Photos
 │   │   ├── code-validator.js        # Truncated JSX detection & auto-repair
+│   │   ├── adaptive-learning.js     # User/project preference learning + diff event tracking
+│   │   ├── intents.js               # Intent detection & task mode classification
 │   │   ├── providers/
-│   │   │   ├── openai.js            # OpenAI/Proxy provider (tool_args_delta)
-│   │   │   └── anthropic.js         # Anthropic provider
 │   ├── api/
-│   │   └── stream-handler.js        # SSE event relay
+│   │   ├── stream-handler.js        # SSE event relay
+│   │   └── routes/diffs.js          # Diff approval/rejection + learning events
 │   └── stream-client.js             # Frontend SSE parser + streaming fallback
 ├── components/dashboard/
 │   ├── Dashboard.jsx                # State orchestrator
 │   ├── ChatComposer.jsx             # Input + Visual Mode toggle
-│   ├── LeftPanel.jsx                # Chat messages UI + CreativeBriefCard + SuggestionChips
-│   ├── CreativeBriefCard.jsx        # Shows detected creative direction (mood/colors/subjects)
+│   ├── LeftPanel.jsx                # Chat messages + CreativeBriefCard + SuggestionChips
+│   ├── CreativeBriefCard.jsx        # Shows detected creative direction
 │   ├── SuggestionChips.jsx          # Organic AI enhancement suggestion chips
-│   ├── RightPanel.jsx               # Tab layout
+│   ├── GrowthPanel.jsx              # SEO analysis + CSV/JSON export
 │   └── tabs/PreviewTab.jsx          # Iframe preview + blank health check
 ```
 
 ## Guardrails (Implemented)
-1. **Direct-build integrity**: auto-retry if 0 files saved, conversational error on 2nd fail
-2. **Tool call enforcement**: retry with explicit instruction if model returns text-only in direct-edit
+1. **Direct-build integrity**: auto-retry if 0 files saved
+2. **Tool call enforcement**: retry if model returns text-only in direct-edit
 3. **Success message truth**: only emitted when savedFiles.length > 0
-4. **Streaming fallback**: user-friendly error message, never raw errors
-5. **Preview health check**: detects blank #root after 3s, shows amber warning overlay
-6. **Regression logging**: 7 structured console warnings/errors covering all failure modes
+4. **Streaming fallback**: user-friendly error, never raw errors
+5. **Preview health check**: blank #root detection after 3s
+6. **Regression logging**: 7 structured console warnings
+7. **Response truncation detection**: auto-retry on unclosed code blocks, incomplete JS/JSX, trailing braces
+8. **Code completeness validation**: truncated JSX detection & auto-repair in saveFiles
 
 ## Completed (All Tested)
 - [x] Direct-Build File Persistence & Preview Handoff
 - [x] Assistant Message UI Polish
 - [x] Live Streaming Preview Updates
-- [x] Preview iframe height fix (em-aurora CSS specificity)
 - [x] Preview skeleton loading state
-- [x] Regression guardrails
+- [x] Regression guardrails (6 types)
 - [x] Fix Live Preview inline Babel runtime syntax error
-- [x] Fix create-project JSON.parse error
-- [x] Replace regex-based preview compiler with Babel AST plugin
 - [x] System-wide task modes (build/inspect/config)
-- [x] Reactive canvas aurora background
 - [x] Platform billing + credits system
-- [x] Follow-up refinement routing
-- [x] Preview refresh after refinement
 - [x] Disable propose_plan as final output
 - [x] JSON content sanitizer
 - [x] Two-tier image system — Stock + Custom/Premium
 - [x] Code completeness validator
 - [x] PatchGroundingValidator fallback
-- [x] AI Art Director pipeline — creative brief generator + design intelligence injection
-- [x] Creative Brief Preview Card — shows detected mood/subjects/colors/lighting during builds
-- [x] Enhancement Suggestion Chips — organic AI-driven next-step suggestions as clickable chips
+- [x] AI Art Director pipeline — LLM creative brief + design intelligence
+- [x] Creative Brief Preview Card
+- [x] Enhancement Suggestion Chips (organic, AI-driven)
+- [x] CSV + JSON Export for Growth Panel
+- [x] Response Truncation Detection & Auto-Retry
+- [x] Adaptive Learning Events for Diff Approval/Rejection
+- [x] Intent Detection (intents.js — regex-based classifier)
+- [x] Task Scope Classification (classifyRequestMode)
+- [x] Adaptive Learning System (buildAdaptiveContext → system prompt injection)
 
 ## P1 — Upcoming
-- [ ] Phase 2-5 conversational AI architecture
-- [ ] CSV export for Growth panel
+- [ ] Refactor service.js (~3100 lines → modular breakdown)
+- [ ] Deeper intent detection improvements (LLM-based classification)
 
 ## P2 — Future
 - [ ] Deploy integration (Vercel/Netlify) — currently mocked
-- [ ] Refactor service.js (~3070 lines → modular breakdown)
 - [ ] Core System self-editing architecture
-- [ ] Growth analytics panel
+- [ ] Growth analytics panel enhancements
 
 ## 3rd Party Integrations
 - OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key (Proxy)
