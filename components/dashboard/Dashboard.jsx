@@ -787,6 +787,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       addLog('success', `Project "${name}" created${templateId ? ' from template' : ''}`)
       toast({ title: 'Project Created', description: `"${name}" is ready to go.` })
 
+      // Auto-open Creative Brief after project creation
+      setShowCanvas(true)
+
       return newProject
     } catch (error) {
       console.error('Error creating project:', error)
