@@ -1,54 +1,133 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { X, Save, Loader2, ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Badge } from '@/components/ui/badge'
-import {
-  X, Target, Lightbulb, GitBranch, Wrench,
-  CheckCircle2, BookOpen, AlertCircle, ListTodo, Sparkles, Loader2, RefreshCw, WifiOff
-} from 'lucide-react'
 
-const CONFIDENCE_COLORS = {
-  confirmed: 'text-green-400 border-green-400/30',
-  provisional: 'text-amber-400 border-amber-400/30',
-  deprecated: 'text-red-400 border-red-400/30',
+const MOOD_OPTIONS = ['Professional', 'Playful', 'Bold', 'Minimal', 'Luxurious', 'Techy', 'Warm', 'Edgy', 'Elegant', 'Rustic']
+const GOAL_OPTIONS = ['Generate leads', 'Sell products', 'Showcase work', 'Inform / educate', 'Build community', 'Internal tool', 'Other']
+const PAGE_OPTIONS = ['Home', 'About', 'Pricing', 'Features', 'Blog', 'Contact', 'Dashboard', 'Login', 'FAQ', 'Testimonials', 'Gallery']
+const TONE_OPTIONS = ['Formal', 'Conversational', 'Technical', 'Friendly', 'Authoritative', 'Witty']
+const BUDGET_OPTIONS = ['MVP / lean', 'Polished', 'Premium']
+
+const EMPTY_BRIEF = {
+  elevator_pitch: '',
+  target_audience: '',
+  primary_goal: '',
+  brand_name: '',
+  mood: [],
+  color_preferences: '',
+  reference_sites: '',
+  pages: [],
+  custom_pages: '',
+  most_important_page: '',
+  must_have_features: '',
+  nice_to_have_features: '',
+  headline: '',
+  key_messaging: '',
+  tone_of_voice: '',
+  integrations: '',
+  timeline: '',
+  budget_tier: '',
+  things_to_avoid: '',
 }
 
-function CanvasSection({ title, icon: Icon, items, emptyText }) {
-  if (!items?.length) {
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium">{title}</h3>
-          <Badge variant="outline" className="text-[10px]">0</Badge>
-        </div>
-        <p className="text-xs text-muted-foreground/60 pl-6">{emptyText}</p>
-      </div>
-    )
-  }
-
+function Section({ title, subtitle, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-4 h-4 text-muted-foreground" />
-        <h3 className="text-sm font-medium">{title}</h3>
-        <Badge variant="outline" className="text-[10px]">{items.length}</Badge>
-      </div>
-      <div className="space-y-1.5 pl-6">
-        {items.map((item, idx) => {
-          const text = typeof item === 'string' ? item : item.text || JSON.stringify(item)
-          const confidence = item?.confidence || 'provisional'
+    <div className="mb-1" data-testid={`brief-section-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-4 py-3 text-left rounded-xl transition-all duration-200"
+        style={{ background: 'rgba(255,255,255,0.015)' }}
+      >
+        {open ? <ChevronDown className="w-3.5 h-3.5 text-[var(--em-text-muted)] shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-[var(--em-text-muted)] shrink-0" />}
+        <div>
+          <p className="text-xs font-semibold em-text-primary">{title}</p>
+          {subtitle && <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">{subtitle}</p>}
+        </div>
+      </button>
+      {open && <div className="px-4 pb-4 pt-2 space-y-3">{children}</div>}
+    </div>
+  )
+}
+
+function TextInput({ value, onChange, placeholder, label, testId }) {
+  return (
+    <div>
+      {label && <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1 block">{label}</label>}
+      <input
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 rounded-lg text-xs outline-none transition-all duration-200"
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-primary)' }}
+        data-testid={testId}
+      />
+    </div>
+  )
+}
+
+function TextArea({ value, onChange, placeholder, label, rows = 3, testId }) {
+  return (
+    <div>
+      {label && <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1 block">{label}</label>}
+      <textarea
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none transition-all duration-200"
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-primary)', lineHeight: 1.6 }}
+        data-testid={testId}
+      />
+    </div>
+  )
+}
+
+function Select({ value, onChange, options, placeholder, label, testId }) {
+  return (
+    <div>
+      {label && <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1 block">{label}</label>}
+      <select
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: value ? 'var(--em-text-primary)' : 'var(--em-text-muted)' }}
+        data-testid={testId}
+      >
+        <option value="">{placeholder || 'Select...'}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function ChipPicker({ selected = [], options, onChange, label, testId }) {
+  const toggle = (option) => {
+    onChange(selected.includes(option) ? selected.filter(s => s !== option) : [...selected, option])
+  }
+  return (
+    <div>
+      {label && <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1.5 block">{label}</label>}
+      <div className="flex flex-wrap gap-1.5" data-testid={testId}>
+        {options.map(o => {
+          const active = selected.includes(o)
           return (
-            <div key={item?.id || idx} className="flex items-start gap-2 text-xs group">
-              <div className="w-1 h-1 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
-              <span className="flex-1 text-foreground/80">{text}</span>
-              <Badge variant="outline" className={`text-[9px] px-1 py-0 ${CONFIDENCE_COLORS[confidence] || ''}`}>
-                {confidence}
-              </Badge>
-            </div>
+            <button
+              key={o}
+              onClick={() => toggle(o)}
+              className="px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150"
+              style={{
+                background: active ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.03)',
+                border: active ? '1px solid rgba(167,139,250,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                color: active ? '#A78BFA' : 'var(--em-text-muted)',
+              }}
+            >
+              {active && <Check className="w-2.5 h-2.5 inline mr-1" />}
+              {o}
+            </button>
           )
         })}
       </div>
@@ -56,166 +135,281 @@ function CanvasSection({ title, icon: Icon, items, emptyText }) {
   )
 }
 
-export default function CanvasPanel({ projectId, canvas: parentCanvas, onUpdate, onClose }) {
-  const [canvas, setCanvas] = useState(null)
+export default function CanvasPanel({ project, onClose }) {
+  const [brief, setBrief] = useState(EMPTY_BRIEF)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(null) // 'auth' | 'network' | null
-  const [editing, setEditing] = useState(false)
-  const [overview, setOverview] = useState('')
+  const saveTimeoutRef = useRef(null)
+  const lastSavedRef = useRef(null)
 
-  const fetchCanvas = useCallback(async () => {
-    if (!projectId) return
+  // Load existing brief from canvas
+  useEffect(() => {
+    if (!project?.id) return
     setLoading(true)
-    setFetchError(null)
+    authFetch(`/api/projects/${project.id}/canvas`)
+      .then(r => r.json())
+      .then(data => {
+        const canvas = data.canvas_content || data
+        if (canvas?.creative_brief) {
+          setBrief({ ...EMPTY_BRIEF, ...canvas.creative_brief })
+        }
+        lastSavedRef.current = JSON.stringify(canvas?.creative_brief || EMPTY_BRIEF)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [project?.id])
+
+  // Auto-save with debounce
+  const saveBrief = useCallback(async (briefData) => {
+    if (!project?.id) return
+    const briefJson = JSON.stringify(briefData)
+    if (briefJson === lastSavedRef.current) return // No changes
+    setSaving(true)
     try {
-      const res = await authFetch(`/api/projects/${projectId}/canvas`)
-      if (res.ok) {
-        const data = await res.json()
-        const content = data.canvas_content || null
-        setCanvas(content)
-        if (content?.project_overview) setOverview(content.project_overview)
-      } else if (res.status === 401) {
-        setFetchError('auth')
-      } else {
-        setFetchError('network')
-      }
-    } catch {
-      setFetchError('network')
+      const getRes = await authFetch(`/api/projects/${project.id}/canvas`)
+      const existing = await getRes.json()
+      const canvasContent = existing.canvas_content || existing || {}
+      canvasContent.creative_brief = briefData
+
+      await authFetch(`/api/projects/${project.id}/canvas`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canvas_content: canvasContent }),
+      })
+      lastSavedRef.current = briefJson
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('Failed to save brief:', err)
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
-  }, [projectId])
+  }, [project?.id])
 
-  // Fetch on mount and when projectId changes
-  useEffect(() => {
-    fetchCanvas()
-  }, [fetchCanvas])
+  const updateField = useCallback((field, value) => {
+    setBrief(prev => {
+      const updated = { ...prev, [field]: value }
+      // Debounced auto-save
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => saveBrief(updated), 1500)
+      return updated
+    })
+  }, [saveBrief])
 
-  // Sync from parent prop (Dashboard pushes updated canvas after generation)
-  useEffect(() => {
-    if (parentCanvas && Object.keys(parentCanvas).length > 0) {
-      setCanvas(parentCanvas)
-      setFetchError(null)
-      if (parentCanvas.project_overview) setOverview(parentCanvas.project_overview)
-    }
-  }, [parentCanvas])
+  const handleManualSave = () => saveBrief(brief)
 
-  const handleSaveOverview = () => {
-    if (onUpdate && canvas) {
-      const updated = { ...canvas, project_overview: overview }
-      onUpdate(updated)
-      setCanvas(updated)
-    }
-    setEditing(false)
+  if (loading) {
+    return (
+      <div className="fixed inset-y-0 right-0 w-[440px] z-40 flex items-center justify-center" style={{ background: 'rgba(10,14,20,0.97)', borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
+        <Loader2 className="w-5 h-5 animate-spin text-[var(--em-text-muted)]" />
+      </div>
+    )
   }
 
-  const hasContent = canvas && Object.values(canvas).some(v =>
-    (typeof v === 'string' && v.length > 0) || (Array.isArray(v) && v.length > 0)
-  )
-
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center" data-testid="canvas-panel">
-      <div className="w-full max-w-2xl h-[80vh] bg-card rounded-lg border border-border/50 shadow-xl shadow-black/20 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/40">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold">Project Knowledge Canvas</h2>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" onClick={fetchCanvas} title="Refresh" disabled={loading} data-testid="canvas-refresh-btn">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            </Button>
-            <Button size="icon" variant="ghost" onClick={onClose} data-testid="canvas-close-btn">
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="fixed inset-y-0 right-0 w-[440px] z-40 flex flex-col" style={{ background: 'rgba(10,14,20,0.97)', borderLeft: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }} data-testid="creative-brief-panel">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div>
+          <h2 className="text-sm font-bold em-text-primary">Creative Brief</h2>
+          <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Guide the AI with your project vision</p>
         </div>
-
-        {/* Content */}
-        <ScrollArea className="flex-1 p-4">
-          {loading && !canvas ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2" data-testid="canvas-loading">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Loading canvas...</p>
-            </div>
-          ) : fetchError === 'auth' ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3" data-testid="canvas-auth-error">
-              <WifiOff className="w-8 h-8 opacity-40 text-amber-400" />
-              <p className="text-sm text-amber-300">Session expired</p>
-              <p className="text-xs">Your session may have expired. Try refreshing.</p>
-              <Button size="sm" variant="outline" onClick={fetchCanvas} className="gap-1.5">
-                <RefreshCw className="w-3 h-3" /> Retry
-              </Button>
-            </div>
-          ) : fetchError === 'network' ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3" data-testid="canvas-network-error">
-              <AlertCircle className="w-8 h-8 opacity-40 text-red-400" />
-              <p className="text-sm text-red-300">Failed to load canvas</p>
-              <p className="text-xs">Could not reach the server. Please try again.</p>
-              <Button size="sm" variant="outline" onClick={fetchCanvas} className="gap-1.5">
-                <RefreshCw className="w-3 h-3" /> Retry
-              </Button>
-            </div>
-          ) : !hasContent ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3" data-testid="canvas-empty">
-              <Sparkles className="w-8 h-8 opacity-40" />
-              <p className="text-sm">Canvas is empty</p>
-              <p className="text-xs">Start a conversation to build the project knowledge base</p>
-            </div>
-          ) : (
-            <div data-testid="canvas-content">
-              {/* Overview */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium">Project Overview</h3>
-                </div>
-                {editing ? (
-                  <div className="pl-6 space-y-2">
-                    <textarea
-                      value={overview}
-                      onChange={(e) => setOverview(e.target.value)}
-                      className="w-full h-24 text-xs bg-muted/50 border border-border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleSaveOverview}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pl-6 text-xs text-foreground/80">
-                    {canvas.project_overview ? (
-                      <p className="cursor-pointer hover:text-foreground"
-                        onClick={() => { setOverview(canvas.project_overview); setEditing(true) }}
-                      >{canvas.project_overview}</p>
-                    ) : (
-                      <p className="text-muted-foreground/60 cursor-pointer hover:text-muted-foreground"
-                        onClick={() => setEditing(true)}
-                      >Click to add project overview...</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <CanvasSection title="Project Goals" icon={Target}
-                items={canvas.project_goals} emptyText="Goals will be extracted from your conversations" />
-              <CanvasSection title="Key Decisions" icon={Lightbulb}
-                items={canvas.key_decisions} emptyText="Decisions will be logged as you build" />
-              <CanvasSection title="Architecture Notes" icon={GitBranch}
-                items={canvas.architecture_notes} emptyText="Architecture insights will appear here" />
-              <CanvasSection title="Technical Specs" icon={Wrench}
-                items={canvas.technical_specs} emptyText="Tech stack and specs will be tracked" />
-              <CanvasSection title="Successful Patterns" icon={Sparkles}
-                items={canvas.successful_patterns} emptyText="Patterns that worked will be saved here" />
-              <CanvasSection title="Open Tasks" icon={ListTodo}
-                items={canvas.open_tasks} emptyText="No open tasks" />
-              <CanvasSection title="Completed Tasks" icon={CheckCircle2}
-                items={canvas.completed_tasks} emptyText="Completed tasks will appear after generation" />
-            </div>
-          )}
-        </ScrollArea>
+        <div className="flex items-center gap-2">
+          {saved && <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1"><Check className="w-3 h-3" /> Saved</span>}
+          {saving && <Loader2 className="w-3 h-3 animate-spin text-[var(--em-text-muted)]" />}
+          <button
+            onClick={handleManualSave}
+            disabled={saving}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 disabled:opacity-30"
+            style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', color: '#A78BFA' }}
+            data-testid="brief-save-btn"
+          >
+            <Save className="w-3 h-3" />
+            Save
+          </button>
+          <button onClick={onClose} className="text-[var(--em-text-muted)] hover:text-white transition-colors" data-testid="brief-close-btn">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Brief Form */}
+      <ScrollArea className="flex-1">
+        <div className="py-3">
+
+          <Section title="The Big Picture" subtitle="What are you building and for whom?">
+            <TextArea
+              value={brief.elevator_pitch}
+              onChange={v => updateField('elevator_pitch', v)}
+              placeholder="e.g., A SaaS landing page for a project management tool aimed at freelancers who need simple, affordable task tracking"
+              label="What are you building?"
+              rows={3}
+              testId="brief-elevator-pitch"
+            />
+            <TextArea
+              value={brief.target_audience}
+              onChange={v => updateField('target_audience', v)}
+              placeholder="e.g., Freelance designers and developers, 25-40, tech-savvy, value simplicity over features"
+              label="Who is it for?"
+              rows={2}
+              testId="brief-target-audience"
+            />
+            <Select
+              value={brief.primary_goal}
+              onChange={v => updateField('primary_goal', v)}
+              options={GOAL_OPTIONS}
+              placeholder="Select primary goal..."
+              label="Primary goal"
+              testId="brief-primary-goal"
+            />
+          </Section>
+
+          <Section title="Brand & Style" subtitle="Visual direction and identity">
+            <TextInput
+              value={brief.brand_name}
+              onChange={v => updateField('brand_name', v)}
+              placeholder="e.g., FlowTask"
+              label="Brand name"
+              testId="brief-brand-name"
+            />
+            <ChipPicker
+              selected={brief.mood || []}
+              options={MOOD_OPTIONS}
+              onChange={v => updateField('mood', v)}
+              label="Mood / personality (pick all that apply)"
+              testId="brief-mood-picker"
+            />
+            <TextArea
+              value={brief.color_preferences}
+              onChange={v => updateField('color_preferences', v)}
+              placeholder="e.g., Dark theme with electric blue accents. No red. Think Linear or Vercel vibes."
+              label="Color preferences"
+              rows={2}
+              testId="brief-colors"
+            />
+            <TextArea
+              value={brief.reference_sites}
+              onChange={v => updateField('reference_sites', v)}
+              placeholder="e.g., linear.app, vercel.com/home, stripe.com — I love their clean dark aesthetic"
+              label="Reference sites / inspiration"
+              rows={2}
+              testId="brief-references"
+            />
+          </Section>
+
+          <Section title="Pages & Structure" subtitle="What pages does your site need?" defaultOpen={false}>
+            <ChipPicker
+              selected={brief.pages || []}
+              options={PAGE_OPTIONS}
+              onChange={v => updateField('pages', v)}
+              label="Select pages"
+              testId="brief-pages-picker"
+            />
+            <TextInput
+              value={brief.custom_pages}
+              onChange={v => updateField('custom_pages', v)}
+              placeholder="e.g., Integrations, Changelog, Careers"
+              label="Custom pages (comma separated)"
+              testId="brief-custom-pages"
+            />
+            <Select
+              value={brief.most_important_page}
+              onChange={v => updateField('most_important_page', v)}
+              options={[...(brief.pages || []), ...(brief.custom_pages ? brief.custom_pages.split(',').map(p => p.trim()).filter(Boolean) : [])]}
+              placeholder="Which page matters most?"
+              label="Most important page"
+              testId="brief-important-page"
+            />
+          </Section>
+
+          <Section title="Key Features" subtitle="What must this project do?" defaultOpen={false}>
+            <TextArea
+              value={brief.must_have_features}
+              onChange={v => updateField('must_have_features', v)}
+              placeholder="e.g., Email signup form, animated hero section, pricing table with toggle, mobile responsive, dark mode"
+              label="Must-have features"
+              rows={3}
+              testId="brief-must-have"
+            />
+            <TextArea
+              value={brief.nice_to_have_features}
+              onChange={v => updateField('nice_to_have_features', v)}
+              placeholder="e.g., Blog section, testimonials carousel, live chat widget, multi-language support"
+              label="Nice-to-have features"
+              rows={2}
+              testId="brief-nice-to-have"
+            />
+          </Section>
+
+          <Section title="Content Direction" subtitle="Messaging and tone" defaultOpen={false}>
+            <TextInput
+              value={brief.headline}
+              onChange={v => updateField('headline', v)}
+              placeholder="e.g., Ship faster. Stress less."
+              label="Headline / tagline ideas"
+              testId="brief-headline"
+            />
+            <TextArea
+              value={brief.key_messaging}
+              onChange={v => updateField('key_messaging', v)}
+              placeholder="e.g., Visitors should feel like this tool will save them hours every week. Emphasize simplicity and speed, not feature count."
+              label="Key messaging points"
+              rows={2}
+              testId="brief-messaging"
+            />
+            <Select
+              value={brief.tone_of_voice}
+              onChange={v => updateField('tone_of_voice', v)}
+              options={TONE_OPTIONS}
+              placeholder="Select tone..."
+              label="Tone of voice"
+              testId="brief-tone"
+            />
+          </Section>
+
+          <Section title="Technical & Constraints" subtitle="Integrations, timeline, and limits" defaultOpen={false}>
+            <TextInput
+              value={brief.integrations}
+              onChange={v => updateField('integrations', v)}
+              placeholder="e.g., Stripe for payments, Mailchimp for newsletter, Google Analytics"
+              label="Integrations needed"
+              testId="brief-integrations"
+            />
+            <TextInput
+              value={brief.timeline}
+              onChange={v => updateField('timeline', v)}
+              placeholder="e.g., Need it live by end of this week"
+              label="Timeline"
+              testId="brief-timeline"
+            />
+            <Select
+              value={brief.budget_tier}
+              onChange={v => updateField('budget_tier', v)}
+              options={BUDGET_OPTIONS}
+              placeholder="Select budget tier..."
+              label="Budget tier"
+              testId="brief-budget"
+            />
+            <TextArea
+              value={brief.things_to_avoid}
+              onChange={v => updateField('things_to_avoid', v)}
+              placeholder="e.g., No stock photos, no purple gradients, avoid generic corporate language, no cookie banners"
+              label="Anything to avoid?"
+              rows={2}
+              testId="brief-avoid"
+            />
+          </Section>
+
+          <div className="px-4 py-3">
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(167,139,250,0.04)', border: '1px solid rgba(167,139,250,0.08)' }}>
+              <p className="text-[10px] text-[#A78BFA] font-medium">How this helps the AI</p>
+              <p className="text-[9px] text-[var(--em-text-muted)] mt-1 leading-relaxed">Everything you fill in here is automatically fed to the AI as context in every conversation. The more detail you provide, the better it can match your vision on the first try.</p>
+            </div>
+          </div>
+
+        </div>
+      </ScrollArea>
     </div>
   )
 }
