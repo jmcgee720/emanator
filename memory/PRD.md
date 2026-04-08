@@ -61,6 +61,11 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Each compiled component exposed as window global for cross-file references
 - Clean success message without file listing
 
+### Auto-Execute All Paths Fix (Feb 2026)
+- Fixed PlanCard still appearing for new projects — self-critique path and validation retry path now also check `isNewProject` and auto-execute instead of showing PlanCard
+- All 3 plan interception paths (validation retry, self-critique revised, main handler) now consistently auto-execute for new projects regardless of file count
+- Clean success messages without file listings in all paths
+
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
 - `GET/POST /api/projects` - Project CRUD
