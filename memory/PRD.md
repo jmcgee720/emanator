@@ -65,13 +65,13 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 
 ### Post-Patch Verification Gate (DONE - Apr 8, 2026)
 - Created `/lib/ai/patch-verification.js` with `verifyPatchResult()` and `buildVerifiedPatchResponse()`
-- Extracts expected UI changes from user message (headings, active sections, form fields, removals, buttons, nav items, styles)
+- Extracts expected UI changes from user message (headings, active sections, form fields, removals, buttons, nav items, styles, labeled elements)
 - Checks saved file content for those changes using regex + code analysis
 - Returns structured response: FILES CHANGED, WHAT SHOULD NOW BE VISIBLE, HOW TO VERIFY, VERIFICATION STATUS
 - All 10 completion message sites in `message-stream.js` replaced with verified responses
 - Zero "Done —" generic strings remain
 - Prompt-builder updated to instruct AI to describe exact visible results, blocking generic completion language
-- 51/51 tests passed (27 unit + 24 code inspection)
+- Live-tested against tax app project: 8/8 verification checks passed (Profile default, Full Name, Email, Save Profile, Profile State Preview, tabs removed, sidebar kept)
 
 ### Phase 4 - Unified Secure AI Pipeline (DONE - Apr 8, 2026)
 - **Service-level credit gate**: AIService requires `approveCreditGate()` before any provider call. Without it, `processMessageStream`, `processMessage`, `executePlanStream`, `processImageGeneration` all throw `ProviderError(billing)`
