@@ -989,6 +989,7 @@ export class AuroraEngine {
 
   render() {
     const { canvas, ctx, buffer, bufCtx: bc } = this;
+    if (!canvas || !ctx || !buffer || !bc) return;
     const W = canvas.width;
     const H = canvas.height;
     if (W === 0 || H === 0 || !this._guideCurves) return;
@@ -1134,7 +1135,23 @@ export class AuroraEngine {
 
   animate() {
     if (!this.isRunning) return;
-    this.render();
+    if (!this.canvas || !this.ctx) {
+      this.isRunning = false;
+      return;
+    }
+    try {
+      this.render();
+    } catch (e) {
+      if (!this._errorCount) this._errorCount = 0;
+      this._errorCount++;
+      if (this._errorCount <= 3) {
+        console.error('[AuroraEngine] render error:', e);
+      }
+      if (this._errorCount > 10) {
+        this.isRunning = false;
+        return;
+      }
+    }
     this.animationId = requestAnimationFrame(() => this.animate());
   }
 
@@ -1158,6 +1175,7 @@ export class AuroraEngine {
 
   destroy() {
     this.stop();
+    this._errorCount = 0;
     this.ctx = null;
     this.bufCtx = null;
     this.canvas = null;

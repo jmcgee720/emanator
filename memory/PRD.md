@@ -47,6 +47,11 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - Removed `raw_error` from all API response payloads
 - Image service error messages no longer expose env var names
 
+### Bug Fix - Aurora Background Error Spam (DONE - Apr 8, 2026)
+- Added null guards in `render()` (both versions) to prevent TypeError when canvas is destroyed
+- Added try-catch with error throttling in `animate()` — logs max 3 errors, auto-stops after 10
+- Synced both `/app/lib/auroraEngine.js` and `/app/frontend/src/lib/auroraEngine.js`
+
 ## Prioritized Backlog
 
 ### P0 (None remaining)
