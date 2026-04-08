@@ -136,7 +136,7 @@ function ChipPicker({ selected = [], options, onChange, label, testId }) {
 
 function buildPromptFromBrief(brief) {
   const parts = []
-  parts.push('Build this project now with COMPLETE, production-ready pages. Every page MUST have at least 5 distinct sections (nav, hero, 3+ content sections, footer). Each section must have real content — not placeholders. Use rich Tailwind CSS styling with gradients, shadows, and responsive layouts. Each component file must be 150+ lines minimum.')
+  parts.push('Build this project now with COMPLETE, production-ready pages. Every component must have full UI with real layouts, navigation, forms, cards, and proper styling — no placeholder pages with just a title.')
   if (brief.elevator_pitch) parts.push(`Project: ${brief.elevator_pitch}`)
   if (brief.target_audience) parts.push(`Target audience: ${brief.target_audience}`)
   if (brief.primary_goal) parts.push(`Primary goal: ${brief.primary_goal}`)
