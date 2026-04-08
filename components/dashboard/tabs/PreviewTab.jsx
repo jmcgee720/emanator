@@ -819,10 +819,9 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     const forceRefresh = forceRefreshRef.current || forceRecompileRef.current
     if (hashChanged || forceRefresh) {
       // Invalidate snapshot when files change (new build) or user forces refresh
-      if (forceRefresh) {
-        setSnapshotHtml(null)
-        snapshotSavedHashRef.current = null
-      }
+      // Files changed = snapshot is stale by definition — always clear it
+      setSnapshotHtml(null)
+      snapshotSavedHashRef.current = null
       setRefreshKey(k => k + 1)
       if (!forceRefresh) {
         setIframeErrors([])
