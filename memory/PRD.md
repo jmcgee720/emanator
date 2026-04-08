@@ -61,11 +61,13 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Each compiled component exposed as window global for cross-file references
 - Clean success message without file listing
 
-### Auto-Execute All Paths Fix (Feb 2026)
-- Fixed PlanCard still appearing for new projects — self-critique path and validation retry path now also check `isNewProject` and auto-execute instead of showing PlanCard
-- All 3 plan interception paths (validation retry, self-critique revised, main handler) now consistently auto-execute for new projects regardless of file count
-- Clean success messages without file listings in all paths
-- Fixed stale Next.js cache causing `projectManagerMode is not defined` ReferenceError — full cache rebuild required after removing variables
+### Stream Stability Fix (Feb 2026)
+- Added SSE heartbeat every 10 seconds to prevent proxy/ingress from closing idle connections
+- Added `X-Accel-Buffering: no` header to prevent nginx from buffering SSE streams
+- Added automatic retry (2 retries with backoff) in stream-client for 502/503/504 errors
+- Skipped self-critique for new projects (saves an extra AI round-trip, reducing memory pressure)
+- Reduced chat history in plan-executor from 10 messages to 3 (with 500 char truncation) to lower memory usage
+- These fixes together prevent the "Stream request failed" error during multi-file generation
 
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
