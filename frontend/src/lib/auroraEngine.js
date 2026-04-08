@@ -49,11 +49,11 @@ class SimplexNoise {
 }
 
 const STATE_CONFIGS = {
-  idle:       { speed: 0.12, brightness: 1.0,  glow: 1.0, pulse: 0.08, shimmer: 0.12, saturation: 1.0 },
-  listening:  { speed: 0.18, brightness: 1.05, glow: 1.1, pulse: 0.10, shimmer: 0.15, saturation: 1.0 },
-  thinking:   { speed: 0.25, brightness: 1.1,  glow: 1.2, pulse: 0.08, shimmer: 0.20, saturation: 1.0 },
-  responding: { speed: 0.32, brightness: 1.15, glow: 1.3, pulse: 0.12, shimmer: 0.18, saturation: 1.0 },
-  error:      { speed: 0.06, brightness: 0.5,  glow: 0.5, pulse: 0.15, shimmer: 0.06, saturation: 0.3 }
+  idle:       { speed: 0.06, brightness: 1.0,  glow: 1.0, pulse: 0.05, shimmer: 0.08, saturation: 1.0 },
+  listening:  { speed: 0.09, brightness: 1.02, glow: 1.05, pulse: 0.06, shimmer: 0.10, saturation: 1.0 },
+  thinking:   { speed: 0.12, brightness: 1.05, glow: 1.1, pulse: 0.05, shimmer: 0.12, saturation: 1.0 },
+  responding: { speed: 0.16, brightness: 1.08, glow: 1.15, pulse: 0.07, shimmer: 0.10, saturation: 1.0 },
+  error:      { speed: 0.04, brightness: 0.5,  glow: 0.5, pulse: 0.10, shimmer: 0.04, saturation: 0.3 }
 };
 
 export class AuroraEngine {
