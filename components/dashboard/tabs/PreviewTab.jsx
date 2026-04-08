@@ -762,7 +762,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 // ═══════════════════════════════════════════════════════════════════
 // Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
-export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles }) {
+export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   const [iframeErrors, setIframeErrors] = useState([])
@@ -1025,6 +1025,44 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
 
   const forceRefreshRef = useRef(false)
 
+  // ── Runtime Verification: inject test scripts and listen for results ──
+  const [runtimeTestScript, setRuntimeTestScript] = useState(null)
+  const [runtimeResults, setRuntimeResults] = useState(null)
+
+  // Sync with external runtime test script from streaming
+  useEffect(() => {
+    if (externalRuntimeTestScript) {
+      setRuntimeTestScript(externalRuntimeTestScript)
+      setRuntimeResults(null)
+    }
+  }, [externalRuntimeTestScript])
+
+  // Listen for runtime_verification results from the iframe
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.data?.type === 'runtime_verification') {
+        setRuntimeResults(event.data)
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [])
+
+  // Inject the runtime test script into the iframe after it loads
+  useEffect(() => {
+    if (!runtimeTestScript || !iframeLoaded || !iframeRef.current) return
+    try {
+      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document
+      if (doc) {
+        const script = doc.createElement('script')
+        script.textContent = runtimeTestScript
+        doc.body.appendChild(script)
+      }
+    } catch (e) {
+      console.warn('[RuntimeVerification] Failed to inject test script:', e)
+    }
+  }, [runtimeTestScript, iframeLoaded, refreshKey])
+
   const handleRefresh = useCallback(() => {
     setIframeErrors([])
     setConsoleLogs([])
@@ -1220,6 +1258,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         </div>
 
         <div className="flex items-center gap-1">
+          {runtimeResults && (
+            <span className={`text-[10px] mr-1 px-1.5 py-0.5 rounded font-mono ${runtimeResults.allPassed ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/40'}`} data-testid="runtime-verification-badge">
+              {runtimeResults.allPassed ? 'VERIFIED' : `${runtimeResults.passed}/${runtimeResults.total} passed`}
+            </span>
+          )}
           {iframeErrors.length > 0 && (
             <span className="text-[10px] text-red-400 mr-1" data-testid="preview-error-count">
               {iframeErrors.length} error{iframeErrors.length > 1 ? 's' : ''}
@@ -1242,6 +1285,21 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
             <div key={i} className="flex gap-1.5 items-start py-0.5">
               <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
               <span>{err}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {runtimeResults && !runtimeResults.allPassed && (
+        <div className="px-3 py-1.5 bg-amber-950/30 border-b border-amber-800/30 text-[11px] font-mono max-h-32 overflow-auto" data-testid="runtime-verification-results">
+          <div className="flex items-center gap-1.5 mb-1">
+            <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+            <span className="text-amber-300 font-semibold">Runtime Verification: {runtimeResults.passed}/{runtimeResults.total} passed</span>
+          </div>
+          {runtimeResults.results?.map((r, i) => (
+            <div key={i} className={`flex gap-1.5 items-start py-0.5 ${r.pass ? 'text-emerald-400/70' : 'text-red-400'}`}>
+              <span className="shrink-0">{r.pass ? '\u2713' : '\u2717'}</span>
+              <span>{r.name}: {r.detail}</span>
             </div>
           ))}
         </div>
