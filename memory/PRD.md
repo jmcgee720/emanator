@@ -61,7 +61,12 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Each compiled component exposed as window global for cross-file references
 - Clean success message without file listing
 
-### Stream Stability Fix (Feb 2026)
+### Force Plan Mode for Creative Brief (Feb 2026)
+- Creative Brief builds now always force `propose_plan` mode instead of letting the AI choose `create_files` (single file)
+- Previously, the AI would cram everything into one `page.jsx` instead of generating a multi-file site
+- Detection: messages containing "Build this project now with COMPLETE" or projects with 0 files
+- Added `Audio` constructor mock to preview sandbox to prevent media resource errors
+- Increased plan-executor `max_tokens` from 8192 to 16384 for more complete code generation
 - Added SSE heartbeat every 10 seconds to prevent proxy/ingress from closing idle connections
 - Added `X-Accel-Buffering: no` header to prevent nginx from buffering SSE streams
 - Added automatic retry (2 retries with backoff) in stream-client for 502/503/504 errors
