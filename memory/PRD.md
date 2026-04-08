@@ -52,6 +52,17 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - Added try-catch with error throttling in `animate()` — logs max 3 errors, auto-stops after 10
 - Synced both `/app/lib/auroraEngine.js` and `/app/frontend/src/lib/auroraEngine.js`
 
+### Aurora Speed Reduction (DONE - Apr 8, 2026)
+- Halved all STATE_CONFIGS speeds: idle 0.12→0.06, listening 0.18→0.09, thinking 0.25→0.12, responding 0.32→0.16
+- Both engine files synced
+
+### Preview Snapshot Lock (DONE - Apr 8, 2026)
+- Added GET/PUT `/api/projects/{id}/preview-snapshot` endpoints storing compiled HTML + files content hash
+- PreviewTab loads saved snapshot on project entry; if hash matches files → shows cached HTML (no recompile)
+- After compilation, snapshot is saved with 1.5s debounce to project settings
+- Snapshot cleared on: manual Refresh, new live stream start, user-initiated file changes
+- Guarantees preview never changes between visits unless user explicitly triggers a change
+
 ### Phase 4 - Unified Secure AI Pipeline (DONE - Apr 8, 2026)
 - **Service-level credit gate**: AIService requires `approveCreditGate()` before any provider call. Without it, `processMessageStream`, `processMessage`, `executePlanStream`, `processImageGeneration` all throw `ProviderError(billing)`
 - **Provider call wrappers**: Added `callModelSafely()` (async) and `streamModelSafely()` (async generator) — enforce credit gate + translate raw provider errors via `classifyProviderError`
