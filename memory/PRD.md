@@ -127,3 +127,16 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - **Bug**: `stream-client.js` had broken indentation from a previous edit — the IIFE pattern `;(async () => { ... })().catch(...)` with misaligned try/catch/while blocks caused SWC (Next.js compiler) to throw `Expected a semicolon` syntax error. This prevented the Dashboard from loading the streaming module, causing "Stream request failed" on every generation attempt.
 - **Fix**: Rewrote `stream-client.js` with a clean named `async function runStream()` instead of the IIFE pattern. Proper consistent indentation throughout. All retry/error handling preserved.
 - Verified: No SWC compilation errors after restart.
+
+### Creative Brief Auto-Send Race Condition Fix (Feb 2026)
+- **Bug**: The `useEffect` that auto-sends the Creative Brief prompt had `[messagesReadyTick]` as its only dependency. If `selectedChat` wasn't set at the exact moment the tick changed (race condition after `createChat`), the prompt was permanently lost — "nothing was sent".
+- **Fix**: Added `selectedChat`, `selectedProject`, `streamingMessageId` to the dependency array so the effect also fires when the chat becomes available.
+
+### Lazy Component Resolution for Cross-File Imports (Feb 2026)
+- **Bug**: In the Babel preview sandbox, local imports like `import Header from './Header'` were resolved eagerly at eval() time: `var Header = window.__COMPONENTS__["Header"]`. If Header.jsx hadn't been compiled yet (wrong file order), `Header` was permanently `undefined`, causing "Element type is invalid" React crash.
+- **Fix**: 
+  1. Added `__lazy(modName)` helper using `React.forwardRef` that defers `window.__COMPONENTS__` lookup to render time (all files compiled by then)
+  2. Changed both default and named import handlers to use `__lazy()` wrappers
+  3. Unknown package imports now generate `__stubComponent()` calls instead of being silently removed (prevents undefined variables)
+  4. Added `_EBClass` error boundary around the mounted entry component — catches and displays render errors gracefully instead of crashing the whole preview
+- All 26 unit tests pass (iteration_70)
