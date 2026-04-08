@@ -572,12 +572,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   // Send pending hero prompt AFTER messages finish loading (avoids race condition)
   useEffect(() => {
+    console.log('[HeroPromptEffect] tick:', messagesReadyTick, 'pending:', !!pendingHeroPromptRef.current, 'chat:', !!selectedChat, 'project:', !!selectedProject, 'streaming:', streamingMessageId)
     if (pendingHeroPromptRef.current && selectedChat && selectedProject && !streamingMessageId) {
       const prompt = pendingHeroPromptRef.current
       pendingHeroPromptRef.current = null
+      console.log('[HeroPromptEffect] SENDING prompt, length:', prompt.length)
       sendMessage(prompt)
     }
-  }, [messagesReadyTick])
+  }, [messagesReadyTick, selectedChat, selectedProject, streamingMessageId])
 
   const loadProjects = async () => {
     try {
@@ -3016,15 +3018,18 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
           project={selectedProject}
           onClose={() => setShowCanvas(false)}
           onStartBuilding={async (prompt) => {
+            console.log('[Dashboard] onStartBuilding called, prompt length:', prompt?.length, 'selectedChat:', !!selectedChat)
             setShowCanvas(false)
             // Ensure we have a chat to send to
             if (!selectedChat) {
+              console.log('[Dashboard] No chat — creating one...')
               await createChat('Build from Brief')
               // Wait for chat state to settle
-              await new Promise(r => setTimeout(r, 300))
+              await new Promise(r => setTimeout(r, 500))
             }
             pendingHeroPromptRef.current = prompt
             setMessagesReadyTick(t => t + 1)
+            console.log('[Dashboard] Set pendingHeroPrompt and incremented tick')
           }}
         />
       )}
