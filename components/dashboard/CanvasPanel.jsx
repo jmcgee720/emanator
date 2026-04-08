@@ -210,6 +210,7 @@ export default function CanvasPanel({ project, onClose, onStartBuilding }) {
 
   const handleStartBuilding = async () => {
     const prompt = buildPromptFromBrief(brief)
+    console.log('[CanvasPanel] handleStartBuilding — prompt:', prompt ? `${prompt.length} chars` : 'NULL')
     if (!prompt) return
     setStarting(true)
     try {
