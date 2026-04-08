@@ -442,18 +442,21 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     'window.addEventListener("message", function(e) {',
     '  if (!e.data || e.data.type !== "live_update") return;',
     '  try {',
-    '    window.__COMPONENTS__ = {};',
+    '    /* Compute correct modName from file path (not entryName) */',
+    '    var __modName = e.data.filePath ? e.data.filePath.replace(/^\\.\\//,"").replace(/\\.(jsx|tsx|js|ts)$/,"").split("/").pop() : e.data.entryName;',
     '    exports = {}; module = { exports: exports };',
     '    var _r = Babel.transform(e.data.code, {',
     '      presets: ["env", "react", ["typescript", { isTSX: true, allExtensions: true }]],',
-    '      plugins: [__mkPlugin(e.data.entryName)],',
-    '      filename: e.data.entryName + ".jsx"',
+    '      plugins: [__mkPlugin(__modName)],',
+    '      filename: __modName + ".jsx"',
     '    });',
     '    (0, eval)(_r.code);',
-    '    if (!window.__COMPONENTS__[e.data.entryName]) { var _cjs2 = module.exports.default || module.exports; if (typeof _cjs2 === "function") window.__COMPONENTS__[e.data.entryName] = _cjs2; }',
-    '    var _C = window.__COMPONENTS__[e.data.entryName] || Object.values(window.__COMPONENTS__)[0];',
-    '    if (_C && window.__root__) { window.__root__.render(createElement(_C)); }',
-    '  } catch(_err) { /* ignore errors during streaming — code is partial */ }',
+    '    if (!window.__COMPONENTS__[__modName]) { var _cjs2 = module.exports.default || module.exports; if (typeof _cjs2 === "function") window.__COMPONENTS__[__modName] = _cjs2; }',
+    '    if (window.__COMPONENTS__[__modName]) { window[__modName] = window.__COMPONENTS__[__modName]; }',
+    '    /* Render entry: prefer App, then entryName, then first available component */',
+    '    var _entry = window.__COMPONENTS__["App"] || window.__COMPONENTS__[e.data.entryName] || Object.values(window.__COMPONENTS__)[0];',
+    '    if (_entry && window.__root__) { window.__root__.render(createElement(_entry)); }',
+    '  } catch(_err) { /* ignore errors during streaming — code may be partial */ }',
     '});',
     '<\/script></body></html>'
   ].join('\n')
@@ -911,11 +914,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     }
     const iframe = iframeRef.current
     if (!iframe?.contentWindow) return
-    const entryName = livePreviewData.path
-      .replace(/^\.\//, '')
-      .replace(/\.(jsx|tsx|js|ts)$/, '')
-      .split('/').pop() || 'page'
-    iframe.contentWindow.postMessage({ type: 'live_update', code: livePreviewData.content, entryName }, '*')
+    const filePath = livePreviewData.path || ''
+    // entryName is the preferred entry component — use "App" if available, else this file
+    const fileModName = filePath.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop() || 'page'
+    const entryName = 'App' // Always try to mount App as entry for multi-file projects
+    iframe.contentWindow.postMessage({ type: 'live_update', code: livePreviewData.content, entryName, filePath }, '*')
   }, [livePreviewData, streamShellHtml])
 
   // Handle iframe load — send any pending live data
@@ -924,11 +927,8 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     if (pendingLiveRef.current?.content) {
       const iframe = iframeRef.current
       if (!iframe?.contentWindow) return
-      const entryName = pendingLiveRef.current.path
-        .replace(/^\.\//, '')
-        .replace(/\.(jsx|tsx|js|ts)$/, '')
-        .split('/').pop() || 'page'
-      iframe.contentWindow.postMessage({ type: 'live_update', code: pendingLiveRef.current.content, entryName }, '*')
+      const entryName = 'App'
+      iframe.contentWindow.postMessage({ type: 'live_update', code: pendingLiveRef.current.content, entryName, filePath: pendingLiveRef.current.path }, '*')
       pendingLiveRef.current = null
     }
   }, [])
