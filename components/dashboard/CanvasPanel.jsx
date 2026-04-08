@@ -136,7 +136,7 @@ function ChipPicker({ selected = [], options, onChange, label, testId }) {
 
 function buildPromptFromBrief(brief) {
   const parts = []
-  parts.push('Build this project now with COMPLETE, production-ready pages. Every component must have full UI with real layouts, navigation, forms, cards, and proper styling — no placeholder pages with just a title.')
+  parts.push('Build this project now with COMPLETE, production-ready pages. Every page MUST have at least 5 distinct sections (nav, hero, 3+ content sections, footer). Each section must have real content — not placeholders. Use rich Tailwind CSS styling with gradients, shadows, and responsive layouts. Each component file must be 150+ lines minimum.')
   if (brief.elevator_pitch) parts.push(`Project: ${brief.elevator_pitch}`)
   if (brief.target_audience) parts.push(`Target audience: ${brief.target_audience}`)
   if (brief.primary_goal) parts.push(`Primary goal: ${brief.primary_goal}`)
@@ -145,10 +145,10 @@ function buildPromptFromBrief(brief) {
   if (brief.color_preferences) parts.push(`Colors: ${brief.color_preferences}`)
   if (brief.reference_sites) parts.push(`Reference sites: ${brief.reference_sites}`)
   const allPages = [...(brief.pages || []), ...(brief.custom_pages ? brief.custom_pages.split(',').map(p => p.trim()).filter(Boolean) : [])]
-  if (allPages.length > 0) parts.push(`Pages needed: ${allPages.join(', ')}`)
-  if (brief.most_important_page) parts.push(`Most important page (build with the most detail): ${brief.most_important_page}`)
-  if (brief.must_have_features) parts.push(`Must-have features: ${brief.must_have_features}`)
-  if (brief.nice_to_have_features) parts.push(`Nice-to-have: ${brief.nice_to_have_features}`)
+  if (allPages.length > 0) parts.push(`Pages needed (CREATE SEPARATE COMPONENT FILES FOR EACH): ${allPages.join(', ')}`)
+  if (brief.most_important_page) parts.push(`Most important page (build with the most detail and content): ${brief.most_important_page}`)
+  if (brief.must_have_features) parts.push(`Must-have features (implement ALL of these): ${brief.must_have_features}`)
+  if (brief.nice_to_have_features) parts.push(`Nice-to-have (implement if possible): ${brief.nice_to_have_features}`)
   if (brief.headline) parts.push(`Headline/tagline: ${brief.headline}`)
   if (brief.key_messaging) parts.push(`Key messaging: ${brief.key_messaging}`)
   if (brief.tone_of_voice) parts.push(`Tone: ${brief.tone_of_voice}`)
