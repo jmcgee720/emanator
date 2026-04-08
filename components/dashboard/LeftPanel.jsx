@@ -490,7 +490,19 @@ export default function LeftPanel({
                               {errorType.replace('_', ' ')}
                             </Badge>
                           )}
-                          {errorProvider && errorProvider !== 'openai' && onRetryWithFallback && (
+                          {errorType === 'context_length' && onForkChat && selectedChat && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1.5 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+                              onClick={() => onForkChat(selectedChat.id)}
+                              data-testid="continue-new-chat-btn"
+                            >
+                              <GitFork className="w-3 h-3" />
+                              Continue in New Chat
+                            </Button>
+                          )}
+                          {errorType !== 'context_length' && errorProvider && errorProvider !== 'openai' && onRetryWithFallback && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -502,7 +514,7 @@ export default function LeftPanel({
                               Retry with OpenAI
                             </Button>
                           )}
-                          {errorProvider && errorProvider === 'openai' && onRetryWithFallback && (
+                          {errorType !== 'context_length' && errorProvider && errorProvider === 'openai' && onRetryWithFallback && (
                             <Button
                               size="sm"
                               variant="outline"

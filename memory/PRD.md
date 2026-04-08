@@ -89,6 +89,17 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - **Error classification**: New `proxy_budget` error type in `errors.js` parses proxy-specific "Current cost: X, Max budget: Y" and shows: "Your Universal Key spending limit ($X) has been reached"
 - **`stream-handler.js`**: Error events now include `limit_source` field (`universal_key_spending_cap` vs `platform_credits`)
 
+### Context Length Handling + Fork-to-New-Chat (DONE - Apr 8, 2026)
+- **Context compression**: `compressContext()` now triggers at 20+ messages OR when estimated tokens exceed 80K. Keeps last 10 messages (was 16), truncates any message over 12K chars (~3K tokens). 91% reduction on heavy conversations.
+- **Fallback skip**: `_streamWithFallback()` skips model fallback on `context_length` errors — gpt-4o-mini has the same context window, can't help
+- **Error message**: "Start a new chat to continue — your project files are preserved" instead of misleading "use a model with a larger context window"
+- **Fork button**: `context_length` error cards now show a cyan "Continue in New Chat" button that forks the current chat
+- **Smart fork titles**: Fork endpoint generates meaningful titles from last user message instead of generic "Fork of: X"
+
+### Preview Snapshot Stale Cache Fix (DONE - Apr 8, 2026)
+- **Root cause**: When AI saved new files, `snapshotHtml` was not cleared — only cleared on manual "Refresh" click. The build `useMemo` returned stale cached HTML before the async snapshot re-fetch could invalidate it
+- **Fix**: `setSnapshotHtml(null)` now runs on every file hash change, not just forced refreshes
+
 ### Post-Patch Verification Expansion (DONE - Apr 8, 2026)
 - **New check types**: `select_element` (dropdown detection), `option_value` (option verification), `conditional_field` (conditional rendering detection)
 - **Dropdown patterns**: Detects "make X a dropdown", "convert to select", "add select for", "select with options"
