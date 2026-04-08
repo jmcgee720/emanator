@@ -122,3 +122,8 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Refactor `message-stream.js` (~1800 lines, very complex nested logic)
 - Refactor `service.js` (~2600 lines)
 - Deploy integration (Vercel/Netlify) — currently partially mocked
+
+### Stream Client SWC Fix (Feb 2026)
+- **Bug**: `stream-client.js` had broken indentation from a previous edit — the IIFE pattern `;(async () => { ... })().catch(...)` with misaligned try/catch/while blocks caused SWC (Next.js compiler) to throw `Expected a semicolon` syntax error. This prevented the Dashboard from loading the streaming module, causing "Stream request failed" on every generation attempt.
+- **Fix**: Rewrote `stream-client.js` with a clean named `async function runStream()` instead of the IIFE pattern. Proper consistent indentation throughout. All retry/error handling preserved.
+- Verified: No SWC compilation errors after restart.
