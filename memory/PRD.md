@@ -74,6 +74,20 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
   3. New COMPLEX_DISQUALIFIERS: "production-ready pages", "SEPARATE COMPONENT FILES", "Pages needed", "component file...must be"
 - Added `[ModeDecision]` debug log in `message-stream.js` showing `directEditMode`, `isBriefBuild`, `isNewProjectBuild`
 - All 10 unit tests pass (tested with testing agent iteration_68)
+
+### Design Excellence for Plan-Mode Builds (Feb 2026)
+- **Problem**: Creative Brief builds used the plan-executor path which had generic "use rich Tailwind CSS" instructions, producing bland, unstyled output
+- **Fix**: Created `buildDesignExcellenceBlock()` in `prompt-builder.js` with detailed design directives:
+  - Mandatory Unsplash image URLs by category (kids, people, nature, products, tech, food, abstract)
+  - Specific Tailwind patterns: glass-morphism, glow effects on buttons, gradient text, floating decorative elements
+  - Mandatory page structure: sticky nav, hero with background image + overlay, 3+ content sections, footer
+  - Visual depth requirements: hover micro-interactions, section variety, image overlays
+  - Brand-specific content requirements
+  - Per-file code standards (200-500 lines, proper exports)
+- Injected `buildDesignExcellenceBlock()` into `plan-executor.js` system message
+- Added `DESIGN QUALITY FOR NEW PROJECTS` section to plan-phase prompt in `message-stream.js` (conditional on `isNewProjectBuild`)
+- Cleaned up `CanvasPanel.jsx` brief prompt to be less verbose while keeping the "Build this project now with COMPLETE" marker
+- All 18 unit tests pass (tested with testing agent iteration_69)
 - Added `Audio` constructor mock to preview sandbox to prevent media resource errors
 - Increased plan-executor `max_tokens` from 8192 to 16384 for more complete code generation
 - Added SSE heartbeat every 10 seconds to prevent proxy/ingress from closing idle connections
