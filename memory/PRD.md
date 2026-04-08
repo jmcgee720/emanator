@@ -139,4 +139,8 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
   2. Changed both default and named import handlers to use `__lazy()` wrappers
   3. Unknown package imports now generate `__stubComponent()` calls instead of being silently removed (prevents undefined variables)
   4. Added `_EBClass` error boundary around the mounted entry component — catches and displays render errors gracefully instead of crashing the whole preview
-- All 26 unit tests pass (iteration_70)
+  5. Added two-pass compilation: all files compiled twice so Pass 2 resolves any cross-file references missed in Pass 1
+- **Critical streaming fix**: The `live_update` postMessage handler was **clearing `window.__COMPONENTS__ = {}`** on every incoming file, wiping all previously compiled components. Also used `entryName` (always the incoming file) instead of the correct `modName`. Fixed both: handler now accumulates components incrementally and uses `filePath` for modName.
+- postMessage now sends `filePath` alongside code so the iframe can compute the correct modName
+- Entry resolution now prefers "App" → entryName → first available component
+- All verified with standalone streaming simulation test (6 files, zero errors)
