@@ -772,6 +772,40 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   const iframeRef = useRef(null)
   const prevFilesRef = useRef(null)
 
+  // ── Preview Snapshot: persist compiled HTML so re-entry shows exact same preview ──
+  const [snapshotHtml, setSnapshotHtml] = useState(null)
+  const [snapshotLoaded, setSnapshotLoaded] = useState(false)
+  const snapshotSavedHashRef = useRef(null)
+  const forceRecompileRef = useRef(false)
+
+  // Compute a stable content hash from files
+  const filesContentHash = useMemo(() => {
+    if (!files?.length) return ''
+    return files
+      .filter(f => f.path && f.content != null)
+      .map(f => `${f.path}:${typeof f.content === 'string' ? f.content.length : 0}:${f.updated_at || ''}`)
+      .sort()
+      .join('|')
+  }, [files])
+
+  // Load snapshot on project entry
+  useEffect(() => {
+    if (!project?.id) { setSnapshotLoaded(true); return }
+    setSnapshotLoaded(false)
+    authFetch(`/api/projects/${project.id}/preview-snapshot`)
+      .then(r => r.ok ? r.json() : { snapshot: null })
+      .then(data => {
+        if (data.snapshot?.html && data.snapshot.files_hash === filesContentHash) {
+          setSnapshotHtml(data.snapshot.html)
+          snapshotSavedHashRef.current = data.snapshot.files_hash
+        } else {
+          setSnapshotHtml(null)
+        }
+      })
+      .catch(() => setSnapshotHtml(null))
+      .finally(() => setSnapshotLoaded(true))
+  }, [project?.id, filesContentHash])
+
   const viewports = {
     mobile: { width: '375px', label: 'Mobile' },
     tablet: { width: '768px', label: 'Tablet' },
@@ -782,8 +816,13 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     const prevHash = prevFilesRef.current
     const currentHash = files?.map(f => `${f.path}:${f.version || 0}:${f.updated_at || ''}:${typeof f.content === 'string' ? f.content.length : 0}`).join('|') || ''
     const hashChanged = prevHash !== null && prevHash !== currentHash
-    const forceRefresh = forceRefreshRef.current
+    const forceRefresh = forceRefreshRef.current || forceRecompileRef.current
     if (hashChanged || forceRefresh) {
+      // Invalidate snapshot when files change (new build) or user forces refresh
+      if (forceRefresh) {
+        setSnapshotHtml(null)
+        snapshotSavedHashRef.current = null
+      }
       setRefreshKey(k => k + 1)
       if (!forceRefresh) {
         setIframeErrors([])
@@ -791,6 +830,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         setIframeLoaded(false)
       }
       forceRefreshRef.current = false
+      forceRecompileRef.current = false
     }
     prevFilesRef.current = currentHash
   }, [files])
@@ -821,6 +861,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [files])
 
   const { previewHtml, projectInfo, buildLog } = useMemo(() => {
+    // If we have a valid snapshot and no forced recompile, use it directly
+    if (snapshotHtml && !forceRecompileRef.current) {
+      return { previewHtml: snapshotHtml, projectInfo: { type: 'snapshot' }, buildLog: ['Type: snapshot (cached)'] }
+    }
+
     // If node project, skip the srcdoc pipeline entirely
     if (isNodeProject) {
       return { previewHtml: null, projectInfo: { type: 'node', files: files || [] }, buildLog: ['Type: node'] }
@@ -873,7 +918,27 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     if (html) log.push(`Output: ${html.length} chars`)
 
     return { previewHtml: html, projectInfo: info, buildLog: log }
-  }, [files, refreshKey, isNodeProject])
+  }, [files, refreshKey, isNodeProject, snapshotHtml])
+
+  // ── Save preview snapshot after successful compilation ──
+  useEffect(() => {
+    if (!project?.id || !previewHtml || !filesContentHash) return
+    // Don't re-save if we're just rendering the cached snapshot
+    if (snapshotSavedHashRef.current === filesContentHash) return
+    // Only save non-snapshot compilations (real builds)
+    if (projectInfo?.type === 'snapshot') return
+
+    const timer = setTimeout(() => {
+      authFetch(`/api/projects/${project.id}/preview-snapshot`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: previewHtml, files_hash: filesContentHash })
+      }).then(() => {
+        snapshotSavedHashRef.current = filesContentHash
+      }).catch(() => {})
+    }, 1500) // Debounce to avoid saving during rapid file changes
+    return () => clearTimeout(timer)
+  }, [previewHtml, filesContentHash, project?.id, projectInfo?.type])
 
   // ── Live streaming preview ──
   // Create the shell HTML only ONCE when streaming starts.
@@ -885,6 +950,9 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   // Create shell when streaming starts (only once per streaming session)
   useEffect(() => {
     if (livePreviewData?.content && !previewHtml && !streamShellHtml) {
+      // Clear snapshot when a new live build starts — we'll snapshot the result after
+      setSnapshotHtml(null)
+      snapshotSavedHashRef.current = null
       const shellInfo = {
         type: 'react',
         jsxFiles: [{ path: livePreviewData.path, content: livePreviewData.content }],
@@ -961,6 +1029,10 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     setIframeErrors([])
     setConsoleLogs([])
     setIframeLoaded(false)
+    // Clear snapshot to force a fresh recompile from source files
+    setSnapshotHtml(null)
+    snapshotSavedHashRef.current = null
+    forceRecompileRef.current = true
     if (onRefreshFiles) {
       forceRefreshRef.current = true
       onRefreshFiles()
