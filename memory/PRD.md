@@ -65,6 +65,7 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Fixed PlanCard still appearing for new projects — self-critique path and validation retry path now also check `isNewProject` and auto-execute instead of showing PlanCard
 - All 3 plan interception paths (validation retry, self-critique revised, main handler) now consistently auto-execute for new projects regardless of file count
 - Clean success messages without file listings in all paths
+- Fixed stale Next.js cache causing `projectManagerMode is not defined` ReferenceError — full cache rebuild required after removing variables
 
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
