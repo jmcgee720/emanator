@@ -72,6 +72,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [messages, setMessages] = useState([])
   const [files, setFiles] = useState([])
   const [livePreviewData, setLivePreviewData] = useState(null)
+  const [runtimeTestScript, setRuntimeTestScript] = useState(null)
   const previewQueueRef = useRef([])
   const previewDrainTimerRef = useRef(null)
   const [projectFileIndex, setProjectFileIndex] = useState({})
@@ -1452,6 +1453,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
         onFallbackNotice: (data) => {
           toast({ title: 'Model Fallback', description: `Used ${data.model} for this request.` })
+        },
+        onRuntimeTests: (data) => {
+          setRuntimeTestScript(data.script)
         }
       }
     )
@@ -1577,6 +1581,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
         onFallbackNotice: (data) => {
           toast({ title: 'Model Fallback', description: `Used ${data.model} for this request.` })
+        },
+        onRuntimeTests: (data) => {
+          setRuntimeTestScript(data.script)
         }
       }
     )
@@ -2990,6 +2997,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   setLivePromoteState={setLivePromoteState}
                   livePreviewData={livePreviewData}
                   isBuilding={!!streamingMessageId}
+                  runtimeTestScript={runtimeTestScript}
                 />
                 </div>
               </ResizablePanel>
