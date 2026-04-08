@@ -1772,9 +1772,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const text = await response.text()
       const data = JSON.parse(text)
       const newChat = { id: data.id, title: data.title, project_id: data.project_id, chat_type: getChatType({ title: data.title }) }
-      setChats(prev => [...prev, newChat])
+      setChats(prev => [newChat, ...prev])
       setSelectedChat(newChat)
-      toast({ title: 'Chat Forked', description: `Created "${data.title}"` })
+      // Load messages for the new chat so it's ready to use
+      try {
+        const msgRes = await authFetch(`/api/chats/${data.id}/messages`)
+        if (msgRes.ok) {
+          const msgData = await msgRes.json()
+          setMessages(msgData)
+        } else {
+          setMessages([])
+        }
+      } catch { setMessages([]) }
+      toast({ title: 'New chat ready', description: data.title })
     } catch (error) {
       console.error('Error forking chat:', error)
       toast({ title: 'Error', description: 'Failed to fork conversation', variant: 'destructive' })
