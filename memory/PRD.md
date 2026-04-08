@@ -80,6 +80,25 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - **Route handler integration**: `stream-handler.js`, `chats.js`, `diffs.js` all call `approveCreditGate()` after credit balance check. Fork handler correctly skips it (no provider calls)
 - **No bypass paths remain**: Audited all 4 AIService instantiations, 1 direct provider creation (image-service), all env key usage. All secured
 
+### Provider Key Priority Flip (DONE - Apr 8, 2026)
+- **Root cause**: Emergent proxy (`EMERGENT_LLM_KEY` → `EMERGENT_PROXY_URL`) has a hidden per-key spending cap that caused "Budget has been exceeded" errors even though the UI showed positive balance and "No limit"
+- **Fix**: `_apiKey()` now uses direct provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) as PRIMARY. `EMERGENT_LLM_KEY` + proxy used only as fallback when direct keys are unavailable
+- **`_proxyOptions()`** only injects proxy `baseURL` when actually using the Emergent key
+- **`_streamWithFallback()`** tries Emergent proxy as last-resort fallback if direct key fails. Skips proxy entirely on `proxy_budget` errors
+- **`ImageService`** flipped to same priority: direct `OPENAI_API_KEY` primary, Emergent key fallback
+- **Error classification**: New `proxy_budget` error type in `errors.js` parses proxy-specific "Current cost: X, Max budget: Y" and shows: "Your Universal Key spending limit ($X) has been reached"
+- **`stream-handler.js`**: Error events now include `limit_source` field (`universal_key_spending_cap` vs `platform_credits`)
+
+### Post-Patch Verification Expansion (DONE - Apr 8, 2026)
+- **New check types**: `select_element` (dropdown detection), `option_value` (option verification), `conditional_field` (conditional rendering detection)
+- **Dropdown patterns**: Detects "make X a dropdown", "convert to select", "add select for", "select with options"
+- **Option list parsing**: Extracts options from "options: A, B, C" and verifies a sample (first, middle, last) exist in code
+- **Conditional field detection**: Detects "show X if Y selected", "appear when Z is chosen"
+- **Code verification**: `<select>` element checks, `<option>` value checks, conditional rendering pattern checks (`&&`, ternary)
+- **Runtime tests**: DOM-based tests for all new types — select presence, option existence, conditional field trigger simulation (dispatches change event on select, waits for React re-render, checks for field)
+- **Heading regex fix**: `(?:to|say|read)` → `(?:to\s+(?:say|read)\s+|(?:to|say|read)\s+)` so "to say X" captures "X" not "say X"
+- **Form field regex fix**: Stopped greedy capture of "text input" suffix (e.g., "Describe Other Expense text input" now captures "Describe Other Expense")
+
 ## Prioritized Backlog
 
 ### P0 (None remaining)
