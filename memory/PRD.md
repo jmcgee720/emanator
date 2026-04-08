@@ -67,7 +67,8 @@ Build a conversational AI builder platform (Emanator) with a full-featured dashb
 - Added automatic retry (2 retries with backoff) in stream-client for 502/503/504 errors
 - Skipped self-critique for new projects (saves an extra AI round-trip, reducing memory pressure)
 - Reduced chat history in plan-executor from 10 messages to 3 (with 500 char truncation) to lower memory usage
-- These fixes together prevent the "Stream request failed" error during multi-file generation
+- ALL plans now auto-execute directly — no PlanCard, no Review Changes, no Apply flow
+- Previously, projects with existing files from failed attempts would fall through to PlanCard/Review, causing "Apply failed" errors
 
 ### Key API Endpoints
 - `POST /api/chat/stream` - AI streaming
