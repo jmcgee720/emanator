@@ -52,6 +52,13 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - Added try-catch with error throttling in `animate()` — logs max 3 errors, auto-stops after 10
 - Synced both `/app/lib/auroraEngine.js` and `/app/frontend/src/lib/auroraEngine.js`
 
+### Phase 4 - Unified Secure AI Pipeline (DONE - Apr 8, 2026)
+- **Service-level credit gate**: AIService requires `approveCreditGate()` before any provider call. Without it, `processMessageStream`, `processMessage`, `executePlanStream`, `processImageGeneration` all throw `ProviderError(billing)`
+- **Provider call wrappers**: Added `callModelSafely()` (async) and `streamModelSafely()` (async generator) — enforce credit gate + translate raw provider errors via `classifyProviderError`
+- **Platform keys only**: `_apiKey()` locked to `EMERGENT_LLM_KEY` → platform env fallback only. `image-service.js` now routes through EMERGENT_LLM_KEY + proxy
+- **Route handler integration**: `stream-handler.js`, `chats.js`, `diffs.js` all call `approveCreditGate()` after credit balance check. Fork handler correctly skips it (no provider calls)
+- **No bypass paths remain**: Audited all 4 AIService instantiations, 1 direct provider creation (image-service), all env key usage. All secured
+
 ## Prioritized Backlog
 
 ### P0 (None remaining)
