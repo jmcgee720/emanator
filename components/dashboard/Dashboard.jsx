@@ -474,6 +474,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const hubEntryRef = useRef(false)
   const importChatTitleRef = useRef(null)
   const pendingHeroPromptRef = useRef(null)
+  const briefBuildActiveRef = useRef(false)
   const tabChatStateRef = useRef({})
   const pendingRestoreChatRef = useRef(null)
   const coreProjectIdRef = useRef(null)
@@ -621,6 +622,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     if (pendingHeroPromptRef.current && selectedChat && selectedProject && !streamingMessageId) {
       const prompt = pendingHeroPromptRef.current
       pendingHeroPromptRef.current = null
+      briefBuildActiveRef.current = true
       console.log('[HeroPromptEffect] SENDING prompt, length:', prompt.length)
       sendMessage(prompt)
     }
@@ -1455,6 +1457,21 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             }
           }
           await refreshCanvas()
+
+          // Project Manager auto-continue: after initial brief build, review and propose next steps
+          if (briefBuildActiveRef.current && (data.generatedFiles?.length > 0 || data.directEditMode)) {
+            briefBuildActiveRef.current = false
+            // Small delay to let the preview render, then auto-send PM follow-up
+            setTimeout(() => {
+              const pmPrompt = `You just finished the initial build. Now act as the Project Manager:
+1. Briefly review what you just built (2-3 sentences max)
+2. List what's done vs. what's still needed based on the original brief
+3. Propose your next move and start building it immediately — don't wait for approval
+
+Keep it concise and conversational. Then start building the next piece.`
+              sendMessage(pmPrompt)
+            }, 2000)
+          }
         },
 
         onError: (data) => {

@@ -59,6 +59,36 @@ import { AttachmentChips } from './AttachmentPreview'
 import CreativeBriefCard from './CreativeBriefCard'
 import SuggestionChips, { parseSuggestions } from './SuggestionChips'
 
+
+const WHIMSICAL_MAP = {
+  connecting: 'Warming up the engines...',
+  classifying_intent: 'Reading your mind (almost)...',
+  intent_classified: 'Got it! Plotting the game plan...',
+  selecting_provider: 'Summoning the best brain for the job...',
+  loading_context: 'Gathering all the ingredients...',
+  scanning_files: 'Rummaging through your project files...',
+  files_scanned: 'Found everything I need!',
+  reading_files: 'Speed-reading your codebase...',
+  direct_edit: 'Surgeon mode activated...',
+  generating_images: 'Painting custom visuals for you...',
+  images_ready: 'Artwork is ready!',
+  finding_images: 'Scouting the perfect images...',
+  config_mode: 'Tweaking the knobs...',
+  applying_pending_diff: 'Stitching changes together...',
+  verifying: 'Double-checking my work...',
+  checking_completeness: 'Making sure nothing was missed...',
+  continuation_discovered: 'Found more to do — on it!',
+  executing_plan: 'Bringing the plan to life...',
+  generating_image: 'Cooking up something visual...',
+  provider_fallback: null, // keep original for fallback warnings
+}
+function whimsicalStatus(status) {
+  if (!status) return 'Generating...'
+  const fun = WHIMSICAL_MAP[status.stage]
+  if (fun === null) return status.detail // explicit null = keep original
+  return fun || status.detail || 'Generating...'
+}
+
 const modeIcons = {
   app: Layers,
   website: Globe,
@@ -711,7 +741,7 @@ export default function LeftPanel({
               }`}>
                 <div className="flex items-center gap-2">
                   <Loader2 className={`w-3.5 h-3.5 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-muted-foreground/60'}`} />
-                  <span className={`text-[13px] ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>{streamingStatus.detail || 'Generating...'}</span>
+                  <span className={`text-[13px] ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>{whimsicalStatus(streamingStatus) || 'Generating...'}</span>
                 </div>
               </div>
             </div>
