@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Loader2, ChevronDown, ChevronRight, Check, Sparkles, LayoutGrid, Settings } from 'lucide-react'
+import { Loader2, ChevronDown, ChevronRight, Check, Sparkles, LayoutGrid, Settings, ImagePlus, X as XIcon } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
 
 const MOOD_OPTIONS = ['Professional', 'Playful', 'Bold', 'Minimal', 'Luxurious', 'Techy', 'Warm', 'Edgy', 'Elegant', 'Rustic']
@@ -15,7 +15,7 @@ const EMPTY_BRIEF = {
   mood: [], color_preferences: '', reference_sites: '', pages: [], custom_pages: '',
   most_important_page: '', must_have_features: '', nice_to_have_features: '',
   headline: '', key_messaging: '', tone_of_voice: '', integrations: '',
-  timeline: '', budget_tier: '', things_to_avoid: '',
+  timeline: '', budget_tier: '', things_to_avoid: '', media_assets: [],
 }
 
 function BriefSection({ title, subtitle, open, onToggle, children }) {
@@ -102,6 +102,92 @@ function Chips({ selected = [], options, onChange, label, testId }) {
   )
 }
 
+function MediaBin({ assets = [], onChange }) {
+  const fileInputRef = useRef(null)
+  const [dragging, setDragging] = useState(false)
+
+  const handleFiles = useCallback((files) => {
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (imageFiles.length === 0) return
+
+    imageFiles.forEach(file => {
+      if (file.size > 5 * 1024 * 1024) return // 5MB limit
+      const reader = new FileReader()
+      reader.onload = () => {
+        onChange(prev => [...prev, {
+          id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: file.name,
+          dataUrl: reader.result,
+          size: file.size,
+        }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }, [onChange])
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault()
+    setDragging(false)
+    handleFiles(e.dataTransfer.files)
+  }, [handleFiles])
+
+  const removeAsset = (id) => onChange(prev => prev.filter(a => a.id !== id))
+
+  return (
+    <div>
+      <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1.5 block">
+        Upload logos, product photos, or reference images
+      </label>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className="rounded-lg cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-4 gap-1.5"
+        style={{
+          background: dragging ? 'rgba(0,229,255,0.06)' : 'rgba(255,255,255,0.03)',
+          border: dragging ? '1.5px dashed rgba(0,229,255,0.4)' : '1.5px dashed rgba(255,255,255,0.10)',
+        }}
+        data-testid="media-bin-dropzone"
+      >
+        <ImagePlus className="w-5 h-5 text-[var(--em-text-muted)]" style={{ opacity: 0.5 }} />
+        <span className="text-[10px] text-[var(--em-text-muted)]">
+          Drop images here or click to upload
+        </span>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => { handleFiles(e.target.files); e.target.value = '' }}
+        data-testid="media-bin-input"
+      />
+      {assets.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {assets.map(asset => (
+            <div key={asset.id} className="relative group rounded-lg overflow-hidden" style={{ width: 56, height: 56 }}>
+              <img src={asset.dataUrl} alt={asset.name} className="w-full h-full object-cover" />
+              <button
+                onClick={(e) => { e.stopPropagation(); removeAsset(asset.id) }}
+                className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: 'rgba(0,0,0,0.7)' }}
+                data-testid={`media-bin-remove-${asset.id}`}
+              >
+                <XIcon className="w-2.5 h-2.5 text-white" />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 truncate" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                <span className="text-[8px] text-white/80">{asset.name}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function buildPromptFromBrief(brief) {
   // Build the user-visible message (conversational)
   const displayParts = []
@@ -132,8 +218,12 @@ function buildPromptFromBrief(brief) {
   if (brief.integrations) instrParts.push(`Integrations: ${brief.integrations}`)
   if (brief.budget_tier) instrParts.push(`Budget tier: ${brief.budget_tier}`)
   if (brief.things_to_avoid) instrParts.push(`Avoid: ${brief.things_to_avoid}`)
+  if (brief.media_assets?.length > 0) instrParts.push(`User uploaded ${brief.media_assets.length} image(s) as assets — use them directly in the design as logos, hero images, or product photos as appropriate.`)
   if (instrParts.length <= 1) return null
-  return { displayMessage, fullInstruction: instrParts.join('\n') }
+  const attachments = brief.media_assets?.length > 0
+    ? brief.media_assets.map(a => ({ type: 'image', name: a.name, data: a.dataUrl }))
+    : null
+  return { displayMessage, fullInstruction: instrParts.join('\n'), attachments }
 }
 
 export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem, onNewProject, saving: externalSaving }) {
@@ -150,7 +240,7 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
     if (!result) return
     setStarting(true)
     try {
-      await onStartBuilding(result.displayMessage, result.fullInstruction, brief)
+      await onStartBuilding(result.displayMessage, result.fullInstruction, brief, result.attachments)
     } finally {
       setStarting(false)
     }
@@ -198,6 +288,13 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
             <Chips selected={brief.mood || []} options={MOOD_OPTIONS} onChange={v => updateField('mood', v)} label="Mood / personality" testId="brief-mood-picker" />
             <Input value={brief.color_preferences} onChange={v => updateField('color_preferences', v)} placeholder="e.g., Dark theme with electric blue accents" label="Color preferences" rows={2} testId="brief-colors" />
             <Input value={brief.reference_sites} onChange={v => updateField('reference_sites', v)} placeholder="e.g., linear.app, vercel.com" label="Reference sites" rows={2} testId="brief-references" />
+          </BriefSection>
+
+          <BriefSection title="Media Bin" subtitle="Logos, photos, and reference images" open={!!openSections.media} onToggle={() => toggleSection('media')}>
+            <MediaBin
+              assets={brief.media_assets || []}
+              onChange={(updater) => setBrief(prev => ({ ...prev, media_assets: typeof updater === 'function' ? updater(prev.media_assets || []) : updater }))}
+            />
           </BriefSection>
 
           <BriefSection title="Pages & Structure" subtitle="What pages does your site need?" open={!!openSections.pages} onToggle={() => toggleSection('pages')}>

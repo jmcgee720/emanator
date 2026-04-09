@@ -56,81 +56,56 @@ const EMANATOR_HEADLINES = [
 // JSON headers for POST/PUT requests (cookies handle auth automatically)
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
-// Concurrency limiter — max 3 snapshot fetches at a time to avoid DB overload
-const _snapshotQueue = []
-let _snapshotActive = 0
-const SNAPSHOT_CONCURRENCY = 3
-function _drainSnapshotQueue() {
-  while (_snapshotActive < SNAPSHOT_CONCURRENCY && _snapshotQueue.length > 0) {
-    const next = _snapshotQueue.shift()
-    _snapshotActive++
-    next().finally(() => { _snapshotActive--; _drainSnapshotQueue() })
-  }
+// Whimsical status phrases for the build log
+const BUILD_LOG_PHRASES = {
+  connecting: 'Warming up the engines...',
+  classifying_intent: 'Reading your mind (almost)...',
+  intent_classified: 'Got it — plotting the game plan...',
+  selecting_provider: 'Summoning the best brain for the job...',
+  loading_context: 'Gathering all the ingredients...',
+  scanning_files: 'Rummaging through your project files...',
+  files_scanned: 'Found everything I need!',
+  reading_files: 'Speed-reading your codebase...',
+  direct_edit: 'Surgeon mode activated...',
+  generating_images: 'Painting custom visuals for you...',
+  images_ready: 'Artwork is ready!',
+  finding_images: 'Scouting the perfect images...',
+  config_mode: 'Tweaking the knobs...',
+  applying_pending_diff: 'Stitching changes together...',
+  verifying: 'Double-checking my work...',
+  checking_completeness: 'Making sure nothing was missed...',
+  continuation_discovered: 'Found more to do — on it!',
+  executing_plan: 'Bringing the plan to life...',
+  generating_image: 'Cooking up something visual...',
+  generating: 'Generating your project...',
+  proposing_plan: 'Creating the build plan...',
+  analyzing: 'Analyzing codebase...',
+  analysis_complete: 'Analysis complete, building...',
 }
-function queueSnapshotFetch(fn) {
-  return new Promise((resolve, reject) => {
-    _snapshotQueue.push(() => fn().then(resolve, reject))
-    _drainSnapshotQueue()
-  })
-}
 
-function ProjectThumbnail({ projectId }) {
-  const [html, setHtml] = useState(null)
-  const [loaded, setLoaded] = useState(false)
-  const [visible, setVisible] = useState(false)
-  const ref = useRef(null)
+// Lightweight project thumbnail — uses initials/gradients instead of DB queries
+// This prevents 80+ concurrent database requests on page load
+const THUMBNAIL_COLORS = [
+  ['#1a1a2e', '#16213e'], ['#0f3460', '#1a1a2e'], ['#162447', '#1f4068'],
+  ['#1b262c', '#0f4c75'], ['#222831', '#393e46'], ['#2d3436', '#636e72'],
+  ['#1e272e', '#485460'], ['#0a3d62', '#3c6382'], ['#0c2461', '#1e3799'],
+]
 
-  // Only start fetching when the card scrolls into view
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect() } },
-      { rootMargin: '200px' }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+function ProjectThumbnail({ projectId, projectName }) {
+  const colorIndex = (projectId?.charCodeAt?.(0) || 0) % THUMBNAIL_COLORS.length
+  const [bg1, bg2] = THUMBNAIL_COLORS[colorIndex]
+  const initials = (projectName || 'P')
+    .split(/[\s-_]+/)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase() || '')
+    .join('')
 
-  useEffect(() => {
-    if (!visible) return
-    let cancelled = false
-    queueSnapshotFetch(() =>
-      authFetch(`/api/projects/${projectId}/files?action=preview-snapshot`)
-        .then(r => r.ok ? r.json() : null)
-    )
-      .then(data => {
-        if (!cancelled && data?.snapshot?.html) setHtml(data.snapshot.html)
-        if (!cancelled) setLoaded(true)
-      })
-      .catch(() => { if (!cancelled) setLoaded(true) })
-    return () => { cancelled = true }
-  }, [projectId, visible])
-
-  if (!loaded) {
-    return (
-      <div ref={ref} className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
-        <div className="w-4 h-4 border-2 border-[var(--em-text-muted)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-  if (!html) {
-    return (
-      <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
-        <LayoutGrid className="w-5 h-5 text-[var(--em-text-muted)] opacity-40" />
-      </div>
-    )
-  }
   return (
-    <div className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] overflow-hidden relative">
-      <iframe
-        srcDoc={html}
-        className="w-[400%] h-[400%] origin-top-left pointer-events-none"
-        style={{ transform: 'scale(0.25)', border: 'none' }}
-        sandbox="allow-scripts"
-        loading="lazy"
-        tabIndex={-1}
-      />
+    <div
+      className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center"
+      style={{ background: `linear-gradient(135deg, ${bg1}, ${bg2})` }}
+    >
+      <span className="text-lg font-semibold text-white/30 select-none">{initials || 'P'}</span>
     </div>
   )
 }
@@ -521,6 +496,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     { type: 'info', message: 'AI generation engine ready', timestamp: new Date().toISOString() }
   ])
   const [buildMilestones, setBuildMilestones] = useState([])
+  const [buildLog, setBuildLog] = useState([])
 
   const addLog = useCallback((type, message) => {
     setLogs(prev => [...prev, { type, message, timestamp: new Date().toISOString() }])
@@ -528,6 +504,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   const addMilestone = useCallback((label) => {
     setBuildMilestones(prev => [...prev.slice(-19), { label, timestamp: new Date().toISOString() }])
+  }, [])
+
+  const addBuildLogEntry = useCallback((phrase) => {
+    setBuildLog(prev => {
+      if (prev.length > 0 && prev[prev.length - 1].phrase === phrase) return prev
+      return [...prev, { phrase, timestamp: new Date().toISOString() }]
+    })
   }, [])
 
   useEffect(() => {
@@ -669,7 +652,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       // If it's a brief build with split messages, send display + instruction separately
       if (pending.fullInstruction) {
         console.log('[HeroPromptEffect] SENDING brief build, display:', pending.displayMessage?.length, 'instruction:', pending.fullInstruction?.length)
-        sendMessage(pending.displayMessage, null, { hiddenInstruction: pending.fullInstruction })
+        sendMessage(pending.displayMessage, pending.attachments || null, { hiddenInstruction: pending.fullInstruction })
       } else {
         console.log('[HeroPromptEffect] SENDING prompt, length:', (typeof pending === 'string' ? pending : pending.displayMessage || '').length)
         sendMessage(typeof pending === 'string' ? pending : pending.displayMessage)
@@ -1162,12 +1145,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setMessages(prev => [...prev, placeholderAssistant])
     setStreamingMessageId(streamingAssistantId)
     setStreamingStatus({ stage: 'connecting', detail: 'Connecting...' })
+    setBuildLog([])
+    setBuildMilestones([])
 
     // If there's a hidden instruction (from creative brief), send that to the AI instead of the display message
     const aiContent = opts.hiddenInstruction || content
 
     const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
     const streamOpts = { provider: aiProvider, model: aiModel, scope, designPrefs, attachments, visualMode }
+    if (opts.hiddenInstruction) {
+      streamOpts.displayContent = content // Save this as the visible user message
+    }
     if (isSelfEditChat && selfEditTarget) {
       streamOpts.selfEditTarget = selfEditTarget
     }
@@ -1186,6 +1174,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         onStatus: (data) => {
           setStreamingStatus(data)
           addLog('info', `[${data.stage}] ${data.detail}`)
+          // Add whimsical phrase to persistent build log
+          const phrase = BUILD_LOG_PHRASES[data.stage]
+          if (phrase) addBuildLogEntry(phrase)
+          else if (data.detail && !data.detail.includes('Using ')) addBuildLogEntry(data.detail)
         },
 
         onToken: (data) => {
@@ -1200,6 +1192,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           addLog('success', `${data.action === 'created' ? 'Created' : 'Updated'}: ${data.path}`)
           const cleanName = data.path?.replace(/^src\/(components|pages)\//, '').replace(/\.(jsx|tsx|js|ts|css)$/, '') || data.path
           addMilestone(`${data.action === 'created' ? 'Built' : 'Updated'} ${cleanName}`)
+          addBuildLogEntry(`${data.action === 'created' ? 'Built' : 'Refined'} ${cleanName}`)
         },
 
         onDiffFile: (data) => {
@@ -1236,12 +1229,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           addLog('success', `Image generated: ${data.filename} (${data.mode})`)
         },
 
-        onCreativeBrief: (data) => {
-          setMessages(prev => prev.map(m =>
-            m.id === streamingAssistantId
-              ? { ...m, metadata: { ...m.metadata, creativeBrief: data } }
-              : m
-          ))
+        onCreativeBrief: () => {
+          // Design context is used internally by the AI — not shown in chat
         },
 
         onImageIntent: async (data) => {
@@ -2415,10 +2404,10 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
 
           <InlineBrief
             isOwner={isOwner}
-            onStartBuilding={async (displayMessage, fullInstruction, briefData) => {
+            onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
               setHeroSubmitting(true)
               try {
-                pendingHeroPromptRef.current = { displayMessage, fullInstruction }
+                pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments }
                 const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
                 importChatTitleRef.current = projectName
                 await createProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app')
@@ -2508,7 +2497,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                   {/* Thumbnail — live preview snapshot */}
-                  <ProjectThumbnail projectId={item.id} />
+                  <ProjectThumbnail projectId={item.id} projectName={item.name} />
                   {/* Info */}
                   <div className="px-3.5 py-3 relative z-[2]">
                     <div className="text-sm font-medium em-text-primary truncate">{item.name}</div>
@@ -2989,6 +2978,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   visualMode={visualMode}
                   onVisualModeChange={setVisualMode}
                   buildMilestones={buildMilestones}
+                  buildLog={buildLog}
                 />
                 </div>
               </ResizablePanel>
