@@ -2357,7 +2357,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
               setHeroSubmitting(true)
               try {
                 pendingHeroPromptRef.current = prompt
-                await createProject('New Project', projectMode === 'sandbox' ? 'sandbox' : 'app')
+                await createProject(briefData?.project_name || 'New Project', projectMode === 'sandbox' ? 'sandbox' : 'app')
                 aurora.triggerEnergyFlow?.()
                 setActivityLevel(1)
               } catch (error) {

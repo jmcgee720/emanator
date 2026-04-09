@@ -11,7 +11,7 @@ const TONE_OPTIONS = ['Formal', 'Conversational', 'Technical', 'Friendly', 'Auth
 const BUDGET_OPTIONS = ['MVP / lean', 'Polished', 'Premium']
 
 const EMPTY_BRIEF = {
-  elevator_pitch: '', target_audience: '', primary_goal: '', brand_name: '',
+  project_name: '', elevator_pitch: '', target_audience: '', primary_goal: '', brand_name: '',
   mood: [], color_preferences: '', reference_sites: '', pages: [], custom_pages: '',
   most_important_page: '', must_have_features: '', nice_to_have_features: '',
   headline: '', key_messaging: '', tone_of_voice: '', integrations: '',
@@ -134,7 +134,7 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
 
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
   const updateField = useCallback((field, value) => setBrief(prev => ({ ...prev, [field]: value })), [])
-  const hasContent = brief.elevator_pitch || brief.must_have_features || brief.brand_name
+  const hasContent = brief.project_name || brief.elevator_pitch || brief.must_have_features || brief.brand_name
 
   const handleStart = async () => {
     const prompt = buildPromptFromBrief(brief)
@@ -163,6 +163,18 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
         <div className="px-5 pt-4 pb-2">
           <p className="text-xs font-semibold em-text-primary">Creative Brief</p>
           <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Fill in what you know — the AI fills in the rest</p>
+        </div>
+
+        {/* Project title */}
+        <div className="px-5 pb-2">
+          <input
+            value={brief.project_name || ''}
+            onChange={e => updateField('project_name', e.target.value)}
+            placeholder="Project name"
+            className="w-full px-3 py-2.5 rounded-lg text-sm font-medium outline-none transition-all duration-200 focus:border-[rgba(0,229,255,0.3)]"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--em-text-primary)' }}
+            data-testid="brief-project-name"
+          />
         </div>
 
         <div className="max-h-[45vh] overflow-y-auto px-1">
