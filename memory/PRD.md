@@ -67,7 +67,7 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - Created `/lib/ai/patch-verification.js` with `verifyPatchResult()` and `buildVerifiedPatchResponse()`
 - Extracts expected UI changes from user message (headings, active sections, form fields, removals, buttons, nav items, styles, labeled elements)
 - Checks saved file content for those changes using regex + code analysis
-- Returns structured response: FILES CHANGED, WHAT SHOULD NOW BE VISIBLE, HOW TO VERIFY, VERIFICATION STATUS
+- Returns conversational response: friendly summary of changes with next-step prompts
 - All 10 completion message sites in `message-stream.js` replaced with verified responses
 - Zero "Done —" generic strings remain
 - Prompt-builder updated to instruct AI to describe exact visible results, blocking generic completion language
@@ -100,6 +100,25 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - **Root cause**: When AI saved new files, `snapshotHtml` was not cleared — only cleared on manual "Refresh" click. The build `useMemo` returned stale cached HTML before the async snapshot re-fetch could invalidate it
 - **Fix**: `setSnapshotHtml(null)` now runs on every file hash change, not just forced refreshes
 
+### Project Page Overhaul + UX Polish (DONE - Apr 8, 2026)
+- **InlineBrief**: New `InlineBrief.jsx` replaced old hero prompt module with glossy glass creative brief panel
+- **Whimsical loading states**: Fun rotating messages in LeftPanel instead of boring "Connecting..."
+- **Hidden instructions**: `hiddenInstruction` vs `displayMessage` split so raw system prompts don't leak into chat
+- **Project Manager auto-continue**: PM follow-up logic triggers automatically after initial brief build
+- **Project thumbnails**: Updated to show live preview snapshots in ProjectHub
+
+### Chat Title Fix (DONE - Apr 9, 2026)
+- **Root cause**: `projects.js` hardcoded `title: 'New Conversation'` when creating initial chat for new projects
+- **Fix**: Initial chat now uses the project name as its title
+
+### Conversational Response Format (DONE - Apr 9, 2026)
+- **Root cause**: `buildVerifiedPatchResponse()` in `patch-verification.js` generated ugly technical headers (FILES CHANGED, WHAT SHOULD NOW BE VISIBLE, HOW TO VERIFY, VERIFICATION STATUS)
+- **Fix**: Rewritten to produce friendly, conversational responses with natural language and next-step prompts
+
+### Image Upload Context for AI (DONE - Apr 9, 2026)
+- **Root cause**: When user uploaded an image, the AI only received a text note about the image path. The AI had no access to the actual image data, so it couldn't embed the image in generated code for the preview iframe
+- **Fix**: `message-stream.js` now passes the base64 data URL for uploaded images (≤300KB) directly to the AI prompt, with explicit instructions to use the full data URL as the `src` attribute. Falls back to path reference for oversized images
+
 ### Post-Patch Verification Expansion (DONE - Apr 8, 2026)
 - **New check types**: `select_element` (dropdown detection), `option_value` (option verification), `conditional_field` (conditional rendering detection)
 - **Dropdown patterns**: Detects "make X a dropdown", "convert to select", "add select for", "select with options"
@@ -117,10 +136,11 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 ### P1
 - Implement Phase 2-5 of conversational AI architecture (Intent Detection, Task Scope Classification, Silent Validation Retries, Learning System)
 - CSV export option
+- Large image support for preview (images > 300KB base64 need asset injection in PreviewTab srcDoc)
 
 ### P2
 - Deploy integration (Vercel/Netlify) — currently mocked
-- Refactor `service.js` (~2600 lines) and `message-stream.js` (~1800 lines) into smaller modules
+- Refactor `service.js` (~2600 lines) and `message-stream.js` (~1800+ lines) into smaller modules
 
 ## Key Files
 - `/app/lib/ai/errors.js` - Error classification and translation (proxy_budget, context_length, billing)
@@ -134,8 +154,8 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - `/app/components/dashboard/tabs/PreviewTab.jsx` - Babel iframe preview, snapshot cache, react-router-dom pinned to 6.13.0
 - `/app/components/dashboard/InlineBrief.jsx` - NEW: Inline creative brief form (replaces prompt module)
 - `/app/components/dashboard/Dashboard.jsx` - ProjectThumbnail component, fork with auto-navigate
-- `/app/lib/ai/message-stream.js` - Plan walkthrough streaming
-- `/app/lib/ai/patch-verification.js` - Code + runtime verification (select/option/conditional types)
+- `/app/lib/ai/message-stream.js` - Plan walkthrough streaming; image attachment data URL injection
+- `/app/lib/ai/patch-verification.js` - Code + runtime verification; conversational response format
 
 ## Test Credentials
 - Email: REDACTED_LEAKED_USER
