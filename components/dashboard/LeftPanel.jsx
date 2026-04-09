@@ -267,7 +267,8 @@ export default function LeftPanel({
   onSavePrompt,
   onCreateSandbox,
   visualMode,
-  onVisualModeChange
+  onVisualModeChange,
+  buildMilestones
 }) {
   const [sending, setSending] = useState(false)
   const [forkingChat, setForkingChat] = useState(false)
@@ -466,17 +467,40 @@ export default function LeftPanel({
         data-testid="messages-area"
       >
         <div className="p-3 space-y-3 w-full min-w-0">
-          {messages.length === 0 ? (
-            <div className="text-center py-20 relative z-10 em-panel-enter">
-              <div className="w-11 h-11 mx-auto rounded-lg flex items-center justify-center mb-4 em-glow-cyan" style={{background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(124,58,237,0.08))'}}>
-                <Zap className="w-5 h-5 text-[#00E5FF]" />
+          {/* Streaming status indicator — shown at top when building */}
+          {isStreaming && streamingStatus && !imageGenProgress && (
+            <div className="flex gap-2.5 em-message-enter" data-testid="streaming-indicator-top">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center em-streaming-breathe ${
+                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20' : 'bg-[rgba(124,58,237,0.1)] em-streaming-glow'
+              }`}>
+                {streamingStatus.stage === 'provider_fallback'
+                  ? <Clock className="w-2.5 h-2.5 text-amber-400" />
+                  : <Zap className="w-2.5 h-2.5 text-[var(--em-text-muted)]" />}
               </div>
-              <p className="text-sm font-medium em-text-secondary mb-1">Ready when you are</p>
-              <p className="text-[11px] em-text-muted max-w-[200px] mx-auto leading-relaxed">
-                Type anything — I'll take it from here
-              </p>
+              <div className={`rounded-lg px-3 py-2 ${
+                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : ''
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Loader2 className={`w-3.5 h-3.5 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-muted-foreground/60'}`} />
+                  <span className={`text-[13px] ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>{whimsicalStatus(streamingStatus) || 'Generating...'}</span>
+                </div>
+              </div>
             </div>
-          ) : (
+          )}
+
+          {/* Build milestones log — shown during/after builds */}
+          {buildMilestones?.length > 0 && messages.length === 0 && (
+            <div className="space-y-1 py-2 em-panel-enter" data-testid="build-milestones">
+              {buildMilestones.map((m, i) => (
+                <div key={i} className="flex items-center gap-2 px-1">
+                  <div className="w-1 h-1 rounded-full bg-emerald-400/60 flex-shrink-0" />
+                  <span className="text-[11px] text-muted-foreground/60">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {messages.length > 0 && (
             messages.map((message) => {
               const isUser = message.role === 'user'
               const isCollapsed = collapsedMessages[message.id]
@@ -726,24 +750,16 @@ export default function LeftPanel({
             })
           )}
 
-          {/* Streaming status indicator (non-image generation) */}
-          {isStreaming && streamingStatus && !imageGenProgress && (
-            <div className="flex gap-2.5 em-message-enter" data-testid="streaming-indicator">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center em-streaming-breathe ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20' : 'bg-[rgba(124,58,237,0.1)] em-streaming-glow'
-              }`}>
-                {streamingStatus.stage === 'provider_fallback'
-                  ? <Clock className="w-2.5 h-2.5 text-amber-400" />
-                  : <Zap className="w-2.5 h-2.5 text-[var(--em-text-muted)]" />}
-              </div>
-              <div className={`rounded-lg px-3 py-2 ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : ''
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Loader2 className={`w-3.5 h-3.5 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-muted-foreground/60'}`} />
-                  <span className={`text-[13px] ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>{whimsicalStatus(streamingStatus) || 'Generating...'}</span>
+          {/* Milestones log below messages — shown when messages exist */}
+          {buildMilestones?.length > 0 && messages.length > 0 && !isStreaming && (
+            <div className="space-y-1 py-2 px-1" data-testid="build-milestones-inline">
+              <div className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider mb-1">Build log</div>
+              {buildMilestones.slice(-5).map((m, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-emerald-400/60 flex-shrink-0" />
+                  <span className="text-[11px] text-muted-foreground/50">{m.label}</span>
                 </div>
-              </div>
+              ))}
             </div>
           )}
 
