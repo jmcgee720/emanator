@@ -622,6 +622,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }, [selectedChat?.id])
 
   // Send pending hero prompt AFTER messages finish loading (avoids race condition)
+  // ONLY depends on messagesReadyTick — NOT selectedChat — to ensure loadMessages
+  // has completed before we add new messages (otherwise loadMessages wipes them)
   useEffect(() => {
     console.log('[HeroPromptEffect] tick:', messagesReadyTick, 'pending:', !!pendingHeroPromptRef.current, 'chat:', !!selectedChat, 'project:', !!selectedProject, 'streaming:', streamingMessageId)
     if (pendingHeroPromptRef.current && selectedChat && selectedProject && !streamingMessageId) {
@@ -637,7 +639,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         sendMessage(typeof pending === 'string' ? pending : pending.displayMessage)
       }
     }
-  }, [messagesReadyTick, selectedChat, selectedProject, streamingMessageId])
+  }, [messagesReadyTick])
 
   const loadProjects = async () => {
     try {
