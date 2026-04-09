@@ -2409,7 +2409,9 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
               try {
                 pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments }
                 const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
-                importChatTitleRef.current = projectName
+                // Chat title should summarize the request, not duplicate the project name
+                const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build'
+                importChatTitleRef.current = chatTitle
                 await createProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app')
                 aurora.triggerEnergyFlow?.()
                 setActivityLevel(1)
