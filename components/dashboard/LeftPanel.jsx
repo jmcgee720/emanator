@@ -471,9 +471,9 @@ export default function LeftPanel({
               <div className="w-11 h-11 mx-auto rounded-lg flex items-center justify-center mb-4 em-glow-cyan" style={{background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(124,58,237,0.08))'}}>
                 <Zap className="w-5 h-5 text-[#00E5FF]" />
               </div>
-              <p className="text-sm font-medium em-text-secondary mb-1">Start a conversation</p>
+              <p className="text-sm font-medium em-text-secondary mb-1">Ready when you are</p>
               <p className="text-[11px] em-text-muted max-w-[200px] mx-auto leading-relaxed">
-                Describe what you want to build and I'll help you create it
+                Type anything — I'll take it from here
               </p>
             </div>
           ) : (
