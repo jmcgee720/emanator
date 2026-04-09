@@ -56,24 +56,60 @@ const EMANATOR_HEADLINES = [
 // JSON headers for POST/PUT requests (cookies handle auth automatically)
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
+// Concurrency limiter — max 3 snapshot fetches at a time to avoid DB overload
+const _snapshotQueue = []
+let _snapshotActive = 0
+const SNAPSHOT_CONCURRENCY = 3
+function _drainSnapshotQueue() {
+  while (_snapshotActive < SNAPSHOT_CONCURRENCY && _snapshotQueue.length > 0) {
+    const next = _snapshotQueue.shift()
+    _snapshotActive++
+    next().finally(() => { _snapshotActive--; _drainSnapshotQueue() })
+  }
+}
+function queueSnapshotFetch(fn) {
+  return new Promise((resolve, reject) => {
+    _snapshotQueue.push(() => fn().then(resolve, reject))
+    _drainSnapshotQueue()
+  })
+}
+
 function ProjectThumbnail({ projectId }) {
   const [html, setHtml] = useState(null)
   const [loaded, setLoaded] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const ref = useRef(null)
+
+  // Only start fetching when the card scrolls into view
   useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect() } },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!visible) return
     let cancelled = false
-    authFetch(`/api/projects/${projectId}/files?action=preview-snapshot`)
-      .then(r => r.ok ? r.json() : null)
+    queueSnapshotFetch(() =>
+      authFetch(`/api/projects/${projectId}/files?action=preview-snapshot`)
+        .then(r => r.ok ? r.json() : null)
+    )
       .then(data => {
         if (!cancelled && data?.snapshot?.html) setHtml(data.snapshot.html)
         if (!cancelled) setLoaded(true)
       })
       .catch(() => { if (!cancelled) setLoaded(true) })
     return () => { cancelled = true }
-  }, [projectId])
+  }, [projectId, visible])
 
   if (!loaded) {
     return (
-      <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
+      <div ref={ref} className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
         <div className="w-4 h-4 border-2 border-[var(--em-text-muted)] border-t-transparent rounded-full animate-spin" />
       </div>
     )
