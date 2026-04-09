@@ -1092,7 +1092,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
   const sendMessage = async (content, attachments, opts = {}) => {
     if (!selectedChat) return
-    if (!opts.silent && !content.trim()) return
+    if (!opts.silent && !(content || '').trim()) return
     if (streamingMessageId) return
 
     setActivityLevel(1)
@@ -1480,22 +1480,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           }
           await refreshCanvas()
 
-          // Project Manager auto-continue: after initial build, silently ask AI to review and plan next steps
-          // Uses silent mode — no visible "user" message appears, only the AI's response
-          if (briefBuildActiveRef.current && (data.generatedFiles?.length > 0 || data.directEditMode)) {
+          // PM auto-continue disabled — was causing cascading multi-stream failures
+          if (briefBuildActiveRef.current) {
             briefBuildActiveRef.current = false
-            setTimeout(() => {
-              sendMessage('pm-review', null, {
-                silent: true,
-                hiddenInstruction: `You just finished the initial build for this project. Now act as the Project Manager and give a quick status update:
-
-1. Briefly describe what you just built (2-3 sentences max)
-2. List what's done vs. what's still needed based on the original brief
-3. Propose your next move — tell the user what you'll build next and ask if they want you to go ahead
-
-Keep it concise and conversational. Do NOT write code or call any tools in this response — just review and plan.`
-              })
-            }, 2000)
           }
         },
 
