@@ -13,6 +13,7 @@ import GrowthPanel from './GrowthPanel'
 import AdminPanel from './AdminPanel'
 import SearchPanel from './SearchPanel'
 import CanvasPanel from './CanvasPanel'
+import InlineBrief from './InlineBrief'
 import DesignPanel from './DesignPanel'
 import VariationStudio from './VariationStudio'
 import PromptLibrary from './PromptLibrary'
@@ -54,6 +55,49 @@ const EMANATOR_HEADLINES = [
 
 // JSON headers for POST/PUT requests (cookies handle auth automatically)
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
+function ProjectThumbnail({ projectId }) {
+  const [html, setHtml] = useState(null)
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    authFetch(`/api/projects/${projectId}/files?action=preview-snapshot`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!cancelled && data?.snapshot?.html) setHtml(data.snapshot.html)
+        if (!cancelled) setLoaded(true)
+      })
+      .catch(() => { if (!cancelled) setLoaded(true) })
+    return () => { cancelled = true }
+  }, [projectId])
+
+  if (!loaded) {
+    return (
+      <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
+        <div className="w-4 h-4 border-2 border-[var(--em-text-muted)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+  if (!html) {
+    return (
+      <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
+        <LayoutGrid className="w-5 h-5 text-[var(--em-text-muted)] opacity-40" />
+      </div>
+    )
+  }
+  return (
+    <div className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] overflow-hidden relative">
+      <iframe
+        srcDoc={html}
+        className="w-[400%] h-[400%] origin-top-left pointer-events-none"
+        style={{ transform: 'scale(0.25)', border: 'none' }}
+        sandbox="allow-scripts"
+        loading="lazy"
+        tabIndex={-1}
+      />
+    </div>
+  )
+}
 
 export default function Dashboard({ user, dbUser, onSignOut }) {
   const isOwner = dbUser?.role === 'owner'
@@ -2296,131 +2340,36 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
 
     return (
       <div className="flex-1 overflow-auto relative z-5">
-        {/* ── Hero: headline + prompt ── */}
-        <div className="pt-16 pb-12 px-8">
-          <div className="max-w-3xl mx-auto text-center">
+        {/* ── Hero: headline + creative brief ── */}
+        <div className="pt-16 pb-8 px-8">
+          <div className="max-w-3xl mx-auto text-center mb-8">
             <h1
-              className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight mb-10 leading-tight"
+              className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight leading-tight"
               data-testid="dynamic-headline"
             >
               {headline}
             </h1>
-
-            {/* Mode toggles */}
-            <div className="flex items-center justify-center gap-2 mb-5" data-testid="mode-toggles">
-              {modes.map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setProjectMode(key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium border transition-all duration-200 backdrop-blur-sm ${
-                    projectMode === key
-                      ? 'border-[rgba(255,255,255,0.25)] bg-[rgba(255,255,255,0.10)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_0_12px_rgba(0,229,255,0.08)]'
-                      : 'border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)] text-[var(--em-text-secondary)] hover:border-[rgba(255,255,255,0.18)] hover:bg-[rgba(255,255,255,0.07)]'
-                  }`}
-                  data-testid={`mode-toggle-${key}`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Prompt input — elite hero glass */}
-            <div
-              className="relative rounded-xl overflow-hidden p-1 transition-all duration-200 focus-within:shadow-[0_0_24px_rgba(0,229,255,0.10),0_0_60px_rgba(0,229,255,0.04)]"
-              data-testid="prompt-container"
-              style={{
-                background: 'linear-gradient(170deg, rgba(255,255,255,0.09) 0%, rgba(200,220,255,0.05) 40%, rgba(255,255,255,0.07) 100%)',
-                backdropFilter: 'blur(36px) saturate(1.6) brightness(1.08)',
-                WebkitBackdropFilter: 'blur(36px) saturate(1.6) brightness(1.08)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                boxShadow: '0 16px 70px rgba(0,0,0,0.28), 0 4px 24px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 60px rgba(255,255,255,0.02)',
-              }}
-            >
-              {/* Top specular */}
-              <div className="absolute top-0 left-0 right-0 h-px z-[2]" style={{
-                background: 'linear-gradient(90deg, transparent 2%, rgba(255,255,255,0.12) 10%, rgba(255,255,255,0.45) 25%, rgba(255,255,255,0.65) 40%, rgba(0,229,255,0.30) 55%, rgba(255,255,255,0.35) 72%, rgba(255,255,255,0.10) 90%, transparent 98%)',
-              }} />
-              <div className="relative">
-                <textarea
-                  value={promptInput}
-                  onChange={(e) => { setPromptInput(e.target.value); aurora.onTyping(); setActivityLevel(prev => Math.min(1, prev + 0.05)); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleHeroPromptSubmit()
-                    }
-                  }}
-                  placeholder="Build me a dashboard for..."
-                  rows={2}
-                  className="w-full bg-transparent text-sm text-[var(--em-text-primary)] placeholder:text-[var(--em-text-secondary)] placeholder:opacity-60 outline-none resize-none px-4 py-3"
-                  data-testid="project-prompt-input"
-                />
-              </div>
-              {/* Prompt controls row */}
-              <div className="flex items-center justify-between px-3 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)]" data-testid="model-selector-prompt">
-                    <span>E-1</span>
-                  </div>
-                  <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-cyan)] bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.12)]" data-testid="ultra-toggle">
-                    <span>Ultra</span>
-                  </div>
-                  <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)]" data-testid="ai-model-selector">
-                    <span>Claude 4.5 Opus</span>
-                  </div>
-                  <div className="w-px h-4 bg-[rgba(255,255,255,0.08)]" />
-                  <button
-                    onClick={() => setVisualMode(visualMode === 'stock' ? 'custom' : 'stock')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
-                      visualMode === 'custom'
-                        ? 'text-amber-400 bg-[rgba(245,158,11,0.1)] border-[rgba(245,158,11,0.25)]'
-                        : 'text-[var(--em-text-primary)] bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]'
-                    }`}
-                    data-testid="hero-visual-mode-toggle"
-                    title={visualMode === 'custom' ? 'Custom AI images (3x credits)' : 'Stock photos (included)'}
-                  >
-                    {visualMode === 'custom' ? <Sparkles className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
-                    <span>{visualMode === 'custom' ? 'Custom' : 'Stock'}</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={toggleVoiceDictation}
-                    className={`h-7 w-7 flex items-center justify-center rounded-lg border transition-all ${
-                      voiceListening
-                        ? 'border-red-500/40 bg-red-500/15 text-red-400 animate-pulse'
-                        : 'border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'
-                    }`}
-                    data-testid="voice-input-btn"
-                  >
-                    <Mic className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${
-                      promptInput.trim() && !heroSubmitting
-                        ? 'bg-[var(--em-cyan)] text-[#0C1018] hover:brightness-110 shadow-[0_0_12px_rgba(0,229,255,0.2)]'
-                        : 'bg-[rgba(255,255,255,0.08)] text-[var(--em-text-muted)] cursor-not-allowed'
-                    }`}
-                    data-testid="prompt-submit-btn"
-                    disabled={!promptInput.trim() || heroSubmitting}
-                    onClick={handleHeroPromptSubmit}
-                  >
-                    {heroSubmitting ? (
-                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
+
+          <InlineBrief
+            isOwner={isOwner}
+            onStartBuilding={async (prompt, briefData) => {
+              setHeroSubmitting(true)
+              try {
+                pendingHeroPromptRef.current = prompt
+                await createProject('New Project', projectMode === 'sandbox' ? 'sandbox' : 'app')
+                aurora.triggerEnergyFlow?.()
+                setActivityLevel(1)
+              } catch (error) {
+                pendingHeroPromptRef.current = null
+              } finally {
+                setHeroSubmitting(false)
+              }
+            }}
+          />
         </div>
 
-        {/* ── Project Grid — no outer panel, cards float on aurora ── */}
+        {/* ── Project / Core System toggles + grid ── */}
         <div className="px-8 pb-12">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
@@ -2465,14 +2414,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                     Core System
                   </button>
                 )}
-                <button
-                  onClick={() => setShowNewProjectModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
-                  data-testid="new-project-btn"
-                >
-                  <Plus className="w-3 h-3" />
-                  New Project
-                </button>
               </div>
             </div>
 
@@ -2502,10 +2443,8 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
-                  {/* Thumbnail area */}
-                  <div className="aspect-[4/3] bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center">
-                    <span className="text-xs em-text-muted font-medium">Project Thumbnail</span>
-                  </div>
+                  {/* Thumbnail — live preview snapshot */}
+                  <ProjectThumbnail projectId={item.id} />
                   {/* Info */}
                   <div className="px-3.5 py-3 relative z-[2]">
                     <div className="text-sm font-medium em-text-primary truncate">{item.name}</div>
