@@ -1484,6 +1484,9 @@ async def _proxy_to_preview(request: Request, project_id: str, path: str):
         return JSONResponse({"error": f"Preview not responding: {e}"}, status_code=502)
 
 
+# Shared httpx client — reuses TCP connections across requests
+_proxy_client = httpx.AsyncClient(timeout=httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0))
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy_api(request: Request, path: str):
     """Proxy all /api/* requests to Next.js"""
@@ -1496,9 +1499,40 @@ async def proxy_api(request: Request, path: str):
     # Get body if present
     body = await request.body()
     
+    # Detect if this is likely an SSE stream request
+    is_stream = '/stream' in path
+    
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.request(
+        if is_stream:
+            # Use streaming mode: don't buffer the full response body
+            req = _proxy_client.build_request(
+                method=request.method,
+                url=url,
+                headers=headers,
+                content=body,
+                params=request.query_params,
+            )
+            response = await _proxy_client.send(req, stream=True)
+            content_type = response.headers.get('content-type', '')
+            
+            async def stream_sse():
+                try:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+                finally:
+                    await response.aclose()
+            
+            resp_headers = {k: v for k, v in response.headers.items()
+                           if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding')}
+            return StreamingResponse(
+                stream_sse(),
+                status_code=response.status_code,
+                headers=resp_headers,
+                media_type=content_type or 'text/event-stream'
+            )
+        else:
+            # Regular request — read full response
+            response = await _proxy_client.request(
                 method=request.method,
                 url=url,
                 headers=headers,
@@ -1506,21 +1540,8 @@ async def proxy_api(request: Request, path: str):
                 params=request.query_params,
             )
             
-            # Check if this is a streaming response (SSE)
-            content_type = response.headers.get('content-type', '')
-            if 'text/event-stream' in content_type:
-                async def stream_response():
-                    async for chunk in response.aiter_bytes():
-                        yield chunk
-                return StreamingResponse(
-                    stream_response(),
-                    status_code=response.status_code,
-                    headers=dict(response.headers),
-                    media_type=content_type
-                )
-            
-            # Regular response — pass through raw body to avoid parse/re-serialize issues
-            resp_headers = {k: v for k, v in response.headers.items() if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding')}
+            resp_headers = {k: v for k, v in response.headers.items()
+                           if k.lower() not in ('content-length', 'content-encoding', 'transfer-encoding')}
             return Response(
                 content=response.content,
                 status_code=response.status_code,
