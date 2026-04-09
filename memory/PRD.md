@@ -123,15 +123,19 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - Refactor `service.js` (~2600 lines) and `message-stream.js` (~1800 lines) into smaller modules
 
 ## Key Files
-- `/app/lib/ai/errors.js` - Error classification and translation
-- `/app/lib/api/stream-handler.js` - SSE streaming with credit checks
-- `/app/lib/api/routes/chats.js` - Chat messages with credit gates
+- `/app/lib/ai/errors.js` - Error classification and translation (proxy_budget, context_length, billing)
+- `/app/lib/api/stream-handler.js` - SSE streaming with credit checks + error metadata saving
+- `/app/lib/api/routes/chats.js` - Chat messages, credit gates, fork endpoint with AI title generation
 - `/app/lib/api/routes/diffs.js` - Diff application with credit gates
 - `/app/lib/api/routes/assets.js` - Image generation with credit gates
 - `/app/lib/api/routes/public.js` - Lightweight provider status
 - `/app/lib/credits/service.js` - Credit costs, balances, deduction
-- `/app/components/dashboard/tabs/PreviewTab.jsx` - Babel iframe preview
+- `/app/lib/ai/stream-helpers.js` - Context compression (aggressive: 91% reduction)
+- `/app/components/dashboard/tabs/PreviewTab.jsx` - Babel iframe preview, snapshot cache, react-router-dom pinned to 6.13.0
+- `/app/components/dashboard/InlineBrief.jsx` - NEW: Inline creative brief form (replaces prompt module)
+- `/app/components/dashboard/Dashboard.jsx` - ProjectThumbnail component, fork with auto-navigate
 - `/app/lib/ai/message-stream.js` - Plan walkthrough streaming
+- `/app/lib/ai/patch-verification.js` - Code + runtime verification (select/option/conditional types)
 
 ## Test Credentials
 - Email: testprov@test.com

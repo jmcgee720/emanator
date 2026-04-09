@@ -171,7 +171,7 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     '</style>',
     '<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>',
     '<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>',
-    '<script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.production.min.js" crossorigin><\/script>',
+    '<script src="https://unpkg.com/react-router-dom@6.13.0/umd/react-router-dom.production.min.js" crossorigin><\/script>',
     '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
     '</head><body><div id="root"></div>',
     '<script>',
