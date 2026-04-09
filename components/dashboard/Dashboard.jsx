@@ -1100,10 +1100,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     const streamingAssistantId = `streaming-${Date.now()}`
     const collectedDiffs = []
+    const tempUserId = `temp-${Date.now()}`
 
     // Silent messages skip the user bubble entirely — only the AI response appears
     if (!opts.silent) {
-      const tempUserId = `temp-${Date.now()}`
       const tempUserMessage = {
         id: tempUserId,
         role: 'user',
