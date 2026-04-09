@@ -119,6 +119,13 @@ Build a conversational AI builder (Emanator) that lets users submit a Creative B
 - **Root cause**: When user uploaded an image, the AI only received a text note about the image path. The AI had no access to the actual image data, so it couldn't embed the image in generated code for the preview iframe
 - **Fix**: `message-stream.js` now passes the base64 data URL for uploaded images (≤300KB) directly to the AI prompt, with explicit instructions to use the full data URL as the `src` attribute. Falls back to path reference for oversized images
 
+### Chat UX Improvements (DONE - Apr 9, 2026)
+- **Removed "Ready when you are"**: Empty chat state is now clean — no placeholder text
+- **Streaming indicator moved to top**: Whimsical loading status ("Warming up the engines...") now appears at the top of the messages area, immediately visible during builds
+- **Build milestone log**: Running log of major achievements (files built/updated) shown below streaming indicator and as an inline log after messages
+- **PM auto-continue → two-step flow**: Step 1 sends a review-only prompt (no building), Step 2 auto-triggers the actual build after the review completes. This prevents the AI's conversational review from being overwritten by file change summaries
+- **Preserved AI text in auto-execute**: When the AI streams substantial conversational text before making tool calls, the text is preserved and only a brief file note is appended (instead of overwriting with the verified response)
+
 ### Post-Patch Verification Expansion (DONE - Apr 8, 2026)
 - **New check types**: `select_element` (dropdown detection), `option_value` (option verification), `conditional_field` (conditional rendering detection)
 - **Dropdown patterns**: Detects "make X a dropdown", "convert to select", "add select for", "select with options"

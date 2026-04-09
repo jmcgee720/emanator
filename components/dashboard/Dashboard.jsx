@@ -475,6 +475,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const importChatTitleRef = useRef(null)
   const pendingHeroPromptRef = useRef(null)
   const briefBuildActiveRef = useRef(false)
+  const pmReviewPendingRef = useRef(false)
   const tabChatStateRef = useRef({})
   const pendingRestoreChatRef = useRef(null)
   const coreProjectIdRef = useRef(null)
@@ -484,9 +485,14 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     { type: 'info', message: 'Welcome to Emanator', timestamp: new Date().toISOString() },
     { type: 'info', message: 'AI generation engine ready', timestamp: new Date().toISOString() }
   ])
+  const [buildMilestones, setBuildMilestones] = useState([])
 
   const addLog = useCallback((type, message) => {
     setLogs(prev => [...prev, { type, message, timestamp: new Date().toISOString() }])
+  }, [])
+
+  const addMilestone = useCallback((label) => {
+    setBuildMilestones(prev => [...prev.slice(-19), { label, timestamp: new Date().toISOString() }])
   }, [])
 
   useEffect(() => {
@@ -1151,6 +1157,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
         onFile: (data) => {
           addLog('success', `${data.action === 'created' ? 'Created' : 'Updated'}: ${data.path}`)
+          const cleanName = data.path?.replace(/^src\/(components|pages)\//, '').replace(/\.(jsx|tsx|js|ts|css)$/, '') || data.path
+          addMilestone(`${data.action === 'created' ? 'Built' : 'Updated'} ${cleanName}`)
         },
 
         onDiffFile: (data) => {
@@ -1467,18 +1475,31 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           }
           await refreshCanvas()
 
-          // Project Manager auto-continue: after initial brief build, review and propose next steps
+          // Project Manager auto-continue: two-step flow
+          // Step 1: review what was built (text-only, no building)
+          // Step 2: after review, auto-trigger the next build
           if (briefBuildActiveRef.current && (data.generatedFiles?.length > 0 || data.directEditMode)) {
             briefBuildActiveRef.current = false
-            // Small delay to let the preview render, then auto-send PM follow-up
+            pmReviewPendingRef.current = true
             setTimeout(() => {
-              const pmPrompt = `You just finished the initial build. Now act as the Project Manager:
-1. Briefly review what you just built (2-3 sentences max)
-2. List what's done vs. what's still needed based on the original brief
-3. Propose your next move and start building it immediately — don't wait for approval
+              sendMessage('What did we just build?', null, {
+                hiddenInstruction: `You just finished the initial build for this project. Act as a friendly Project Manager and give a quick status update. Do NOT write code or create files — just talk.
 
-Keep it concise and conversational. Then start building the next piece.`
-              sendMessage(pmPrompt)
+1. Briefly describe what you just built (2-3 sentences max — what pages, what features)
+2. List what's done vs. what's still needed based on the original brief
+3. End with: "I'm going to [specific next thing] now." — be specific about what you'll build next
+
+Keep it concise, conversational, and helpful. Do NOT call any tools.`
+              })
+            }, 2000)
+          }
+          // Step 2: After PM review completes, auto-trigger the next build
+          else if (pmReviewPendingRef.current && !data.generatedFiles?.length) {
+            pmReviewPendingRef.current = false
+            setTimeout(() => {
+              sendMessage('Go ahead, build it.', null, {
+                hiddenInstruction: 'The user approved your proposed next step. Execute it now — build the files you just described. Use create_files or update_files tools.'
+              })
             }, 2000)
           }
         },
@@ -2949,6 +2970,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   onCreateSandbox={createSandbox}
                   visualMode={visualMode}
                   onVisualModeChange={setVisualMode}
+                  buildMilestones={buildMilestones}
                 />
                 </div>
               </ResizablePanel>
