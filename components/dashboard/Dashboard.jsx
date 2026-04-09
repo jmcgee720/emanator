@@ -620,11 +620,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   useEffect(() => {
     console.log('[HeroPromptEffect] tick:', messagesReadyTick, 'pending:', !!pendingHeroPromptRef.current, 'chat:', !!selectedChat, 'project:', !!selectedProject, 'streaming:', streamingMessageId)
     if (pendingHeroPromptRef.current && selectedChat && selectedProject && !streamingMessageId) {
-      const prompt = pendingHeroPromptRef.current
+      const pending = pendingHeroPromptRef.current
       pendingHeroPromptRef.current = null
       briefBuildActiveRef.current = true
-      console.log('[HeroPromptEffect] SENDING prompt, length:', prompt.length)
-      sendMessage(prompt)
+      // If it's a brief build with split messages, send display + instruction separately
+      if (pending.fullInstruction) {
+        console.log('[HeroPromptEffect] SENDING brief build, display:', pending.displayMessage?.length, 'instruction:', pending.fullInstruction?.length)
+        sendMessage(pending.displayMessage, null, { hiddenInstruction: pending.fullInstruction })
+      } else {
+        console.log('[HeroPromptEffect] SENDING prompt, length:', (typeof pending === 'string' ? pending : pending.displayMessage || '').length)
+        sendMessage(typeof pending === 'string' ? pending : pending.displayMessage)
+      }
     }
   }, [messagesReadyTick, selectedChat, selectedProject, streamingMessageId])
 
@@ -1077,7 +1083,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
-  const sendMessage = async (content, attachments) => {
+  const sendMessage = async (content, attachments, opts = {}) => {
     if (!selectedChat || !content.trim()) return
     if (streamingMessageId) return
 
@@ -1110,6 +1116,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setStreamingMessageId(streamingAssistantId)
     setStreamingStatus({ stage: 'connecting', detail: 'Connecting...' })
 
+    // If there's a hidden instruction (from creative brief), send that to the AI instead of the display message
+    const aiContent = opts.hiddenInstruction || content
+
     const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
     const streamOpts = { provider: aiProvider, model: aiModel, scope, designPrefs, attachments, visualMode }
     if (isSelfEditChat && selfEditTarget) {
@@ -1118,7 +1127,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     const abortController = streamMessage(
       selectedChat.id,
-      content,
+      aiContent,
       streamOpts,
       {
         onUserMessage: (data) => {
@@ -2367,10 +2376,10 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
 
           <InlineBrief
             isOwner={isOwner}
-            onStartBuilding={async (prompt, briefData) => {
+            onStartBuilding={async (displayMessage, fullInstruction, briefData) => {
               setHeroSubmitting(true)
               try {
-                pendingHeroPromptRef.current = prompt
+                pendingHeroPromptRef.current = { displayMessage, fullInstruction }
                 await createProject(briefData?.project_name || 'New Project', projectMode === 'sandbox' ? 'sandbox' : 'app')
                 aurora.triggerEnergyFlow?.()
                 setActivityLevel(1)

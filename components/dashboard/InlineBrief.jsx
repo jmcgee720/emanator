@@ -103,28 +103,37 @@ function Chips({ selected = [], options, onChange, label, testId }) {
 }
 
 function buildPromptFromBrief(brief) {
-  const parts = []
-  parts.push('Build this project now with COMPLETE, production-ready pages. Every component must have full UI with real layouts, navigation, forms, cards, and proper styling — no placeholder pages with just a title.')
-  if (brief.elevator_pitch) parts.push(`Project: ${brief.elevator_pitch}`)
-  if (brief.target_audience) parts.push(`Target audience: ${brief.target_audience}`)
-  if (brief.primary_goal) parts.push(`Primary goal: ${brief.primary_goal}`)
-  if (brief.brand_name) parts.push(`Brand name: ${brief.brand_name}`)
-  if (brief.mood?.length > 0) parts.push(`Style/mood: ${brief.mood.join(', ')}`)
-  if (brief.color_preferences) parts.push(`Colors: ${brief.color_preferences}`)
-  if (brief.reference_sites) parts.push(`Reference sites: ${brief.reference_sites}`)
+  // Build the user-visible message (conversational)
+  const displayParts = []
+  if (brief.project_name) displayParts.push(brief.project_name)
+  if (brief.elevator_pitch) displayParts.push(brief.elevator_pitch)
+  const displayMessage = displayParts.length > 0
+    ? displayParts.join(' — ')
+    : 'Build my project'
+
+  // Build the full AI instruction (hidden from chat)
+  const instrParts = []
+  instrParts.push('Build this project now with COMPLETE, production-ready pages. Every component must have full UI with real layouts, navigation, forms, cards, and proper styling — no placeholder pages with just a title.')
+  if (brief.elevator_pitch) instrParts.push(`Project: ${brief.elevator_pitch}`)
+  if (brief.target_audience) instrParts.push(`Target audience: ${brief.target_audience}`)
+  if (brief.primary_goal) instrParts.push(`Primary goal: ${brief.primary_goal}`)
+  if (brief.brand_name) instrParts.push(`Brand name: ${brief.brand_name}`)
+  if (brief.mood?.length > 0) instrParts.push(`Style/mood: ${brief.mood.join(', ')}`)
+  if (brief.color_preferences) instrParts.push(`Colors: ${brief.color_preferences}`)
+  if (brief.reference_sites) instrParts.push(`Reference sites: ${brief.reference_sites}`)
   const allPages = [...(brief.pages || []), ...(brief.custom_pages ? brief.custom_pages.split(',').map(p => p.trim()).filter(Boolean) : [])]
-  if (allPages.length > 0) parts.push(`Pages needed: ${allPages.join(', ')}`)
-  if (brief.most_important_page) parts.push(`Most important page: ${brief.most_important_page}`)
-  if (brief.must_have_features) parts.push(`Must-have features: ${brief.must_have_features}`)
-  if (brief.nice_to_have_features) parts.push(`Nice-to-have: ${brief.nice_to_have_features}`)
-  if (brief.headline) parts.push(`Headline/tagline: ${brief.headline}`)
-  if (brief.key_messaging) parts.push(`Key messaging: ${brief.key_messaging}`)
-  if (brief.tone_of_voice) parts.push(`Tone: ${brief.tone_of_voice}`)
-  if (brief.integrations) parts.push(`Integrations: ${brief.integrations}`)
-  if (brief.budget_tier) parts.push(`Budget tier: ${brief.budget_tier}`)
-  if (brief.things_to_avoid) parts.push(`Avoid: ${brief.things_to_avoid}`)
-  if (parts.length <= 1) return null
-  return parts.join('\n')
+  if (allPages.length > 0) instrParts.push(`Pages needed: ${allPages.join(', ')}`)
+  if (brief.most_important_page) instrParts.push(`Most important page: ${brief.most_important_page}`)
+  if (brief.must_have_features) instrParts.push(`Must-have features: ${brief.must_have_features}`)
+  if (brief.nice_to_have_features) instrParts.push(`Nice-to-have: ${brief.nice_to_have_features}`)
+  if (brief.headline) instrParts.push(`Headline/tagline: ${brief.headline}`)
+  if (brief.key_messaging) instrParts.push(`Key messaging: ${brief.key_messaging}`)
+  if (brief.tone_of_voice) instrParts.push(`Tone: ${brief.tone_of_voice}`)
+  if (brief.integrations) instrParts.push(`Integrations: ${brief.integrations}`)
+  if (brief.budget_tier) instrParts.push(`Budget tier: ${brief.budget_tier}`)
+  if (brief.things_to_avoid) instrParts.push(`Avoid: ${brief.things_to_avoid}`)
+  if (instrParts.length <= 1) return null
+  return { displayMessage, fullInstruction: instrParts.join('\n') }
 }
 
 export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem, onNewProject, saving: externalSaving }) {
@@ -137,11 +146,11 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
   const hasContent = brief.project_name || brief.elevator_pitch || brief.must_have_features || brief.brand_name
 
   const handleStart = async () => {
-    const prompt = buildPromptFromBrief(brief)
-    if (!prompt) return
+    const result = buildPromptFromBrief(brief)
+    if (!result) return
     setStarting(true)
     try {
-      await onStartBuilding(prompt, brief)
+      await onStartBuilding(result.displayMessage, result.fullInstruction, brief)
     } finally {
       setStarting(false)
     }
