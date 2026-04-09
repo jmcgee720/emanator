@@ -2380,7 +2380,9 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
               setHeroSubmitting(true)
               try {
                 pendingHeroPromptRef.current = { displayMessage, fullInstruction }
-                await createProject(briefData?.project_name || 'New Project', projectMode === 'sandbox' ? 'sandbox' : 'app')
+                const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
+                importChatTitleRef.current = projectName
+                await createProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app')
                 aurora.triggerEnergyFlow?.()
                 setActivityLevel(1)
               } catch (error) {
