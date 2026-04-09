@@ -475,7 +475,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const importChatTitleRef = useRef(null)
   const pendingHeroPromptRef = useRef(null)
   const briefBuildActiveRef = useRef(false)
-  const pmReviewPendingRef = useRef(false)
   const tabChatStateRef = useRef({})
   const pendingRestoreChatRef = useRef(null)
   const coreProjectIdRef = useRef(null)
@@ -1090,7 +1089,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }
 
   const sendMessage = async (content, attachments, opts = {}) => {
-    if (!selectedChat || !content.trim()) return
+    if (!selectedChat) return
+    if (!opts.silent && !content.trim()) return
     if (streamingMessageId) return
 
     setActivityLevel(1)
@@ -1099,15 +1099,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     const streamingAssistantId = `streaming-${Date.now()}`
     const collectedDiffs = []
 
-    const tempUserId = `temp-${Date.now()}`
-    const tempUserMessage = {
-      id: tempUserId,
-      role: 'user',
-      content,
-      created_at: new Date().toISOString(),
-      metadata: attachments ? { attachments } : undefined
+    // Silent messages skip the user bubble entirely — only the AI response appears
+    if (!opts.silent) {
+      const tempUserId = `temp-${Date.now()}`
+      const tempUserMessage = {
+        id: tempUserId,
+        role: 'user',
+        content,
+        created_at: new Date().toISOString(),
+        metadata: attachments ? { attachments } : undefined
+      }
+      setMessages(prev => [...prev, tempUserMessage])
     }
-    setMessages(prev => [...prev, tempUserMessage])
 
     const clientMessageKey = `cmk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const placeholderAssistant = {
@@ -1475,30 +1478,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           }
           await refreshCanvas()
 
-          // Project Manager auto-continue: two-step flow
-          // Step 1: review what was built (text-only, no building)
-          // Step 2: after review, auto-trigger the next build
+          // Project Manager auto-continue: after initial build, silently ask AI to review and plan next steps
+          // Uses silent mode — no visible "user" message appears, only the AI's response
           if (briefBuildActiveRef.current && (data.generatedFiles?.length > 0 || data.directEditMode)) {
             briefBuildActiveRef.current = false
-            pmReviewPendingRef.current = true
             setTimeout(() => {
-              sendMessage('What did we just build?', null, {
-                hiddenInstruction: `You just finished the initial build for this project. Act as a friendly Project Manager and give a quick status update. Do NOT write code or create files — just talk.
+              sendMessage('pm-review', null, {
+                silent: true,
+                hiddenInstruction: `You just finished the initial build for this project. Now act as the Project Manager and give a quick status update:
 
-1. Briefly describe what you just built (2-3 sentences max — what pages, what features)
+1. Briefly describe what you just built (2-3 sentences max)
 2. List what's done vs. what's still needed based on the original brief
-3. End with: "I'm going to [specific next thing] now." — be specific about what you'll build next
+3. Propose your next move — tell the user what you'll build next and ask if they want you to go ahead
 
-Keep it concise, conversational, and helpful. Do NOT call any tools.`
-              })
-            }, 2000)
-          }
-          // Step 2: After PM review completes, auto-trigger the next build
-          else if (pmReviewPendingRef.current && !data.generatedFiles?.length) {
-            pmReviewPendingRef.current = false
-            setTimeout(() => {
-              sendMessage('Go ahead, build it.', null, {
-                hiddenInstruction: 'The user approved your proposed next step. Execute it now — build the files you just described. Use create_files or update_files tools.'
+Keep it concise and conversational. Do NOT write code or call any tools in this response — just review and plan.`
               })
             }, 2000)
           }
