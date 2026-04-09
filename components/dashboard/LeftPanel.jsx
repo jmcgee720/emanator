@@ -56,7 +56,6 @@ import DiffReviewPanel from './DiffReviewPanel'
 import GeneratedImageCard from './GeneratedImageCard'
 import ImageGenerationProgress from './ImageGenerationProgress'
 import { AttachmentChips } from './AttachmentPreview'
-import CreativeBriefCard from './CreativeBriefCard'
 import SuggestionChips, { parseSuggestions } from './SuggestionChips'
 
 
@@ -268,7 +267,8 @@ export default function LeftPanel({
   onCreateSandbox,
   visualMode,
   onVisualModeChange,
-  buildMilestones
+  buildMilestones,
+  buildLog
 }) {
   const [sending, setSending] = useState(false)
   const [forkingChat, setForkingChat] = useState(false)
@@ -467,36 +467,24 @@ export default function LeftPanel({
         data-testid="messages-area"
       >
         <div className="p-3 space-y-3 w-full min-w-0">
-          {/* Streaming status indicator — shown at top when building */}
-          {isStreaming && streamingStatus && !imageGenProgress && (
-            <div className="flex gap-2.5 em-message-enter" data-testid="streaming-indicator-top">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center em-streaming-breathe ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/20' : 'bg-[rgba(124,58,237,0.1)] em-streaming-glow'
-              }`}>
-                {streamingStatus.stage === 'provider_fallback'
-                  ? <Clock className="w-2.5 h-2.5 text-amber-400" />
-                  : <Zap className="w-2.5 h-2.5 text-[var(--em-text-muted)]" />}
-              </div>
-              <div className={`rounded-lg px-3 py-2 ${
-                streamingStatus.stage === 'provider_fallback' ? 'bg-amber-950/10 border border-amber-500/12' : ''
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Loader2 className={`w-3.5 h-3.5 animate-spin ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-400' : 'text-muted-foreground/60'}`} />
-                  <span className={`text-[13px] ${streamingStatus.stage === 'provider_fallback' ? 'text-amber-200/90' : 'text-muted-foreground/70'}`}>{whimsicalStatus(streamingStatus) || 'Generating...'}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Build milestones log — shown during/after builds */}
-          {buildMilestones?.length > 0 && messages.length === 0 && (
-            <div className="space-y-1 py-2 em-panel-enter" data-testid="build-milestones">
-              {buildMilestones.map((m, i) => (
-                <div key={i} className="flex items-center gap-2 px-1">
-                  <div className="w-1 h-1 rounded-full bg-emerald-400/60 flex-shrink-0" />
-                  <span className="text-[11px] text-muted-foreground/60">{m.label}</span>
-                </div>
-              ))}
+          {/* Persistent Build Log — phrases stay visible as a build timeline */}
+          {buildLog?.length > 0 && (
+            <div className="space-y-0.5 py-2" data-testid="build-log">
+              {buildLog.map((entry, i) => {
+                const isLast = i === buildLog.length - 1
+                const isActive = isLast && isStreaming
+                return (
+                  <div key={i} className="flex items-center gap-2 px-2 py-0.5" style={{ opacity: isActive ? 1 : 0.6 }}>
+                    {isActive
+                      ? <Loader2 className="w-3 h-3 animate-spin text-[var(--em-cyan)] flex-shrink-0" />
+                      : <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/70 flex-shrink-0" />
+                    }
+                    <span className={`text-[12px] ${isActive ? 'text-[var(--em-cyan)]' : 'text-muted-foreground/60'}`}>
+                      {entry.phrase}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -653,9 +641,6 @@ export default function LeftPanel({
                             }
                             return (
                               <>
-                                {message.metadata?.creativeBrief && (
-                                  <CreativeBriefCard brief={message.metadata.creativeBrief} />
-                                )}
                                 {(() => {
                                   const { cleanContent, suggestions } = parseSuggestions(message.content)
                                   return (
