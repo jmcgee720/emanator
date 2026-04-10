@@ -112,7 +112,7 @@ function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
 }
 
 // ─── Build: React/JSX (AST-based module transform — no regex hacks) ──
-function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind }) {
+function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind, imageAssets }) {
   const allCss = cssFiles?.map(f => f.content).join('\n') || ''
   const normalizePreviewPath = (p = '') => String(p).replace(/^\.\//, '')
 
@@ -174,6 +174,32 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     '<script src="https://unpkg.com/react-router-dom@6.13.0/umd/react-router-dom.production.min.js" crossorigin><\/script>',
     '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
     '</head><body><div id="root"></div>',
+    // Inject generated image asset mapping so placeholder URLs resolve to real data
+    imageAssets && imageAssets.length > 0 ? [
+      '<script>',
+      'window.__GEN_IMAGE_MAP__ = ' + JSON.stringify(
+        Object.fromEntries(imageAssets.map(a => [a.placeholder, a.dataUrl]))
+      ).replace(/</g, '\\u003c') + ';',
+      '/* After each render, replace placeholder image URLs with actual data */',
+      'window.__fixImages = function() {',
+      '  document.querySelectorAll("img").forEach(function(img) {',
+      '    var src = img.getAttribute("src") || "";',
+      '    Object.keys(window.__GEN_IMAGE_MAP__).forEach(function(key) {',
+      '      if (src.indexOf(key) !== -1) img.src = window.__GEN_IMAGE_MAP__[key];',
+      '    });',
+      '  });',
+      '  /* Also fix CSS background-image */',
+      '  document.querySelectorAll("[style]").forEach(function(el) {',
+      '    var s = el.getAttribute("style") || "";',
+      '    Object.keys(window.__GEN_IMAGE_MAP__).forEach(function(key) {',
+      '      if (s.indexOf(key) !== -1) el.setAttribute("style", s.split(key).join(window.__GEN_IMAGE_MAP__[key]));',
+      '    });',
+      '  });',
+      '};',
+      '/* Run image fixer after initial render and on every DOM mutation */',
+      'new MutationObserver(function() { window.__fixImages(); }).observe(document.body, { childList: true, subtree: true });',
+      '<\/script>',
+    ].join('\n') : '',
     '<script>',
     'var { useState, useEffect, useRef, useCallback, useMemo, useContext, useReducer, useLayoutEffect, useDeferredValue, useTransition, useId, useSyncExternalStore, createContext, createElement, Fragment, memo, forwardRef, lazy, Suspense } = React;',
     'var createRoot = ReactDOM.createRoot;',
@@ -889,6 +915,16 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     })
 
     const info = classifyProject(clientFiles)
+
+    // Extract generated image assets for preview resolution
+    const assetFiles = (files || []).filter(f => f.path?.startsWith('_assets/') && f.content?.startsWith('data:image'))
+    if (assetFiles.length > 0) {
+      info.imageAssets = assetFiles.map(f => ({
+        placeholder: `https://emanator-generated.img/${f.path.replace('_assets/', '')}`,
+        dataUrl: f.content,
+      }))
+    }
+
     const log = []
 
     log.push(`Type: ${info.type}`)
