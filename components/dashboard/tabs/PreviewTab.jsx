@@ -432,7 +432,7 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind 
     '    _d.appendChild(_h); _d.appendChild(_b); document.getElementById("root").appendChild(_d);',
     '    window.parent.postMessage({ type: "__PREVIEW_ERROR__", error: __errs.join("; ") }, "*");',
     '  }',
-    '  else { document.getElementById("root").innerHTML = \'<div style="padding:2rem;color:#888;font-family:system-ui;">No renderable component found.</div>\'; }',
+    '  else { document.getElementById("root").innerHTML = \'<div style="padding:3rem;text-align:center;color:#888;font-family:system-ui;"><div style="font-size:1.5rem;margin-bottom:0.5rem;">Building preview...</div><div style="font-size:0.9rem;opacity:0.6;">Components will appear as they stream in</div></div>\'; }',
     '} catch (_e) {',
     '  document.getElementById("root").innerHTML = \'<div style="padding:2rem;color:#ef4444;font-family:monospace;white-space:pre-wrap;">Render Error: \' + String(_e.message).replace(/</g,"&lt;") + \'</div>\';',
     '  window.parent.postMessage({ type: "__PREVIEW_ERROR__", error: _e.message, stack: _e.stack }, "*");',
@@ -837,6 +837,8 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   useEffect(() => {
     const handler = (e) => {
       if (e.data?.type === '__PREVIEW_ERROR__') {
+        // Suppress errors during streaming — code is naturally incomplete
+        if (isBuilding) return
         const errMsg = `${e.data.error}${e.data.line ? ` (line ${e.data.line})` : ''}`
         setIframeErrors(prev => {
           if (prev.includes(errMsg)) return prev
@@ -952,9 +954,13 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       // Clear snapshot when a new live build starts — we'll snapshot the result after
       setSnapshotHtml(null)
       snapshotSavedHashRef.current = null
+      // Clear stale errors from previous builds
+      setIframeErrors([])
+      // Build an EMPTY shell — no files. All content will arrive via postMessage live_update.
+      // This avoids Babel compile errors from incomplete streaming code on initial render.
       const shellInfo = {
         type: 'react',
-        jsxFiles: [{ path: livePreviewData.path, content: livePreviewData.content }],
+        jsxFiles: [],
         cssFiles: [], jsFiles: [], tsFiles: [], htmlFiles: [],
         usesTailwind: livePreviewData.content.includes('className'),
         usesShadcn: false,
