@@ -816,6 +816,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       addLog('info', `Creating project: ${name}`)
       const body = { name, type }
       if (templateId) body.template_id = templateId
+      // Pass the brief-derived chat title so the initial chat uses it instead of the project name
+      if (importChatTitleRef.current) body.chat_title = importChatTitleRef.current
       const response = await authFetch('/api/projects', {
         method: 'POST',
         headers: JSON_HEADERS,
