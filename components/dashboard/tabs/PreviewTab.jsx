@@ -166,6 +166,24 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
     '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
     '<title>Preview</title>',
     usesTailwind ? '<script src="https://cdn.tailwindcss.com"><\/script>' : '',
+    usesTailwind ? `<script>
+      if (window.tailwind) {
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                accent: { DEFAULT: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+                'dark-premium': '#0f0f0f',
+                'dark-card': '#1a1a1a',
+                'dark-border': '#2a2a2a',
+                primary: { DEFAULT: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+                secondary: { DEFAULT: '#ec4899', dark: '#db2777', light: '#f472b6' },
+              }
+            }
+          }
+        }
+      }
+    <\/script>` : '',
     '<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: system-ui, -apple-system, sans-serif; }',
     allCss,
     '</style>',
@@ -915,16 +933,6 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     })
 
     const info = classifyProject(clientFiles)
-
-    // Extract generated image assets for preview resolution
-    const assetFiles = (files || []).filter(f => f.path?.startsWith('_assets/') && f.content?.startsWith('data:image'))
-    if (assetFiles.length > 0) {
-      info.imageAssets = assetFiles.map(f => ({
-        placeholder: `https://emanator-generated.img/${f.path.replace('_assets/', '')}`,
-        dataUrl: f.content,
-      }))
-    }
-
     const log = []
 
     log.push(`Type: ${info.type}`)
