@@ -113,7 +113,10 @@ function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
 
 // ─── Build: React/JSX (AST-based module transform — no regex hacks) ──
 function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind, imageAssets }) {
-  const allCss = cssFiles?.map(f => f.content).join('\n') || ''
+  // Strip @tailwind directives from CSS — the CDN handles these automatically
+  const allCss = (cssFiles?.map(f => f.content).join('\n') || '')
+    .replace(/@tailwind\s+(base|components|utilities)\s*;?\s*/g, '')
+    .trim()
   const normalizePreviewPath = (p = '') => String(p).replace(/^\.\//, '')
 
   const componentFiles = [...(jsxFiles || []), ...(tsFiles || [])].filter(f => {
@@ -133,29 +136,44 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
 
   const allComponents = [...componentFiles, ...reactJsFiles]
 
+  // Filter out CRA-style entry files that just call ReactDOM.render/createRoot
+  // These create competing React roots and serve no purpose in the preview
+  const filteredComponents = allComponents.filter(f => {
+    const c = f.content || ''
+    const p = normalizePreviewPath(f.path)
+    // Exclude files like src/index.js that are just bootstrap files
+    if (/(?:^|\/)index\.(js|ts)$/i.test(p) && c.includes('createRoot') && !/<\/?[A-Z]/.test(c.replace(/ReactDOM|React\.StrictMode/g, ''))) {
+      return false
+    }
+    return true
+  })
+
   const entryFile =
-    allComponents.find(f => /App\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
-    allComponents.find(f => /index\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
-    allComponents.find(f => /page\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
-    allComponents[0] ||
+    filteredComponents.find(f => /App\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
+    filteredComponents.find(f => /index\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
+    filteredComponents.find(f => /page\.(jsx|tsx|js)$/i.test(normalizePreviewPath(f.path))) ||
+    filteredComponents[0] ||
     null
 
-  if (!entryFile) return null
+  // For streaming shells: return a valid empty shell even without files
+  const isEmptyShell = !entryFile
 
-  const entryName = normalizePreviewPath(entryFile.path)
+  const entryName = isEmptyShell ? 'App' : normalizePreviewPath(entryFile.path)
     .replace(/\.(jsx|tsx|js|ts)$/, '')
     .split('/')
     .pop()
 
   // Collect raw file data — Babel AST plugin handles all module transforms
-  const fileEntries = allComponents.map(f => ({
+  const fileEntries = isEmptyShell ? [] : filteredComponents.map(f => ({
     path: f.path,
     modName: f.path.replace(/^\.\//, '').replace(/\.(jsx|tsx|js|ts)$/, '').split('/').pop(),
     code: f.content || ''
   }))
 
   // Sort: entry file goes last so all dependencies compile first
-  fileEntries.sort((a, b) => (a.modName === entryName ? 1 : 0) - (b.modName === entryName ? 1 : 0))
+  if (!isEmptyShell) {
+    fileEntries.sort((a, b) => (a.modName === entryName ? 1 : 0) - (b.modName === entryName ? 1 : 0))
+  }
 
   // JSON-safe embedding: escape < to prevent </script> breakout in srcDoc
   const filesJson = JSON.stringify(fileEntries).replace(/</g, '\\u003c')
@@ -165,7 +183,7 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
     '<!DOCTYPE html><html lang="en"><head>',
     '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
     '<title>Preview</title>',
-    usesTailwind ? '<script src="https://cdn.tailwindcss.com"><\/script>' : '',
+    usesTailwind ? '<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>' : '',
     usesTailwind ? `<script>
       if (window.tailwind) {
         tailwind.config = {
@@ -184,7 +202,7 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
         }
       }
     <\/script>` : '',
-    '<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: system-ui, -apple-system, sans-serif; }',
+    '<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #fff; }',
     allCss,
     '</style>',
     '<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>',
@@ -468,6 +486,8 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
     '    } catch(e) {}',
     '    window.__root__ = createRoot(document.getElementById("root"));',
     '    window.__root__.render(createElement(_EB, null, createElement(_Entry)));',
+    '    /* Force Tailwind CDN to rescan DOM after React mount */',
+    '    if (window.tailwind) { setTimeout(function() { document.body.classList.add("__tw"); document.body.classList.remove("__tw"); }, 50); }',
     '  }',
     '  else if (__errs.length) {',
     '    var _d = document.createElement("div"); _d.style.cssText = "padding:2rem;font-family:monospace;font-size:13px;white-space:pre-wrap;";',
@@ -476,7 +496,7 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
     '    _d.appendChild(_h); _d.appendChild(_b); document.getElementById("root").appendChild(_d);',
     '    window.parent.postMessage({ type: "__PREVIEW_ERROR__", error: __errs.join("; ") }, "*");',
     '  }',
-    '  else { document.getElementById("root").innerHTML = \'<div style="padding:3rem;text-align:center;color:#888;font-family:system-ui;"><div style="font-size:1.5rem;margin-bottom:0.5rem;">Building preview...</div><div style="font-size:0.9rem;opacity:0.6;">Components will appear as they stream in</div></div>\'; }',
+    '  else { document.getElementById("root").innerHTML = \'<div style="padding:3rem;text-align:center;color:#888;font-family:system-ui;background:#0a0a0a;min-height:100vh;display:flex;align-items:center;justify-content:center;"><div><div style="font-size:1.5rem;margin-bottom:0.5rem;color:#ccc;">Building preview...</div><div style="font-size:0.9rem;opacity:0.6;">Components will appear as they stream in</div></div></div>\'; }',
     '} catch (_e) {',
     '  document.getElementById("root").innerHTML = \'<div style="padding:2rem;color:#ef4444;font-family:monospace;white-space:pre-wrap;">Render Error: \' + String(_e.message).replace(/</g,"&lt;") + \'</div>\';',
     '  window.parent.postMessage({ type: "__PREVIEW_ERROR__", error: _e.message, stack: _e.stack }, "*");',
@@ -500,6 +520,8 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
     '    /* Render entry: prefer App, then entryName, then first available component */',
     '    var _entry = window.__COMPONENTS__["App"] || window.__COMPONENTS__[e.data.entryName] || Object.values(window.__COMPONENTS__)[0];',
     '    if (_entry && window.__root__) { window.__root__.render(createElement(_entry)); }',
+    '    /* Force Tailwind rescan after live update */',
+    '    if (window.tailwind) { setTimeout(function() { document.body.classList.add("__tw"); document.body.classList.remove("__tw"); }, 50); }',
     '  } catch(_err) { /* ignore errors during streaming — code may be partial */ }',
     '});',
     '<\/script></body></html>'
@@ -514,7 +536,7 @@ function buildCssPreview({ cssFiles, usesTailwind }) {
   return wrapWithErrorHandler(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CSS Preview</title>
-${usesTailwind ? '<script src="https://cdn.tailwindcss.com"><\/script>' : ''}
+${usesTailwind ? '<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>' : ''}
 <style>${allCss}</style></head>
 <body><div id="root" style="padding:2rem;font-family:system-ui;color:#666;">
 <p>CSS loaded. Add an <code>index.html</code> file for full preview.</p>
@@ -528,7 +550,7 @@ function buildJsPreview({ jsFiles, cssFiles, usesTailwind }) {
   return wrapWithErrorHandler(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JS Preview</title>
-${usesTailwind ? '<script src="https://cdn.tailwindcss.com"><\/script>' : ''}
+${usesTailwind ? '<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>' : ''}
 <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:system-ui; } ${allCss}</style></head>
 <body><div id="root"></div>
 <script>\n${allJs}\n<\/script>
@@ -899,10 +921,20 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [onLog])
 
   // Node project detection — scan FULL file list, not filtered clientFiles
+  // Only classify as node if it DOESN'T have any React component files
   const isNodeProject = useMemo(() => {
-    return (files || []).some(f =>
+    const hasPackageJson = (files || []).some(f =>
       f.path === 'package.json' || f.path?.endsWith('/package.json')
     )
+    if (!hasPackageJson) return false
+    // If the project also has React files, it's a React project with package.json — NOT a pure node project
+    const hasReactFiles = (files || []).some(f => {
+      const p = f.path || ''
+      const c = f.content || ''
+      return (p.endsWith('.jsx') || p.endsWith('.tsx')) ||
+        ((p.endsWith('.js') || p.endsWith('.ts')) && (c.includes('React') || c.includes('useState') || c.includes('export default')))
+    })
+    return !hasReactFiles
   }, [files])
 
   const { previewHtml, projectInfo, buildLog } = useMemo(() => {

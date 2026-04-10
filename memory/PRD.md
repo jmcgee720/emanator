@@ -1,94 +1,74 @@
 # Emanator PRD
 
-## Original Problem Statement
-Build a conversational AI builder (Emanator) that lets users submit a Creative Brief and auto-generates complete, multi-page, production-ready websites. The system should stream step-by-step build progress, render live previews, and handle billing/credits securely.
+## Product Vision
+Emanator is a conversational AI website builder that generates premium, visually stunning websites through natural language conversation. It features real-time live preview, AI-powered image generation, and a Tailwind CSS design system.
 
 ## Core Requirements
-1. Creative Brief -> AI auto-builds complete multi-page sites
-2. Step-by-step build walkthrough in chat (plan breakdown + file progress)
-3. Contextual completion summaries
-4. No AI refusals for image generation
-5. Live preview with cross-file React imports (Babel inline transpilation)
-6. Billing security: single entry point for AI calls, credit checks on all AI paths, no raw provider error leakage
+- AI generates complete React websites from Creative Brief input
+- Live Preview shows the site building in real-time during streaming
+- Generated sites must use standard Tailwind CSS utility classes (no custom classes)
+- AI image generation replaces stock photos with custom art-directed images
+- System must handle context limits (max_tokens: 16384) gracefully
 
 ## Architecture
 - **Framework**: Next.js 14 App Router
-- **Auth**: Supabase
-- **DB**: Supabase (projects, chats, messages, project_files) + MongoDB (credits)
-- **AI Providers**: OpenAI GPT-4o, Anthropic Claude (via Emergent LLM Key)
-- **Payments**: Stripe (Emergent Test Key)
-- **Preview**: Babel standalone inline transpiler in iframe with `window.__COMPONENTS__` registry
-
-## What's Been Implemented
-
-### Phase 1 - Core Pipeline (DONE)
-- Creative Brief modal and auto-build pipeline
-- Live streaming preview with postMessage
-- Dark Aurora skeleton loading state during builds
-- Regression guardrails (auto-retry on missing files/blank previews)
-- Intent detection (isSimpleFrontendEdit fixed for briefs)
-- Design excellence enforcement in prompt-builder and plan-executor
-
-### Phase 2 - Chat UX Improvements (DONE)
-- Whimsical loading phrases (build milestones log)
-- Removed "Ready when you are" placeholder
-- Fixed PM auto-continue race conditions (disabled due to DB timeouts)
-- Image upload support (base64 pass-through)
-- Verification response formatting (conversational AI text)
-- Live preview JSON leak fix
-
-### Phase 3 - Design Overhaul Phase 1 & 2 (IN PROGRESS)
-- AI image generation enabled by default in message-stream.js
-- Industry-specific design tokens/palettes in design-system.js
-- prompt-builder.js and image-prefetch.js still need updating
-
-### Phase 4 - Stream Reliability & Build Pipeline (DONE - Apr 9, 2026)
-- Fixed "Stream request failed" on new project creation
-  - Root cause: 80+ concurrent preview-snapshot DB queries overwhelming PostgreSQL
-  - Fixed by replacing DB-heavy ProjectThumbnail with lightweight initials
-  - Memoized initializeOwner() to stop per-request DB hits
-  - Added retry to getAuthUser() for transient Supabase timeouts
-  - Expanded stream-client retry to cover 401/408/429/5xx errors
-  - Fixed Python SSE proxy to use stream=True for real-time event forwarding
-- Fixed stream handler to NOT abort on client disconnect (files now save to DB even if browser closes)
-- Persistent Build Log: Status phrases now stay visible in chat as permanent log lines during builds
-- Removed Creative Direction card from chat UI (design context is internal only)
-- Brief Build Pipeline: New projects from Creative Brief now build immediately (no plan-then-approve flow)
-  - Forced create_files tool choice for brief builds
-  - Skip PatchGroundingValidator for new empty projects
-  - Direct file save path (bypass diff review pipeline)
-  - PM-style summary after build: what was built, suggestions, next steps
-- Hidden instruction no longer leaks into visible user messages (displayContent vs aiContent separation)
-- Media Bin: Added image upload section to Creative Brief form (drag-drop, remove, base64)
-
-## Upcoming Tasks (Prioritized)
-### P1
-- Complete Design Overhaul Phase 1 & 2: Update prompt-builder.js (remove Unsplash URLs, enforce tokens) and image-prefetch.js (better art direction)
-- Design Overhaul Phase 3: Section Template Library (reusable React components for AI assembly)
-- Conversational AI architecture phases 2-5 (Intent Detection, Task Scope Classification, Silent Validation Retries, Learning System)
-
-### P2
-- Design Overhaul Phase 4: Visual Quality Scoring
-- Design Overhaul Phase 5: Style Transfer (paste URL to copy visual DNA)
-- Design Overhaul Phase 6: Multi-Variant Generation
-- Deploy integration (Vercel/Netlify)
-- Refactor service.js (~2600 lines) and message-stream.js (~1900 lines)
-- CSV export option
-
-## Known Issues
-- PM Auto-Continue disabled (causes DB statement timeouts from overlapping API requests)
-- Next.js memory thrashing / OOM (mitigated: restart supervisorctl if unresponsive)
-- OpenAI TPM rate limits can cause brief build failures on back-to-back requests (auto-retry handles this)
+- **Preview**: srcdoc iframe with Babel inline transpilation + Tailwind CDN v3.4.17
+- **AI**: OpenAI GPT-4o / Anthropic Claude via Emergent LLM Key proxy
+- **Images**: GPT Image 1 via Emergent LLM Key
+- **DB**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth
+- **Payments**: Stripe
 
 ## Key Files
-- `/app/lib/ai/message-stream.js` - Core streaming pipeline with brief build mode
-- `/app/lib/ai/service.js` - AI orchestrator
-- `/app/lib/ai/design-system.js` - Design tokens and palettes
-- `/app/lib/ai/prompt-builder.js` - System prompt construction
-- `/app/lib/ai/image-prefetch.js` - AI image generation
-- `/app/lib/api/stream-handler.js` - SSE stream handler
-- `/app/lib/stream-client.js` - Frontend SSE client with retry
-- `/app/components/dashboard/Dashboard.jsx` - State orchestrator
-- `/app/components/dashboard/LeftPanel.jsx` - Chat UI with build log
-- `/app/components/dashboard/InlineBrief.jsx` - Creative Brief form with Media Bin
-- `/app/backend/server.py` - Python proxy with SSE streaming
+- `/app/components/dashboard/tabs/PreviewTab.jsx` — Preview rendering, Babel transpilation, streaming shell
+- `/app/lib/ai/message-stream.js` — Core AI orchestrator (~1900 lines, needs refactoring)
+- `/app/lib/ai/file-operations.js` — File saving, auto-repair, image post-processing
+- `/app/lib/ai/prompt-builder.js` — System instructions for AI
+- `/app/lib/ai/design-system.js` — Enforces standard Tailwind utility classes
+- `/app/lib/ai/code-validator.js` — Truncation detection and auto-repair
+- `/app/lib/ai/image-prefetch.js` — AI art direction and image generation
+- `/app/components/dashboard/Dashboard.jsx` — State orchestrator
+
+## What's Been Implemented
+- [x] Conversational AI builder with streaming SSE
+- [x] Live Preview iframe with Babel transpilation
+- [x] Tailwind CSS rendering (pinned CDN v3.4.17, dark body default, forced rescan)
+- [x] Streaming shell creation (valid empty shell for live builds)
+- [x] AI image generation pipeline (placeholder → base64 via MutationObserver)
+- [x] Design system enforcing standard Tailwind classes
+- [x] Context explosion prevention (no base64 in DB/prompts)
+- [x] Code truncation auto-repair
+- [x] Preview skeleton loading state during builds
+- [x] Regression guardrails (blank preview detection, auto-retry)
+- [x] Smart isNodeProject detection (allows React preview for projects with package.json)
+- [x] CRA entry file filtering (prevents competing React roots)
+- [x] Stripe payments integration
+
+## P0 Completed This Session
+- Fixed Tailwind CSS rendering in Live Preview (was showing unstyled white-on-white)
+  - Pinned Tailwind CDN to v3.4.17
+  - Added dark body background default
+  - Stripped @tailwind directives from CSS injection
+  - Added forced Tailwind rescan after React mount
+  - Fixed isNodeProject bypass for React projects with package.json
+  - Added CRA entry file filter to prevent competing roots
+  - Fixed streaming shell to return valid HTML for empty file arrays
+
+## Backlog
+### P1
+- Verify AI Image Pipeline placeholder resolution end-to-end
+- Complete Design Overhaul Phase 1 & 2 (prompt-builder.js, image-prefetch.js refinements)
+- Phase 3: Section Template Library
+- Conversational AI phases 2-5 (Intent Detection, Task Scope Classification, Silent Validation Retries, Learning System)
+- CSV export
+
+### P2
+- Phase 4: Visual Quality Scoring
+- Phase 5: Style Transfer (paste URL to copy visual DNA)
+- Deploy integration (Vercel/Netlify)
+- Refactor message-stream.js (~1900 lines) and service.js (~2600 lines)
+
+## Known Issues
+- Image generation timeout (20s) sometimes too aggressive
+- Next.js memory thrashing / OOM (mitigated with supervisor restart)
+- message-stream.js and service.js need refactoring (very large files)
