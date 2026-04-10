@@ -1110,8 +1110,8 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     return <NodePreviewRunner project={project} files={files} onLog={onLog} />
   }
 
-  if (projectInfo.type === 'empty' && !livePreviewData) {
-    // Building state → premium skeleton
+  if (projectInfo.type === 'empty' && !livePreviewData && !streamShellHtml) {
+    // Building state → premium skeleton (only while no live data has arrived)
     if (isBuilding) {
       return (
         <div className="h-full flex flex-col bg-[#0C1018] overflow-hidden" data-testid="preview-building-skeleton">
