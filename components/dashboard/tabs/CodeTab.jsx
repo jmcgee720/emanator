@@ -43,11 +43,11 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
       if (response.ok && data.success) {
         setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
         addLog('success', `Applied ${data.files_written} file(s) to live system`)
-        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied to the running system.` })
+        const warnMsg = data.warnings?.length > 0 ? ` Warning: ${data.warnings.length} file(s) significantly smaller than original — use Rollback if unintended.` : ''
+        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied.${warnMsg}` })
       } else {
-        const blockedMsg = data.blocked?.length > 0 ? ` ${data.blocked.length} file(s) blocked as destructive rewrite.` : ''
-        addLog('error', (data.error || `Apply failed`) + blockedMsg)
-        toast({ title: 'Apply Failed', description: (data.error || `${data.files_failed || 0} error(s)`) + blockedMsg, variant: 'destructive' })
+        addLog('error', data.error || `Apply failed`)
+        toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
       }
     } catch (err) {
       addLog('error', 'Apply to live failed: ' + err.message)
