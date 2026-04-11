@@ -127,6 +127,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [messages, setMessages] = useState([])
   const [files, setFiles] = useState([])
   const [livePreviewData, setLivePreviewData] = useState(null)
+  const [generatedImageMap, setGeneratedImageMap] = useState([])
   const [runtimeTestScript, setRuntimeTestScript] = useState(null)
   const previewQueueRef = useRef([])
   const previewDrainTimerRef = useRef(null)
@@ -1149,6 +1150,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setStreamingStatus({ stage: 'connecting', detail: 'Connecting...' })
     setBuildLog([])
     setBuildMilestones([])
+    setGeneratedImageMap([]) // Clear stale image mapping from previous builds
 
     // If there's a hidden instruction (from creative brief), send that to the AI instead of the display message
     const aiContent = opts.hiddenInstruction || content
@@ -1233,6 +1235,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
         onCreativeBrief: () => {
           // Design context is used internally by the AI — not shown in chat
+        },
+
+        onGeneratedImagesMap: (data) => {
+          if (data?.images?.length > 0) {
+            setGeneratedImageMap(data.images)
+            addLog('info', `Mapped ${data.images.length} generated image(s) for preview`)
+          }
         },
 
         onImageIntent: async (data) => {
@@ -3006,6 +3015,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   livePreviewData={livePreviewData}
                   isBuilding={!!streamingMessageId}
                   runtimeTestScript={runtimeTestScript}
+                  generatedImageMap={generatedImageMap}
                 />
                 </div>
               </ResizablePanel>

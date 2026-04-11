@@ -234,6 +234,9 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
       '};',
       '/* Run image fixer after initial render and on every DOM mutation */',
       'new MutationObserver(function() { window.__fixImages(); }).observe(document.body, { childList: true, subtree: true });',
+      '/* Safety: run image fixer after a short delay in case MutationObserver missed initial render */',
+      'setTimeout(function() { window.__fixImages(); }, 500);',
+      'setTimeout(function() { window.__fixImages(); }, 2000);',
       '<\/script>',
     ].join('\n') : '',
     '<script>',
@@ -828,7 +831,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 // ═══════════════════════════════════════════════════════════════════
 // Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
-export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript }) {
+export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   const [iframeErrors, setIframeErrors] = useState([])
@@ -985,9 +988,19 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     }
 
     let html = null
+    // Build image assets mapping from _assets/ files AND SSE-provided generatedImageMap
+    const assetImageMap = (files || [])
+      .filter(f => f.path?.startsWith('_assets/__gen_img') && f.content?.startsWith('data:'))
+      .map(f => {
+        const filename = f.path.split('/').pop()
+        return { placeholder: `https://emanator-generated.img/${filename}`, dataUrl: f.content }
+      })
+    // Merge: SSE mapping (live build) takes priority, then persisted _assets/ files (reload)
+    const mergedImageAssets = generatedImageMap.length > 0 ? generatedImageMap : assetImageMap
+
     switch (info.type) {
       case 'html': html = buildHtmlPreview(info); break
-      case 'react': html = buildReactPreview(info); break
+      case 'react': html = buildReactPreview({ ...info, imageAssets: mergedImageAssets }); break
       case 'js': html = buildJsPreview(info); break
       case 'css-only': html = buildCssPreview(info); break
     }
@@ -995,7 +1008,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     if (html) log.push(`Output: ${html.length} chars`)
 
     return { previewHtml: html, projectInfo: info, buildLog: log }
-  }, [files, refreshKey, isNodeProject, snapshotHtml])
+  }, [files, refreshKey, isNodeProject, snapshotHtml, generatedImageMap])
 
   // ── Save preview snapshot after successful compilation ──
   useEffect(() => {
@@ -1040,6 +1053,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         cssFiles: [], jsFiles: [], tsFiles: [], htmlFiles: [],
         usesTailwind: livePreviewData.content.includes('className'),
         usesShadcn: false,
+        imageAssets: generatedImageMap,
       }
       setStreamShellHtml(buildReactPreview(shellInfo))
       iframeReadyForLiveRef.current = false
