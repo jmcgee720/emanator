@@ -32,3 +32,13 @@
 - Star ratings displayed on marketplace template cards
 
 ### Testing: iteration 62 - 13/13 backend tests passed (100%)
+
+
+## 2026-04-11 - Core System Self-Improvement Phase 1
+### Self-Edit Targets Expansion
+- Added 3 new self-edit targets to `SELF_EDIT_TARGETS` in `constants.js`:
+  - Prompt Builder (`lib/ai/prompt-builder.js`) - Design recipes & code patterns
+  - Design System (`lib/ai/design-system.js`) - Color tokens, layout rules
+  - Image Generator (`lib/ai/image-prefetch.js`) - Art direction & vibe lexicon
+- All 3 targets verified in Core System dropdown UI
+- Backend `message-stream.js` path-scoped validation confirmed working
