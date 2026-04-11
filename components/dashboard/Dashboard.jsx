@@ -1208,7 +1208,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           // Buffer partials and drain progressively for visible incremental updates
           if (!data?.path || !data?.content) return
           previewQueueRef.current.push(data)
-          setActiveTab('preview')
+          if (!isSelfEditChat) setActiveTab('preview')
           // Start draining if not already
           if (!previewDrainTimerRef.current) {
             // Show first partial immediately
@@ -1496,7 +1496,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             const filesResponse = await authFetch(`/api/projects/${selectedProject.id}/files`)
             const filesData = await filesResponse.json()
             setFiles(Array.isArray(filesData) ? filesData : [])
-            setActiveTab('preview')
+            setActiveTab(isSelfEditChat ? 'code' : 'preview')
           }
 
           const refreshCanvas = async (retries = 2) => {
@@ -1780,7 +1780,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         const filesResponse = await authFetch(`/api/projects/${selectedProject.id}/files`)
         const filesData = await filesResponse.json()
         setFiles(Array.isArray(filesData) ? filesData : [])
-        setActiveTab('preview')
+        setActiveTab(selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT ? 'code' : 'preview')
 
         try {
           const res = await authFetch(`/api/projects/${selectedProject.id}/canvas`)
