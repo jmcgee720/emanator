@@ -1160,8 +1160,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     if (opts.hiddenInstruction) {
       streamOpts.displayContent = content // Save this as the visible user message
     }
-    if (isSelfEditChat && selfEditTarget) {
-      streamOpts.selfEditTarget = selfEditTarget
+    if (isSelfEditChat) {
+      streamOpts.selfEditTarget = selfEditTarget || { id: 'all', path: null }
     }
 
     const abortController = streamMessage(

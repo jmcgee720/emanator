@@ -19,6 +19,7 @@ Emanator is a conversational AI website builder that generates premium, visually
 - New self-edit targets added: Prompt Builder, Design System, Image Generator
 - Backend `message-stream.js` uses `selfEditTarget.path` for path-scoped validation
 - UI dropdown in LeftPanel.jsx renders all targets from constants
+- **Bug fix**: Task mode enforcement was rejecting self-edit requests (classified as `edit` intent -> `plan` mode -> file contents forbidden). Fixed by skipping task mode enforcement for self-edit chats in `message-stream.js`, and always sending `selfEditTarget` from `Dashboard.jsx` even for "All Core System" selection.
 
 ## Key Files
 - `/app/components/dashboard/tabs/PreviewTab.jsx` - Preview rendering, image mapping

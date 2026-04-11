@@ -42,3 +42,4 @@
   - Image Generator (`lib/ai/image-prefetch.js`) - Art direction & vibe lexicon
 - All 3 targets verified in Core System dropdown UI
 - Backend `message-stream.js` path-scoped validation confirmed working
+- **Bug fix**: Self-edit requests were rejected by task mode enforcement ("I couldn't complete that request"). Fixed by skipping `validateTaskMode` for self-edit chats in `message-stream.js` (line 1015-1016) and always sending `selfEditTarget` from `Dashboard.jsx` even when "All Core System" is selected.
