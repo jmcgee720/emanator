@@ -45,8 +45,9 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         addLog('success', `Applied ${data.files_written} file(s) to live system`)
         toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied to the running system.` })
       } else {
-        addLog('error', data.error || `Apply failed (${data.files_failed} errors)`)
-        toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
+        const blockedMsg = data.blocked?.length > 0 ? ` ${data.blocked.length} file(s) blocked as destructive rewrite.` : ''
+        addLog('error', (data.error || `Apply failed`) + blockedMsg)
+        toast({ title: 'Apply Failed', description: (data.error || `${data.files_failed || 0} error(s)`) + blockedMsg, variant: 'destructive' })
       }
     } catch (err) {
       addLog('error', 'Apply to live failed: ' + err.message)
