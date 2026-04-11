@@ -24,6 +24,8 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
   const { toast } = useToast()
   const [selectedFile, setSelectedFile] = useState(null)
   const [fileContent, setFileContent] = useState('')
+  const [showDiff, setShowDiff] = useState(false)
+  const [originalContent, setOriginalContent] = useState(null)
   const [newFileName, setNewFileName] = useState('')
   const [showNewFile, setShowNewFile] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -44,7 +46,7 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
         addLog('success', `Applied ${data.files_written} file(s) to live system`)
         const warnMsg = data.warnings?.length > 0 ? ` Warning: ${data.warnings.length} file(s) significantly smaller than original — use Rollback if unintended.` : ''
-        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied.${warnMsg}` })
+        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied and reloaded.${warnMsg}` })
       } else {
         addLog('error', data.error || `Apply failed`)
         toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
@@ -126,9 +128,22 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
     return tree
   }
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     setSelectedFile(file)
     setFileContent(file.content || '')
+    setShowDiff(false)
+    setOriginalContent(null)
+    
+    // Fetch original from disk for diff comparison (Core System only)
+    if (isCore && file.path) {
+      try {
+        const response = await authFetch(`/api/projects/${project.id}/file-diff?path=${encodeURIComponent(file.path)}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.original) setOriginalContent(data.original)
+        }
+      } catch (e) { /* non-critical */ }
+    }
   }
 
   const handleSaveFile = async () => {
@@ -330,18 +345,66 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
           <>
             <div className="h-10 border-b border-border/40 flex items-center justify-between px-4">
               <span className="text-sm text-muted-foreground">{selectedFile.path}</span>
-              <Button size="sm" onClick={handleSaveFile} disabled={saving}>
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save'}
-              </Button>
+              <div className="flex items-center gap-2">
+                {isCore && originalContent && (
+                  <Button
+                    size="sm"
+                    variant={showDiff ? 'default' : 'outline'}
+                    onClick={() => setShowDiff(!showDiff)}
+                    className="h-7 text-[11px]"
+                    data-testid="toggle-diff-btn"
+                  >
+                    {showDiff ? 'Code' : 'Diff'}
+                  </Button>
+                )}
+                <Button size="sm" onClick={handleSaveFile} disabled={saving}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
-              <textarea
-                value={fileContent}
-                onChange={(e) => setFileContent(e.target.value)}
-                className="w-full h-full p-4 bg-background text-foreground font-mono text-sm resize-none focus:outline-none"
-                spellCheck={false}
-              />
+              {showDiff && originalContent ? (
+                <div className="w-full h-full overflow-auto p-4 font-mono text-sm">
+                  {(() => {
+                    const origLines = originalContent.split('\n')
+                    const newLines = (fileContent || '').split('\n')
+                    const maxLen = Math.max(origLines.length, newLines.length)
+                    const diffLines = []
+                    for (let i = 0; i < maxLen; i++) {
+                      const ol = origLines[i]
+                      const nl = newLines[i]
+                      if (ol === nl) {
+                        diffLines.push({ type: 'same', line: nl, num: i + 1 })
+                      } else if (ol !== undefined && nl !== undefined) {
+                        diffLines.push({ type: 'removed', line: ol, num: i + 1 })
+                        diffLines.push({ type: 'added', line: nl, num: i + 1 })
+                      } else if (ol === undefined) {
+                        diffLines.push({ type: 'added', line: nl, num: i + 1 })
+                      } else {
+                        diffLines.push({ type: 'removed', line: ol, num: i + 1 })
+                      }
+                    }
+                    return diffLines.map((d, i) => (
+                      <div key={i} className={`whitespace-pre ${
+                        d.type === 'added' ? 'bg-emerald-500/15 text-emerald-300' :
+                        d.type === 'removed' ? 'bg-red-500/15 text-red-300' :
+                        'text-muted-foreground'
+                      }`}>
+                        <span className="inline-block w-5 text-right mr-3 opacity-40 select-none">{d.type === 'added' ? '+' : d.type === 'removed' ? '-' : ' '}</span>
+                        {d.line}
+                      </div>
+                    ))
+                  })()}
+                </div>
+              ) : (
+                <textarea
+                  value={fileContent}
+                  onChange={(e) => setFileContent(e.target.value)}
+                  className="w-full h-full p-4 bg-background text-foreground font-mono text-sm resize-none focus:outline-none"
+                  spellCheck={false}
+                />
+              )}
             </div>
           </>
         ) : (
