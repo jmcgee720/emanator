@@ -21,7 +21,10 @@ Emanator is a conversational AI website builder that generates premium, visually
 - UI dropdown in LeftPanel.jsx renders all targets from constants
 - **Bug fix**: Task mode enforcement was rejecting self-edit requests (classified as `edit` intent -> `plan` mode -> file contents forbidden). Fixed by skipping task mode enforcement for self-edit chats in `message-stream.js`, and always sending `selfEditTarget` from `Dashboard.jsx` even for "All Core System" selection.
 - **Context grounding**: When a self-edit target is selected, the system reads the actual file from disk (up to 60KB) and injects it into the AI system message with strict self-edit rules (use `update_files`, target the existing file, make minimal changes, never create standalone files). This ensures the AI grounds its edits in the real codebase instead of hallucinating disconnected files.
-- **Stream timeout safety net**: Added in `stream-client.js` — if the SSE connection closes without a `done` event (60s proxy timeout), the client synthesizes a completion + error notification so the UI unsticks and tells the user their files were saved.
+- **System prompt override**: Self-edit chats completely REPLACE the builder system prompt with a dedicated code-editor prompt. The AI is told "you are NOT building a website — you are editing source code." This prevents it from creating random UI components.
+- **"All Core System" support**: When no specific target is selected, the AI receives an index of all editable files with descriptions and picks the right one based on the user's request.
+- **Builder pipeline bypass**: Self-edit chats skip image prefetch, design intelligence, filesystem context injection, and grounding blocks (all irrelevant for code editing).
+- **Stream timeout safety net**: Added in `stream-client.js` — if the SSE connection closes without a `done` event (60s proxy timeout), the client synthesizes a completion + error notification so the UI unsticks.
 
 ### How to Use Self-Edit Correctly
 - You MUST be in a **self-edit chat** (shows "Core System Mode" + Target dropdown at the top of the left panel)
