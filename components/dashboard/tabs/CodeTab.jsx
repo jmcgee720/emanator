@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
+import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react'
 
 export default function CodeTab({ project, files, setFiles, addLog, livePromoteState, setLivePromoteState }) {
+  const { toast } = useToast()
   const [selectedFile, setSelectedFile] = useState(null)
   const [fileContent, setFileContent] = useState('')
   const [newFileName, setNewFileName] = useState('')
@@ -41,11 +43,14 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
       if (response.ok && data.success) {
         setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
         addLog('success', `Applied ${data.files_written} file(s) to live system`)
+        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied to the running system.` })
       } else {
         addLog('error', data.error || `Apply failed (${data.files_failed} errors)`)
+        toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
       }
     } catch (err) {
       addLog('error', 'Apply to live failed: ' + err.message)
+      toast({ title: 'Apply Failed', description: err.message, variant: 'destructive' })
     } finally {
       setPromoting(false)
     }
@@ -65,8 +70,10 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
       if (response.ok && data.success) {
         setLivePromoteState(prev => ({ ...prev, snapshotId: null, lastApply: null }))
         addLog('success', `Rolled back ${data.files_restored} file(s)`)
+        toast({ title: 'Rolled Back', description: `${data.files_restored} file(s) restored.` })
       } else {
         addLog('error', data.error || 'Rollback failed')
+        toast({ title: 'Rollback Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
       }
     } catch (err) {
       addLog('error', 'Rollback failed: ' + err.message)
