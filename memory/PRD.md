@@ -4,70 +4,74 @@
 Emanator is a conversational AI website builder that generates premium, visually stunning websites through natural language conversation.
 
 ## Image Pipeline Architecture (Critical)
-1. `image-prefetch.js` generates base64 images + creates placeholder URLs (`emanator-generated.img/__gen_img_X.png`)
-2. `message-stream.js` emits `generated_images_map` SSE event (placeholder -> dataUrl mapping) EARLY in the stream
+1. `image-prefetch.js` generates base64 images + creates placeholder URLs
+2. `message-stream.js` emits `generated_images_map` SSE event EARLY in stream
 3. AI writes code using placeholder URLs
-4. `file-operations.js` saves code files synchronously, then saves `_assets/__gen_img_X.png` **ASYNCHRONOUSLY** (fire-and-forget)
-5. Frontend gets image data from SSE event during live build, OR from `_assets/` DB files on reload
-6. `PreviewTab.jsx` injects `window.__GEN_IMAGE_MAP__` + `MutationObserver` into srcdoc iframe
-7. MutationObserver swaps placeholder URLs -> base64 data URLs for `<img src>` and CSS `background-image`
+4. `file-operations.js` saves `_assets/` **ASYNCHRONOUSLY** (fire-and-forget)
+5. `PreviewTab.jsx` injects `window.__GEN_IMAGE_MAP__` + `MutationObserver`
 
-**CRITICAL: `_assets/` saves MUST be async (fire-and-forget) to avoid SSE stream timeout (60s proxy limit)**
+**CRITICAL: `_assets/` saves MUST be async to avoid SSE stream timeout (60s proxy limit)**
 
 ## Core System Self-Edit (Phase 1 - COMPLETE)
+### Architecture
 - `SELF_EDIT_TARGETS` in `constants.js` defines editable files
-- New self-edit targets added: Prompt Builder, Design System, Image Generator
-- Backend `message-stream.js` uses `selfEditTarget.path` for path-scoped validation
-- UI dropdown in LeftPanel.jsx renders all targets from constants
-- **Bug fix**: Task mode enforcement was rejecting self-edit requests (classified as `edit` intent -> `plan` mode -> file contents forbidden). Fixed by skipping task mode enforcement for self-edit chats in `message-stream.js`, and always sending `selfEditTarget` from `Dashboard.jsx` even for "All Core System" selection.
-- **Context grounding**: When a self-edit target is selected, the system reads the actual file from disk (up to 60KB) and injects it into the AI system message with strict self-edit rules (use `update_files`, target the existing file, make minimal changes, never create standalone files). This ensures the AI grounds its edits in the real codebase instead of hallucinating disconnected files.
-- **System prompt override**: Self-edit chats completely REPLACE the builder system prompt with a dedicated code-editor prompt. The AI is told "you are NOT building a website — you are editing source code." This prevents it from creating random UI components.
-- **"All Core System" support**: When no specific target is selected, the AI receives an index of all editable files with descriptions and picks the right one based on the user's request.
-- **Builder pipeline bypass**: Self-edit chats skip image prefetch, design intelligence, filesystem context injection, and grounding blocks (all irrelevant for code editing).
-- **Stream timeout safety net**: Added in `stream-client.js` — if the SSE connection closes without a `done` event (60s proxy timeout), the client synthesizes a completion + error notification so the UI unsticks.
+- Targets: Prompt Builder, Design System, Image Generator + all existing targets
+- Backend `message-stream.js` completely REPLACES builder system prompt with code-editor prompt for self-edit
+- "All Core System" provides file index, specific targets provide full file content
+- Skips image prefetch, design intelligence, filesystem context, grounding
 
-### How to Use Self-Edit Correctly
-- You MUST be in a **self-edit chat** (shows "Core System Mode" + Target dropdown at the top of the left panel)
-- Regular builder chats within Core System do NOT activate the self-edit context
-- When you click "New Chat" while in Core System mode, it auto-creates a self-edit chat
+### Diff-Based Editing (NEW)
+- AI instructed to use `<<<PATCHES>>>` format with `<<<SEARCH>>>` / `<<<REPLACE>>>` blocks
+- Server-side `applyPatchContent()` merges patches into original file from disk
+- Fuzzy matching for whitespace differences
+- Fallback: if AI sends full file, export validation catches destructive rewrites
+
+### Post-Edit Validation (NEW)
+- `validateExportsPreserved()` checks all named exports from original exist in modified file
+- If exports are missing, falls back to appending AI suggestions as comments
+- Destructive rewrite guard: files < 40% of original get AI content appended as comments
+
+### Apply to Live (NEW)
+- Size guardrail: warns (not blocks) when files shrink significantly
+- Toast notifications for success/failure/warnings
+- Auto-reload: invalidates module caches after disk writes
+- Rollback with snapshot support
+
+### Diff View (NEW)
+- Code tab shows "Diff" toggle button for Core System files
+- Fetches original file from disk via `/api/projects/:id/file-diff`
+- Side-by-side diff: green for additions, red for removals
+
+### Capability Boundaries (LIVE)
+- `buildCapabilityBoundaries()` in `prompt-builder.js` injected into every build
+- Rules: No backend, no DB, no auth, no complex state, no fetch, no routing
+- Positive framing of limitations
+
+## Stream Timeout Safety Net
+- `stream-client.js` detects when SSE connection closes without `done` event
+- Synthesizes completion + error notification to unstick UI
 
 ## Key Files
-- `/app/components/dashboard/tabs/PreviewTab.jsx` - Preview rendering, image mapping
-- `/app/components/dashboard/Dashboard.jsx` - State orchestrator, SSE capture
-- `/app/components/dashboard/RightPanel.jsx` - Props passthrough
-- `/app/components/dashboard/LeftPanel.jsx` - Core System self-edit dropdown
-- `/app/lib/ai/message-stream.js` - AI orchestrator, SSE events
-- `/app/lib/ai/file-operations.js` - File saving, async _assets/ persistence
-- `/app/lib/ai/prompt-builder.js` - Design recipes + grid layouts (self-editable)
-- `/app/lib/ai/design-system.js` - Premium dark + grid rules (self-editable)
-- `/app/lib/ai/image-prefetch.js` - Image generation (self-editable)
-- `/app/lib/stream-client.js` - SSE client
-- `/app/lib/api/stream-handler.js` - SSE server, message_saved event
-- `/app/lib/constants.js` - SELF_EDIT_TARGETS, roles, permissions
-
-## What's Been Implemented
-- [x] Full image pipeline (generation -> SSE -> _assets/ persistence -> MutationObserver)
-- [x] Async _assets/ saving (prevents 60s timeout)
-- [x] Multi-column grid layouts (up to 4 columns)
-- [x] Premium dark design system
-- [x] Live Preview with Babel + Tailwind CDN
-- [x] Streaming shell + skeleton loading
-- [x] Regression guardrails
-- [x] Art-directed image generation (business context extraction)
-- [x] Core System Self-Improvement Phase 1 (self-edit targets for prompt-builder, design-system, image-prefetch)
+- `/app/lib/ai/message-stream.js` — AI orchestrator, self-edit prompt, patch merger
+- `/app/lib/ai/prompt-builder.js` — Capability boundaries, design recipes
+- `/app/lib/ai/context.js` — Injects capability boundaries into system message
+- `/app/lib/api/routes/live-promote.js` — Apply to Live with size guardrail + file-diff API
+- `/app/components/dashboard/tabs/CodeTab.jsx` — Diff view, toast notifications
+- `/app/components/dashboard/Dashboard.jsx` — Self-edit tab switching
+- `/app/lib/stream-client.js` — Timeout safety net
+- `/app/lib/constants.js` — SELF_EDIT_TARGETS
 
 ## Backlog
 ### P1
 - Phase 3: Section Template Library
 - Conversational AI phases 2-5
-- Optimize _assets/ file loading (lazy-load images from separate endpoint)
 - CSV export
 
 ### P2
 - Visual Quality Scoring, Style Transfer, Deploy integration
-- Refactor message-stream.js (~1900 lines) and service.js (~2600 lines)
+- Refactor message-stream.js (~2000 lines) and service.js (~2600 lines)
 
 ## Known Issues
-- Pre-fix projects (Glass Arrow) need a rebuild to work
-- _assets/ files add 4-6MB to project file API responses
+- AI sometimes ignores patch format and sends full file (export validation catches this)
+- Preview tab shows SyntaxError for self-edit Node.js files (mitigated by auto-switching to Code tab)
 - Next.js memory thrashing (mitigated with supervisor restart)
