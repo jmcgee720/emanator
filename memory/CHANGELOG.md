@@ -43,3 +43,4 @@
 - All 3 targets verified in Core System dropdown UI
 - Backend `message-stream.js` path-scoped validation confirmed working
 - **Bug fix**: Self-edit requests were rejected by task mode enforcement ("I couldn't complete that request"). Fixed by skipping `validateTaskMode` for self-edit chats in `message-stream.js` (line 1015-1016) and always sending `selfEditTarget` from `Dashboard.jsx` even when "All Core System" is selected.
+- **Context grounding**: Added self-edit file injection in `message-stream.js` — reads the target file from disk and injects full content + strict rules into the AI system message. The AI now correctly targets the existing file instead of creating disconnected standalone files.
