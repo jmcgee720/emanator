@@ -35,6 +35,7 @@ export default function RightPanel({
   livePreviewData,
   isBuilding,
   runtimeTestScript,
+  generatedImageMap,
 }) {
 
   const handleRefreshFiles = async () => {
@@ -192,7 +193,7 @@ export default function RightPanel({
 
         <div className="flex-1 overflow-hidden min-h-0 relative">
           <TabsContent value="preview" className="absolute inset-0 m-0 p-0" style={{height: '100%'}}>
-            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} />
+            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} />
           </TabsContent>
           
           <TabsContent value="code" className="absolute inset-0 m-0 p-0 overflow-auto">
