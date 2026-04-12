@@ -637,44 +637,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   // Ref to always have latest sendMessage available for event handlers
   const sendMessageRef = useRef(null)
 
-  useEffect(() => {
-    const handler = (e) => {
-      console.log('[Dashboard] core_apply_success event received', e.detail)
-
-      // Extract the last AI message's enhancement suggestion
-      const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.content)
-      let suggestion = ''
-      if (lastAiMsg?.content) {
-        const match = lastAiMsg.content.match(/\*\*Idea:\*\*\s*(.+?)(?:\n|$)/)
-        if (match) {
-          suggestion = match[1].trim()
-        }
-      }
-
-      // Use a question format so the conversational detector lets the AI respond naturally
-      const autoMsg = suggestion
-        ? `Applied to live! You suggested: "${suggestion}" — is that a good next step? If so, do it.`
-        : 'Applied to live! What should we work on next?'
-
-      const tryAutoSend = (attempt = 0) => {
-        if (attempt > 5) return
-        const delay = 1000 + (attempt * 1000)
-        setTimeout(() => {
-          console.log(`[Dashboard] Auto-continue attempt ${attempt + 1}`)
-          const fn = sendMessageRef.current
-          if (fn) {
-            try { fn(autoMsg) } catch { tryAutoSend(attempt + 1) }
-          } else {
-            tryAutoSend(attempt + 1)
-          }
-        }, delay)
-      }
-      tryAutoSend(0)
-    }
-    window.addEventListener('core_apply_success', handler)
-    return () => window.removeEventListener('core_apply_success', handler)
-  }, [messages])
-
   // Listen for inline "Apply to Live" button click from chat messages
   useEffect(() => {
     const handler = async () => {
@@ -686,12 +648,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (res.ok && data.success) {
           setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
           toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk.` })
-          // Auto-continue after a delay
-          if (selectedProject?.settings?.is_core) {
-            setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id, filesWritten: data.files_written } }))
-            }, 500)
-          }
         } else {
           toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
         }
