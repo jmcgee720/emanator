@@ -1224,6 +1224,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     if (isSelfEditChat) {
       streamOpts.selfEditTarget = selfEditTarget || { id: 'all', path: null }
     }
+    if (opts.silent) {
+      streamOpts.silent = true
+    }
 
     const abortController = streamMessage(
       selectedChat.id,
