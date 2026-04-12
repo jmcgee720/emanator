@@ -30,21 +30,39 @@ Emanator is a conversational AI website builder that generates premium, visually
 - Legacy `<<<PATCHES>>>` text format still supported as fallback
 - `validateExportsPreserved()` validates all named exports survive patching
 
-### Post-Edit Validation (NEW)
+### Phase 2: Silent Validation Retries (COMPLETE)
+- When all patches fail (search strings don't match), auto-retries up to 2 times
+- Collects diagnostic info: failed search strings, nearby actual file content
+- Re-streams from AI with corrective context showing exact content that should be matched
+- Partial success path: if some patches apply but others fail, saves partial result with status notification
+- `selfEditPatchRetry` counter prevents infinite retry loops
+
+### Phase 3: Auto-Reload after Apply to Live (COMPLETE)
+- `promote-to-live` clears Node.js `require.cache` for each written file
+- Touches files with `fs.utimesSync` to trigger Next.js file watcher
+- Invalidates `filesystem.js` in-memory cache
+- Frontend shows "Hot-reload triggered" toast immediately, then "Reload Complete" toast after 3s
+
+### Phase 4: Enhanced Diff View (COMPLETE)
+- Dual line numbers (original + new) in diff view
+- Sticky summary header showing `+N additions`, `-N removals`, `X → Y lines`
+- Collapsed unchanged regions with "··· N unchanged lines ···" separator (3-line context window)
+- Improved color coding: emerald for additions, red for removals
+
+### Phase 5: Intent Detection Fix (COMPLETE)
+- Fixed `request_router` import naming mismatch: `routeRequest` → correct export name
+- Previously caused `[PromptRouter] error: request_router is not a function` on every build
+
+### Post-Edit Validation (COMPLETE)
 - `validateExportsPreserved()` checks all named exports from original exist in modified file
 - If exports are missing, falls back to appending AI suggestions as comments
 - Destructive rewrite guard: files < 40% of original get AI content appended as comments
 
-### Apply to Live (NEW)
+### Apply to Live (COMPLETE)
 - Size guardrail: warns (not blocks) when files shrink significantly
 - Toast notifications for success/failure/warnings
 - Auto-reload: invalidates module caches after disk writes
 - Rollback with snapshot support
-
-### Diff View (NEW)
-- Code tab shows "Diff" toggle button for Core System files
-- Fetches original file from disk via `/api/projects/:id/file-diff`
-- Side-by-side diff: green for additions, red for removals
 
 ### Capability Boundaries (LIVE)
 - `buildCapabilityBoundaries()` in `prompt-builder.js` injected into every build
@@ -78,4 +96,4 @@ Emanator is a conversational AI website builder that generates premium, visually
 ## Known Issues
 - Preview tab shows SyntaxError for self-edit Node.js files (mitigated by auto-switching to Code tab)
 - Next.js memory thrashing (mitigated with supervisor restart)
-- `request_router` import naming mismatch (`routeRequest` vs `request_router`) — benign, caught by try/catch
+- Core System "New Chat" navigation occasionally redirects to Projects page (Playwright automation issue, works manually)
