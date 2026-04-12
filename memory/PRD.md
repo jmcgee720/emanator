@@ -74,6 +74,14 @@ Emanator is a conversational AI website builder that generates premium, visually
 - "Never suggest editing API routes, database logic, or authentication flows."
 - "After applying patches, briefly note what changed and suggest improvements."
 
+### Core Canvas — PM Portal (COMPLETE)
+- Collaborative markdown canvas replaces iframe Preview for Core System projects only
+- Both user and AI can read/write; rendered with interactive checkboxes, headers, bold text
+- AI auto-appends "Recent Edits" log after every self-edit with file names + summary + timestamp
+- Edit/Preview toggle for raw markdown editing; auto-saves with 1.5s debounce
+- Stored in Supabase `project_canvas` table; handles old JSON→markdown migration
+- SSE `canvas_update` event pushes live updates to the frontend
+
 ### Post-Edit Validation (COMPLETE)
 - `validateExportsPreserved()` checks all named exports from original exist in modified file
 - If exports are missing, falls back to appending AI suggestions as comments
