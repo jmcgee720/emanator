@@ -100,13 +100,7 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk. Hot-reload triggered.${warnMsg}` })
         // Brief delay then confirm reload and trigger next step
         setTimeout(() => {
-          toast({ title: 'Reload Complete', description: 'Changes are now live. Next.js recompilation triggered automatically.' })
-          // Auto-trigger next step for Core System projects via custom event
-          if (isCore) {
-            console.log('[CodeTab] Apply success — dispatching auto_continue event')
-            window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: project.id, filesWritten: data.files_written } }))
-            if (onApplySuccess) onApplySuccess(data.files_written)
-          }
+          toast({ title: 'Reload Complete', description: 'Changes are now live.' })
         }, 2000)
       } else {
         addLog('error', data.error || `Apply failed`)
