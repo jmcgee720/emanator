@@ -53,6 +53,27 @@ Emanator is a conversational AI website builder that generates premium, visually
 - Fixed `request_router` import naming mismatch: `routeRequest` → correct export name
 - Previously caused `[PromptRouter] error: request_router is not a function` on every build
 
+### Patch History Timeline (COMPLETE)
+- `GET /api/projects/:id/patch-history` returns all pre-promote snapshots
+- CodeTab has "History" toggle button showing timeline of all Apply to Live operations
+- Each snapshot shows files edited, timestamp, and one-click restore button
+- Restore uses existing rollback-live endpoint to write snapshot files back to disk
+- History auto-refreshes after each Apply to Live
+
+### Post-Edit Enhancement Suggestions (COMPLETE)
+- `generateSelfEditSuggestions()` analyzes edited file path and content
+- Context-aware: prompt-builder → accessibility/SEO/performance; design-system → dark mode/animations/spacing
+- Appears as "What could enhance this further:" with 3 numbered suggestions after each self-edit
+- Rule-based (no extra AI call) for zero latency/cost
+
+### Response Quality Fix (COMPLETE)
+- Self-edit prompt rules 6-10 enforce action-oriented behavior
+- "Be ACTION-ORIENTED. Do NOT explain what you would do — just DO it."
+- "Do NOT lecture about approaches, strategies, or steps."
+- "You are editing EMANATOR'S OWN CODEBASE — not a user's website project."
+- "Never suggest editing API routes, database logic, or authentication flows."
+- "After applying patches, briefly note what changed and suggest improvements."
+
 ### Post-Edit Validation (COMPLETE)
 - `validateExportsPreserved()` checks all named exports from original exist in modified file
 - If exports are missing, falls back to appending AI suggestions as comments
