@@ -641,19 +641,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     const handler = (e) => {
       console.log('[Dashboard] core_apply_success event received', e.detail)
 
-      // Extract the last AI message's enhancement suggestions
+      // Extract the last AI message's enhancement suggestion (now just one "Idea:")
       const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.content)
-      let suggestions = ''
+      let suggestion = ''
       if (lastAiMsg?.content) {
-        const match = lastAiMsg.content.match(/What could enhance this further:\n([\s\S]*?)(?:\n\n|\{\{|$)/)
+        const match = lastAiMsg.content.match(/\*\*Idea:\*\*\s*(.+?)(?:\n|$)/)
         if (match) {
-          suggestions = `\n\nThe suggestions from the last edit were:\n${match[1].trim()}\n\nImplement the first suggestion now.`
+          suggestion = `\n\nYour last suggestion was: "${match[1].trim()}"\n\nImplement this now.`
         }
       }
 
-      const autoMsg = suggestions
-        ? `Applied to live successfully.${suggestions}`
-        : 'Applied to live. Continue improving the file — pick a meaningful enhancement and implement it now.'
+      const autoMsg = suggestion
+        ? `Applied to live successfully.${suggestion}`
+        : 'Applied to live. Continue improving — what would make the biggest impact next? Do the edit now.'
 
       const tryAutoSend = (attempt = 0) => {
         if (attempt > 5) return
