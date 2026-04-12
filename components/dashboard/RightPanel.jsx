@@ -5,6 +5,7 @@ import { Eye, Code, FolderOpen, Terminal, Download, Rocket, Share2, Check, Copy,
 import { authFetch } from '@/lib/auth-fetch'
 import { useState } from 'react'
 import PreviewTab from './tabs/PreviewTab'
+import CoreCanvas from './tabs/CoreCanvas'
 import CodeTab from './tabs/CodeTab'
 import AssetsTab from './tabs/AssetsTab'
 import LogsTab from './tabs/LogsTab'
@@ -193,7 +194,11 @@ export default function RightPanel({
 
         <div className="flex-1 overflow-hidden min-h-0 relative">
           <TabsContent value="preview" className="absolute inset-0 m-0 p-0" style={{height: '100%'}}>
-            <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} />
+            {selectedProject?.settings?.is_core ? (
+              <CoreCanvas project={selectedProject} onLog={addLog} />
+            ) : (
+              <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} />
+            )}
           </TabsContent>
           
           <TabsContent value="code" className="absolute inset-0 m-0 p-0 overflow-auto">

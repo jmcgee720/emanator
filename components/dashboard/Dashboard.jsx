@@ -1562,6 +1562,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
         onRuntimeTests: (data) => {
           setRuntimeTestScript(data.script)
+        },
+        onCanvasUpdate: (data) => {
+          window.dispatchEvent(new CustomEvent('canvas_update', { detail: data }))
+          setCanvas(data.content)
         }
       }
     )
@@ -1690,6 +1694,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         },
         onRuntimeTests: (data) => {
           setRuntimeTestScript(data.script)
+        },
+        onCanvasUpdate: (data) => {
+          window.dispatchEvent(new CustomEvent('canvas_update', { detail: data }))
+          setCanvas(data.content)
         }
       }
     )
