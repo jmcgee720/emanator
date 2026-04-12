@@ -37,6 +37,7 @@ export default function RightPanel({
   isBuilding,
   runtimeTestScript,
   generatedImageMap,
+  onApplySuccess,
 }) {
 
   const handleRefreshFiles = async () => {
@@ -209,6 +210,7 @@ export default function RightPanel({
               addLog={addLog}
               livePromoteState={livePromoteState}
               setLivePromoteState={setLivePromoteState}
+              onApplySuccess={onApplySuccess}
             />
           </TabsContent>
           
