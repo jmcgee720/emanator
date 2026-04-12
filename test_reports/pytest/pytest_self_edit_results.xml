@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="15" time="2.338" timestamp="2026-04-12T00:08:34.183817+00:00" hostname="agent-env-49a0d321-14ab-49bd-a5ce-4a1b13d8cbc7"><testcase classname="backend.tests.test_self_edit_api.TestAuthAndBasicAPIs" name="test_aurora_config" time="0.171" /><testcase classname="backend.tests.test_self_edit_api.TestAuthAndBasicAPIs" name="test_auth_check" time="0.821" /><testcase classname="backend.tests.test_self_edit_api.TestAuthAndBasicAPIs" name="test_providers_status" time="0.163" /><testcase classname="backend.tests.test_self_edit_api.TestAuthAndBasicAPIs" name="test_credits_endpoint" time="0.111"><failure message="AssertionError: Credits endpoint failed: {&quot;error&quot;:&quot;Unauthorized&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:49: in test_credits_endpoint
+    assert response.status_code == 200, f"Credits endpoint failed: {response.text}"
+E   AssertionError: Credits endpoint failed: {"error":"Unauthorized"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestProjectsAPI" name="test_list_projects" time="0.133"><failure message="AssertionError: List projects failed: {&quot;error&quot;:&quot;Unauthorized&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:61: in test_list_projects
+    assert response.status_code == 200, f"List projects failed: {response.text}"
+E   AssertionError: List projects failed: {"error":"Unauthorized"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestProjectsAPI" name="test_create_core_system_project" time="0.126"><failure message="AssertionError: Create project failed: {&quot;error&quot;:&quot;Unauthorized — no auth session in cookies&quot;}&#10;assert 401 in [200, 201]&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:79: in test_create_core_system_project
+    assert response.status_code in [200, 201], f"Create project failed: {response.text}"
+E   AssertionError: Create project failed: {"error":"Unauthorized — no auth session in cookies"}
+E   assert 401 in [200, 201]
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestProjectsAPI" name="test_find_core_system_project" time="0.154"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:89: in test_find_core_system_project
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestFileDiffAPI" name="test_file_diff_endpoint" time="0.114"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:115: in test_file_diff_endpoint
+    assert projects_response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestPromoteToLiveAPI" name="test_promote_to_live_requires_auth" time="0.137"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:152: in test_promote_to_live_requires_auth
+    assert projects_response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestChatStreamAPI" name="test_chat_stream_endpoint_exists" time="0.178"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_self_edit_api.py:186: in test_chat_stream_endpoint_exists
+    assert projects_response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_self_edit_api.TestSelfEditTargets" name="test_self_edit_targets_defined" time="0.000" /><testcase classname="backend.tests.test_self_edit_api.TestPatchFilesTool" name="test_patch_files_tool_defined" time="0.000" /><testcase classname="backend.tests.test_self_edit_api.TestPatchFilesTool" name="test_patch_files_forced_for_self_edit" time="0.000" /><testcase classname="backend.tests.test_self_edit_api.TestCodeTabComponents" name="test_code_tab_has_live_controls" time="0.000" /><testcase classname="backend.tests.test_self_edit_api.TestDashboardAutoSwitchToCode" name="test_auto_switch_to_code_tab" time="0.000" /></testsuite></testsuites>
