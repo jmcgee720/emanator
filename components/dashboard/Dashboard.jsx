@@ -637,6 +637,28 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   // Ref to always have latest sendMessage available for event handlers
   const sendMessageRef = useRef(null)
 
+  // After Apply to Live in Core System, silently prompt the AI to suggest next steps
+  // The user only sees the AI's response — the trigger message is hidden
+  useEffect(() => {
+    const handler = (e) => {
+      console.log('[Dashboard] core_apply_success — triggering silent follow-up')
+      const tryAutoSend = (attempt = 0) => {
+        if (attempt > 5) return
+        setTimeout(() => {
+          const fn = sendMessageRef.current
+          if (fn) {
+            try {
+              fn('The edit was applied to live successfully. Briefly acknowledge this and ask what the user wants to work on next.', null, { silent: true })
+            } catch { tryAutoSend(attempt + 1) }
+          } else { tryAutoSend(attempt + 1) }
+        }, 1000 + (attempt * 1000))
+      }
+      tryAutoSend(0)
+    }
+    window.addEventListener('core_apply_success', handler)
+    return () => window.removeEventListener('core_apply_success', handler)
+  }, [])
+
   // Listen for inline "Apply to Live" button click from chat messages
   useEffect(() => {
     const handler = async () => {
@@ -648,6 +670,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (res.ok && data.success) {
           setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
           toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk.` })
+          // Trigger silent AI follow-up for Core System
+          if (selectedProject?.settings?.is_core) {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id } }))
+            }, 500)
+          }
         } else {
           toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
         }
