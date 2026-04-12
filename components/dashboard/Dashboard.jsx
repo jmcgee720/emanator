@@ -1251,6 +1251,15 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           ))
         },
 
+        onReplaceContent: (data) => {
+          // Replace the ENTIRE message content (used by self-edit to strip AI preamble)
+          setMessages(prev => prev.map(m =>
+            m.id === streamingAssistantId
+              ? { ...m, content: data.content }
+              : m
+          ))
+        },
+
         onFile: (data) => {
           addLog('success', `${data.action === 'created' ? 'Created' : 'Updated'}: ${data.path}`)
           const cleanName = data.path?.replace(/^src\/(components|pages)\//, '').replace(/\.(jsx|tsx|js|ts|css)$/, '') || data.path
@@ -1680,6 +1689,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
               ? { ...m, content: m.content + data.content }
+              : m
+          ))
+        },
+        onReplaceContent: (data) => {
+          setMessages(prev => prev.map(m =>
+            m.id === streamingAssistantId
+              ? { ...m, content: data.content }
               : m
           ))
         },
