@@ -20,11 +20,15 @@ Emanator is a conversational AI website builder that generates premium, visually
 - "All Core System" provides file index, specific targets provide full file content
 - Skips image prefetch, design intelligence, filesystem context, grounding
 
-### Diff-Based Editing (NEW)
-- AI instructed to use `<<<PATCHES>>>` format with `<<<SEARCH>>>` / `<<<REPLACE>>>` blocks
-- Server-side `applyPatchContent()` merges patches into original file from disk
-- Fuzzy matching for whitespace differences
-- Fallback: if AI sends full file, export validation catches destructive rewrites
+### Diff-Based Editing — `patch_files` Tool (COMPLETE)
+- Dedicated `patch_files` tool in `tools.js` with structured `{ search, replace }` patches array
+- Self-edit mode forces `patch_files` via `tool_choice` and filters toolset to only `patch_files`
+- Server-side patch application with fuzzy whitespace matching (trimmed line comparison)
+- Converts patched content to `update_files` format for the standard save pipeline
+- `usePlanMode` explicitly disabled for self-edits (prevents wasted plan retries)
+- Self-edits route to direct-save path (not diff pipeline) for immediate file persistence
+- Legacy `<<<PATCHES>>>` text format still supported as fallback
+- `validateExportsPreserved()` validates all named exports survive patching
 
 ### Post-Edit Validation (NEW)
 - `validateExportsPreserved()` checks all named exports from original exist in modified file
@@ -72,6 +76,6 @@ Emanator is a conversational AI website builder that generates premium, visually
 - Refactor message-stream.js (~2000 lines) and service.js (~2600 lines)
 
 ## Known Issues
-- AI sometimes ignores patch format and sends full file (export validation catches this)
 - Preview tab shows SyntaxError for self-edit Node.js files (mitigated by auto-switching to Code tab)
 - Next.js memory thrashing (mitigated with supervisor restart)
+- `request_router` import naming mismatch (`routeRequest` vs `request_router`) — benign, caught by try/catch
