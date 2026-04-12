@@ -58,17 +58,25 @@ Build a self-editing AI builder (Emanator) that can reliably modify its own core
 - Canvas content injected into system prompt for context
 - Handles old JSON → markdown migration
 
+### Broken Promise Fix — "All Core System" Mode (COMPLETE - Apr 12 2026)
+- `identifyTargetFile()` helper: 3-strategy file identification (exact path, filename, keyword mapping)
+- Pre-identification: When user selects "All Core System", the target file is auto-identified from the user message and its content is loaded into the AI's context BEFORE the first LLM call
+- Broken promise retry with file injection: If AI still promises action without calling a tool, the retry now injects the target file content so the AI can write real patches
+- Fixed "All Core System" prompt to say `patch_files` instead of `update_files`
+- Improved regex to catch more promise patterns (proceed, start, build, make, work on)
+
 ## Known Issues
 - AI sometimes generates patches with wrong indentation (mitigated by fuzzy matching + retry)
 - Preview tab shows SyntaxError for Node.js files (mitigated by auto-switch to Canvas)
 - Large files (38K+) may hit proxy timeout (mitigated by 60s timeout safety net)
+- Some patches fail due to search string not found (1 of 3 in testing) — existing retry handles this
 
 ## Remaining Backlog
-- [ ] CSV export option
-- [ ] Conversational AI phases 2-5 (broader)
-- [ ] Deploy integration (Vercel/Netlify) — currently mocked
-- [ ] Refactor message-stream.js (~2600 lines) and service.js (~2600 lines)
-- [ ] Vision support for Core System chat (image analysis)
+- [ ] CSV export option (Emanator should self-implement this)
+- [ ] Conversational AI phases 2-5 (classifyUserIntent) (Emanator should self-implement)
+- [ ] Deploy integration (/api/projects/:id/export-zip) (Emanator should self-implement)
+- [ ] Vision support for Core System chat (image analysis) — requires backend infrastructure
+- [ ] Refactor message-stream.js (~2800 lines) and service.js (~2600 lines)
 
 ## Tech Stack
 - Next.js 14 App Router
