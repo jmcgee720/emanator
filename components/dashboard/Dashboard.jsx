@@ -633,6 +633,21 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }, [selectedProject?.id])
 
+  // Listen for Core System "Apply to Live" success → auto-continue
+  useEffect(() => {
+    const handler = (e) => {
+      console.log('[Dashboard] core_apply_success event received', e.detail)
+      if (selectedProject?.settings?.is_core && selectedChat && !streamingMessageId) {
+        setTimeout(() => {
+          sendMessage('Applied to live. Now look at the enhancement suggestions from my last edit and pick the best one to implement next. Do the edit now.')
+        }, 500)
+      }
+    }
+    window.addEventListener('core_apply_success', handler)
+    return () => window.removeEventListener('core_apply_success', handler)
+  }, [selectedProject?.id, selectedChat?.id, streamingMessageId])
+
+
   useEffect(() => {
     if (selectedChat) {
       loadMessages(selectedChat.id)
