@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { authFetch } from '@/lib/auth-fetch'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,9 @@ import {
   ChevronDown,
   RefreshCw,
   Upload,
-  Undo2
+  Undo2,
+  Clock,
+  RotateCcw
 } from 'lucide-react'
 
 export default function CodeTab({ project, files, setFiles, addLog, livePromoteState, setLivePromoteState }) {
@@ -32,8 +34,56 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
   const [syncing, setSyncing] = useState(false)
   const [promoting, setPromoting] = useState(false)
   const [rollingBack, setRollingBack] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [patchHistory, setPatchHistory] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [restoringSnapshot, setRestoringSnapshot] = useState(null)
 
   const isCore = project?.settings?.is_core === true
+
+  // Load patch history for Core System projects
+  const loadPatchHistory = async () => {
+    if (!project?.id || !isCore) return
+    setLoadingHistory(true)
+    try {
+      const res = await authFetch(`/api/projects/${project.id}/patch-history`)
+      if (res.ok) {
+        const data = await res.json()
+        setPatchHistory(data.history || [])
+      }
+    } catch { /* non-critical */ }
+    finally { setLoadingHistory(false) }
+  }
+
+  useEffect(() => {
+    if (showHistory && isCore) loadPatchHistory()
+  }, [showHistory, project?.id])
+
+  // Reload history after applying to live
+  useEffect(() => {
+    if (livePromoteState?.lastApply && isCore) loadPatchHistory()
+  }, [livePromoteState?.lastApply])
+
+  const handleRestoreSnapshot = async (snapshotId) => {
+    if (restoringSnapshot) return
+    setRestoringSnapshot(snapshotId)
+    try {
+      const res = await authFetch(`/api/projects/${project.id}/rollback-live`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot_id: snapshotId })
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast({ title: 'Restored', description: `Rolled back ${data.files_restored} file(s) to this snapshot.` })
+        addLog('success', `Restored snapshot: ${data.files_restored} file(s)`)
+      } else {
+        toast({ title: 'Restore Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
+      }
+    } catch (err) {
+      toast({ title: 'Restore Failed', description: err.message, variant: 'destructive' })
+    } finally { setRestoringSnapshot(null) }
+  }
 
   const handlePromoteToLive = async () => {
     if (!project?.id || promoting) return
@@ -306,6 +356,57 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
               {rollingBack ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Undo2 className="w-3 h-3 mr-1" />}
               {rollingBack ? 'Rolling back...' : 'Rollback'}
             </Button>
+            <Button
+              size="sm"
+              variant={showHistory ? 'default' : 'outline'}
+              onClick={() => setShowHistory(!showHistory)}
+              className="h-7 text-[11px] px-2.5 ml-auto"
+              data-testid="patch-history-btn"
+            >
+              <Clock className="w-3 h-3 mr-1" />
+              History
+            </Button>
+          </div>
+        )}
+
+        {/* Patch History Panel */}
+        {isCore && showHistory && (
+          <div className="border-b border-border/40 max-h-48 overflow-y-auto" data-testid="patch-history-panel">
+            <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider sticky top-0" style={{ background: 'var(--em-bg-secondary, rgba(10,10,30,0.95))' }}>
+              Patch History
+            </div>
+            {loadingHistory ? (
+              <div className="px-3 py-3 text-[11px] text-muted-foreground flex items-center gap-2">
+                <RefreshCw className="w-3 h-3 animate-spin" /> Loading...
+              </div>
+            ) : patchHistory.length === 0 ? (
+              <div className="px-3 py-3 text-[11px] text-muted-foreground">
+                No patch history yet. Apply edits to live to create snapshots.
+              </div>
+            ) : (
+              patchHistory.map((snap) => (
+                <div key={snap.id} className="px-3 py-1.5 flex items-center gap-2 hover:bg-[rgba(255,255,255,0.03)] group" data-testid={`history-item-${snap.id}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] text-foreground/80 truncate">
+                      {snap.files?.map(f => f.path.split('/').pop()).join(', ') || 'Snapshot'}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/50">
+                      {new Date(snap.created_at).toLocaleString()} · {snap.file_count} file{snap.file_count !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] px-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRestoreSnapshot(snap.id)}
+                    disabled={restoringSnapshot === snap.id}
+                    data-testid={`restore-snapshot-${snap.id}`}
+                  >
+                    {restoringSnapshot === snap.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
         )}
         
