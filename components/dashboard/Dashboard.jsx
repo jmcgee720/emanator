@@ -647,6 +647,33 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     return () => window.removeEventListener('core_apply_success', handler)
   }, [selectedProject?.id, selectedChat?.id, streamingMessageId])
 
+  // Listen for inline "Apply to Live" button click from chat messages
+  useEffect(() => {
+    const handler = async () => {
+      if (!selectedProject?.id) return
+      console.log('[Dashboard] inline_apply_to_live event received')
+      try {
+        const res = await authFetch(`/api/projects/${selectedProject.id}/promote-to-live`, { method: 'POST' })
+        const data = await res.json()
+        if (res.ok && data.success) {
+          setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
+          toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk.` })
+          // Auto-continue
+          if (selectedProject?.settings?.is_core) {
+            window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id, filesWritten: data.files_written } }))
+          }
+        } else {
+          toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
+        }
+      } catch (err) {
+        toast({ title: 'Apply Failed', description: err.message, variant: 'destructive' })
+      }
+    }
+    window.addEventListener('inline_apply_to_live', handler)
+    return () => window.removeEventListener('inline_apply_to_live', handler)
+  }, [selectedProject?.id, selectedChat?.id])
+
+
 
   useEffect(() => {
     if (selectedChat) {

@@ -66,6 +66,39 @@ function InlineCode({ children }) {
 export default function MessageRenderer({ content, hideCodeBlocks }) {
   if (!content) return null
 
+  // Check for inline Apply to Live button marker
+  const hasApplyButton = content.includes('{{APPLY_TO_LIVE_BUTTON}}')
+  const parts = hasApplyButton ? content.split('{{APPLY_TO_LIVE_BUTTON}}') : [content]
+
+  return (
+    <>
+      {parts.map((part, idx) => (
+        <MessagePart key={idx} content={part} hideCodeBlocks={hideCodeBlocks} />
+      ))}
+      {hasApplyButton && (
+        <div className="mt-3 mb-1">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('inline_apply_to_live'))}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+              bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30
+              hover:shadow-emerald-800/40 active:scale-[0.97]"
+            data-testid="inline-apply-to-live-btn"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Apply to Live
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+function MessagePart({ content, hideCodeBlocks }) {
+  if (!content?.trim()) return null
+  if (!content) return null
+
   // Strip code blocks from AI responses.
   // The AI should communicate through conversation and tool calls, not by dumping code/JSON.
   let displayContent = content
