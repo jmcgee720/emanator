@@ -674,8 +674,10 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           if (selectedProject?.settings?.is_core) {
             setTimeout(() => {
               window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id } }))
-            }, 500)
+            }, 4000) // wait for health check to complete
           }
+        } else if (data.auto_reverted) {
+          toast({ title: 'Auto-Reverted', description: 'The edit broke something and was automatically reverted. Try a smaller, more targeted change.', variant: 'destructive' })
         } else {
           toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
         }
