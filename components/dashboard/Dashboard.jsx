@@ -641,19 +641,20 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     const handler = (e) => {
       console.log('[Dashboard] core_apply_success event received', e.detail)
 
-      // Extract the last AI message's enhancement suggestion (now just one "Idea:")
+      // Extract the last AI message's enhancement suggestion
       const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.content)
       let suggestion = ''
       if (lastAiMsg?.content) {
         const match = lastAiMsg.content.match(/\*\*Idea:\*\*\s*(.+?)(?:\n|$)/)
         if (match) {
-          suggestion = `\n\nYour last suggestion was: "${match[1].trim()}"\n\nImplement this now.`
+          suggestion = match[1].trim()
         }
       }
 
+      // Use a question format so the conversational detector lets the AI respond naturally
       const autoMsg = suggestion
-        ? `Applied to live successfully.${suggestion}`
-        : 'Applied to live. Continue improving — what would make the biggest impact next? Do the edit now.'
+        ? `Applied to live! You suggested: "${suggestion}" — is that a good next step? If so, do it.`
+        : 'Applied to live! What should we work on next?'
 
       const tryAutoSend = (attempt = 0) => {
         if (attempt > 5) return
