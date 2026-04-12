@@ -87,6 +87,7 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
 
   const handlePromoteToLive = async () => {
     if (!project?.id || promoting) return
+    console.log('[CodeTab] handlePromoteToLive called, projectId:', project.id)
     setPromoting(true)
     try {
       const response = await authFetch(`/api/projects/${project.id}/promote-to-live`, { method: 'POST' })
@@ -100,11 +101,13 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         // Brief delay then confirm reload and trigger next step
         setTimeout(() => {
           toast({ title: 'Reload Complete', description: 'Changes are now live. Next.js recompilation triggered automatically.' })
-          // Auto-trigger next step for Core System projects
-          if (isCore && onApplySuccess) {
-            onApplySuccess(data.files_written)
+          // Auto-trigger next step for Core System projects via custom event
+          if (isCore) {
+            console.log('[CodeTab] Apply success — dispatching auto_continue event')
+            window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: project.id, filesWritten: data.files_written } }))
+            if (onApplySuccess) onApplySuccess(data.files_written)
           }
-        }, 3000)
+        }, 2000)
       } else {
         addLog('error', data.error || `Apply failed`)
         toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
