@@ -634,18 +634,38 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   }, [selectedProject?.id])
 
   // Listen for Core System "Apply to Live" success → auto-continue
+  // Ref to always have latest sendMessage available for event handlers
+  const sendMessageRef = useRef(null)
+
   useEffect(() => {
     const handler = (e) => {
       console.log('[Dashboard] core_apply_success event received', e.detail)
-      if (selectedProject?.settings?.is_core && selectedChat && !streamingMessageId) {
+      // Retry with increasing delays until streamingMessageId clears
+      const tryAutoSend = (attempt = 0) => {
+        if (attempt > 5) {
+          console.log('[Dashboard] Auto-continue: gave up after 5 attempts')
+          return
+        }
+        const delay = 1000 + (attempt * 1000) // 1s, 2s, 3s, 4s, 5s
         setTimeout(() => {
-          sendMessage('Applied to live. Now look at the enhancement suggestions from my last edit and pick the best one to implement next. Do the edit now.')
-        }, 500)
+          console.log(`[Dashboard] Auto-continue attempt ${attempt + 1}`)
+          const fn = sendMessageRef.current
+          if (fn) {
+            try {
+              fn('Applied to live. Now look at the enhancement suggestions from my last edit and pick the best one to implement next. Do the edit now.')
+            } catch {
+              tryAutoSend(attempt + 1)
+            }
+          } else {
+            tryAutoSend(attempt + 1)
+          }
+        }, delay)
       }
+      tryAutoSend(0)
     }
     window.addEventListener('core_apply_success', handler)
     return () => window.removeEventListener('core_apply_success', handler)
-  }, [selectedProject?.id, selectedChat?.id, streamingMessageId])
+  }, [])
 
   // Listen for inline "Apply to Live" button click from chat messages
   useEffect(() => {
@@ -658,9 +678,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (res.ok && data.success) {
           setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
           toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk.` })
-          // Auto-continue
+          // Auto-continue after a delay
           if (selectedProject?.settings?.is_core) {
-            window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id, filesWritten: data.files_written } }))
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id, filesWritten: data.files_written } }))
+            }, 500)
           }
         } else {
           toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
@@ -1154,10 +1176,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }
 
+  // Keep ref updated for event handlers that need latest sendMessage
+  // (assigned after sendMessage definition below)
+
   const sendMessage = async (content, attachments, opts = {}) => {
-    if (!selectedChat) return
+    if (!selectedChat) { console.log('[sendMessage] blocked: no selectedChat'); return }
     if (!opts.silent && !(content || '').trim()) return
-    if (streamingMessageId) return
+    if (streamingMessageId) { console.log('[sendMessage] blocked: streamingMessageId still set:', streamingMessageId); return }
 
     setActivityLevel(1)
     streamAbortRef.current?.abort()
@@ -1614,6 +1639,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
 
     streamAbortRef.current = abortController
   }
+
+  // Keep ref updated so event handlers always have latest sendMessage
+  sendMessageRef.current = sendMessage
 
   const executePlan = async (messageId, planData) => {
     if (!selectedChat || executingPlan) return
