@@ -22,7 +22,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 
-export default function CodeTab({ project, files, setFiles, addLog, livePromoteState, setLivePromoteState }) {
+export default function CodeTab({ project, files, setFiles, addLog, livePromoteState, setLivePromoteState, onApplySuccess }) {
   const { toast } = useToast()
   const [selectedFile, setSelectedFile] = useState(null)
   const [fileContent, setFileContent] = useState('')
@@ -97,9 +97,13 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         addLog('success', `Applied ${data.files_written} file(s) to live system`)
         const warnMsg = data.warnings?.length > 0 ? ` Warning: ${data.warnings.length} file(s) significantly smaller than original — use Rollback if unintended.` : ''
         toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk. Hot-reload triggered.${warnMsg}` })
-        // Brief delay then confirm reload
+        // Brief delay then confirm reload and trigger next step
         setTimeout(() => {
           toast({ title: 'Reload Complete', description: 'Changes are now live. Next.js recompilation triggered automatically.' })
+          // Auto-trigger next step for Core System projects
+          if (isCore && onApplySuccess) {
+            onApplySuccess(data.files_written)
+          }
         }, 3000)
       } else {
         addLog('error', data.error || `Apply failed`)

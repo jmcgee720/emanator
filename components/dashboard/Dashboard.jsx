@@ -3024,6 +3024,14 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   isBuilding={!!streamingMessageId}
                   runtimeTestScript={runtimeTestScript}
                   generatedImageMap={generatedImageMap}
+                  onApplySuccess={(filesWritten) => {
+                    // After Apply to Live succeeds in Core System, auto-send follow-up
+                    if (selectedProject?.settings?.is_core) {
+                      setTimeout(() => {
+                        sendMessage('Applied successfully. Please proceed to the next step on the checklist.')
+                      }, 500)
+                    }
+                  }}
                 />
                 </div>
               </ResizablePanel>
