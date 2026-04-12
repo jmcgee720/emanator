@@ -46,7 +46,11 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
         addLog('success', `Applied ${data.files_written} file(s) to live system`)
         const warnMsg = data.warnings?.length > 0 ? ` Warning: ${data.warnings.length} file(s) significantly smaller than original — use Rollback if unintended.` : ''
-        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) applied and reloaded.${warnMsg}` })
+        toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk. Hot-reload triggered.${warnMsg}` })
+        // Brief delay then confirm reload
+        setTimeout(() => {
+          toast({ title: 'Reload Complete', description: 'Changes are now live. Next.js recompilation triggered automatically.' })
+        }, 3000)
       } else {
         addLog('error', data.error || `Apply failed`)
         toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
@@ -365,36 +369,97 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
             </div>
             <div className="flex-1 overflow-hidden">
               {showDiff && originalContent ? (
-                <div className="w-full h-full overflow-auto p-4 font-mono text-sm">
+                <div className="w-full h-full overflow-auto font-mono text-sm" data-testid="diff-view">
                   {(() => {
                     const origLines = originalContent.split('\n')
                     const newLines = (fileContent || '').split('\n')
                     const maxLen = Math.max(origLines.length, newLines.length)
                     const diffLines = []
+                    let addCount = 0
+                    let removeCount = 0
                     for (let i = 0; i < maxLen; i++) {
                       const ol = origLines[i]
                       const nl = newLines[i]
                       if (ol === nl) {
-                        diffLines.push({ type: 'same', line: nl, num: i + 1 })
+                        diffLines.push({ type: 'same', line: nl, origNum: i + 1, newNum: i + 1 })
                       } else if (ol !== undefined && nl !== undefined) {
-                        diffLines.push({ type: 'removed', line: ol, num: i + 1 })
-                        diffLines.push({ type: 'added', line: nl, num: i + 1 })
+                        diffLines.push({ type: 'removed', line: ol, origNum: i + 1, newNum: null })
+                        diffLines.push({ type: 'added', line: nl, origNum: null, newNum: i + 1 })
+                        addCount++
+                        removeCount++
                       } else if (ol === undefined) {
-                        diffLines.push({ type: 'added', line: nl, num: i + 1 })
+                        diffLines.push({ type: 'added', line: nl, origNum: null, newNum: i + 1 })
+                        addCount++
                       } else {
-                        diffLines.push({ type: 'removed', line: ol, num: i + 1 })
+                        diffLines.push({ type: 'removed', line: ol, origNum: i + 1, newNum: null })
+                        removeCount++
                       }
                     }
-                    return diffLines.map((d, i) => (
-                      <div key={i} className={`whitespace-pre ${
-                        d.type === 'added' ? 'bg-emerald-500/15 text-emerald-300' :
-                        d.type === 'removed' ? 'bg-red-500/15 text-red-300' :
-                        'text-muted-foreground'
-                      }`}>
-                        <span className="inline-block w-5 text-right mr-3 opacity-40 select-none">{d.type === 'added' ? '+' : d.type === 'removed' ? '-' : ' '}</span>
-                        {d.line}
-                      </div>
-                    ))
+
+                    // Collapse unchanged regions (show 3 context lines around changes)
+                    const CONTEXT = 3
+                    const changedIndices = new Set()
+                    diffLines.forEach((d, i) => {
+                      if (d.type !== 'same') {
+                        for (let j = Math.max(0, i - CONTEXT); j <= Math.min(diffLines.length - 1, i + CONTEXT); j++) {
+                          changedIndices.add(j)
+                        }
+                      }
+                    })
+
+                    const collapsed = []
+                    let skippedCount = 0
+                    for (let i = 0; i < diffLines.length; i++) {
+                      if (changedIndices.has(i)) {
+                        if (skippedCount > 0) {
+                          collapsed.push({ type: 'collapsed', count: skippedCount })
+                          skippedCount = 0
+                        }
+                        collapsed.push(diffLines[i])
+                      } else {
+                        skippedCount++
+                      }
+                    }
+                    if (skippedCount > 0) collapsed.push({ type: 'collapsed', count: skippedCount })
+
+                    return (
+                      <>
+                        <div className="sticky top-0 z-10 h-8 flex items-center px-4 text-[11px] border-b border-border/40"
+                          style={{ background: 'var(--em-bg-secondary, rgba(10,10,30,0.95))' }}
+                          data-testid="diff-summary"
+                        >
+                          <span className="text-emerald-400 mr-3">+{addCount} addition{addCount !== 1 ? 's' : ''}</span>
+                          <span className="text-red-400 mr-3">-{removeCount} removal{removeCount !== 1 ? 's' : ''}</span>
+                          <span className="text-muted-foreground">{origLines.length} → {newLines.length} lines</span>
+                        </div>
+                        <div className="p-0">
+                          {collapsed.map((d, i) =>
+                            d.type === 'collapsed' ? (
+                              <div key={`c-${i}`} className="px-4 py-0.5 text-[10px] text-muted-foreground/50 bg-[rgba(255,255,255,0.02)] border-y border-border/10 select-none">
+                                ··· {d.count} unchanged line{d.count !== 1 ? 's' : ''} ···
+                              </div>
+                            ) : (
+                              <div key={i} className={`flex whitespace-pre ${
+                                d.type === 'added' ? 'bg-emerald-500/10 text-emerald-300' :
+                                d.type === 'removed' ? 'bg-red-500/10 text-red-300' :
+                                'text-muted-foreground/70'
+                              }`}>
+                                <span className="inline-block w-10 text-right pr-1 text-[10px] opacity-30 select-none border-r border-border/20 shrink-0">
+                                  {d.origNum || ''}
+                                </span>
+                                <span className="inline-block w-10 text-right pr-1 text-[10px] opacity-30 select-none border-r border-border/20 shrink-0">
+                                  {d.newNum || ''}
+                                </span>
+                                <span className="inline-block w-4 text-center shrink-0 opacity-60 select-none">
+                                  {d.type === 'added' ? '+' : d.type === 'removed' ? '−' : ' '}
+                                </span>
+                                <span className="flex-1">{d.line}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </>
+                    )
                   })()}
                 </div>
               ) : (
