@@ -648,7 +648,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           const fn = sendMessageRef.current
           if (fn) {
             try {
-              fn('The edit was applied to live successfully. Briefly acknowledge this and ask what the user wants to work on next.', null, { silent: true })
+              fn('[SYSTEM: The user just clicked Apply to Live and the changes were written to disk. Respond ONLY with a brief acknowledgment and ask what they want to work on next. Do NOT call any tools. Do NOT edit any files. Just ask.]', null, { silent: true })
             } catch { tryAutoSend(attempt + 1) }
           } else { tryAutoSend(attempt + 1) }
         }, 1000 + (attempt * 1000))
@@ -3086,14 +3086,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   isBuilding={!!streamingMessageId}
                   runtimeTestScript={runtimeTestScript}
                   generatedImageMap={generatedImageMap}
-                  onApplySuccess={(filesWritten) => {
-                    // After Apply to Live succeeds in Core System, auto-send follow-up
-                    if (selectedProject?.settings?.is_core) {
-                      setTimeout(() => {
-                        sendMessage('Applied successfully. Please proceed to the next step on the checklist.')
-                      }, 500)
-                    }
-                  }}
+                  onApplySuccess={null}
                 />
                 </div>
               </ResizablePanel>
