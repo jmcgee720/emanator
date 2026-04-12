@@ -640,22 +640,29 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   useEffect(() => {
     const handler = (e) => {
       console.log('[Dashboard] core_apply_success event received', e.detail)
-      // Retry with increasing delays until streamingMessageId clears
-      const tryAutoSend = (attempt = 0) => {
-        if (attempt > 5) {
-          console.log('[Dashboard] Auto-continue: gave up after 5 attempts')
-          return
+
+      // Extract the last AI message's enhancement suggestions
+      const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.content)
+      let suggestions = ''
+      if (lastAiMsg?.content) {
+        const match = lastAiMsg.content.match(/What could enhance this further:\n([\s\S]*?)(?:\n\n|\{\{|$)/)
+        if (match) {
+          suggestions = `\n\nThe suggestions from the last edit were:\n${match[1].trim()}\n\nImplement the first suggestion now.`
         }
-        const delay = 1000 + (attempt * 1000) // 1s, 2s, 3s, 4s, 5s
+      }
+
+      const autoMsg = suggestions
+        ? `Applied to live successfully.${suggestions}`
+        : 'Applied to live. Continue improving the file — pick a meaningful enhancement and implement it now.'
+
+      const tryAutoSend = (attempt = 0) => {
+        if (attempt > 5) return
+        const delay = 1000 + (attempt * 1000)
         setTimeout(() => {
           console.log(`[Dashboard] Auto-continue attempt ${attempt + 1}`)
           const fn = sendMessageRef.current
           if (fn) {
-            try {
-              fn('Applied to live. Now look at the enhancement suggestions from my last edit and pick the best one to implement next. Do the edit now.')
-            } catch {
-              tryAutoSend(attempt + 1)
-            }
+            try { fn(autoMsg) } catch { tryAutoSend(attempt + 1) }
           } else {
             tryAutoSend(attempt + 1)
           }
@@ -665,7 +672,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
     window.addEventListener('core_apply_success', handler)
     return () => window.removeEventListener('core_apply_success', handler)
-  }, [])
+  }, [messages])
 
   // Listen for inline "Apply to Live" button click from chat messages
   useEffect(() => {
