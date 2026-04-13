@@ -903,10 +903,9 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       let data
       try { data = JSON.parse(text) } catch { data = [] }
       setMessages(Array.isArray(data) ? data.filter(m => {
-        // Hide [SYSTEM: messages from chat history — they were silent triggers
+        // Hide silent/system messages from UI — they still exist in DB for AI context
+        if (m.metadata?.silent) return false
         if (m.role === 'user' && typeof m.content === 'string' && m.content.startsWith('[SYSTEM:')) return false
-        // Hide empty user messages (from silent sends)
-        if (m.role === 'user' && (!m.content || m.content.trim() === '')) return false
         return true
       }) : [])
     } catch (error) {
