@@ -902,7 +902,13 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const text = await response.text()
       let data
       try { data = JSON.parse(text) } catch { data = [] }
-      setMessages(Array.isArray(data) ? data : [])
+      setMessages(Array.isArray(data) ? data.filter(m => {
+        // Hide [SYSTEM: messages from chat history — they were silent triggers
+        if (m.role === 'user' && typeof m.content === 'string' && m.content.startsWith('[SYSTEM:')) return false
+        // Hide empty user messages (from silent sends)
+        if (m.role === 'user' && (!m.content || m.content.trim() === '')) return false
+        return true
+      }) : [])
     } catch (error) {
       console.error('Error loading messages:', error)
     }
