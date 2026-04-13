@@ -41,11 +41,16 @@ export default function App() {
       // Detect OAuth provider from Supabase user metadata
       const provider = authUser.app_metadata?.provider || authUser.app_metadata?.providers?.[0] || 'email'
 
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+
       const response = await fetch('/api/auth/check', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ email: authUser.email, provider })
+        body: JSON.stringify({ email: authUser.email, provider }),
+        signal: controller.signal
       })
+      clearTimeout(timeout)
 
       const data = await response.json()
 
@@ -64,7 +69,7 @@ export default function App() {
     } catch (error) {
       setUser(authUser)
       setAccessDenied(true)
-      setAccessMessage('Unable to verify access. Please try again.')
+      setAccessMessage(error?.name === 'AbortError' ? 'Database is not responding. Check your Supabase dashboard.' : 'Unable to verify access. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -76,7 +81,10 @@ export default function App() {
 
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // Timeout the session check to avoid hanging on "Loading Emanator..."
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('session_timeout')), 10000))
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise])
         if (!mounted) return
         if (session?.user) {
           await validateAccess(session.user, session.access_token)
@@ -84,17 +92,11 @@ export default function App() {
           setLoading(false)
         }
       } catch (err) {
-        // AbortError from Web Locks API during navigation — safe to ignore
+        // Any error (AbortError, timeout, network) — just show login page
         if (err?.name === 'AbortError') {
-          console.warn('[Auth] Lock aborted — retrying session check')
-          try {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!mounted) return
-            if (session?.user) {
-              await validateAccess(session.user, session.access_token)
-              return
-            }
-          } catch {}
+          console.warn('[Auth] Lock aborted during init — showing login')
+        } else if (err?.message === 'session_timeout') {
+          console.warn('[Auth] Session check timed out — showing login')
         }
         if (mounted) setLoading(false)
       }
