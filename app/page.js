@@ -83,7 +83,19 @@ export default function App() {
         } else {
           setLoading(false)
         }
-      } catch {
+      } catch (err) {
+        // AbortError from Web Locks API during navigation — safe to ignore
+        if (err?.name === 'AbortError') {
+          console.warn('[Auth] Lock aborted — retrying session check')
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!mounted) return
+            if (session?.user) {
+              await validateAccess(session.user, session.access_token)
+              return
+            }
+          } catch {}
+        }
         if (mounted) setLoading(false)
       }
     }

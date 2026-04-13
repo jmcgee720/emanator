@@ -47,7 +47,10 @@ export default function LoginPage({ onAuthSuccess }) {
     e.preventDefault()
     setLoading(true)
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      // Timeout: don't hang forever if Supabase is unresponsive
+      const authPromise = supabase.auth.signInWithPassword({ email, password })
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+      const { data, error } = await Promise.race([authPromise, timeoutPromise])
       if (error) {
         toast({ title: 'Sign In Failed', description: error.message, variant: 'destructive' })
         setLoading(false)
@@ -55,8 +58,24 @@ export default function LoginPage({ onAuthSuccess }) {
       }
       toast({ title: 'Welcome back!', description: staySignedIn ? 'You will stay signed in.' : 'Session will end when you close the browser.' })
       if (onAuthSuccess) await onAuthSuccess(data.session)
-    } catch {
-      toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' })
+    } catch (err) {
+      if (err?.message === 'timeout') {
+        toast({ title: 'Connection Timeout', description: 'The auth service is slow. Please try again in a moment.', variant: 'destructive' })
+      } else if (err?.name === 'AbortError') {
+        // AbortError from Web Locks API — session may still be valid, retry
+        console.warn('[Auth] Lock aborted during sign-in — checking session')
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user && onAuthSuccess) {
+            toast({ title: 'Welcome back!', description: 'Signed in successfully.' })
+            await onAuthSuccess(session)
+            return
+          }
+        } catch {}
+        toast({ title: 'Error', description: 'Sign in was interrupted. Please try again.', variant: 'destructive' })
+      } else {
+        toast({ title: 'Error', description: 'An unexpected error occurred. Please try again.', variant: 'destructive' })
+      }
     } finally { setLoading(false) }
   }
 

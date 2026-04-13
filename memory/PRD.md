@@ -13,74 +13,54 @@ Build a self-editing AI builder (Emanator) that can reliably modify its own core
 
 ### Phase 1: Patch Reliability (COMPLETE)
 - `patch_files` tool with search/replace arrays
-- Fuzzy whitespace matching
-- Export validation
-- Silent retry (up to 2x) with corrective context
+- Fuzzy whitespace matching, export validation, silent retry (up to 2x)
 
 ### Phase 2-5: Self-Edit Improvements (COMPLETE)
-- Silent validation retries
-- Auto-reload after Apply to Live (require.cache clear + file touch)
-- Enhanced diff view (dual line numbers, collapsed unchanged regions)
-- Intent detection fix (request_router import)
+- Silent validation retries, auto-reload after Apply to Live
+- Enhanced diff view, intent detection fix
 
 ### Core Canvas — PM Portal (COMPLETE)
-- Collaborative markdown editor replaces Preview for Core System
-- Interactive checkboxes, auto-save, Edit/Preview toggle
-- AI auto-updates "Recent Edits" after each edit
-- Smart checklist: auto-checks matching items in Next Steps
+- Collaborative markdown editor, interactive checkboxes, auto-save
 
 ### Conversational AI (COMPLETE)
-- 3-tier intent detection (conversational/status/action)
-- `[SYSTEM:` prefix for silent messages (no user bubble)
-- AI reads user message before acting — obeys "do not implement"
-- `replace_content` SSE event strips AI preamble for clean summaries
+- 3-tier intent detection, `[SYSTEM:` prefix for silent messages
 
 ### Response Quality (COMPLETE)
-- AI summary from `patch_files` tool's `summary` field
-- Inline Apply to Live button in chat messages
-- Silent post-apply follow-up ("What would you like to work on next?")
-- Occasional enhancement suggestions (~30% frequency)
+- AI summary, inline Apply to Live button, silent post-apply follow-up
 
 ### Full Self-Modification (COMPLETE)
-- ALL files unlocked: message-stream.js, service.js, Dashboard.jsx, API routes, tools, etc.
-- 22 editable targets in the dropdown
-- Post-write health check: auto-reverts from snapshot if app crashes
-- Syntax validation blocks broken JS before writing to disk
-- Auto-revert toast notification on frontend
+- 22 editable targets, post-write health check, syntax validation, auto-revert
 
 ### Patch History Timeline (COMPLETE)
-- GET /projects/:id/patch-history returns pre-promote snapshots
 - One-click restore from any snapshot
-- History auto-refreshes after Apply to Live
 
 ### update_canvas Tool (COMPLETE)
 - AI can directly edit the Project Canvas
-- Canvas content injected into system prompt for context
-- Handles old JSON → markdown migration
 
 ### Broken Promise Fix — "All Core System" Mode (COMPLETE - Apr 12 2026)
-- `identifyTargetFile()` helper: 3-strategy file identification (exact path, filename, keyword mapping)
-- Pre-identification: target file auto-identified from user message and loaded into AI context
-- Broken promise retry with file injection so AI can write real patches
-- Fixed prompt to use `patch_files` instead of `update_files`
+- `identifyTargetFile()` helper: 3-strategy file identification
+- Pre-identification loads target file content into AI context upfront
+- Broken promise retry with file injection
 
 ### Stream Timeout Auto-Recovery (COMPLETE - Apr 13 2026)
-- Backend: Real `keepalive` SSE events every 8s (replaces SSE comments which proxies ignore)
-- Frontend: `keepalive` event handled silently in stream-client.js
-- Auto-recovery: When SSE drops without `done` event, waits 3s then retries 3x to fetch saved messages/files from database
-- Recovery works for both `sendMessage` and `executePlan` streams
-- Shows "Recovered" toast on success, falls back to timeout message only if recovery fails
+- Backend: Real `keepalive` SSE events every 8s
+- Frontend: Auto-recovery fetches saved messages/files from DB (3 retries)
+
+### Auth Resilience (COMPLETE - Apr 13 2026)
+- Fixed `AbortError: The lock request is aborted` — global handler suppresses lock errors
+- Added 15s timeout to sign-in to prevent infinite "Signing In..." hang
+- Clean "Connection Timeout" toast when Supabase is slow/down
+- AbortError retry: checks session validity after lock interruption
 
 ## Known Issues
 - AI sometimes generates patches with wrong indentation (mitigated by fuzzy matching + retry)
-- Preview tab shows SyntaxError for Node.js files (mitigated by auto-switch to Canvas)
-- Large files (38K+) may hit proxy timeout (now mitigated by keepalive + auto-recovery)
+- Supabase free tier may pause/slow down after inactivity
 
 ## Remaining Backlog
-- [ ] CSV export option (Emanator should self-implement this)
-- [ ] Conversational AI phases 2-5 (classifyUserIntent) (Emanator should self-implement)
-- [ ] Deploy integration (/api/projects/:id/export-zip) (Emanator should self-implement)
-- [ ] Vision support for Core System chat (image analysis) — requires backend infrastructure
+- [ ] CSV export option (Emanator should self-implement)
+- [ ] Conversational AI phases 2-5 (classifyUserIntent)
+- [ ] Deploy integration (/api/projects/:id/export-zip)
+- [ ] Vision support for Core System chat
 - [ ] Refactor message-stream.js (~2800 lines) and service.js (~2600 lines)
 
 ## Tech Stack
