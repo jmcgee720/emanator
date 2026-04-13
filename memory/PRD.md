@@ -60,16 +60,21 @@ Build a self-editing AI builder (Emanator) that can reliably modify its own core
 
 ### Broken Promise Fix — "All Core System" Mode (COMPLETE - Apr 12 2026)
 - `identifyTargetFile()` helper: 3-strategy file identification (exact path, filename, keyword mapping)
-- Pre-identification: When user selects "All Core System", the target file is auto-identified from the user message and its content is loaded into the AI's context BEFORE the first LLM call
-- Broken promise retry with file injection: If AI still promises action without calling a tool, the retry now injects the target file content so the AI can write real patches
-- Fixed "All Core System" prompt to say `patch_files` instead of `update_files`
-- Improved regex to catch more promise patterns (proceed, start, build, make, work on)
+- Pre-identification: target file auto-identified from user message and loaded into AI context
+- Broken promise retry with file injection so AI can write real patches
+- Fixed prompt to use `patch_files` instead of `update_files`
+
+### Stream Timeout Auto-Recovery (COMPLETE - Apr 13 2026)
+- Backend: Real `keepalive` SSE events every 8s (replaces SSE comments which proxies ignore)
+- Frontend: `keepalive` event handled silently in stream-client.js
+- Auto-recovery: When SSE drops without `done` event, waits 3s then retries 3x to fetch saved messages/files from database
+- Recovery works for both `sendMessage` and `executePlan` streams
+- Shows "Recovered" toast on success, falls back to timeout message only if recovery fails
 
 ## Known Issues
 - AI sometimes generates patches with wrong indentation (mitigated by fuzzy matching + retry)
 - Preview tab shows SyntaxError for Node.js files (mitigated by auto-switch to Canvas)
-- Large files (38K+) may hit proxy timeout (mitigated by 60s timeout safety net)
-- Some patches fail due to search string not found (1 of 3 in testing) — existing retry handles this
+- Large files (38K+) may hit proxy timeout (now mitigated by keepalive + auto-recovery)
 
 ## Remaining Backlog
 - [ ] CSV export option (Emanator should self-implement this)
