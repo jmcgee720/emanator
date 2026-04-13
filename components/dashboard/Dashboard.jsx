@@ -1639,6 +1639,44 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         onCanvasUpdate: (data) => {
           window.dispatchEvent(new CustomEvent('canvas_update', { detail: data }))
           setCanvas(data.content)
+        },
+
+        // ── Stream timeout auto-recovery ──
+        onStreamRecovery: async () => {
+          if (!selectedChat || !selectedProject) return false
+          // Retry up to 3 times with delays — backend may still be saving
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              if (attempt > 0) await new Promise(r => setTimeout(r, 2000))
+              console.log(`[StreamRecovery] Attempt ${attempt + 1}/3...`)
+              const msgRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
+              if (!msgRes.ok) continue
+              const savedMessages = await msgRes.json()
+              const latestAssistant = [...savedMessages].reverse().find(m => m.role === 'assistant' && !m.metadata?.error)
+              if (!latestAssistant) continue
+              console.log('[StreamRecovery] Found saved assistant message:', latestAssistant.id)
+
+              setMessages(prev => prev.map(m =>
+                m.id === streamingAssistantId
+                  ? { ...m, id: latestAssistant.id, content: latestAssistant.content, streaming: false, metadata: latestAssistant.metadata || {} }
+                  : m
+              ))
+              setStreamingMessageId(null)
+              setStreamingStatus(null)
+
+              const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
+              if (filesRes.ok) {
+                const filesData = await filesRes.json()
+                setFiles(Array.isArray(filesData) ? filesData : [])
+              }
+              setActiveTab(isSelfEditChat ? 'code' : 'preview')
+              toast({ title: 'Recovered', description: 'Connection dropped but your build was saved. Files loaded.' })
+              return true
+            } catch (err) {
+              console.error(`[StreamRecovery] Attempt ${attempt + 1} failed:`, err.message)
+            }
+          }
+          return false
         }
       }
     )
@@ -1781,6 +1819,43 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         onCanvasUpdate: (data) => {
           window.dispatchEvent(new CustomEvent('canvas_update', { detail: data }))
           setCanvas(data.content)
+        },
+
+        // ── Stream timeout auto-recovery (executePlan) ──
+        onStreamRecovery: async () => {
+          if (!selectedChat || !selectedProject) return false
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              if (attempt > 0) await new Promise(r => setTimeout(r, 2000))
+              console.log(`[StreamRecovery-Plan] Attempt ${attempt + 1}/3...`)
+              const msgRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
+              if (!msgRes.ok) continue
+              const savedMessages = await msgRes.json()
+              const latestAssistant = [...savedMessages].reverse().find(m => m.role === 'assistant' && !m.metadata?.error)
+              if (!latestAssistant) continue
+
+              setMessages(prev => prev.map(m =>
+                m.id === streamingAssistantId
+                  ? { ...m, id: latestAssistant.id, content: latestAssistant.content, streaming: false, metadata: latestAssistant.metadata || {} }
+                  : m
+              ))
+              setStreamingMessageId(null)
+              setStreamingStatus(null)
+              setExecutingPlan(false)
+
+              const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
+              if (filesRes.ok) {
+                const filesData = await filesRes.json()
+                setFiles(Array.isArray(filesData) ? filesData : [])
+              }
+              setActiveTab(isSelfEditChat ? 'code' : 'preview')
+              toast({ title: 'Recovered', description: 'Connection dropped but your build was saved. Files loaded.' })
+              return true
+            } catch (err) {
+              console.error(`[StreamRecovery-Plan] Attempt ${attempt + 1} failed:`, err.message)
+            }
+          }
+          return false
         }
       }
     )
