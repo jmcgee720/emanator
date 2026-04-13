@@ -102,6 +102,11 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         setTimeout(() => {
           toast({ title: 'Reload Complete', description: 'Changes are now live.' })
         }, 2000)
+      } else if (data.auto_reverted) {
+        addLog('error', `Auto-reverted: ${data.error}`)
+        toast({ title: 'Auto-Reverted', description: 'The edit caused a compilation error and was reverted. The AI is analyzing what went wrong...', variant: 'destructive' })
+        // Dispatch event so Dashboard can trigger AI explanation
+        window.dispatchEvent(new CustomEvent('core_apply_reverted', { detail: { files_attempted: data.files_attempted, detail: data.detail, error: data.error } }))
       } else {
         addLog('error', data.error || `Apply failed`)
         toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })

@@ -659,6 +659,30 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     return () => window.removeEventListener('core_apply_success', handler)
   }, [])
 
+  // Listen for Core System "Apply to Live" auto-revert → AI explains & retries
+  useEffect(() => {
+    const handler = (e) => {
+      console.log('[Dashboard] core_apply_reverted — triggering AI explanation')
+      const detail = e.detail
+      const tryAutoExplain = (attempt = 0) => {
+        if (attempt > 5) return
+        setTimeout(() => {
+          const fn = sendMessageRef.current
+          if (fn) {
+            const filesAttempted = detail?.files_attempted?.join(', ') || 'unknown'
+            const reason = detail?.detail || 'Health check failed after apply.'
+            try {
+              fn(`[SYSTEM: AUTO-REVERT HAPPENED. Your last patch to ${filesAttempted} was applied to live but FAILED the health check and was auto-reverted. Reason: ${reason}\n\nRespond to the user with:\n1. A brief explanation of what went wrong (1-2 sentences)\n2. Immediately retry the patch with a corrected version using patch_files — fix the syntax error that caused the revert. Do NOT ask for permission — just fix it.]`, null, { silent: true })
+            } catch { tryAutoExplain(attempt + 1) }
+          } else { tryAutoExplain(attempt + 1) }
+        }, 1000 + (attempt * 1000))
+      }
+      tryAutoExplain(0)
+    }
+    window.addEventListener('core_apply_reverted', handler)
+    return () => window.removeEventListener('core_apply_reverted', handler)
+  }, [])
+
   // Listen for inline "Apply to Live" button click from chat messages
   useEffect(() => {
     const handler = async () => {
@@ -677,7 +701,22 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             }, 4000) // wait for health check to complete
           }
         } else if (data.auto_reverted) {
-          toast({ title: 'Auto-Reverted', description: 'The edit broke something and was automatically reverted. Try a smaller, more targeted change.', variant: 'destructive' })
+          toast({ title: 'Auto-Reverted', description: 'The edit broke something and was automatically reverted. The AI is analyzing what went wrong...', variant: 'destructive' })
+          // Trigger AI explanation and retry in Core System mode
+          const tryAutoExplain = (attempt = 0) => {
+            if (attempt > 5) return
+            setTimeout(() => {
+              const fn = sendMessageRef.current
+              if (fn) {
+                const filesAttempted = data.files_attempted?.join(', ') || 'unknown'
+                const detail = data.detail || 'Health check failed after apply.'
+                try {
+                  fn(`[SYSTEM: AUTO-REVERT HAPPENED. Your last patch to ${filesAttempted} was applied to live but FAILED the health check and was auto-reverted. Reason: ${detail}\n\nRespond to the user with:\n1. A brief explanation of what went wrong (1-2 sentences)\n2. Immediately retry the patch with a corrected version using patch_files — fix the syntax error that caused the revert. Do NOT ask for permission — just fix it.]`, null, { silent: true })
+                } catch { tryAutoExplain(attempt + 1) }
+              } else { tryAutoExplain(attempt + 1) }
+            }, 1000 + (attempt * 1000))
+          }
+          tryAutoExplain(0)
         } else {
           toast({ title: 'Apply Failed', description: data.error || 'Something went wrong.', variant: 'destructive' })
         }
