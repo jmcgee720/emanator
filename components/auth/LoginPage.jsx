@@ -52,7 +52,13 @@ export default function LoginPage({ onAuthSuccess }) {
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
       const { data, error } = await Promise.race([authPromise, timeoutPromise])
       if (error) {
-        toast({ title: 'Sign In Failed', description: error.message, variant: 'destructive' })
+        const msg = error.message || ''
+        const isNetworkError = /network|fetch|ECONNREFUSED|521|502|503|timeout/i.test(msg)
+        if (isNetworkError) {
+          toast({ title: 'Service Unavailable', description: 'Cannot reach the auth service. The database may be paused — check your Supabase dashboard.', variant: 'destructive' })
+        } else {
+          toast({ title: 'Sign In Failed', description: msg, variant: 'destructive' })
+        }
         setLoading(false)
         return
       }
