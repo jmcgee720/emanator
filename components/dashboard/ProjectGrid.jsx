@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Monitor, Smartphone, FileText, Trash2, LayoutGrid, CreditCard, X } from 'lucide-react'
+import { Trash2, LayoutGrid, CreditCard, X } from 'lucide-react'
 import InlineBrief from './InlineBrief'
 import NewProjectModal from './NewProjectModal'
 
-// Lightweight project thumbnail
 const THUMBNAIL_COLORS = [
   ['#1a1a2e', '#16213e'], ['#0f3460', '#1a1a2e'], ['#162447', '#1f4068'],
   ['#1b262c', '#0f4c75'], ['#222831', '#393e46'], ['#2d3436', '#636e72'],
@@ -30,52 +29,15 @@ function ProjectThumbnail({ projectId, projectName }) {
   )
 }
 
-/**
- * ProjectGrid — the main project listing page with hero, creative brief, project cards,
- * Core System button, credits modal, and new project modal.
- * 
- * Extracted from Dashboard.jsx to keep it under 500 lines for reliable AI editing.
- */
 export default function ProjectGrid({
-  projects,
-  isOwner,
-  headline,
-  aurora,
-  // Callbacks
-  onOpenProject,
-  onCreateProject,
-  onDeleteProject,
-  onEnterCoreSystem,
-  onBuyCredits,
-  // State
-  showNewProjectModal,
-  setShowNewProjectModal,
-  newProjectName,
-  setNewProjectName,
-  newProjectType,
-  setNewProjectType,
-  selectedTemplate,
-  setSelectedTemplate,
-  selectedProject,
-  addLog,
-  toast,
-  projectMode,
-  heroSubmitting,
-  setHeroSubmitting,
-  pendingHeroPromptRef,
-  importChatTitleRef,
-  setActivityLevel,
-  // Credits
-  showCreditsModal,
-  setShowCreditsModal,
-  creditsBalance,
-  creditsLoading,
-  creditsCosts,
-  // Selection state for bulk operations
-  selectedProjects,
-  setSelectedProjects,
-  deleteConfirmProject,
-  setDeleteConfirmProject,
+  projects, isOwner, headline, aurora,
+  onOpenProject, onCreateProject, onDeleteProject, onEnterCoreSystem, onBuyCredits,
+  showNewProjectModal, setShowNewProjectModal,
+  newProjectName, setNewProjectName, newProjectType, setNewProjectType,
+  selectedTemplate, setSelectedTemplate, selectedProject, addLog, toast,
+  projectMode, heroSubmitting, setHeroSubmitting, pendingHeroPromptRef, importChatTitleRef, setActivityLevel,
+  showCreditsModal, setShowCreditsModal, creditsBalance, creditsLoading, creditsCosts,
+  selectedProjects, setSelectedProjects, deleteConfirmProject, setDeleteConfirmProject,
 }) {
   const [selectMode, setSelectMode] = useState(false)
   const cards = projects.filter(p => !p.settings?.is_core)
@@ -97,31 +59,22 @@ export default function ProjectGrid({
   const handleBulkDelete = async () => {
     if (selectedProjects.length === 0) return
     if (!confirm(`Delete ${selectedProjects.length} project(s)? This cannot be undone.`)) return
-    try {
-      for (const pid of selectedProjects) {
-        await onDeleteProject(pid)\n        e.preventDefault()
-      }
-      setSelectedProjects([])
-      setSelectMode(false)
-      toast({ title: 'Deleted', description: `${selectedProjects.length} project(s) deleted.` })
-    } catch (err) {
-      toast({ title: 'Delete Failed', description: err.message, variant: 'destructive' })
+    for (const pid of selectedProjects) {
+      await onDeleteProject(pid)
     }
+    setSelectedProjects([])
+    setSelectMode(false)
+    toast({ title: 'Deleted', description: `${selectedProjects.length} project(s) deleted.` })
   }
 
   return (
     <div className="flex-1 overflow-auto relative z-5">
-      {/* ── Hero: headline + creative brief ── */}
       <div className="pt-16 pb-8 px-8">
         <div className="max-w-3xl mx-auto text-center mb-8">
-          <h1
-            className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight leading-tight"
-            data-testid="dynamic-headline"
-          >
+          <h1 className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight leading-tight" data-testid="dynamic-headline">
             {headline}
           </h1>
         </div>
-
         <InlineBrief
           isOwner={isOwner}
           onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
@@ -143,84 +96,40 @@ export default function ProjectGrid({
         />
       </div>
 
-      {/* ── Project / Core System toggles + grid ── */}
       <div className="px-8 pb-12">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2" data-testid="selection-controls">
-              <button
-                onClick={() => setSelectMode(!selectMode)}
-                className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] transition-all"
-                data-testid="toggle-select-mode-btn"
-              >
-                {selectMode ? 'Cancel Selection' : 'Select All'}
-              </button>
-              {selectMode && selectedProjects.length > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5"
-                  data-testid="delete-all-btn"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  Delete All
-                </button>
-              )}
-            </div>
             <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm" data-testid="projects-nav-tabs">
-              <button
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)] transition-all duration-200"
-                data-testid="projects-tab-btn"
-              >
+              <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)] transition-all duration-200" data-testid="projects-tab-btn">
                 <LayoutGrid className="w-3 h-3" />
                 Projects
               </button>
               {isOwner && (
-                <button
-                  onClick={onEnterCoreSystem}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
-                  data-testid="core-system-btn"
-                >
+                <button onClick={onEnterCoreSystem} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200" data-testid="core-system-btn">
                   Core System
                 </button>
               )}
             </div>
 
-            {/* ── Bulk Select / Delete controls ── */}
             <div className="flex items-center gap-2" data-testid="bulk-controls">
               {selectMode ? (
                 <>
-                  <button
-                    onClick={handleSelectAll}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all"
-                    data-testid="select-all-btn"
-                  >
+                  <button onClick={handleSelectAll} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all" data-testid="select-all-btn">
                     {selectedProjects.length === cards.length ? 'Deselect All' : 'Select All'}
                   </button>
-                  {selectMode && selectedProjects.length > 0 && (
-                    <button
-                      onClick={handleBulkDelete}
-                      className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5"
-                      data-testid="delete-selected-btn"
-                    >
+                  {selectedProjects.length > 0 && (
+                    <button onClick={handleBulkDelete} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5" data-testid="delete-selected-btn">
                       <Trash2 className="w-3 h-3" />
                       Delete {selectedProjects.length}
                     </button>
                   )}
-                  <button
-                    onClick={() => { setSelectMode(false); setSelectedProjects([]) }}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white transition-all"
-                    data-testid="cancel-select-btn"
-                  >
+                  <button onClick={() => { setSelectMode(false); setSelectedProjects([]) }} className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white transition-all" data-testid="cancel-select-btn">
                     Cancel
                   </button>
                 </>
               ) : (
                 cards.length > 0 && (
-                  <button
-                    onClick={() => setSelectMode(true)}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] transition-all"
-                    data-testid="enter-select-mode-btn"
-                  >
+                  <button onClick={() => setSelectMode(true)} className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] transition-all" data-testid="enter-select-mode-btn">
                     Select
                   </button>
                 )
@@ -232,57 +141,30 @@ export default function ProjectGrid({
             {cards.map((item) => (
               <div
                 key={item.id}
-                className={`group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${
-                  selectMode && selectedProjects.includes(item.id) ? 'ring-2 ring-[var(--em-cyan)] border-[rgba(0,229,255,0.4)]' : ''
-                }`}
-                onClick={() => {
-                  if (selectMode) {
-                    handleToggleSelect(item.id)
-                  } else {
-                    onOpenProject(item)
-                  }
-                }}
+                className={`group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${selectMode && selectedProjects.includes(item.id) ? 'ring-2 ring-[var(--em-cyan)] border-[rgba(0,229,255,0.4)]' : ''}`}
+                onClick={() => selectMode ? handleToggleSelect(item.id) : onOpenProject(item)}
                 onMouseEnter={aurora.onTyping}
                 data-testid={`project-card-${item.id}`}
               >
-                {/* Selection checkbox */}
                 {selectMode && (
                   <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-md border-2 border-[rgba(255,255,255,0.3)] flex items-center justify-center bg-[rgba(0,0,0,0.4)] backdrop-blur-sm" data-testid={`select-checkbox-${item.id}`}>
-                    {selectedProjects.includes(item.id) && (
-                      <div className="w-3 h-3 rounded-sm bg-[var(--em-cyan)]" />
-                    )}
+                    {selectedProjects.includes(item.id) && <div className="w-3 h-3 rounded-sm bg-[var(--em-cyan)]" />}
                   </div>
                 )}
-                {/* Delete button — top right corner */}
                 {!selectMode && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setDeleteConfirmProject(item)\n                    e.preventDefault()
-                    }}
-                    className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-[rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,60,60,0.3)] hover:border-[rgba(255,60,60,0.4)] hover:text-red-400 transition-all duration-200 backdrop-blur-sm"
-                    data-testid={`delete-project-btn-${item.id}`}
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmProject(item) }} className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-[rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,60,60,0.3)] hover:border-[rgba(255,60,60,0.4)] hover:text-red-400 transition-all duration-200 backdrop-blur-sm" data-testid={`delete-project-btn-${item.id}`}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
-                {/* Thumbnail */}
                 <ProjectThumbnail projectId={item.id} projectName={item.name} />
-                {/* Info */}
                 <div className="px-3.5 py-3 relative z-[2]">
                   <div className="text-sm font-medium em-text-primary truncate">{item.name}</div>
                   <div className="text-[11px] em-text-secondary mt-0.5">{item.type || 'project'}</div>
                 </div>
               </div>
             ))}
-
-            {/* New project card */}
             {!selectMode && (
-              <button
-                onClick={() => setShowNewProjectModal(true)}
-                className="rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] backdrop-blur-sm transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group"
-                data-testid="add-project-card"
-              >
+              <button onClick={() => setShowNewProjectModal(true)} className="rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] backdrop-blur-sm transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group" data-testid="add-project-card">
                 <div className="w-10 h-10 rounded-lg border border-[rgba(255,255,255,0.10)] group-hover:border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center mb-2 transition-all">
                   <span className="text-xl text-[var(--em-text-secondary)] group-hover:text-white transition-colors">+</span>
                 </div>
@@ -293,45 +175,21 @@ export default function ProjectGrid({
         </div>
       </div>
 
-      {/* ── New Project Modal ── */}
       {showNewProjectModal && (
-        <NewProjectModal
-          showNewProjectModal={showNewProjectModal}
-          setShowNewProjectModal={setShowNewProjectModal}
-          newProjectName={newProjectName}
-          setNewProjectName={setNewProjectName}
-          newProjectType={newProjectType}
-          setNewProjectType={setNewProjectType}
-          selectedTemplate={selectedTemplate}
-          setSelectedTemplate={setSelectedTemplate}
-          createProject={onCreateProject}
-          selectedProject={selectedProject}
-          addLog={addLog}
-          toast={toast}
-        />
+        <NewProjectModal showNewProjectModal={showNewProjectModal} setShowNewProjectModal={setShowNewProjectModal} newProjectName={newProjectName} setNewProjectName={setNewProjectName} newProjectType={newProjectType} setNewProjectType={setNewProjectType} selectedTemplate={selectedTemplate} setSelectedTemplate={setSelectedTemplate} createProject={onCreateProject} selectedProject={selectedProject} addLog={addLog} toast={toast} />
       )}
 
-      {/* ── Credits Modal ── */}
       {showCreditsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(255,255,255,0.15)]" data-testid="credits-modal">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-[var(--em-cyan)]" />
-                Credits
-              </h2>
-              <button onClick={() => setShowCreditsModal(false)} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+              <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2"><CreditCard className="w-4 h-4 text-[var(--em-cyan)]" />Credits</h2>
+              <button onClick={() => setShowCreditsModal(false)} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors"><X className="w-4 h-4" /></button>
             </div>
-
             <div className="em-glass rounded-xl p-4 mb-5" data-testid="credits-balance">
-              <div className="text-2xl font-bold em-gradient-text mb-1">
-                {creditsBalance !== null ? creditsBalance.toFixed(2) : '—'}
-              </div>
+              <div className="text-2xl font-bold em-gradient-text mb-1">{creditsBalance !== null ? creditsBalance.toFixed(2) : '—'}</div>
               <div className="text-xs em-text-secondary">Available credits</div>
             </div>
-
             <div className="space-y-2 mb-5">
               <p className="text-[10px] em-text-muted font-medium uppercase tracking-wider mb-2">Cost per action</p>
               <div className="grid grid-cols-2 gap-1.5">
@@ -343,20 +201,9 @@ export default function ProjectGrid({
                 ))}
               </div>
             </div>
-
             <div className="grid grid-cols-3 gap-2" data-testid="credits-purchase-options">
-              {[
-                { packageId: 'starter', amount: 100, price: '$10' },
-                { packageId: 'pro', amount: 500, price: '$45' },
-                { packageId: 'ultra', amount: 1000, price: '$80' },
-              ].map(({ packageId, amount, price }) => (
-                <button
-                  key={packageId}
-                  onClick={() => onBuyCredits(packageId)}
-                  disabled={creditsLoading}
-                  className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center disabled:opacity-50"
-                  data-testid={`buy-credits-${packageId}`}
-                >
+              {[{ packageId: 'starter', amount: 100, price: '$10' }, { packageId: 'pro', amount: 500, price: '$45' }, { packageId: 'ultra', amount: 1000, price: '$80' }].map(({ packageId, amount, price }) => (
+                <button key={packageId} onClick={() => onBuyCredits(packageId)} disabled={creditsLoading} className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center disabled:opacity-50" data-testid={`buy-credits-${packageId}`}>
                   <div className="text-sm font-semibold em-text-primary">{amount}</div>
                   <div className="text-[11px] em-text-secondary">{price}</div>
                 </button>
