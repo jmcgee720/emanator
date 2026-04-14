@@ -147,6 +147,25 @@ export default function ProjectGrid({
       <div className="px-8 pb-12">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2" data-testid="selection-controls">
+              <button
+                onClick={() => setSelectMode(!selectMode)}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] transition-all"
+                data-testid="toggle-select-mode-btn"
+              >
+                {selectMode ? 'Cancel Selection' : 'Select All'}
+              </button>
+              {selectMode && selectedProjects.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5"
+                  data-testid="delete-all-btn"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Delete All
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm" data-testid="projects-nav-tabs">
               <button
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)] transition-all duration-200"
