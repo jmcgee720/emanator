@@ -22,7 +22,6 @@ import BuilderMemory from './BuilderMemory'
 import NewProjectModal from './NewProjectModal'
 import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
-import ProjectGrid from './ProjectGrid'
 import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus, Sparkles, Camera } from 'lucide-react'
 import { useAuroraState } from '@/hooks/useAuroraState'
 import AuroraBackground from '@/components/AuroraBackground'
@@ -82,6 +81,49 @@ const BUILD_LOG_PHRASES = {
   proposing_plan: 'Creating the build plan...',
   analyzing: 'Analyzing codebase...',
   analysis_complete: 'Analysis complete, building...',
+}
+
+// Lightweight project thumbnail — uses initials/gradients instead of DB queries
+// This prevents 80+ concurrent database requests on page load
+const THUMBNAIL_COLORS = [
+  ['#1a1a2e', '#16213e'], ['#0f3460', '#1a1a2e'], ['#162447', '#1f4068'],
+  ['#1b262c', '#0f4c75'], ['#222831', '#393e46'], ['#2d3436', '#636e72'],
+  ['#1e272e', '#485460'], ['#0a3d62', '#3c6382'], ['#0c2461', '#1e3799'],
+]
+
+function ProjectThumbnail({ projectId, projectName }) {
+  const colorIndex = (projectId?.charCodeAt?.(0) || 0) % THUMBNAIL_COLORS.length
+  const [bg1, bg2] = THUMBNAIL_COLORS[colorIndex]
+  const initials = (projectName || 'P')
+    .split(/[\s-_]+/)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase() || '')
+    .join('')
+
+  const handleBulkDelete = async () => {
+    if (selectedProjects.length === 0) return
+    try {
+      await Promise.all(selectedProjects.map(async (projectId) => {
+        await authFetch(`/api/projects/${projectId}`, {
+          method: 'DELETE'
+        })
+      }))
+      setProjects(prev => prev.filter(p => !selectedProjects.includes(p.id)))
+      setSelectedProjects([])
+      toast({ title: 'Projects Deleted', description: 'Selected projects have been deleted.' })
+    } catch (err) {
+      toast({ title: 'Delete Failed', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  return (
+    <div
+      className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center"
+      style={{ background: `linear-gradient(135deg, ${bg1}, ${bg2})` }}
+    >
+      <span className="text-lg font-semibold text-white/30 select-none">{initials || 'P'}</span>
+    </div>
+  )
 }
 
 export default function Dashboard({ user, dbUser, onSignOut }) {
@@ -2576,6 +2618,228 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
     )
   }
 
+  const renderProjectGrid = () => {
+    const cards = projects.filter(p => !p.settings?.is_core)
+
+    const modes = [
+      { key: 'fullstack', label: 'Full Stack App', icon: Monitor },
+      { key: 'mobile', label: 'Mobile App', icon: Smartphone },
+      { key: 'landing', label: 'Landing Page', icon: FileText },
+    ]
+
+    return (
+      <div className="flex-1 overflow-auto relative z-5">
+        {/* ── Hero: headline + creative brief ── */}
+        <div className="pt-16 pb-8 px-8">
+          <div className="max-w-3xl mx-auto text-center mb-8">
+            <h1
+              className="text-3xl sm:text-4xl font-semibold em-gradient-text tracking-tight leading-tight"
+              data-testid="dynamic-headline"
+            >
+              {headline}
+            </h1>
+          </div>
+
+          <InlineBrief
+            isOwner={isOwner}
+            onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
+              setHeroSubmitting(true)
+              try {
+                pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments }
+                const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
+                // Chat title should summarize the request, not duplicate the project name
+                const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build'
+                importChatTitleRef.current = chatTitle
+                await createProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app')
+                aurora.triggerEnergyFlow?.()
+                setActivityLevel(1)
+              } catch (error) {
+                pendingHeroPromptRef.current = null
+              } finally {
+                setHeroSubmitting(false)
+              }
+            }}
+          />
+        </div>
+
+        {/* ── Project / Core System toggles + grid ── */}
+        <div className="px-8 pb-12">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm" data-testid="projects-nav-tabs">
+                <button
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)] transition-all duration-200"
+                  data-testid="projects-tab-btn"
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                  Projects
+                </button>
+                {isOwner && (
+                  <button
+                    onClick={async () => {
+                      setBuilderMode('core')
+                      let coreProject =
+                        projects.find(p => p.settings?.is_core === true) ||
+                        (coreProjectIdRef.current && projects.find(p => p.id === coreProjectIdRef.current)) ||
+                        null
+                      if (!coreProject) {
+                        try {
+                          const resp = await authFetch('/api/projects', {
+                            method: 'POST',
+                            headers: JSON_HEADERS,
+                            body: JSON.stringify({ name: 'Core System', type: 'app', settings: { is_core: true } })
+                          })
+                          if (!resp.ok) return
+                          const data = await resp.json()
+                          coreProject = data.project || data
+                          setProjects(prev => [coreProject, ...prev])
+                        } catch { return }
+                      }
+                      coreProjectIdRef.current = coreProject.id
+                      hubEntryRef.current = true
+                      setSelectedChat(null)
+                      setMessages([])
+                      openProjectWorkspace(coreProject)
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200"
+                    data-testid="core-system-btn"
+                  >
+                    Core System
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5" data-testid="project-grid">
+              {cards.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative rounded-xl em-glass hover:border-[rgba(255,255,255,0.24)] hover:shadow-[0_20px_70px_rgba(0,0,0,0.35),0_0_20px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.30)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    hubEntryRef.current = true
+                    setBuilderMode('app')
+                    setSelectedChat(null)
+                    setMessages([])
+                    openProjectWorkspace(item)
+                  }}
+                  onMouseEnter={aurora.onTyping}
+                  data-testid={`project-card-${item.id}`}
+                >
+                  {/* Delete button — top right corner */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteConfirmProject(item)
+                    }}
+                    className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-[rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,60,60,0.3)] hover:border-[rgba(255,60,60,0.4)] hover:text-red-400 transition-all duration-200 backdrop-blur-sm"
+                    data-testid={`delete-project-btn-${item.id}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Thumbnail — live preview snapshot */}
+                  <ProjectThumbnail projectId={item.id} projectName={item.name} />
+                  {/* Info */}
+                  <div className="px-3.5 py-3 relative z-[2]">
+                    <div className="text-sm font-medium em-text-primary truncate">{item.name}</div>
+                    <div className="text-[11px] em-text-secondary mt-0.5">{item.type || 'project'}</div>
+                  </div>
+                </div>
+              ))}
+
+              {/* New project card */}
+              <button
+                onClick={() => setShowNewProjectModal(true)}
+                className="rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] backdrop-blur-sm transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group"
+                data-testid="add-project-card"
+              >
+                <div className="w-10 h-10 rounded-lg border border-[rgba(255,255,255,0.10)] group-hover:border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center mb-2 transition-all">
+                  <span className="text-xl text-[var(--em-text-secondary)] group-hover:text-white transition-colors">+</span>
+                </div>
+                <span className="text-xs text-[var(--em-text-secondary)] group-hover:text-white transition-colors">New Project</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── New Project Modal with Templates ── */}
+        {showNewProjectModal && (
+          <NewProjectModal
+            showNewProjectModal={showNewProjectModal}
+            setShowNewProjectModal={setShowNewProjectModal}
+            newProjectName={newProjectName}
+            setNewProjectName={setNewProjectName}
+            newProjectType={newProjectType}
+            setNewProjectType={setNewProjectType}
+            selectedTemplate={selectedTemplate}
+            setSelectedTemplate={setSelectedTemplate}
+            createProject={createProject}
+            selectedProject={selectedProject}
+            addLog={addLog}
+            toast={toast}
+          />
+        )}
+
+        {/* ── Credits Modal ── */}
+        {showCreditsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="em-glass rounded-2xl p-6 w-[420px] border border-[rgba(255,255,255,0.15)]" data-testid="credits-modal">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-sm font-semibold em-text-primary flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[var(--em-cyan)]" />
+                  Credits
+                </h2>
+                <button onClick={() => setShowCreditsModal(false)} className="em-text-muted hover:text-[var(--em-text-primary)] transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="em-glass rounded-xl p-4 mb-5" data-testid="credits-balance">
+                <div className="text-2xl font-bold em-gradient-text mb-1">
+                  {creditsBalance !== null ? creditsBalance.toFixed(2) : '—'}
+                </div>
+                <div className="text-xs em-text-secondary">Available credits</div>
+              </div>
+
+              <div className="space-y-2 mb-5">
+                <p className="text-[10px] em-text-muted font-medium uppercase tracking-wider mb-2">Cost per action</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {Object.entries(creditsCosts).map(([action, cost]) => (
+                    <div key={action} className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-[rgba(255,255,255,0.03)]">
+                      <span className="em-text-secondary capitalize">{action.replace(/_/g, ' ')}</span>
+                      <span className="em-text-primary font-medium">{cost}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2" data-testid="credits-purchase-options">
+                {[
+                  { packageId: 'starter', amount: 100, price: '$10' },
+                  { packageId: 'pro', amount: 500, price: '$45' },
+                  { packageId: 'ultra', amount: 1000, price: '$80' },
+                ].map(({ packageId, amount, price }) => (
+                  <button
+                    key={packageId}
+                    onClick={() => handleBuyCredits(packageId)}
+                    disabled={creditsLoading}
+                    className="py-3 rounded-xl border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] transition-all duration-200 text-center disabled:opacity-50"
+                    data-testid={`buy-credits-${packageId}`}
+                  >
+                    <div className="text-sm font-semibold em-text-primary">{amount}</div>
+                    <div className="text-[11px] em-text-secondary">{price}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    )
+  }
+
+
+
   return (
     <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)', zIndex: 1 }} data-testid="dashboard">
       {/* Canvas aurora background — full energy on Project Bin, chat-driven otherwise */}
@@ -2789,76 +3053,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
       />
 
       {!selectedProject ? (
-        <ProjectGrid
-          projects={projects}
-          isOwner={isOwner}
-          headline={headline}
-          aurora={aurora}
-          onOpenProject={(item) => {
-            hubEntryRef.current = true
-            setBuilderMode('app')
-            setSelectedChat(null)
-            setMessages([])
-            openProjectWorkspace(item)
-          }}
-          onCreateProject={createProject}
-          onDeleteProject={async (pid) => {
-            await authFetch(`/api/projects/${pid}`, { method: 'DELETE' })
-            setProjects(prev => prev.filter(p => p.id !== pid))
-          }}
-          onEnterCoreSystem={async () => {
-            setBuilderMode('core')
-            let coreProject =
-              projects.find(p => p.settings?.is_core === true) ||
-              (coreProjectIdRef.current && projects.find(p => p.id === coreProjectIdRef.current)) ||
-              null
-            if (!coreProject) {
-              try {
-                const resp = await authFetch('/api/projects', {
-                  method: 'POST',
-                  headers: JSON_HEADERS,
-                  body: JSON.stringify({ name: 'Core System', type: 'app', settings: { is_core: true } })
-                })
-                if (!resp.ok) return
-                const data = await resp.json()
-                coreProject = data.project || data
-                setProjects(prev => [coreProject, ...prev])
-              } catch { return }
-            }
-            coreProjectIdRef.current = coreProject.id
-            hubEntryRef.current = true
-            setSelectedChat(null)
-            setMessages([])
-            openProjectWorkspace(coreProject)
-          }}
-          onBuyCredits={handleBuyCredits}
-          showNewProjectModal={showNewProjectModal}
-          setShowNewProjectModal={setShowNewProjectModal}
-          newProjectName={newProjectName}
-          setNewProjectName={setNewProjectName}
-          newProjectType={newProjectType}
-          setNewProjectType={setNewProjectType}
-          selectedTemplate={selectedTemplate}
-          setSelectedTemplate={setSelectedTemplate}
-          selectedProject={selectedProject}
-          addLog={addLog}
-          toast={toast}
-          projectMode={projectMode}
-          heroSubmitting={heroSubmitting}
-          setHeroSubmitting={setHeroSubmitting}
-          pendingHeroPromptRef={pendingHeroPromptRef}
-          importChatTitleRef={importChatTitleRef}
-          setActivityLevel={setActivityLevel}
-          showCreditsModal={showCreditsModal}
-          setShowCreditsModal={setShowCreditsModal}
-          creditsBalance={creditsBalance}
-          creditsLoading={creditsLoading}
-          creditsCosts={creditsCosts}
-          selectedProjects={selectedProjects}
-          setSelectedProjects={setSelectedProjects}
-          deleteConfirmProject={deleteConfirmProject}
-          setDeleteConfirmProject={setDeleteConfirmProject}
-        />
+        renderProjectGrid()
       ) : !selectedChat ? (
         <ProjectHub
           project={selectedProject}

@@ -99,7 +99,7 @@ export default function ProjectGrid({
     if (!confirm(`Delete ${selectedProjects.length} project(s)? This cannot be undone.`)) return
     try {
       for (const pid of selectedProjects) {
-        await onDeleteProject(pid)
+        await onDeleteProject(pid)\n        e.preventDefault()
       }
       setSelectedProjects([])
       setSelectMode(false)
@@ -177,7 +177,7 @@ export default function ProjectGrid({
                   >
                     {selectedProjects.length === cards.length ? 'Deselect All' : 'Select All'}
                   </button>
-                  {selectedProjects.length > 0 && (
+                  {selectMode && selectedProjects.length > 0 && (
                     <button
                       onClick={handleBulkDelete}
                       className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5"
@@ -239,7 +239,7 @@ export default function ProjectGrid({
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setDeleteConfirmProject(item)
+                      setDeleteConfirmProject(item)\n                    e.preventDefault()
                     }}
                     className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-lg bg-[rgba(0,0,0,0.5)] border border-[rgba(255,255,255,0.08)] text-[var(--em-text-secondary)] opacity-0 group-hover:opacity-100 hover:bg-[rgba(255,60,60,0.3)] hover:border-[rgba(255,60,60,0.4)] hover:text-red-400 transition-all duration-200 backdrop-blur-sm"
                     data-testid={`delete-project-btn-${item.id}`}
