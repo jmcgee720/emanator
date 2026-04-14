@@ -1,63 +1,46 @@
 # Emanator PRD
 
 ## Original Problem Statement
-Build a self-editing AI builder (Emanator) that can reliably modify its own core files and act as a multi-step agent — reading files, writing changes, verifying compilation, and self-debugging like a real engineer.
+Build a self-editing AI builder (Emanator) that can reliably modify its own core files and act as a multi-step agent.
 
 ## Core Architecture
 - Next.js 14 App Router conversational AI builder
-- **Agent Loop**: AI can call tools sequentially (read → write → verify → fix) up to 6 iterations per turn
-- Tools: `read_files`, `patch_files`, `update_files`, `verify_build`, `update_canvas`
+- Agent Loop: AI calls tools sequentially (read → write → verify → fix), max 6 iterations
+- Tools: read_files, patch_files, update_files, verify_build, update_canvas
 - Safety: syntax validation + bracket balance + import validation + auto-revert + zero-apply save prevention
 
-## What's Been Implemented
+## Completed Features
 
-### Agent Loop (COMPLETE - Apr 14)
-- `read_files` tool: AI reads 1-5 project files to understand codebase before editing
-  - Works for both regular projects (from Supabase DB) and Core System (from disk)
-  - 30K char limit per file, max 5 files per call
-- `verify_build` tool: AI checks compilation after writing files
-  - Hits /api/health endpoint, reads error logs if compilation fails
-  - Returns clear success/failure message with error details
-- Agent loop: After read_files or verify_build, tool result is fed back to AI as a tool response message, AI decides next action
-- Max 6 iterations per turn (safety limit)
-- System prompt teaches the workflow: read → write → verify → fix
+### ProjectGrid Extraction + Bulk Select/Delete (Apr 14)
+- Extracted ProjectGrid.jsx (351 lines) from Dashboard.jsx (was 3526, now 3330)
+- Built-in bulk select/delete: Select button → checkboxes on tiles → Select All → Delete N → confirmation
+- SELF_EDIT_TARGETS updated with project_grid entry
+- identifyTargetFile keyword map routes "project tile/card/bin/grid" to ProjectGrid.jsx
+- Testing: 100% pass rate (iteration_82)
 
-### patch_files → update_files Fallback (COMPLETE - Apr 14)
-- When all patches fail, automatically retries with update_files (full file replacement)
-- Smart tool selection: AI told to use update_files for files >500 lines
-- File size shown in target description (e.g., "3525 lines — LARGE FILE")
-- update_files added to Core System tool set
+### Agent Loop (Apr 14)
+- read_files, verify_build tools with agent loop continuation
+- Max 2 read_files calls before forcing action
+- Max 6 total iterations per turn
 
-### Zero-Apply Save Prevention (COMPLETE - Apr 14)
-- Fixed control flow bug: retry block consumed the if-condition, making save-block unreachable
-- Save now blocked in BOTH the retry path AND the fallback path
-- `saveTool = '__blocked__'` prevents save pipeline from running
+### Patch Reliability Pipeline (Apr 14)
+- 3-level fuzzy matching (exact → trim-per-line → normalized whitespace)
+- Zero-apply save prevention (blocks save when 0/N patches apply)
+- Corrective retry fallback (shows AI exact failed lines for re-patching)
+- Smart tool selection (update_files recommended for files >500 lines)
 
-### Smart File Context Injection (COMPLETE)
-- Auto-identifies target files from user message (3 strategies)
-- Loads actual content into AI context before response
-
-### Broken Promise + Stalling Detector (COMPLETE)
-- Catches action promises AND stalling questions
-- Forces tool_choice retry with file context
-
-### All Previous Features (COMPLETE)
-- Self-edit pipeline, Canvas PM portal, stream timeout recovery
-- Auth resilience, auto-revert self-healing, conversation memory
-- Import validation, bracket balance checks, Level 3 fuzzy matching
-- Post-build auto-continue, action enforcement prompt
-
-## Known Issues
-- Dashboard.jsx is 3525 lines — should be refactored into smaller components
-- message-stream.js is ~3100 lines — should be refactored
+### All Earlier Features
+- Self-edit pipeline, Canvas PM, broken promise detector, stalling detector
+- Stream timeout recovery, auth resilience, auto-revert self-healing
+- AI conversation memory, conversational routing, smart file injection
+- Import validation, action enforcement, post-build auto-continue
 
 ## Remaining Backlog
-- [ ] Refactor Dashboard.jsx into smaller components
+- [ ] Further refactor Dashboard.jsx (still 3330 lines)
 - [ ] CSV export, classifyUserIntent, export-zip (Emanator to self-implement)
 - [ ] Vision support for Core System chat
-- [ ] Refactor message-stream.js and service.js
+- [ ] Refactor message-stream.js (~3100 lines)
 
 ## Tech Stack
-- Next.js 14 App Router, OpenAI GPT-4o via Emergent LLM Key
+- Next.js 14, OpenAI GPT-4o via Emergent LLM Key
 - Supabase (DB/Auth), MongoDB (credits), Stripe (payments)
-- Tailwind CSS + Shadcn UI
