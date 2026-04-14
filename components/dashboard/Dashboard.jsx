@@ -689,7 +689,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
             const filesAttempted = detail?.files_attempted?.join(', ') || 'unknown'
             const reason = detail?.detail || 'Health check failed after apply.'
             try {
-              fn(`[SYSTEM: AUTO-REVERT HAPPENED. Your last changes to ${filesAttempted} were applied to live but FAILED the health check and were auto-reverted. Reason: ${reason}\n\nRespond to the user with:\n1. A brief explanation of what went wrong (1-2 sentences)\n2. Immediately retry with a corrected version — fix the syntax error that caused the revert. Do NOT ask for permission — just fix it.]`, null, { silent: true })
+              fn(`[SYSTEM: AUTO-REVERT HAPPENED. Your last patch to ${filesAttempted} was applied to live but FAILED the health check and was auto-reverted. Reason: ${reason}\n\nRespond to the user with:\n1. A brief explanation of what went wrong (1-2 sentences)\n2. Immediately retry the patch with a corrected version using patch_files — fix the syntax error that caused the revert. Do NOT ask for permission — just fix it.]`, null, { silent: true })
             } catch { tryAutoExplain(attempt + 1) }
           } else { tryAutoExplain(attempt + 1) }
         }, 1000 + (attempt * 1000))
@@ -711,10 +711,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
         if (res.ok && data.success) {
           setLivePromoteState({ snapshotId: data.snapshot_id, lastApply: { time: new Date().toISOString(), filesWritten: data.files_written } })
           toast({ title: 'Applied to Live', description: `${data.files_written} file(s) written to disk.` })
-          // Trigger silent AI follow-up for all project types
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id } }))
-          }, 4000) // wait for health check to complete
+          // Trigger silent AI follow-up for Core System
+          if (selectedProject?.settings?.is_core) {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('core_apply_success', { detail: { projectId: selectedProject.id } }))
+            }, 4000) // wait for health check to complete
+          }
         } else if (data.auto_reverted) {
           toast({ title: 'Auto-Reverted', description: 'The edit broke something and was automatically reverted. The AI is analyzing what went wrong...', variant: 'destructive' })
           // Trigger AI explanation and retry in Core System mode
@@ -726,7 +728,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 const filesAttempted = data.files_attempted?.join(', ') || 'unknown'
                 const detail = data.detail || 'Health check failed after apply.'
                 try {
-                  fn(`[SYSTEM: AUTO-REVERT HAPPENED. Your last changes to ${filesAttempted} were applied to live but FAILED the health check and were auto-reverted. Reason: ${detail}\n\nRespond to the user with:\n1. A brief explanation of what went wrong (1-2 sentences)\n2. Immediately retry with a corrected version — fix the syntax error that caused the revert. Do NOT ask for permission — just fix it.]`, null, { silent: true })
+                  fn(`[SYSTEM: AUTO-REVERT HAPPENED. Your last patch to ${filesAttempted} was applied to live but FAILED the health check and was auto-reverted. Reason: ${detail}\n\nRespond to the user with:\n1. A brief explanation of what went wrong (1-2 sentences)\n2. Immediately retry the patch with a corrected version using patch_files — fix the syntax error that caused the revert. Do NOT ask for permission — just fix it.]`, null, { silent: true })
                 } catch { tryAutoExplain(attempt + 1) }
               } else { tryAutoExplain(attempt + 1) }
             }, 1000 + (attempt * 1000))
