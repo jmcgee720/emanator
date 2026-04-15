@@ -1,31 +1,30 @@
-# Emanator PRD — Agent Platform (COMPLETE)
+# Emanator PRD — Self-Recovering Agent Platform
 
 ## Vision
-Full agent platform with sandboxed execution, multi-step reasoning, session memory, screenshot verification, build checking, smart model routing, vision support, and conversational intelligence. Emanator can now never break its own build — auto-verify + auto-revert on every edit.
+Emanator is a self-recovering AI builder that can edit its own code, verify builds, and automatically fix its own mistakes — just like E1/Emergent.
 
-## Architecture
-- Next.js 14 App Router + E2B Sandboxed Execution
-- Agent Loop: while(true) with max 12 iterations, tool handlers INSIDE the loop
-- 9 tools: read_files, patch_files, update_files, edit_lines, verify_build, exec_command, screenshot_verify, update_memory, update_canvas
-- Smart Model Router: auto-selects gpt-4o vs gpt-4o-mini based on task
-- Vision Support: GPT-4o image analysis in self-edit mode
-- Auto-Verify: Every edit_lines call in self-edit mode is verified against health check, auto-reverts on failure
-- Conversational Intelligence: frustration/feedback/followup detection + adaptive prompts
+## Self-Recovery Architecture (the key differentiator)
+1. **edit_lines** writes to disk → auto-verifies health check → on failure: reads actual compilation error from nextjs_api.err.log → auto-reverts file → sends error + retry instructions back to AI → AI retries with corrected edit
+2. **patch_files/update_files** saves to DB → writes to disk for verification → checks health → on failure: reverts disk from backup → includes error in response
+3. **promote-to-live** snapshots before write → syntax validation → health check after → auto-reverts from snapshot on failure
+4. **System prompt** has explicit "RECOVERY FROM FAILED EDITS" section with common mistake patterns
+5. **Agent loop** says "NEVER stop after a failed edit — always retry"
 
-## Key Safety Features
-1. **edit_lines auto-verify**: After every disk write, health check runs. On failure → auto-revert from originalContent
-2. **promote-to-live auto-revert**: Snapshot before write, health check after, auto-revert on failure
-3. **Regression guard**: Blocks overwrites that shrink files > 50%
-4. **Package import validation**: Blocks imports of non-installed packages
-5. **Agent loop structure**: Tool handlers inside while(true), agentLoopContinue check after handlers
+## Agent Loop (while(true))
+- Tool handlers are INSIDE the while loop (verified: lines 1279-2894)
+- Max 12 iterations per request
+- Tools: read_files, edit_lines, verify_build, exec_command, screenshot_verify, update_memory, patch_files, update_files, update_canvas
 
-## Completed (2026-04-15, iterations 84-90)
-- Phase 7: Line-Based Editing (23 tests)
-- Phase 8: Screenshot Self-Edit (local Playwright)
-- Phase 9: Codebase Refactoring (Dashboard 3333→2004, message-stream 3417→3214)
-- Phase 10: Features (CSV Export, ZIP Download, classifyUserIntent, /export-zip)
-- Phase 11: Intelligence Layer (model routing, vision, E2B pre-install, phase adaptation)
-- Phase 12: Critical Bug Fixes (agent loop structure, ProjectGrid.jsx syntax, auto-verify)
+## Completed Features
+- Line-based editing (edit_lines) with 23 tests
+- Screenshot verification (local Playwright + E2B sandbox)
+- Session memory (auto-save, explicit save, build summary)
+- Smart model routing (gpt-4o for complex, gpt-4o-mini for quick)
+- Vision support (GPT-4o image analysis in self-edit)
+- Conversational intelligence (classifyUserIntent: 8 phases)
+- CSV/ZIP export in CodeTab
+- Archive feature (bulk archive/restore projects)
+- Codebase refactoring (Dashboard.jsx 3333→2004, 3 extracted modules)
 
 ## Tech Stack
-Next.js 14, OpenAI GPT-4o/GPT-4o-mini via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
+Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
