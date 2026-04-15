@@ -144,7 +144,6 @@ export default function ProjectGrid({
                 >
                   <Archive className="w-3 h-3" />
                   Archived ({archivedCount})
-Archived ({archivedCount})
                 </button>
               )}
               {isOwner && (
@@ -157,7 +156,7 @@ Archived ({archivedCount})
             <div className="flex items-center gap-2" data-testid="bulk-controls">
               {selectMode ? (
                 <>
-                  <button onClick={handleSelectAll} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all" data-testid="select-all-btn">
+<button onClick={handleSelectAll} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all" data-testid="select-all-btn" title="Select all visible projects">
                     {selectedProjects.length === cards.length ? 'Deselect All' : 'Select All'}
                   </button>
                   {selectedProjects.length > 0 && (
