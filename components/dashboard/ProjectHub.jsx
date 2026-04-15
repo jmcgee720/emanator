@@ -88,6 +88,7 @@ export default function ProjectHub({
   const [renamingProject, setRenamingProject] = useState(false)
   const [projectRenameValue, setProjectRenameValue] = useState('')
   const [projectRenameSaving, setProjectRenameSaving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const submitRename = async (chatId) => {
     const trimmed = renameValue.trim()
@@ -317,8 +318,6 @@ export default function ProjectHub({
                 <span className="text-[10px] em-text-muted opacity-70">
                   Created {formatRelativeTime(project?.created_at)}
                 </span>
-
-  const [expanded, setExpanded] = useState(false);
 
               </div>
             </div>
