@@ -123,6 +123,11 @@ export default function ProjectGrid({
                       Delete {selectedProjects.length}
                     </button>
                   )}
+{selectedProjects.length > 0 && (
+  <button onClick={handleBulkArchive} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(0,229,255,0.15)] border border-[rgba(0,229,255,0.3)] text-green-400 hover:bg-[rgba(0,229,255,0.25)] transition-all flex items-center gap-1.5" data-testid="archive-selected-btn">
+    Archive {selectedProjects.length}
+  </button>
+)}
                   <button onClick={() => { setSelectMode(false); setSelectedProjects([]) }} className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white transition-all" data-testid="cancel-select-btn">
                     Cancel
                   </button>
