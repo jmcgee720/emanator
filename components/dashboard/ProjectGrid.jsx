@@ -144,6 +144,7 @@ export default function ProjectGrid({
                 >
                   <Archive className="w-3 h-3" />
                   Archived ({archivedCount})
+Archived ({archivedCount})
                 </button>
               )}
               {isOwner && (
