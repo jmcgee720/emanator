@@ -79,9 +79,10 @@ export default function ProjectGrid({
     toast({ title: showArchived ? 'Restored' : 'Archived', description: `${selectedProjects.length} project(s) ${action}d.` })
     setSelectedProjects([])
     setSelectMode(false)
-    // Trigger refresh by calling onDeleteProject with null (parent reloads projects)
-    // Actually we need a proper refresh - use window reload as fallback
-    window.location.reload()
+    // Refresh the project list
+    if (typeof onDeleteProject === 'function') {
+      onDeleteProject(null) // triggers parent's loadProjects via the callback chain
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -136,14 +137,23 @@ export default function ProjectGrid({
                 <LayoutGrid className="w-3 h-3" />
                 Projects
               </button>
-              {archivedCount > 0 && (
+              {archivedCount > 0 ? (
                 <button
                   onClick={() => { setShowArchived(true); setSelectMode(false); setSelectedProjects([]) }}
                   className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${showArchived ? 'bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)]' : 'text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)]'}`}
                   data-testid="archived-projects-tab-btn"
                 >
                   <Archive className="w-3 h-3" />
-                   Archived ({archivedCount})
+                  Archived ({archivedCount})
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setShowArchived(true); setSelectMode(false); setSelectedProjects([]) }}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${showArchived ? 'bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)]' : 'text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)]'}`}
+                  data-testid="archived-projects-tab-btn"
+                >
+                  <Archive className="w-3 h-3" />
+                  Archived
                 </button>
               )}
               {isOwner && (
