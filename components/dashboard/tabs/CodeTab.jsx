@@ -410,17 +410,7 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
 
         {isCore && (
           <div className="px-3 py-2 border-b border-border/40 flex items-center gap-1.5" data-testid="core-live-controls">
-            <Button
-              size="sm"
-              variant="default"
-              onClick={handlePromoteToLive}
-              disabled={promoting || !files?.length}
-              className="h-7 text-[11px] px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-              data-testid="apply-to-live-btn"
-            >
-              {promoting ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-              {promoting ? 'Applying...' : 'Apply to Live'}
-            </Button>
+            <span className="text-[10px] text-emerald-400 font-medium mr-1">Changes apply instantly</span>
             <Button
               size="sm"
               variant="outline"
