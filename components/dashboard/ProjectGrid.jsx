@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, LayoutGrid, CreditCard, X } from 'lucide-react'
+import { Trash2, LayoutGrid, CreditCard, X, Archive, ArchiveRestore } from 'lucide-react'
+import { authFetch } from '@/lib/auth-fetch'
 import InlineBrief from './InlineBrief'
 import NewProjectModal from './NewProjectModal'
 
@@ -40,7 +41,10 @@ export default function ProjectGrid({
   selectedProjects, setSelectedProjects, deleteConfirmProject, setDeleteConfirmProject,
 }) {
   const [selectMode, setSelectMode] = useState(false)
-  const cards = projects.filter(p => !p.settings?.is_core)
+  const [showArchived, setShowArchived] = useState(false)
+  const allCards = projects.filter(p => !p.settings?.is_core)
+  const cards = showArchived ? allCards.filter(p => p.settings?.archived) : allCards.filter(p => !p.settings?.archived)
+  const archivedCount = allCards.filter(p => p.settings?.archived).length
 
   const handleToggleSelect = (projectId) => {
     setSelectedProjects(prev =>
@@ -54,6 +58,30 @@ export default function ProjectGrid({
     } else {
       setSelectedProjects(cards.map(c => c.id))
     }
+  }
+
+  const handleBulkArchive = async () => {
+    if (selectedProjects.length === 0) return
+    const action = showArchived ? 'unarchive' : 'archive'
+    for (const pid of selectedProjects) {
+      try {
+        const project = projects.find(p => p.id === pid)
+        const currentSettings = project?.settings || {}
+        await authFetch(`/api/projects/${pid}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: { ...currentSettings, archived: !showArchived } })
+        })
+      } catch (err) {
+        console.error(`Failed to ${action} project ${pid}:`, err)
+      }
+    }
+    toast({ title: showArchived ? 'Restored' : 'Archived', description: `${selectedProjects.length} project(s) ${action}d.` })
+    setSelectedProjects([])
+    setSelectMode(false)
+    // Trigger refresh by calling onDeleteProject with null (parent reloads projects)
+    // Actually we need a proper refresh - use window reload as fallback
+    window.location.reload()
   }
 
   const handleBulkDelete = async () => {
@@ -100,10 +128,24 @@ export default function ProjectGrid({
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm" data-testid="projects-nav-tabs">
-              <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)] transition-all duration-200" data-testid="projects-tab-btn">
+              <button
+                onClick={() => setShowArchived(false)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${!showArchived ? 'bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)]' : 'text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)]'}`}
+                data-testid="projects-tab-btn"
+              >
                 <LayoutGrid className="w-3 h-3" />
                 Projects
               </button>
+              {archivedCount > 0 && (
+                <button
+                  onClick={() => { setShowArchived(true); setSelectMode(false); setSelectedProjects([]) }}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${showArchived ? 'bg-[rgba(0,229,255,0.12)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.25)] shadow-[0_0_8px_rgba(0,229,255,0.10)]' : 'text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)]'}`}
+                  data-testid="archived-projects-tab-btn"
+                >
+                  <Archive className="w-3 h-3" />
+                  Archived ({archivedCount})
+                </button>
+              )}
               {isOwner && (
                 <button onClick={onEnterCoreSystem} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] border border-transparent hover:border-[rgba(255,255,255,0.15)] transition-all duration-200" data-testid="core-system-btn">
                   Core System
@@ -118,10 +160,18 @@ export default function ProjectGrid({
                     {selectedProjects.length === cards.length ? 'Deselect All' : 'Select All'}
                   </button>
                   {selectedProjects.length > 0 && (
-                    <button onClick={handleBulkDelete} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5" data-testid="delete-selected-btn">
-                      <Trash2 className="w-3 h-3" />
-                      Delete {selectedProjects.length}
-                    </button>
+                    <>
+                      <button onClick={handleBulkArchive} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(0,229,255,0.12)] border border-[rgba(0,229,255,0.25)] text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.2)] transition-all flex items-center gap-1.5" data-testid="archive-selected-btn">
+                        {showArchived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
+                        {showArchived ? 'Restore' : 'Archive'} {selectedProjects.length}
+                      </button>
+                      {!showArchived && (
+                        <button onClick={handleBulkDelete} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,60,60,0.15)] border border-[rgba(255,60,60,0.3)] text-red-400 hover:bg-[rgba(255,60,60,0.25)] transition-all flex items-center gap-1.5" data-testid="delete-selected-btn">
+                          <Trash2 className="w-3 h-3" />
+                          Delete {selectedProjects.length}
+                        </button>
+                      )}
+                    </>
                   )}
                   <button onClick={() => { setSelectMode(false); setSelectedProjects([]) }} className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--em-text-secondary)] hover:text-white transition-all" data-testid="cancel-select-btn">
                     Cancel
@@ -138,6 +188,13 @@ export default function ProjectGrid({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5" data-testid="project-grid">
+            {cards.length === 0 && showArchived && (
+              <div className="col-span-full text-center py-16 text-[var(--em-text-secondary)]">
+                <Archive className="w-8 h-8 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">No archived projects</p>
+                <button onClick={() => setShowArchived(false)} className="mt-2 text-xs text-[var(--em-cyan)] hover:underline">Back to Projects</button>
+              </div>
+            )}
             {cards.map((item) => (
               <div
                 key={item.id}
