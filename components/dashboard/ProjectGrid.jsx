@@ -143,7 +143,7 @@ export default function ProjectGrid({
                   data-testid="archived-projects-tab-btn"
                 >
                   <Archive className="w-3 h-3" />
-                  Archived ({archivedCount})
+                   Archived ({archivedCount})
                 </button>
               )}
               {isOwner && (
@@ -156,13 +156,13 @@ export default function ProjectGrid({
             <div className="flex items-center gap-2" data-testid="bulk-controls">
               {selectMode ? (
                 <>
-<button onClick={handleSelectAll} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all" data-testid="select-all-btn" title="Select all visible projects">
+                  <button onClick={handleSelectAll} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all" data-testid="select-all-btn" title="Select all visible projects">
                     {selectedProjects.length === cards.length ? 'Deselect All' : 'Select All'}
                   </button>
                   {selectedProjects.length > 0 && (
                     <>
                       <button onClick={handleBulkArchive} className="px-3 py-1.5 rounded-lg text-[11px] font-medium bg-[rgba(0,229,255,0.12)] border border-[rgba(0,229,255,0.25)] text-[var(--em-cyan)] hover:bg-[rgba(0,229,255,0.2)] transition-all flex items-center gap-1.5" data-testid="archive-selected-btn">
-                        {showArchived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
+                          {showArchived ? <ArchiveRestore className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
                         {showArchived ? 'Restore' : 'Archive'} {selectedProjects.length}
                       </button>
                       {!showArchived && (
