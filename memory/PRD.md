@@ -1,7 +1,7 @@
 # Emanator PRD — Agent Platform
 
 ## Vision
-Full agent platform with sandboxed execution, multi-step reasoning, session memory, screenshot verification, and build checking. Making Emanator work like E1/Emergent — able to reliably read, edit, verify, and screenshot its own code.
+Full agent platform with sandboxed execution, multi-step reasoning, session memory, screenshot verification, and build checking. Making Emanator work like E1/Emergent.
 
 ## Architecture
 - Next.js 14 App Router conversational AI builder
@@ -19,18 +19,25 @@ Full agent platform with sandboxed execution, multi-step reasoning, session memo
 - `read_files` returns numbered lines for all code paths
 
 ### Phase 8: Screenshot Self-Edit (COMPLETE - 2026-04-15)
-- `screenshot_verify` works for sandbox (E2B Playwright) and self-edit (local Python Playwright at /usr/bin/chromium)
-- Returns headings, buttons, inputs, console errors, body preview
+- `screenshot_verify` works for sandbox (E2B) and self-edit (local Playwright)
 
 ### Phase 9: Codebase Refactoring (COMPLETE - 2026-04-15)
-- **Dashboard.jsx**: 3333 -> 2004 lines (40% reduction)
-  - Extracted 14 CRUD functions to `useDashboardProject.js` (475 lines)
-  - Extracted streaming logic to `useDashboardStream.js` (946 lines)
-    - sendMessage, executePlan, applyDiffs, cancelDiffs, cancelPlan, retryWithFallback
-    - 9 state variables (streamingMessageId, streamingStatus, pendingPlan, etc.)
-- **message-stream.js**: 3417 -> 3128 lines
-  - Extracted 5 helpers to `message-helpers.js` (285 lines)
-- Zero regressions — verified across iterations 84-86
+- Dashboard.jsx: 3333 -> 2004 lines (40% reduction)
+  - useDashboardProject.js (475 lines): 14 CRUD functions
+  - useDashboardStream.js (946 lines): sendMessage, executePlan, applyDiffs + 9 state vars
+- message-stream.js: 3417 -> 3128 lines
+  - message-helpers.js (285 lines): 5 helper functions
+
+### Phase 10: P1 Features (COMPLETE - 2026-04-15)
+- **CSV Export**: CodeTab now has CSV export button (handleExportCSV) for project file listings
+- **ZIP Download**: CodeTab now has ZIP download button (handleExportZip) via /api/projects/:id/export-zip
+- **classifyUserIntent**: New conversational phase classifier in intents.js
+  - Classifies messages into: instruction, question, feedback, approval, clarification, greeting, frustration, followup
+  - 11/11 test cases passing
+
+### UI Features
+- ProjectGrid.jsx extracted, bulk select/delete
+- All earlier features: patch reliability, broken promise detection, auto-revert, etc.
 
 ## File Structure
 ```
@@ -39,28 +46,30 @@ Full agent platform with sandboxed execution, multi-step reasoning, session memo
 │   ├── ai/
 │   │   ├── message-stream.js      # Core agent loop (3128 lines)
 │   │   ├── message-helpers.js     # Extracted helpers (285 lines)
+│   │   ├── intents.js             # Intent + conversational phase classification
 │   │   ├── tools.js               # Tool schemas
-│   │   └── ...                    # 10+ other modules
+│   │   └── ...
 │   ├── e2b/
-│   │   ├── agent-tools.js         # read_files, edit_lines, verify_build, exec_command (323 lines)
-│   │   ├── screenshot-service.js  # Playwright screenshots — sandbox + local (283 lines)
+│   │   ├── agent-tools.js         # read_files, edit_lines, verify_build, exec_command
+│   │   ├── screenshot-service.js  # Playwright screenshots (sandbox + local)
 │   │   ├── sandbox-service.js     # E2B container management
 │   │   └── memory-service.js      # Session memory
+│   ├── api/routes/
+│   │   ├── exports.js             # ZIP/manifest export + /export-zip endpoint
+│   │   └── ...
 ├── components/dashboard/
 │   ├── Dashboard.jsx              # Main workspace (2004 lines)
 │   ├── useDashboardStream.js      # Streaming/plan/diff hook (946 lines)
 │   ├── useDashboardProject.js     # Project/chat CRUD hook (475 lines)
-│   └── ProjectGrid.jsx            # Grid view (351 lines)
+│   ├── ProjectGrid.jsx            # Grid view (351 lines)
+│   └── tabs/CodeTab.jsx           # Code tab with CSV/ZIP export
 ```
 
 ## Remaining Backlog
-- [ ] Further refactor message-stream.js (extract tool handlers ~900 lines)
-- [ ] CSV Export for project files
-- [ ] Conversational AI Phases (classifyUserIntent)
-- [ ] Deploy Integration (/api/projects/:id/export-zip)
 - [ ] E2B custom template with preinstalled deps
 - [ ] Multi-model routing (Claude for reasoning, GPT-4o for quick edits)
 - [ ] Vision support for Core System chat
+- [ ] Further refactor message-stream.js tool handlers
 
 ## Tech Stack
 - Next.js 14, OpenAI GPT-4o via Emergent LLM Key
