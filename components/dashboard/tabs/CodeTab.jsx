@@ -19,7 +19,9 @@ import {
   Upload,
   Undo2,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react'
 
 export default function CodeTab({ project, files, setFiles, addLog, livePromoteState, setLivePromoteState, onApplySuccess }) {
@@ -167,6 +169,56 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
 
   // Build file tree
   const buildFileTree = () => {
+
+  const handleExportCSV = () => {
+    if (!files || files.length === 0) {
+      toast({ title: 'No Files', description: 'No files to export.', variant: 'destructive' })
+      return
+    }
+    const esc = (v) => `"${String(v || '').replace(/"/g, '""')}"`
+    const rows = [['Path', 'Type', 'Size (chars)', 'Lines', 'Last Updated']]
+    files.forEach(f => {
+      const lineCount = (f.content || '').split('\n').length
+      const ext = (f.path || '').split('.').pop() || 'unknown'
+      rows.push([
+        esc(f.path),
+        esc(ext),
+        String((f.content || '').length),
+        String(lineCount),
+        esc(f.updated_at || f.created_at || ''),
+      ])
+    })
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${project?.name || 'project'}-files.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+    addLog('success', `Exported ${files.length} files to CSV`)
+    toast({ title: 'CSV Exported', description: `${files.length} files exported.` })
+  }
+
+  const handleExportZip = async () => {
+    if (!project?.id) return
+    try {
+      const response = await authFetch(`/api/projects/${project.id}/export-zip`, { method: 'POST' })
+      const data = await response.json()
+      if (data.zip_base64) {
+        const link = document.createElement('a')
+        link.href = `data:application/zip;base64,${data.zip_base64}`
+        link.download = data.filename || `${project.name}.zip`
+        link.click()
+        addLog('success', `Downloaded ${data.filename}`)
+        toast({ title: 'ZIP Downloaded', description: data.filename })
+      } else {
+        toast({ title: 'Export Failed', description: data.error || 'No zip generated', variant: 'destructive' })
+      }
+    } catch (err) {
+      toast({ title: 'Export Failed', description: err.message, variant: 'destructive' })
+    }
+  }
       const tree = {}
   files
     .filter(file => file && typeof file.path === 'string' && file.path.length > 0)
@@ -322,6 +374,24 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
         <div className="h-10 border-b border-border/40 flex items-center justify-between px-3">
           <span className="text-sm font-medium">Files</span>
           <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleExportCSV}
+              title="Export file list as CSV"
+              data-testid="export-csv-btn"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleExportZip}
+              title="Download project as ZIP"
+              data-testid="export-zip-btn"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"
