@@ -42,7 +42,6 @@ export default function ProjectGrid({
 }) {
   const [selectMode, setSelectMode] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
-  const [isBriefExpanded, setIsBriefExpanded] = useState(false)
   const allCards = projects.filter(p => !p.settings?.is_core)
   const cards = showArchived ? allCards.filter(p => p.settings?.archived) : allCards.filter(p => !p.settings?.archived)
   const archivedCount = allCards.filter(p => p.settings?.archived).length
@@ -105,32 +104,25 @@ export default function ProjectGrid({
             {headline}
           </h1>
         </div>
-<div className="mb-8">
-  <h2 className="text-xl font-semibold text-center cursor-pointer" onClick={() => setIsBriefExpanded(!isBriefExpanded)}>
-    {isBriefExpanded ? 'Collapse Creative Brief' : 'Expand Creative Brief'}
-  </h2>
-  {isBriefExpanded && (
-    <InlineBrief
-      isOwner={isOwner}
-      onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
-        setHeroSubmitting(true);
-        try {
-          pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments };
-          const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project';
-          const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build';
-          importChatTitleRef.current = chatTitle;
-          await onCreateProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app');
-          aurora.triggerEnergyFlow?.();
-          setActivityLevel(1);
-        } catch (error) {
-          pendingHeroPromptRef.current = null;
-        } finally {
-          setHeroSubmitting(false);
-        }
-      }}
-    />
-  )}
-</div>
+        <InlineBrief
+          isOwner={isOwner}
+          onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
+            setHeroSubmitting(true)
+            try {
+              pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments }
+              const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
+              const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build'
+              importChatTitleRef.current = chatTitle
+              await onCreateProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app')
+              aurora.triggerEnergyFlow?.()
+              setActivityLevel(1)
+            } catch (error) {
+              pendingHeroPromptRef.current = null
+            } finally {
+              setHeroSubmitting(false)
+            }
+          }}
+        />
       </div>
 
       <div className="px-8 pb-12">
