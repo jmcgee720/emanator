@@ -1,20 +1,18 @@
-# Emanator PRD — Self-Recovering Agent Platform
+# Emanator PRD — Self-Sufficient Agent Platform
 
-## Self-Recovery Architecture
-1. **edit_lines** writes to disk → requests localhost:3000/ (forces recompilation) → checks HTML for "Build Error" → on failure: reads error from logs + HTML → auto-reverts → sends error + retry instructions back to AI → AI re-enters while loop and retries
-2. **patch_files/update_files** saves to DB → writes to disk → requests page → checks HTML → on failure: reverts disk → injects retry message → agentLoopContinue=true → AI retries
-3. **promote-to-live** snapshots → syntax validation → writes → health check → auto-reverts from snapshot
-4. System prompt: "RECOVERY FROM FAILED EDITS" section + "NEVER stop after a failed edit"
+## How Emanator Works (Like E1)
+1. User talks to Emanator → Emanator reads files → edits them → changes are LIVE immediately
+2. No "Apply to Live" button anywhere — edits go directly to disk + DB
+3. Auto-snapshot before every edit (backup in /app/.emanator-backups/)
+4. Auto-verify after every edit (requests page to force recompilation)
+5. If build breaks → auto-revert → user sees "retrying..." → AI retries → shows success only after build passes
+6. tool_choice: required for action requests (AI must call tools, can't just talk)
 
-## Key Fix (Iteration 92)
-Auto-verify now requests the actual page (/) instead of /api/health. Health always returns 200 (checks DB only). The page request forces Next.js to recompile all imports and returns 500 or Build Error HTML when broken. Manually tested: broken JSX → 500 → caught → reverted → 200.
-
-## Completed Features
-- Line-based editing (23 tests), Screenshot verification, Session memory
-- Smart model routing, Vision support, Conversational intelligence
-- CSV/ZIP export, Archive feature, Codebase refactoring
-- Agent loop with tool handlers inside while(true)
-- Auto-verify + auto-revert + retry loop
+## Architecture
+- Next.js 14, E2B Sandbox, Agent Loop (while(true), max 12 iterations)
+- Self-edit: edit_lines writes to disk → auto-verify → live
+- Normal projects: save to DB → preview from srcDoc → live
+- Rollback: /app/.emanator-backups/ stores last 20 versions per file
 
 ## Tech Stack
 Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
