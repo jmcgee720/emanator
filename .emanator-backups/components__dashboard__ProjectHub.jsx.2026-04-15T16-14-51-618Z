@@ -317,9 +317,6 @@ export default function ProjectHub({
                 <span className="text-[10px] em-text-muted opacity-70">
                   Created {formatRelativeTime(project?.created_at)}
                 </span>
-
-  const [expanded, setExpanded] = useState(false);
-
               </div>
             </div>
 
@@ -341,24 +338,19 @@ export default function ProjectHub({
                   </div>
                 </button>
 
-                  <button
-                    onClick={() => setExpanded(!expanded)}
-                    className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(167,139,250,0.25)] hover:shadow-[0_4px_24px_rgba(167,139,250,0.08)] hover:-translate-y-px transition-all duration-200"
-                    data-testid="hub-action-creative-brief"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-[rgba(167,139,250,0.08)] border border-[rgba(167,139,250,0.15)] flex items-center justify-center shrink-0 group-hover:border-[rgba(167,139,250,0.30)] transition-all">
-                      <BookOpen className="w-3.5 h-3.5 text-[#A78BFA]" />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-xs font-medium em-text-primary">Creative Brief</div>
-                      <div className="text-[10px] em-text-muted mt-0.5">Project goals, specs & notes</div>
-                    </div>
-                  </button>
-                  {expanded && (
-                    <div className="p-4 bg-gray-800 rounded-lg">
-                      {/* Additional Creative Brief content goes here */}
-                    </div>
-                  )}
+                <button
+                  onClick={onOpenCanvas}
+                  className="group flex items-center gap-3 p-4 rounded-xl em-glass hover:border-[rgba(167,139,250,0.25)] hover:shadow-[0_4px_24px_rgba(167,139,250,0.08)] hover:-translate-y-px transition-all duration-200"
+                  data-testid="hub-action-creative-brief"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(167,139,250,0.08)] border border-[rgba(167,139,250,0.15)] flex items-center justify-center shrink-0 group-hover:border-[rgba(167,139,250,0.30)] transition-all">
+                    <BookOpen className="w-3.5 h-3.5 text-[#A78BFA]" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-medium em-text-primary">Creative Brief</div>
+                    <div className="text-[10px] em-text-muted mt-0.5">Project goals, specs & notes</div>
+                  </div>
+                </button>
 
                 <button
                   onClick={onUploadMediaBin}

@@ -105,51 +105,32 @@ export default function ProjectGrid({
             {headline}
           </h1>
         </div>
-
-        {/* Creative Brief — Accordion: collapsed shows project name + expand, expanded shows full form */}
-        <div className="max-w-3xl mx-auto mb-8">
-          {isBriefExpanded ? (
-            <div className="em-glass rounded-2xl p-6 relative" data-testid="creative-brief-expanded">
-              <button
-                onClick={() => setIsBriefExpanded(false)}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all"
-                data-testid="collapse-brief-btn"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <InlineBrief
-                isOwner={isOwner}
-                onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
-                  setHeroSubmitting(true)
-                  try {
-                    pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments }
-                    const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
-                    const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build'
-                    importChatTitleRef.current = chatTitle
-                    await onCreateProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app')
-                    aurora.triggerEnergyFlow?.()
-                    setActivityLevel(1)
-                  } catch (error) {
-                    pendingHeroPromptRef.current = null
-                  } finally {
-                    setHeroSubmitting(false)
-                  }
-                }}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsBriefExpanded(true)}
-              className="w-full em-glass rounded-2xl p-5 text-center hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.04)] transition-all duration-200 group cursor-pointer"
-              data-testid="expand-brief-btn"
-            >
-              <div className="text-sm font-semibold em-text-primary mb-1">Creative Brief</div>
-              <div className="text-xs text-[var(--em-text-secondary)] group-hover:text-[var(--em-cyan)] transition-colors">
-                Click to expand and start a new project
-              </div>
-            </button>
-          )}
-        </div>
+<div className="mb-8">
+  <h2 className="text-xl font-semibold text-center cursor-pointer" onClick={() => setIsBriefExpanded(!isBriefExpanded)}>
+    {isBriefExpanded ? 'Collapse Creative Brief' : 'Expand Creative Brief'}
+  </h2>
+  {isBriefExpanded && (
+    <InlineBrief
+      isOwner={isOwner}
+      onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
+        setHeroSubmitting(true);
+        try {
+          pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments };
+          const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project';
+          const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build';
+          importChatTitleRef.current = chatTitle;
+          await onCreateProject(projectName, projectMode === 'sandbox' ? 'sandbox' : 'app');
+          aurora.triggerEnergyFlow?.();
+          setActivityLevel(1);
+        } catch (error) {
+          pendingHeroPromptRef.current = null;
+        } finally {
+          setHeroSubmitting(false);
+        }
+      }}
+    />
+  )}
+</div>
       </div>
 
       <div className="px-8 pb-12">
