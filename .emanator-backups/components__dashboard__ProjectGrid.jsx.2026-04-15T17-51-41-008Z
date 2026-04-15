@@ -143,7 +143,7 @@ export default function ProjectGrid({
               className="w-full em-glass rounded-2xl p-5 text-center hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.04)] transition-all duration-200 group cursor-pointer"
               data-testid="expand-brief-btn"
             >
-              <div className="text-sm font-semibold em-text-primary mb-1">Start Building</div>
+              <div className="text-sm font-semibold em-text-primary mb-1">Creative Brief</div>
               <div className="text-xs text-[var(--em-text-secondary)] group-hover:text-[var(--em-cyan)] transition-colors">
                 Click to expand and start a new project
               </div>
