@@ -167,9 +167,6 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
     }
   }
 
-  // Build file tree
-  const buildFileTree = () => {
-
   const handleExportCSV = () => {
     if (!files || files.length === 0) {
       toast({ title: 'No Files', description: 'No files to export.', variant: 'destructive' })
@@ -219,7 +216,10 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
       toast({ title: 'Export Failed', description: err.message, variant: 'destructive' })
     }
   }
-      const tree = {}
+
+  // Build file tree
+  const buildFileTree = () => {
+    const tree = {}
   files
     .filter(file => file && typeof file.path === 'string' && file.path.length > 0)
     .forEach(file => {
