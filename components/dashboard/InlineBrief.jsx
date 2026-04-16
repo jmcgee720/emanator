@@ -219,6 +219,9 @@ function buildPromptFromBrief(brief) {
   if (brief.budget_tier) instrParts.push(`Budget tier: ${brief.budget_tier}`)
   if (brief.things_to_avoid) instrParts.push(`Avoid: ${brief.things_to_avoid}`)
   if (brief.media_assets?.length > 0) instrParts.push(`User uploaded ${brief.media_assets.length} image(s) as assets — use them directly in the design as logos, hero images, or product photos as appropriate.`)
+  if (brief.project_name && instrParts.length <= 1) {
+    instrParts.push(`Project name: ${brief.project_name}. Build a clean, modern web application.`)
+  }
   if (instrParts.length <= 1) return null
   const attachments = brief.media_assets?.length > 0
     ? brief.media_assets.map(a => ({ type: 'image', name: a.name, data: a.dataUrl }))
