@@ -969,10 +969,8 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [files])
 
   const { previewHtml, projectInfo, buildLog } = useMemo(() => {
-    // If we have a valid snapshot and no forced recompile, use it directly
-    if (snapshotHtml && !forceRecompileRef.current) {
-      return { previewHtml: snapshotHtml, projectInfo: { type: 'snapshot' }, buildLog: ['Type: snapshot (cached)'] }
-    }
+    // Skip snapshot cache — always recompile from current files
+    // (Snapshot cache caused stale preview bugs when runtime code changed)
 
     // If node project, skip the srcdoc pipeline entirely
     if (isNodeProject) {
