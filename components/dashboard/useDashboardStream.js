@@ -538,12 +538,14 @@ export function useDashboardStream(ctx) {
         // ── Stream timeout auto-recovery ──
         onStreamRecovery: async () => {
           if (!selectedChat || !selectedProject) return false
-          // Retry up to 5 times with increasing delays — backend may need 15-20s to finish saving
-          const delays = [3000, 5000, 5000, 5000, 5000]
+          // Poll until files are saved — show progress to user
+          setStreamingStatus({ stage: 'recovering', detail: 'Saving your build...' })
+          const delays = [0, 3000, 5000, 5000, 5000, 5000]
           for (let attempt = 0; attempt < delays.length; attempt++) {
             try {
-              await new Promise(r => setTimeout(r, delays[attempt]))
+              if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
               console.log(`[StreamRecovery] Attempt ${attempt + 1}/${delays.length}...`)
+              setStreamingStatus({ stage: 'recovering', detail: `Loading your build... (attempt ${attempt + 1})` })
               const msgRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
               if (!msgRes.ok) continue
               const savedMessages = await msgRes.json()
@@ -719,11 +721,13 @@ export function useDashboardStream(ctx) {
         // ── Stream timeout auto-recovery (executePlan) ──
         onStreamRecovery: async () => {
           if (!selectedChat || !selectedProject) return false
-          const delays = [3000, 5000, 5000, 5000, 5000]
+          setStreamingStatus({ stage: 'recovering', detail: 'Saving your build...' })
+          const delays = [0, 3000, 5000, 5000, 5000, 5000]
           for (let attempt = 0; attempt < delays.length; attempt++) {
             try {
-              await new Promise(r => setTimeout(r, delays[attempt]))
+              if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]))
               console.log(`[StreamRecovery-Plan] Attempt ${attempt + 1}/${delays.length}...`)
+              setStreamingStatus({ stage: 'recovering', detail: `Loading your build... (attempt ${attempt + 1})` })
               const msgRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
               if (!msgRes.ok) continue
               const savedMessages = await msgRes.json()
