@@ -1,0 +1,107 @@
+{
+  "iteration": 94,
+  "date": "2026-04-16",
+  "summary": "Verified all changes from the Emanator E1 refactoring: canvasUpdated scoping fix, system prompt rewrite, read_files output changes, Dashboard.jsx hooks extraction. All tests pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_94.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Dashboard.jsx reduced from 1911 to 1690 lines - good refactoring",
+    "useSandboxOps.js (178 lines) and useMediaBin.js (98 lines) properly extracted with all dependencies",
+    "System prompt in message-stream.js now has clear tool hierarchy: search_replace > edit_lines > patch_files (deprecated)",
+    "All read_files outputs now recommend search_replace instead of edit_lines"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All E1 refactoring changes verified. Dashboard hooks (useSandboxOps, useMediaBin) working correctly. System prompt tool hierarchy is now clear and non-contradictory.",
+  "features_verified": {
+    "health_check": {
+      "status": "PASS",
+      "response": "{\"status\":\"healthy\",\"database\":\"supabase\",\"timestamp\":\"2026-04-16T02:58:21.343Z\"}"
+    },
+    "frontend_login": {
+      "status": "PASS",
+      "note": "Login with REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD works, redirects to dashboard"
+    },
+    "dashboard_loads": {
+      "status": "PASS",
+      "elements_found": ["Projects tab", "Archived tab", "Core System tab", "Project cards", "Start Building button"]
+    },
+    "project_opens": {
+      "status": "PASS",
+      "note": "Stream Test Project opens correctly, shows conversations, quick actions, and media bin"
+    },
+    "chat_stream_works": {
+      "status": "PASS",
+      "note": "Sent 'Hello, test message' and received AI response 'Hey there! What's on your mind? Need help with something coding-related?' without errors"
+    },
+    "no_generating_stuck_state": {
+      "status": "PASS",
+      "note": "Stream completed properly, AI response received"
+    },
+    "no_canvasUpdated_errors": {
+      "status": "PASS",
+      "note": "No 'canvasUpdated is not defined' errors in browser console"
+    },
+    "canvasUpdated_variable_scope": {
+      "status": "PASS",
+      "locations": [
+        "Line 1198: let canvasUpdated = false (declaration in outer function scope)",
+        "Line 2798: canvasUpdated = true (assignment inside tool handler)",
+        "Line 2935: canvasUpdated = true (assignment inside another handler)",
+        "Line 3445: if (!hasDiffs && !canvasUpdated) (reference - now in scope)",
+        "Line 3448: canvasUpdated = await this.updateCanvasFromExchange(...) (reference - now in scope)",
+        "Line 3513: if (projectId && (generatedFiles.length > 0 || canvasUpdated)) (reference - now in scope)",
+        "Line 3543: canvasUpdated (reference in done event data - now in scope)"
+      ]
+    },
+    "core_system_tab": {
+      "status": "PASS",
+      "note": "Core System Workspace loads with conversations including 'Self-Edit: Internal Improvement'"
+    },
+    "media_bin_ui": {
+      "status": "PASS",
+      "note": "MEDIA BIN section visible with 'Upload files' link"
+    },
+    "quick_actions": {
+      "status": "PASS",
+      "elements_found": ["New Chat", "Creative Brief", "Upload to Media Bin"]
+    },
+    "hooks_extraction": {
+      "status": "PASS",
+      "details": {
+        "useSandboxOps": "178 lines - handles sandbox create, test, promote, diff, rollback",
+        "useMediaBin": "98 lines - handles media bin load, upload, delete"
+      }
+    },
+    "system_prompt_rewrite": {
+      "status": "PASS",
+      "tool_hierarchy": "1. search_replace (PRIMARY), 2. edit_lines (FALLBACK), 3. patch_files (DEPRECATED)",
+      "note": "No more contradictory instructions about which tool to use"
+    },
+    "read_files_output_changes": {
+      "status": "PASS",
+      "note": "All read_files outputs now recommend search_replace with exact text matching"
+    }
+  }
+}
