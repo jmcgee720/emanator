@@ -10,32 +10,58 @@
 7. If build breaks → auto-revert → user sees "retrying..." → AI retries
 8. tool_choice: required for action requests
 
-## Tools
-- search_replace: EXACT string matching (primary — 8 unit tests passing)
-- edit_lines: line-number based (fallback — 22 unit tests passing)
-- read_files, verify_build, exec_command, screenshot_verify, update_memory, update_canvas, patch_files
+## Tool Hierarchy (clear, non-contradictory)
+1. **search_replace** — PRIMARY. Exact string matching, safest editing method.
+2. **edit_lines** — FALLBACK. Line-number based, for large structural changes.
+3. **patch_files** — DEPRECATED. Use search_replace instead.
+4. **read_files** — Always before editing. Output recommends search_replace.
+5. **verify_build** — Auto-runs after edits.
+6. **exec_command** — Shell commands.
+7. **screenshot_verify** — Visual verification.
+8. **update_memory** — Cross-conversation notes.
+9. **update_canvas** — Only when user explicitly asks.
 
 ## Tech Stack
 Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 
-## Completed (Phase 1-5)
+## Architecture
+```
+/app
+├── lib/ai/message-stream.js       # Core Agent Loop (~3580 lines)
+├── lib/ai/message-helpers.js      # Extracted stream helpers
+├── lib/ai/tools.js                # AI tool definitions
+├── lib/ai/prompt-builder.js       # System prompt templates
+├── lib/e2b/agent-tools.js         # search_replace, edit_lines, read_files implementations
+├── components/dashboard/
+│   ├── Dashboard.jsx              # Main workspace (~1690 lines)
+│   ├── useDashboardProject.js     # Project CRUD hook
+│   ├── useDashboardStream.js      # Streaming/plan/diff hook
+│   ├── useSandboxOps.js           # Sandbox operations hook (NEW)
+│   ├── useMediaBin.js             # Media bin operations hook (NEW)
+│   └── ProjectGrid.jsx            # UI for project management
+```
+
+## Completed (All Phases)
 - E2B Sandbox integration
 - while(true) agent loop (max 12 iterations)
 - search_replace + edit_lines tools
 - Auto-verify compilation after edits
 - Auto-revert/retry self-recovery
 - Instant-Live editing (no "Apply to Live")
-- Dashboard.jsx partial refactor (3333→~2000 lines)
-- message-stream.js helpers extracted to message-helpers.js
+- Dashboard.jsx refactoring (3333→1690 lines)
+- message-stream.js helpers extracted
 - CSV Export, classifyUserIntent, Zip Export
 - Multi-model routing, Vision support
-- tool_choice: required enforcement for all action intents
-- Broken promise detector for both self-edit and normal project mode
+- tool_choice: required enforcement
+- Broken promise detector
 - Fixed canvasUpdated scoping bug (2026-04-16)
+- Rewrote self-edit system prompt — clear tool hierarchy (2026-04-16)
+- Fixed all read_files outputs to recommend search_replace (2026-04-16)
+- Fixed retry/recovery messages to push search_replace (2026-04-16)
+- Extracted useSandboxOps.js + useMediaBin.js hooks (2026-04-16)
 
 ## P1 Backlog
-- Dashboard.jsx: extract ~800 lines of sandbox/media ops into hooks
-- message-stream.js: decouple tool handlers from agent loop
+- message-stream.js: extract tool dispatch handlers (~1200 lines) into separate module
 
 ## P2 Backlog
 - Additional search_replace robustness
