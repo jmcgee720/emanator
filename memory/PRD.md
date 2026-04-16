@@ -17,3 +17,25 @@
 
 ## Tech Stack
 Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
+
+## Completed (Phase 1-5)
+- E2B Sandbox integration
+- while(true) agent loop (max 12 iterations)
+- search_replace + edit_lines tools
+- Auto-verify compilation after edits
+- Auto-revert/retry self-recovery
+- Instant-Live editing (no "Apply to Live")
+- Dashboard.jsx partial refactor (3333→~2000 lines)
+- message-stream.js helpers extracted to message-helpers.js
+- CSV Export, classifyUserIntent, Zip Export
+- Multi-model routing, Vision support
+- tool_choice: required enforcement for all action intents
+- Broken promise detector for both self-edit and normal project mode
+- Fixed canvasUpdated scoping bug (2026-04-16)
+
+## P1 Backlog
+- Dashboard.jsx: extract ~800 lines of sandbox/media ops into hooks
+- message-stream.js: decouple tool handlers from agent loop
+
+## P2 Backlog
+- Additional search_replace robustness
