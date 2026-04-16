@@ -106,13 +106,13 @@ export default function ProjectGrid({
           </h1>
         </div>
 
-        {/* Creative Brief — Accordion: collapsed shows project name + expand, expanded shows full form */}
+        {/* Creative Brief — show directly, no extra wrapper box */}
         <div className="max-w-3xl mx-auto mb-8">
           {isBriefExpanded ? (
-            <div className="em-glass rounded-2xl p-6 relative" data-testid="creative-brief-expanded">
+            <div className="relative" data-testid="creative-brief-expanded">
               <button
                 onClick={() => setIsBriefExpanded(false)}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all"
+                className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--em-text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.1)] transition-all"
                 data-testid="collapse-brief-btn"
               >
                 <X className="w-4 h-4" />
