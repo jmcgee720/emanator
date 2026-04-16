@@ -1,13 +1,19 @@
-# Emanator PRD
+# Emanator PRD — Final
 
-## Creative Brief System (Final Version)
-Extracts brand name, features, pages, colors, headline from brief → injects directly into prompt template.
-Fixes all 7 generic patterns: pink buttons, "Get Started"/"Learn More", no social proof, same dashboard, dead links, no animation, bad follow-ups.
+## Creative Brief System (Production Ready)
+1. Fast-path pipeline: bypass all plan/validate/intent machinery
+2. Field extraction: brand name, features, pages, colors injected into prompt
+3. Design audit checklist forces GPT to verify quality before submitting
+4. Reference site patterns described explicitly (linear.app aesthetic)
+5. Keepalive pings prevent stream timeout — builds complete without Refresh
+6. Art Direction images injected as base64 img tags
+7. Follow-up edits load existing file and use update_files for targeted changes
+8. isBriefFollowUp bypasses plan mode for Creative Brief projects
 
-## E2E Proof: Aurora Growth
-- Brand "Aurora Growth" with SVG logo ✓
-- "Launch Dashboard" / "See How It Works" CTAs (not generic) ✓
-- Social proof: "10,000+ Marketers", "50M+ Campaigns", "4.9/5 Rating" ✓
-- Features: 9 actual features with unique SVG icons in 3-col grid ✓
-- Active nav states ✓
-- Violet gradients, no pink ✓
+## Verified Working
+- Stream completes at 65s without timeout ✓
+- Recovery auto-loads files if connection drops ✓
+- Brand name, headline, features all from brief ✓
+- Contextual CTAs ("Launch Dashboard") ✓
+- Social proof section ✓
+- No pink/rose defaults ✓
