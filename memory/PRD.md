@@ -21,6 +21,12 @@
 8. **update_memory** — Cross-conversation notes.
 9. **update_canvas** — Only when user explicitly asks.
 
+## Intent Classification (Fixed 2026-04-16)
+- `resolveTaskMode()` defaults to 'build' (was 'inspect' — blocked legitimate requests)
+- `detectTaskMode()` gates inspect mode at the start of the stream
+- INSPECT_MODE_PATTERNS tightened — bare words like 'analyze', 'search', 'review' no longer trigger inspect when they're app feature descriptions
+- READ_ONLY_PATTERNS similarly tightened
+
 ## Tech Stack
 Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 
@@ -28,16 +34,19 @@ Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 ```
 /app
 ├── lib/ai/message-stream.js       # Core Agent Loop (~3580 lines)
+├── lib/ai/intents.js              # Intent classification + task mode detection
 ├── lib/ai/message-helpers.js      # Extracted stream helpers
 ├── lib/ai/tools.js                # AI tool definitions
 ├── lib/ai/prompt-builder.js       # System prompt templates
+├── lib/ai/plan-validator.js       # Plan + task mode validation
 ├── lib/e2b/agent-tools.js         # search_replace, edit_lines, read_files implementations
 ├── components/dashboard/
 │   ├── Dashboard.jsx              # Main workspace (~1690 lines)
 │   ├── useDashboardProject.js     # Project CRUD hook
 │   ├── useDashboardStream.js      # Streaming/plan/diff hook
-│   ├── useSandboxOps.js           # Sandbox operations hook (NEW)
-│   ├── useMediaBin.js             # Media bin operations hook (NEW)
+│   ├── useSandboxOps.js           # Sandbox operations hook
+│   ├── useMediaBin.js             # Media bin operations hook
+│   ├── InlineBrief.jsx            # Creative Brief form
 │   └── ProjectGrid.jsx            # UI for project management
 ```
 
@@ -59,6 +68,9 @@ Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 - Fixed all read_files outputs to recommend search_replace (2026-04-16)
 - Fixed retry/recovery messages to push search_replace (2026-04-16)
 - Extracted useSandboxOps.js + useMediaBin.js hooks (2026-04-16)
+- Fixed resolveTaskMode defaulting to 'inspect' — now 'build' (2026-04-16)
+- Tightened INSPECT_MODE_PATTERNS — no longer catches app feature words (2026-04-16)
+- Tightened READ_ONLY_PATTERNS — same fix (2026-04-16)
 
 ## P1 Backlog
 - message-stream.js: extract tool dispatch handlers (~1200 lines) into separate module
