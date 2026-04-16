@@ -22,6 +22,8 @@ import BuilderMemory from './BuilderMemory'
 import NewProjectModal from './NewProjectModal'
 import { useDashboardProject } from './useDashboardProject'
 import { useDashboardStream } from './useDashboardStream'
+import { useSandboxOps } from './useSandboxOps'
+import { useMediaBin } from './useMediaBin'
 import { getDefaultDesignPrefs } from '@/lib/ai/design-system'
 import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib/constants'
 import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus, Sparkles, Camera } from 'lucide-react'
@@ -106,16 +108,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [showPromptLibrary, setShowPromptLibrary] = useState(false)
   const [showBuilderMemory, setShowBuilderMemory] = useState(false)
   const [savePromptData, setSavePromptData] = useState(null)
-  const [sandboxTestResult, setSandboxTestResult] = useState(null)
-  const [sandboxTesting, setSandboxTesting] = useState(false)
-  const [promoting, setPromoting] = useState(false)
-  const [showPromoteConfirm, setShowPromoteConfirm] = useState(false)
-  const [showRollbackConfirm, setShowRollbackConfirm] = useState(false)
-  const [rollingBack, setRollingBack] = useState(false)
-  const [sandboxDiff, setSandboxDiff] = useState(null)
-  const [showSandboxDiff, setShowSandboxDiff] = useState(false)
-  const [loadingDiff, setLoadingDiff] = useState(false)
-
   const [showCreditsModal, setShowCreditsModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [projectMode, setProjectMode] = useState('fullstack')
@@ -228,7 +220,6 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [importError, setImportError] = useState(null)
   const fileInputRef = useRef(null)
   const mediaBinInputRef = useRef(null)
-  const [mediaBinFiles, setMediaBinFiles] = useState([])
 
   // ── GitHub import state ──
   const [githubPat, setGithubPat] = useState('')
@@ -649,238 +640,27 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }, [streamingMessageId])
 
-  // ── Sandbox operations ──
-  const createSandbox = async (projectId) => {
-    try {
-      addLog('info', 'Creating sandbox...')
-      const response = await authFetch(`/api/projects/${projectId}/sandbox`, {
-        method: 'POST',
-        headers: JSON_HEADERS,
-      })
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Failed to create sandbox')
-      }
-      const data = await response.json()
-      const sandbox = data.project || data
-      const initialChat = data.initialChat || null
+  // ── Sandbox operations (extracted to useSandboxOps) ──
+  const {
+    sandboxTestResult, setSandboxTestResult,
+    sandboxTesting, promoting,
+    showPromoteConfirm, setShowPromoteConfirm,
+    showRollbackConfirm, setShowRollbackConfirm,
+    rollingBack,
+    sandboxDiff, setSandboxDiff,
+    showSandboxDiff, setShowSandboxDiff,
+    loadingDiff,
+    createSandbox, testBeforeApply, promoteSandbox, loadSandboxDiff, rollbackSandbox,
+  } = useSandboxOps({
+    selectedProject, setSelectedProject, setProjects, openProjectWorkspace,
+    setChats, setSelectedChat, setMessages, setFiles, setCanvas, addLog, pendingDiffs, toast,
+  })
 
-      setProjects(prev => [sandbox, ...prev])
-      openProjectWorkspace(sandbox)
-
-      if (initialChat) {
-        setChats([initialChat])
-        setSelectedChat(initialChat)
-        setMessages([])
-      }
-
-      setFiles([])
-      setCanvas(null)
-
-      addLog('success', `Sandbox created from project`)
-      toast({ title: 'Sandbox Created', description: `"${sandbox.name}" is ready. Changes stay isolated.` })
-      return sandbox
-    } catch (error) {
-      console.error('Error creating sandbox:', error)
-      toast({ title: 'Sandbox Failed', description: error.message, variant: 'destructive' })
-    }
-  }
-
-  const testBeforeApply = async () => {
-    if (!selectedProject?.settings?.is_sandbox || sandboxTesting) return
-    setSandboxTesting(true)
-    addLog('info', 'Running test-before-apply validation...')
-    try {
-      const diffs = pendingDiffs.map(f => ({
-        path: f.path || f.filename,
-        content: f.content || f.newContent || '',
-      }))
-      const response = await authFetch(`/api/projects/${selectedProject.id}/test-before-apply`, {
-        method: 'POST',
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ diffs }),
-      })
-      const result = await response.json()
-      setSandboxTestResult(result)
-      setSelectedProject(prev => ({
-        ...prev,
-        settings: { ...prev.settings, last_test_result: result }
-      }))
-      if (result.passed) {
-        addLog('success', `Validation passed — ${result.files_tested} file(s) checked`)
-        toast({ title: 'Test Passed', description: `${result.files_tested} file(s) validated successfully` })
-      } else {
-        addLog('error', `Validation failed — ${result.errors.length} error(s)`)
-        toast({ title: 'Test Failed', description: `${result.errors.length} error(s) found`, variant: 'destructive' })
-      }
-    } catch (error) {
-      addLog('error', `Test failed: ${error.message}`)
-      toast({ title: 'Test Error', description: error.message, variant: 'destructive' })
-    } finally {
-      setSandboxTesting(false)
-    }
-  }
-
-  const promoteSandbox = async () => {
-    if (!selectedProject?.settings?.is_sandbox || promoting) return
-    setPromoting(true)
-    addLog('info', 'Promoting sandbox to primary...')
-    try {
-      const response = await authFetch(`/api/projects/${selectedProject.id}/promote`, {
-        method: 'POST',
-        headers: JSON_HEADERS,
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Promotion failed')
-
-      setSelectedProject(prev => ({
-        ...prev,
-        settings: { ...prev.settings, sandbox_status: 'promoted', promoted_at: result.promoted_at }
-      }))
-      setShowPromoteConfirm(false)
-      addLog('success', `Promoted ${result.files_promoted} file(s) to primary workspace`)
-      toast({ title: 'Promoted to Primary', description: `${result.files_promoted} file(s) applied to the primary workspace.` })
-    } catch (error) {
-      addLog('error', `Promotion failed: ${error.message}`)
-      toast({ title: 'Promotion Failed', description: error.message, variant: 'destructive' })
-    } finally {
-      setPromoting(false)
-    }
-  }
-
-  const loadSandboxDiff = async () => {
-    if (!selectedProject?.settings?.is_sandbox || loadingDiff) return
-    setLoadingDiff(true)
-    try {
-      const response = await authFetch(`/api/projects/${selectedProject.id}/sandbox-diff`)
-      if (!response.ok) throw new Error((await response.json()).error || 'Failed')
-      const data = await response.json()
-      setSandboxDiff(data)
-      setShowSandboxDiff(true)
-    } catch (error) {
-      toast({ title: 'Diff Failed', description: error.message, variant: 'destructive' })
-    } finally {
-      setLoadingDiff(false)
-    }
-  }
-
-  const rollbackSandbox = async () => {
-    if (!selectedProject?.settings?.is_sandbox || rollingBack) return
-    setRollingBack(true)
-    try {
-      const response = await authFetch(`/api/projects/${selectedProject.id}/rollback`, {
-        method: 'POST',
-        headers: JSON_HEADERS,
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Rollback failed')
-
-      setSelectedProject(prev => ({
-        ...prev,
-        settings: { ...prev.settings, sandbox_status: 'rolled_back', rolled_back_at: result.rolled_back_at }
-      }))
-      setShowRollbackConfirm(false)
-      addLog('success', `Rolled back: restored ${result.files_restored} file(s)`)
-      toast({ title: 'Rollback Complete', description: `Primary workspace restored. ${result.files_restored} file(s) recovered.` })
-    } catch (error) {
-      addLog('error', `Rollback failed: ${error.message}`)
-      toast({ title: 'Rollback Failed', description: error.message, variant: 'destructive' })
-    } finally {
-      setRollingBack(false)
-    }
-  }
-
-
-  // Keep ref updated for event handlers that need latest sendMessage
-  // (assigned after sendMessage definition below)
-
-
-  const loadMediaBin = async (projectId) => {
-    try {
-      const res = await authFetch(`/api/projects/${projectId}/attachments`)
-      if (res.ok) {
-        const data = await res.json()
-        const items = Array.isArray(data) ? data : []
-        // Fetch preview data for image files in parallel
-        const withPreviews = await Promise.all(items.map(async (f) => {
-          if (f.file_type === 'image') {
-            try {
-              const r = await authFetch(`/api/projects/${projectId}/attachment-content?path=${encodeURIComponent(f.path)}`)
-              if (r.ok) {
-                const d = await r.json()
-                return { ...f, preview_data: d.content }
-              }
-            } catch {}
-          }
-          return f
-        }))
-        setMediaBinFiles(withPreviews)
-      }
-    } catch (error) {
-      console.error('Error loading media bin:', error)
-    }
-  }
-
-  const handleMediaBinUpload = async (fileList) => {
-    if (!selectedProject || !fileList?.length) return
-    const toUpload = []
-    for (const file of fileList) {
-      const reader = new FileReader()
-      const result = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result)
-        if (file.type.startsWith('text/') || /\.(txt|md|json|csv|html|css|js|jsx|ts|tsx|py|sql)$/i.test(file.name)) {
-          reader.readAsText(file)
-        } else {
-          reader.readAsDataURL(file)
-        }
-      })
-      const isText = file.type.startsWith('text/') || /\.(txt|md|json|csv|html|css|js|jsx|ts|tsx|py|sql)$/i.test(file.name)
-      toUpload.push({
-        filename: file.name,
-        mime_type: file.type,
-        ...(isText ? { content: result } : { data: result })
-      })
-    }
-    const res = await uploadFiles(toUpload)
-    if (res?.uploads) {
-      const successes = res.uploads.filter(u => u.success)
-      if (successes.length > 0) {
-        toast({ title: 'Uploaded', description: `${successes.length} file(s) added to Media Bin` })
-        // Append new uploads to mediaBinFiles with preview data intact
-        const newItems = successes.map(u => ({
-          id: u.id,
-          filename: u.filename,
-          path: u.path,
-          file_type: u.file_category === 'image' ? 'image' : u.file_category === 'pdf' ? 'document' : 'code',
-          size: u.size,
-          created_at: u.created_at,
-          preview_data: u.preview_data || null,
-        }))
-        setMediaBinFiles(prev => [...prev, ...newItems])
-        // Refresh files so AI context picks them up
-        const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
-        if (filesRes.ok) { const d = await filesRes.json(); setFiles(Array.isArray(d) ? d : []) }
-      }
-    }
-  }
-
-
-  const handleMediaBinDelete = async (fileId) => {
-    if (!selectedProject) return
-    try {
-      const res = await authFetch(`/api/projects/${selectedProject.id}/files/${fileId}`, { method: 'DELETE' })
-      if (res.ok) {
-        setMediaBinFiles(prev => prev.filter(f => f.id !== fileId))
-        // Refresh files so AI context drops the deleted file
-        const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
-        if (filesRes.ok) { const d = await filesRes.json(); setFiles(Array.isArray(d) ? d : []) }
-      }
-    } catch (error) {
-      console.error('Error deleting media file:', error)
-    }
-  }
-
-
+  // ── Media bin (extracted to useMediaBin) ──
+  const {
+    mediaBinFiles, setMediaBinFiles,
+    loadMediaBin, handleMediaBinUpload, handleMediaBinDelete,
+  } = useMediaBin({ selectedProject, setFiles, uploadFiles, toast })
 
 
   const handleHeroPromptSubmit = async () => {
