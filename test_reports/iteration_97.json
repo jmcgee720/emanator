@@ -1,0 +1,116 @@
+{
+  "iteration": 97,
+  "date": "2026-04-16",
+  "summary": "FINAL comprehensive regression test of all Emanator E1 fixes. All 10 features tested and PASSED: health endpoint, login flow, dashboard tabs, project hub, chat stream, no canvasUpdated errors, no task mode violations, follow-up messages work, preview renders multi-file projects, Core System tab accessible.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_97.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "canvasUpdated correctly scoped at line 1198 in message-stream.js outer function scope",
+    "resolveTaskMode defaults to 'build' at line 320-326 in intents.js",
+    "INSPECT_MODE_PATTERNS tightened at lines 574-584 in intents.js",
+    "READ_ONLY_PATTERNS tightened at lines 349-353 in intents.js",
+    "PreviewTab.jsx pre-registers component names as lazy wrappers at lines 423-435",
+    "Dashboard.jsx refactored with useSandboxOps.js (178 lines) and useMediaBin.js (98 lines) hooks"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "testprov@test.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created 'Test Regression Project' during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All E1 fixes verified working in comprehensive regression test. No issues found.",
+  "tests_executed": {
+    "health_endpoint": {
+      "status": "PASS",
+      "details": "Returns {status: 'healthy', database: 'supabase', timestamp: '2026-04-16T13:35:37.558Z'}"
+    },
+    "login_flow": {
+      "status": "PASS",
+      "details": "Login with testprov@test.com / password123 successful, redirects to dashboard"
+    },
+    "dashboard_tabs": {
+      "status": "PASS",
+      "details": "Dashboard loads with Projects tab, Archived tab, Core System tab, Start Building button"
+    },
+    "project_hub": {
+      "status": "PASS",
+      "details": "Project Hub shows Quick Actions (New Chat, Creative Brief, Upload to Media Bin), CONVERSATIONS sidebar, DETAILS panel, MEDIA BIN section"
+    },
+    "chat_stream": {
+      "status": "PASS",
+      "details": "Chat stream endpoint works - AI generates project with milestones: Reading mind, Plotting game plan, Summoning brain, Gathering ingredients, Rummaging files, Painting visuals, Artwork ready, Generating project"
+    },
+    "no_canvasUpdated_errors": {
+      "status": "PASS",
+      "details": "No 'canvasUpdated is not defined' errors in console - variable correctly scoped at line 1198"
+    },
+    "no_task_mode_violations": {
+      "status": "PASS",
+      "details": "No 'Task mode violation: inspect mode must not produce file_actions' errors"
+    },
+    "followup_messages_work": {
+      "status": "PASS",
+      "details": "Follow-up message 'proceed' sent successfully, AI responded: 'Sure thing! Here's what I'll do next: 1. Enhance interactivity by adding a simple contact form. 2. Implement a basic client-side validation for the form. 3. Ensure all components remain visually consistent with the current design. Let's dive in.'"
+    },
+    "preview_renders_multifile": {
+      "status": "PASS",
+      "details": "Preview tab renders multi-file project without ReferenceError - shows TestRegression app with Navbar (Features, About, Contact, Get Started), Hero section, Discover More button"
+    },
+    "core_system_tab": {
+      "status": "PASS",
+      "details": "Core System Workspace loads with conversations: 'Core System' (19h ago), 'Self-Edit: Internal Improvement' (19h ago)"
+    }
+  },
+  "fixes_verified": {
+    "canvasUpdated_scoping": {
+      "file": "/app/lib/ai/message-stream.js",
+      "line": 1198,
+      "fix": "let canvasUpdated = false declared in outer function scope",
+      "status": "VERIFIED"
+    },
+    "resolveTaskMode_default": {
+      "file": "/app/lib/ai/intents.js",
+      "lines": "320-326",
+      "fix": "resolveTaskMode defaults to 'build' instead of 'inspect'",
+      "status": "VERIFIED"
+    },
+    "inspect_mode_patterns": {
+      "file": "/app/lib/ai/intents.js",
+      "lines": "574-584",
+      "fix": "INSPECT_MODE_PATTERNS tightened to not catch app descriptions",
+      "status": "VERIFIED"
+    },
+    "read_only_patterns": {
+      "file": "/app/lib/ai/intents.js",
+      "lines": "349-353",
+      "fix": "READ_ONLY_PATTERNS tightened",
+      "status": "VERIFIED"
+    },
+    "preview_lazy_wrappers": {
+      "file": "/app/components/dashboard/tabs/PreviewTab.jsx",
+      "lines": "423-435",
+      "fix": "Pre-registration of component names as lazy wrappers on window before first compilation",
+      "status": "VERIFIED"
+    },
+    "dashboard_hooks_extraction": {
+      "files": ["/app/components/dashboard/useSandboxOps.js", "/app/components/dashboard/useMediaBin.js"],
+      "fix": "Extracted sandbox operations (178 lines) and media bin operations (98 lines) from Dashboard.jsx",
+      "status": "VERIFIED"
+    }
+  }
+}
