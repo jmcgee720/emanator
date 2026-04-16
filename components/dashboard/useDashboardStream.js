@@ -538,11 +538,12 @@ export function useDashboardStream(ctx) {
         // ── Stream timeout auto-recovery ──
         onStreamRecovery: async () => {
           if (!selectedChat || !selectedProject) return false
-          // Retry up to 3 times with delays — backend may still be saving
-          for (let attempt = 0; attempt < 3; attempt++) {
+          // Retry up to 5 times with increasing delays — backend may need 15-20s to finish saving
+          const delays = [3000, 5000, 5000, 5000, 5000]
+          for (let attempt = 0; attempt < delays.length; attempt++) {
             try {
-              if (attempt > 0) await new Promise(r => setTimeout(r, 2000))
-              console.log(`[StreamRecovery] Attempt ${attempt + 1}/3...`)
+              await new Promise(r => setTimeout(r, delays[attempt]))
+              console.log(`[StreamRecovery] Attempt ${attempt + 1}/${delays.length}...`)
               const msgRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
               if (!msgRes.ok) continue
               const savedMessages = await msgRes.json()
@@ -718,10 +719,11 @@ export function useDashboardStream(ctx) {
         // ── Stream timeout auto-recovery (executePlan) ──
         onStreamRecovery: async () => {
           if (!selectedChat || !selectedProject) return false
-          for (let attempt = 0; attempt < 3; attempt++) {
+          const delays = [3000, 5000, 5000, 5000, 5000]
+          for (let attempt = 0; attempt < delays.length; attempt++) {
             try {
-              if (attempt > 0) await new Promise(r => setTimeout(r, 2000))
-              console.log(`[StreamRecovery-Plan] Attempt ${attempt + 1}/3...`)
+              await new Promise(r => setTimeout(r, delays[attempt]))
+              console.log(`[StreamRecovery-Plan] Attempt ${attempt + 1}/${delays.length}...`)
               const msgRes = await authFetch(`/api/chats/${selectedChat.id}/messages`)
               if (!msgRes.ok) continue
               const savedMessages = await msgRes.json()
