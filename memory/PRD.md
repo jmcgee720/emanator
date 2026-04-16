@@ -21,11 +21,17 @@
 8. **update_memory** — Cross-conversation notes.
 9. **update_canvas** — Only when user explicitly asks.
 
-## Intent Classification (Fixed 2026-04-16)
-- `resolveTaskMode()` defaults to 'build' (was 'inspect' — blocked legitimate requests)
+## Intent Classification
+- `resolveTaskMode()` defaults to 'build' (not 'inspect')
 - `detectTaskMode()` gates inspect mode at the start of the stream
-- INSPECT_MODE_PATTERNS tightened — bare words like 'analyze', 'search', 'review' no longer trigger inspect when they're app feature descriptions
+- INSPECT_MODE_PATTERNS tightened — only matches action verbs at sentence start or after "can you"
 - READ_ONLY_PATTERNS similarly tightened
+
+## Preview Rendering
+- Multi-file projects pre-register all component names as lazy wrappers on window
+- Lazy wrappers defer lookup to render time when all components are available
+- Babel AST plugin transforms imports to lazy wrappers for cross-file resolution
+- Two-pass compilation: first pass registers components, second pass fixes cross-file imports
 
 ## Tech Stack
 Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
@@ -39,7 +45,7 @@ Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 ├── lib/ai/tools.js                # AI tool definitions
 ├── lib/ai/prompt-builder.js       # System prompt templates
 ├── lib/ai/plan-validator.js       # Plan + task mode validation
-├── lib/e2b/agent-tools.js         # search_replace, edit_lines, read_files implementations
+├── lib/e2b/agent-tools.js         # search_replace, edit_lines, read_files
 ├── components/dashboard/
 │   ├── Dashboard.jsx              # Main workspace (~1690 lines)
 │   ├── useDashboardProject.js     # Project CRUD hook
@@ -47,18 +53,16 @@ Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 │   ├── useSandboxOps.js           # Sandbox operations hook
 │   ├── useMediaBin.js             # Media bin operations hook
 │   ├── InlineBrief.jsx            # Creative Brief form
-│   └── ProjectGrid.jsx            # UI for project management
+│   ├── tabs/PreviewTab.jsx        # Preview renderer (~1470 lines)
+│   └── ProjectGrid.jsx            # Project management
 ```
 
-## Completed (All Phases)
+## Completed (All Phases + E1 Parity)
 - E2B Sandbox integration
 - while(true) agent loop (max 12 iterations)
 - search_replace + edit_lines tools
-- Auto-verify compilation after edits
-- Auto-revert/retry self-recovery
+- Auto-verify/revert/retry self-recovery
 - Instant-Live editing (no "Apply to Live")
-- Dashboard.jsx refactoring (3333→1690 lines)
-- message-stream.js helpers extracted
 - CSV Export, classifyUserIntent, Zip Export
 - Multi-model routing, Vision support
 - tool_choice: required enforcement
@@ -66,14 +70,15 @@ Next.js 14, OpenAI GPT-4o via Emergent LLM Key, E2B, Supabase, MongoDB, Stripe
 - Fixed canvasUpdated scoping bug (2026-04-16)
 - Rewrote self-edit system prompt — clear tool hierarchy (2026-04-16)
 - Fixed all read_files outputs to recommend search_replace (2026-04-16)
-- Fixed retry/recovery messages to push search_replace (2026-04-16)
-- Extracted useSandboxOps.js + useMediaBin.js hooks (2026-04-16)
 - Fixed resolveTaskMode defaulting to 'inspect' — now 'build' (2026-04-16)
-- Tightened INSPECT_MODE_PATTERNS — no longer catches app feature words (2026-04-16)
-- Tightened READ_ONLY_PATTERNS — same fix (2026-04-16)
+- Tightened INSPECT_MODE_PATTERNS + READ_ONLY_PATTERNS (2026-04-16)
+- Fixed preview rendering for multi-file projects — lazy wrapper pre-registration (2026-04-16)
+- Extracted useSandboxOps.js + useMediaBin.js hooks (2026-04-16)
+- Dashboard.jsx: 3333→1690 lines
 
 ## P1 Backlog
 - message-stream.js: extract tool dispatch handlers (~1200 lines) into separate module
+  (Complex: each handler uses 15+ outer-scope variables from the generator function)
 
 ## P2 Backlog
 - Additional search_replace robustness
