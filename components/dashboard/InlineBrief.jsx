@@ -230,14 +230,50 @@ function buildPromptFromBrief(brief) {
   return { displayMessage, fullInstruction: instrParts.join('\n'), attachments }
 }
 
+const STORAGE_KEY = 'emanator_creative_brief_draft'
+
+function loadDraft() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // Don't restore media_assets (base64 is too large for localStorage)
+      return { ...EMPTY_BRIEF, ...parsed, media_assets: [] }
+    }
+  } catch {}
+  return EMPTY_BRIEF
+}
+
+function saveDraft(brief) {
+  try {
+    // Strip media_assets before saving (base64 too large)
+    const { media_assets, ...rest } = brief
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest))
+  } catch {}
+}
+
 export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem, onNewProject, saving: externalSaving }) {
-  const [brief, setBrief] = useState(EMPTY_BRIEF)
+  const [brief, setBrief] = useState(() => loadDraft())
   const [starting, setStarting] = useState(false)
   const [openSections, setOpenSections] = useState({ big_picture: true })
+  const [showDraftNotice, setShowDraftNotice] = useState(() => {
+    try { return !!localStorage.getItem(STORAGE_KEY) } catch { return false }
+  })
+
+  // Auto-save draft on every change
+  useEffect(() => {
+    saveDraft(brief)
+  }, [brief])
 
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
   const updateField = useCallback((field, value) => setBrief(prev => ({ ...prev, [field]: value })), [])
   const hasContent = brief.project_name || brief.elevator_pitch || brief.must_have_features || brief.brand_name
+
+  const clearDraft = () => {
+    setBrief(EMPTY_BRIEF)
+    setShowDraftNotice(false)
+    try { localStorage.removeItem(STORAGE_KEY) } catch {}
+  }
 
   const handleStart = async () => {
     const result = buildPromptFromBrief(brief)
@@ -263,8 +299,26 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
         }}
       >
         <div className="px-5 pt-4 pb-2">
-          <p className="text-xs font-semibold em-text-primary">Creative Brief</p>
-          <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Fill in what you know — the AI fills in the rest</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold em-text-primary">Creative Brief</p>
+              <p className="text-[10px] text-[var(--em-text-muted)] mt-0.5">Fill in what you know — the AI fills in the rest</p>
+            </div>
+            {showDraftNotice && hasContent && (
+              <button
+                onClick={clearDraft}
+                className="text-[10px] text-[var(--em-text-muted)] hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-[rgba(255,255,255,0.06)]"
+                data-testid="clear-draft-btn"
+              >
+                Clear draft
+              </button>
+            )}
+          </div>
+          {showDraftNotice && hasContent && (
+            <p className="text-[10px] text-[var(--em-cyan)] mt-1.5" style={{ opacity: 0.7 }}>
+              Draft restored from your last session
+            </p>
+          )}
         </div>
 
         {/* Project name */}
