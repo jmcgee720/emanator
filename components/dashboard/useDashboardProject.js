@@ -175,7 +175,7 @@ export function useDashboardProject(ctx) {
       const initialChat = data.initialChat || null
 
       setProjects(prev => [newProject, ...prev])
-      openProjectWorkspace(newProject)
+      try { openProjectWorkspace(newProject) } catch (e) { console.warn('[createProject] openProjectWorkspace failed:', e.message) }
 
       if (initialChat) {
         setChats([initialChat])
