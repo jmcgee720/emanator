@@ -191,6 +191,25 @@ export function useDashboardStream(ctx) {
           }
         },
 
+        onFilesSaved: async (data) => {
+          // Files were saved by Creative Brief fast-path — refresh files and show preview
+          console.log('[FilesSaved] Refreshing files and preview...')
+          if (selectedProject) {
+            try {
+              const filesRes = await authFetch(`/api/projects/${selectedProject.id}/files`)
+              if (filesRes.ok) {
+                const filesData = await filesRes.json()
+                const filesArr = Array.isArray(filesData) ? filesData : []
+                setFiles(filesArr)
+                if (!isSelfEditChat) setActiveTab('preview')
+                // Force preview to recompile with new files
+                setLivePreviewData(null)
+                console.log(`[FilesSaved] Loaded ${filesArr.length} files, switched to preview`)
+              }
+            } catch (e) { console.warn('[FilesSaved] Error:', e.message) }
+          }
+        },
+
         onImageGenerated: (data) => {
           setMessages(prev => prev.map(m =>
             m.id === streamingAssistantId
