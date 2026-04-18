@@ -23,6 +23,7 @@ import * as promptLibraryRoutes from '@/lib/api/routes/prompt-library'
 import * as learningRoutes from '@/lib/api/routes/learning'
 import * as auroraRoutes from '@/lib/api/routes/aurora'
 import * as shareRoutes from '@/lib/api/routes/share'
+import * as galleryRoutes from '@/lib/api/routes/gallery'
 import * as marketplaceRoutes from '@/lib/api/routes/marketplace'
 
 // Phase 2 route modules
@@ -63,6 +64,7 @@ const phase1Modules = [
   learningRoutes,
   auroraRoutes,
   shareRoutes,
+  galleryRoutes,
   marketplaceRoutes,
 ]
 

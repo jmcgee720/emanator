@@ -245,6 +245,14 @@ export default function LoginPage({ onAuthSuccess }) {
               </div>
               <h2 className="text-xl font-semibold" style={{ color: '#FFFFFF' }}>Welcome</h2>
               <p className="text-sm mt-1.5" style={{ color: '#B0B4CC' }}>Sign in to your account</p>
+              <a
+                href="/gallery"
+                className="inline-flex items-center gap-1 mt-3 text-[11px] font-medium transition-colors"
+                style={{ color: '#00E5FF' }}
+                data-testid="landing-gallery-link"
+              >
+                or explore apps built by the community →
+              </a>
             </div>
 
             {/* Google Sign In */}
