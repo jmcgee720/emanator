@@ -33,6 +33,45 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 19 Part 1 (COMPLETE, 2026-02-18) — a11y-fix loop closure + Remix-this-app (social loop)
+
+Two high-ROI wins instead of the originally planned 3 items (Vercel webhook deferred — it needs team-level integration which end users don't have; polling at 3s is pragmatically fine).
+
+**Shipped:**
+
+1. **"Fix N a11y issues" contextual chip** — closes the audit → repair loop. After PreviewTab's Audit button finds violations, it broadcasts the result via `window.__EMANATOR_LATEST_A11Y__` + `emanator:a11y-result` CustomEvent. `QuickActionChips` subscribes and conditionally renders a red `data-testid='quick-action-fix-a11y'` chip showing "Fix N a11y issues". Clicking it pre-fills the composer with a properly-formatted prompt: *"Fix these accessibility violations flagged by the audit: [bulleted list with impact, help text, and HTML snippet]. Preserve the existing design — only change what's needed to resolve these issues."* Makes Emanator the first builder with a **visible closed a11y loop**: audit finds issues, one click, next build fixes them.
+
+2. **Remix button + endpoint on shared previews (social loop unlock)** — new `POST /api/shared/:token/remix` clones the `files_snapshot` into a new project for the authed user, seeds a chat, attaches `remixed_from: { token, title }` to settings. `/share/{token}` page gets a gradient "Remix this app" button. Unauthenticated visitors get redirected to login with a return URL so the remix fires immediately after sign-in. Error states: 401/403/404/410 (expired) all handled + tested.
+
+**Tests:** +6 remix tests (`test_share_remix.test.js`). Full suite **161/161 across 14 files**. Lint clean. Testing agent `iteration_110.json` confirmed 100% backend + 100% frontend success.
+
+**Deferred from Session 19:**
+- **Vercel deploy webhook** — needs team-level integration; polling at 3s is acceptable. Unblocked when we build a proper Emanator Vercel OAuth app post-launch.
+- **Multi-image art-direction comparison** — edge case; most users upload 1-2 references. Revisit based on usage data.
+- **Per-archetype recipe tuning admin** — heavy-weight admin UX, properly a Session 20+ item.
+
+## Prioritized Backlog
+
+### P0 — Session 20 (launch-ready polish)
+- **Public project gallery** — list projects where `settings.is_public === true` with view counts + Remix button on each card. Capitalizes on the Remix infrastructure shipped today.
+- **One-click "make public" toggle** on ProjectHub (creates a share token + sets `is_public`).
+- **Branded custom domains** via Vercel's `/v1/projects/{id}/domains` API.
+
+### P1 — Session 21
+- **Auto-generated server-side Stripe Checkout function** included in Vercel export.
+- **Share link analytics** — timeline of views + remixes per share token.
+- **Remix count badge** on the originating project so creators see their impact.
+
+### P2 — Growth (Session 22+)
+- Team collaboration (multi-user per project)
+- Analytics dashboard (build/deploy/archetype trends, funnel)
+- Referral / invite loops
+- Project templates / one-click starters
+- Per-archetype recipe tuning admin
+- Multi-image art-direction weighting
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 18 (COMPLETE, 2026-02-18) — Axe-core a11y audit + conversational-edit quick-action chips
 
 **Shipped:**
