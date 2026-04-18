@@ -1,0 +1,64 @@
+{
+  "summary": "End-to-end testing of the new EMANATOR_NEW_PIPELINE feature. The new 3-stage pipeline (classify archetype → generate plan → build in 4 waves → review → repair) is WORKING. Successfully verified that Emanator generates Signup, Login, and Dashboard pages WITHOUT being explicitly requested in the Creative Brief - this is the KEY user-facing assertion.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Preview rendering",
+        "issue": "Generated files have literal '\\n' strings instead of actual newlines, causing Babel compile errors in the preview iframe. Files like pages/Signup.jsx, pages/Dashboard.jsx, app/page.jsx fail to parse.",
+        "affected_selectors": ["Preview tab iframe"],
+        "priority": "HIGH"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_99.json"],
+  "action_items": [
+    "CRITICAL: Fix the file content saving in the new pipeline - files are being saved with literal '\\n' strings instead of actual newline characters. This breaks Babel parsing in the preview.",
+    "Check the saveFiles function or the LLM response parsing to ensure newlines are properly converted",
+    "The issue appears to be in how the LLM-generated code is being stored/retrieved - the content shows 'export default function Signup({ onNavigate }) {\\n  const handleSignup...' instead of actual newlines"
+  ],
+  "critical_code_review_comments": [
+    "The new pipeline architecture is correctly implemented - archetype classification, plan generation, 4-wave building, review, and repair all work",
+    "BriefProgressCard UI shows archetype badge ('SaaS tool / B2B software') correctly",
+    "17 files were generated including all required auth flows (Signup, Login, Dashboard, AuthContext, MockAPIProvider)",
+    "The file content newline issue is likely in the recipes.js or brief-builder.js where LLM output is processed before saving"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "70%"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "Created Nexsara project with Creative Brief: Brand='Nexsara', Description='AI-powered marketing platform', Pages='Home, Features, Pricing' (NOT Sign Up/Login/Dashboard)",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The EMANATOR_NEW_PIPELINE=1 flag is enabled and working. The pipeline successfully generates multi-page apps with auth flows even when not requested. The main issue is that generated file content has literal '\\n' strings instead of actual newlines, breaking Babel preview. Check /app/lib/ai/brief-builder.js and /app/lib/ai/recipes.js for how file content is processed.",
+  "rca_of_the_issue": {
+    "root_cause": "The LLM-generated file content is being saved with escaped newline characters ('\\n') instead of actual newline characters. This causes Babel to fail parsing the JSX files in the preview iframe.",
+    "reproduction_steps": [
+      "1. Login to Emanator with REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD",
+      "2. Click 'Start Building' and fill Creative Brief with Brand='Nexsara', Pages='Home, Features, Pricing'",
+      "3. Click 'Build Project' and wait for pipeline to complete (~2-3 minutes)",
+      "4. Open the project and click 'Preview' tab",
+      "5. Observe Babel compile errors in console: 'Expecting Unicode escape sequence \\uXXXX'"
+    ],
+    "mitigation": "In the file saving logic, ensure that escaped newlines (\\n) are converted to actual newline characters before saving. This may require JSON.parse() or a string replacement on the LLM output."
+  },
+  "new_pipeline_verification": {
+    "archetype_classification": "PASS - Classified as 'saas_tool' with 0.9 confidence",
+    "plan_generation": "PASS - Generated 9 routes, 15 components, 4 waves",
+    "wave_building": "PASS - All 4 waves completed (scaffold, public, auth, app)",
+    "review_and_repair": "PASS - Review found 3 missing + 1 broken, repair fixed 4 files",
+    "key_assertion": "PASS - Signup.jsx was generated WITHOUT being requested in the brief",
+    "total_files": 17,
+    "build_time": "162 seconds"
+  }
+}
