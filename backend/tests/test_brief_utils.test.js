@@ -3,7 +3,7 @@
  * Guards against the double-escape regression.
  */
 
-import { normalizeFileContent, normalizeFiles, autoInjectMissingImports } from '../../lib/ai/brief-utils.js'
+import { normalizeFileContent, normalizeFiles, autoInjectMissingImports, mapImageAssets, buildAssetsFileContent } from '../../lib/ai/brief-utils.js'
 
 describe('normalizeFileContent', () => {
   test('pass-through when content already has real newlines', () => {
@@ -146,5 +146,144 @@ describe('autoInjectMissingImports', () => {
     const files = [{ path: 'pages/Signup.jsx', content: 'export default function Signup() { useAuth() }' }]
     const out = normalizeFiles(files)
     expect(out[0].content).toContain("import { useAuth }")
+  })
+})
+
+describe('mapImageAssets (user-uploaded images → role-tagged assets)', () => {
+  test('empty input returns empty array', () => {
+    expect(mapImageAssets(undefined)).toEqual([])
+    expect(mapImageAssets([])).toEqual([])
+    expect(mapImageAssets(null)).toEqual([])
+  })
+
+  test('filters out attachments without data', () => {
+    const out = mapImageAssets([{ name: 'logo.png' }, { data: 'abc', name: 'ok.png' }])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('ok.png')
+  })
+
+  test('filename with "logo" → role=logo, exposes LOGO_URL export name later', () => {
+    const out = mapImageAssets([{ data: 'b64', name: 'my-logo-final.png' }])
+    expect(out[0].role).toBe('logo')
+  })
+
+  test('filename with "hero" / "banner" → role=hero', () => {
+    const a = mapImageAssets([{ data: 'b64', name: 'hero-bg.jpg' }])
+    const b = mapImageAssets([{ data: 'b64', name: 'site-banner.webp' }])
+    expect(a[0].role).toBe('hero')
+    expect(b[0].role).toBe('hero')
+  })
+
+  test('first of ≤2 unnamed images is treated as logo', () => {
+    const out = mapImageAssets([
+      { data: 'a' },
+      { data: 'b' },
+    ])
+    expect(out[0].role).toBe('logo')
+    expect(out[1].role).toBe('reference')
+  })
+
+  test('larger batches default to reference (no auto-logo promotion)', () => {
+    const out = mapImageAssets([
+      { data: 'a' }, { data: 'b' }, { data: 'c' },
+    ])
+    expect(out.every((a) => a.role === 'reference')).toBe(true)
+  })
+
+  test('caps at 4 images', () => {
+    const out = mapImageAssets([
+      { data: '1' }, { data: '2' }, { data: '3' }, { data: '4' }, { data: '5' },
+    ])
+    expect(out).toHaveLength(4)
+  })
+
+  test('prefixes data: URI correctly based on file extension', () => {
+    const png = mapImageAssets([{ data: 'abc', name: 'x.png' }])
+    const jpg = mapImageAssets([{ data: 'abc', name: 'x.jpg' }])
+    const webp = mapImageAssets([{ data: 'abc', name: 'x.webp' }])
+    const svg = mapImageAssets([{ data: 'abc', name: 'x.svg' }])
+    expect(png[0].dataUrl.startsWith('data:image/png;base64,')).toBe(true)
+    expect(jpg[0].dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
+    expect(webp[0].dataUrl.startsWith('data:image/webp;base64,')).toBe(true)
+    expect(svg[0].dataUrl.startsWith('data:image/svg+xml;base64,')).toBe(true)
+  })
+
+  test('preserves pre-formed data: URIs without re-prefixing', () => {
+    const pre = 'data:image/png;base64,AAAA'
+    const out = mapImageAssets([{ data: pre, name: 'logo.png' }])
+    expect(out[0].dataUrl).toBe(pre)
+  })
+
+  test('index is contiguous 0..N-1', () => {
+    const out = mapImageAssets([{ data: 'a' }, { data: 'b' }, { data: 'c' }])
+    expect(out.map((a) => a.index)).toEqual([0, 1, 2])
+  })
+})
+
+describe('buildAssetsFileContent (components/assets.js generator)', () => {
+  test('empty input returns empty string (no file emitted)', () => {
+    expect(buildAssetsFileContent([])).toBe('')
+    expect(buildAssetsFileContent(null)).toBe('')
+  })
+
+  test('emits LOGO_URL for logo role', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'logo.png', dataUrl: 'data:image/png;base64,AAAA', index: 0 },
+    ])
+    expect(out).toContain('export const LOGO_URL = `data:image/png;base64,AAAA`')
+  })
+
+  test('emits HERO_URL for hero role', () => {
+    const out = buildAssetsFileContent([
+      { role: 'hero', name: 'hero.jpg', dataUrl: 'data:image/jpeg;base64,BBBB', index: 0 },
+    ])
+    expect(out).toContain('export const HERO_URL = `data:image/jpeg;base64,BBBB`')
+  })
+
+  test('emits REFERENCE_N for additional references', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'l.png', dataUrl: 'data:image/png;base64,A', index: 0 },
+      { role: 'reference', name: 'r.png', dataUrl: 'data:image/png;base64,B', index: 1 },
+      { role: 'reference', name: 's.png', dataUrl: 'data:image/png;base64,C', index: 2 },
+    ])
+    expect(out).toContain('export const LOGO_URL')
+    expect(out).toContain('export const REFERENCE_1')
+    expect(out).toContain('export const REFERENCE_2')
+  })
+
+  test('escapes backticks inside the data URL (prevents template-literal break)', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'x.png', dataUrl: 'data:image/png;base64,AA`BB', index: 0 },
+    ])
+    expect(out).toContain('AA\\`BB')
+    expect(out).not.toMatch(/AA`BB/)
+  })
+
+  test('escapes $ so `${}` interpolation inside the data URL is neutralised', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'x.png', dataUrl: 'data:image/png;base64,AA${evil}BB', index: 0 },
+    ])
+    expect(out).toContain('AA\\${evil}BB')
+  })
+
+  test('includes the auto-generated header comment', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'x.png', dataUrl: 'data:image/png;base64,AAAA', index: 0 },
+    ])
+    expect(out).toContain('// AUTO-GENERATED by Emanator')
+    expect(out).toContain("import { LOGO_URL, HERO_URL, REFERENCE_0 } from '../components/assets'")
+  })
+
+  test('is valid JavaScript (evaluable)', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'x.png', dataUrl: 'data:image/png;base64,AAAA', index: 0 },
+      { role: 'reference', name: 'y.png', dataUrl: 'data:image/png;base64,B`${bad}C', index: 1 },
+    ])
+    // Evaluate as ESM would (replace `export const` with plain const, then eval)
+    const evaluable = out.replace(/export const/g, 'const') + '\nreturn { LOGO_URL, REFERENCE_1 }'
+    // eslint-disable-next-line no-new-func
+    const result = new Function(evaluable)()
+    expect(result.LOGO_URL).toBe('data:image/png;base64,AAAA')
+    expect(result.REFERENCE_1).toBe('data:image/png;base64,B`${bad}C')
   })
 })

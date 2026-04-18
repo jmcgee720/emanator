@@ -203,3 +203,82 @@ describe('runAllWaves', () => {
     expect(waveStarts.length).toBe(1)
   })
 })
+
+// ──────────────────────────────────────────────────────────────────────
+// Prompt-content tests — guard against regression where hard rules
+// against duplicate navbars / ignored logo uploads silently disappear.
+// ──────────────────────────────────────────────────────────────────────
+import { buildWaveSystemPrompt } from '../../lib/ai/brief-builder.js'
+
+const samplePlan = {
+  archetypeId: 'saas_tool',
+  brand: { name: 'Acme', description: 'Demo', audience: 'PMs', tone: 'Friendly', colors: 'violet' },
+  routes: [
+    { id: 'landing', file: 'pages/Landing.jsx', description: 'Hero + features' },
+    { id: 'signup', file: 'pages/Signup.jsx' },
+  ],
+  flows: [{ id: 'signup_to_dashboard', desc: 'Signup → dashboard' }],
+  components: [],
+  dataShapes: [],
+  waves: [],
+}
+
+describe('buildWaveSystemPrompt — hard rules enforcement', () => {
+  const wave = { id: 'scaffold', label: 'Scaffold', files: ['app/page.jsx', 'components/Navbar.jsx'] }
+
+  test('HARD RULE #15 (ROUTER CLEANLINESS / no Navbar in router) is present', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).toContain('ROUTER CLEANLINESS')
+    expect(prompt).toMatch(/MUST NOT render.*Navbar/i)
+    expect(prompt).toMatch(/DUPLICATE navbars?/i)
+  })
+
+  test('HARD RULE #16 (USE PROVIDED IMAGE ASSETS) is present', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).toContain('USE PROVIDED IMAGE ASSETS')
+    expect(prompt).toMatch(/NEVER leave a placeholder/i)
+  })
+
+  test('Image-asset context block appears only when imageAssets is populated', () => {
+    const without = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(without).not.toContain('USER-PROVIDED IMAGE ASSETS')
+
+    const withImg = buildWaveSystemPrompt({
+      plan: { ...samplePlan, imageAssets: [{ role: 'logo', name: 'logo.png', index: 0 }] },
+      wave,
+      filesBuiltSoFar: [],
+    })
+    expect(withImg).toContain('USER-PROVIDED IMAGE ASSETS')
+    expect(withImg).toContain('components/assets.js')
+    expect(withImg).toContain('LOGO_URL')
+    expect(withImg).toMatch(/MUST render <img src=\{LOGO_URL\}/i)
+  })
+
+  test('hero image context mentions HERO_URL export when a hero asset is present', () => {
+    const prompt = buildWaveSystemPrompt({
+      plan: { ...samplePlan, imageAssets: [
+        { role: 'logo', name: 'logo.png', index: 0 },
+        { role: 'hero', name: 'hero.jpg', index: 1 },
+      ]},
+      wave,
+      filesBuiltSoFar: [],
+    })
+    expect(prompt).toContain('LOGO_URL')
+    expect(prompt).toContain('HERO_URL')
+    expect(prompt).toMatch(/hero section MUST render <img src=\{HERO_URL\}/i)
+  })
+
+  test('HARD RULE #17 (BRAND COPY DISCIPLINE) is present with concrete examples', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).toContain('BRAND COPY DISCIPLINE')
+    expect(prompt).toMatch(/NOT "Get Started"/)
+    expect(prompt).toMatch(/Welcome to \$\{plan\.brand\.name\}|Welcome to .+brand/)
+  })
+
+  test('generic placeholder ban in rule 9 names real offenders', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).toContain('Lorem ipsum')
+    expect(prompt).toContain('Welcome to our platform')
+    expect(prompt).toContain('Get started today')
+  })
+})
