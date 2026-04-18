@@ -155,6 +155,11 @@ export default function LoginPage({ onAuthSuccess }) {
         <p className="text-sm font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
           AI Builder Platform
         </p>
+
+        <p className="mt-3 text-xs" style={{ color: '#6B7094' }} data-testid="landing-time-metric">
+          From blank page to working app in{' '}
+          <span className="font-semibold" style={{ color: '#00E5FF' }}>under 2 minutes</span>
+        </p>
       </div>
 
 

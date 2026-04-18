@@ -53,7 +53,46 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - Event collision fix: renamed new pipeline's `plan` event to `brief_plan`.
 - Tests: `test_brief_reviewer.test.js` — 8 tests.
 
-### Session 6 (COMPLETE, 2026-02-18) — Preview Fix + Archetype Hint
+### Session 7 (COMPLETE, 2026-02-18) — Flag Removed, Legacy Deleted, Landing Metric
+
+**🎉 MILESTONE: New pipeline is the only pipeline.** Fourth dogfood (iteration_102.json) confirmed:
+- ✅ `__namedImport` preview fix works (landing page renders cleanly, Navbar + Login with imports work)
+- ✅ Symbol-name discipline holds
+- ✅ All wins from Sessions 1–6 hold
+- Remaining: LLM occasionally drops the `import { useAuth }` line → runtime `useAuth is not defined`
+
+**Shipped in this session:**
+- **Global hook-name safety net** — preamble pre-declares `window.useAuth` / `window.useMockAPI` as deferred-lookup wrappers that scan `__NAMED__` for the hook. Files without imports now fall through to the global instead of throwing `ReferenceError`. Real imports continue to shadow the global (correct).
+- **Mandatory-imports prompt rule** (HARD RULES #12) — every wave + repair prompt now explicitly requires `import { useAuth }` / `import { useMockAPI }` at the top of any file that uses them. Reduces the problem at the source.
+- **REMOVED `EMANATOR_NEW_PIPELINE` env flag** — deleted from `/app/.env.local`.
+- **DELETED the legacy single-file fast-path** — 308 lines of dead code removed from `message-stream.js` (was lines 141–448). File is now 3838 lines (was 4146). New pipeline is the unconditional path for all Creative Brief submissions.
+- **Landing page credibility marker** — `LoginPage.jsx` now shows `"From blank page to working app in under 2 minutes"` under the "AI Builder Platform" subtitle. Cyan accent, `data-testid="landing-time-metric"`. Screenshot-verified rendering cleanly.
+
+**Tests:** 73/73 pipeline tests pass, lint clean, service healthy, HTTP 200.
+
+## Known Issues
+- BriefProgressCard disappears on chat reload (frontend-only metadata). Deferred to Session 8. Low user-facing impact.
+- Occasional LLM-omitted import statements are now **non-blocking** at runtime thanks to global safety net, but ideal would be 100% import discipline. Session 8 could add a codegen post-processor that inserts missing imports.
+
+## Prioritized Backlog
+
+### P0 — Session 8 (NEXT)
+- Post-processor for missing imports: scan generated files for `useAuth`/`useMockAPI` calls; if a file uses them without importing, auto-insert the import line before save. Eliminates the runtime-fallback dependency.
+- BriefProgressCard persistence: write `briefProgress` into `messages.metadata` JSON column on save, restore on `loadMessages`. ~50 lines.
+- Add editable archetype chip in InlineBrief — if user disagrees with the auto-detected archetype, click to pick a different one from the 17 available.
+
+### P1 — Session 9
+- Optional dry-run / confirm-before-build mode
+- "Remix archetype" button on existing projects
+- Archetype onboarding cards on landing (6 giant tiles instead of/alongside the login form)
+- Remaining recipes: `forgot_password_success`, `generic_list_page`, `item_detail_crud`, `search_page`
+
+### P2 — Future
+- Real Supabase wiring (opt-in via user-provided keys)
+- Deployable export to Vercel
+- Responsive / accessibility passes
+- Versioning/rollback UI
+- Project templates / one-click starters
 
 **Third dogfood (iteration_101.json) key wins verified:**
 - ✅ Symbol-name fix **confirmed working** — all generated code uses lowercase `signup`/`login`/`logout`, no more camelCase drift
