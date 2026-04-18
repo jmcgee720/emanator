@@ -48,25 +48,35 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 ### Session 3 (COMPLETE, 2026-02-18)
 - `/app/lib/ai/brief-reviewer.js` — `reviewBuild()` runs a strict self-critique pass (JSON mode, peeks at scaffold + auth + landing files). `repairBuild()` runs ONE repair wave via `create_files`/`update_files` to fix missing/broken items. Non-blocking on provider failure.
 - `runNewBriefPipeline` now: classify → plan → build waves → **review → auto-repair** → done. Fetches content via `db.projectFiles.findByProjectId` for review context.
-- `/app/components/dashboard/BriefProgressCard.jsx` — live progress UI. Shows archetype badge, route/file count, per-wave status icons (pending/running/complete/error), review pass/gaps indicator, estimated time remaining.
-- `/app/components/dashboard/useDashboardStream.js` — wired `onArchetype`, `onBriefPlan`, `onWaveStart`, `onWaveComplete`, `onWaveError`, `onBuildAborted`, `onReviewResult`, `onRepairStart` callbacks; each updates `message.metadata.briefProgress` so the card re-renders live.
-- `/app/components/dashboard/LeftPanel.jsx` — imports & renders `<BriefProgressCard>` above PlanCard when message has `briefProgress` metadata.
-- Tests: `/app/backend/tests/test_brief_reviewer.test.js` — 8 tests covering review ok-path, missing flows, malformed JSON, empty files, provider failure, repair wave mechanics, tool_args_delta recovery. **62/62 total tests pass**.
-- Event collision fix: renamed new pipeline's `plan` event to `brief_plan` to avoid triggering existing approval UI.
-- ZERO impact on legacy flow. Flag still unset by default.
+- `/app/components/dashboard/BriefProgressCard.jsx` — live progress UI with archetype badge, wave status icons, review pass/gaps indicator, ETA.
+- `useDashboardStream.js` + `LeftPanel.jsx` — wired 8 new SSE callbacks to update `message.metadata.briefProgress`.
+- Event collision fix: renamed new pipeline's `plan` event to `brief_plan`.
+- Tests: `test_brief_reviewer.test.js` — 8 tests.
+
+### Session 4 (COMPLETE, 2026-02-18) — DOGFOOD
+- **Flipped `EMANATOR_NEW_PIPELINE=1`** in /app/.env.local; restarted nextjs_api.
+- Ran `testing_agent_v3_fork` end-to-end on Nexsara brief. Results:
+  - Archetype classified as `saas_tool` (0.9 confidence)
+  - 9 routes, 15 components, 4 waves, 17 files produced
+  - **Signup.jsx generated without being in the user's brief — KEY ASSERTION PASSED**
+  - Self-review found 4 gaps, auto-repair fixed them
+  - Build time: 162 seconds
+- **Bug found & fixed**: LLM double-escaped file content in the repair wave (emitted `\\n` instead of `\n` in tool args, producing literal backslash-n strings after JSON.parse). Added `/app/lib/ai/brief-utils.js` with `normalizeFileContent()` + `normalizeFiles()` helpers that detect (no real newlines + literal `\n` present) and unescape. Applied in both `brief-builder.js` and `brief-reviewer.js`.
+- **Existing Nexsara project repaired in-place** — 4 previously-broken files (Signup, Onboarding, Dashboard, app/page.jsx) re-saved with real newlines.
+- Tests: `/app/backend/tests/test_brief_utils.test.js` — 11 tests. **73/73 total tests pass**, lint clean.
 
 ## Prioritized Backlog
 
-### P0 — Session 4 (NEXT)
-- **Flip the flag and dogfood** — set `EMANATOR_NEW_PIPELINE=1` in env, restart, run 3 briefs: Nexsara (SaaS), a marketplace, a portfolio
-- Run `testing_agent_v3_fork` end-to-end on Nexsara: assert ≥8 files produced, Signup exists even though brief didn't list it, "Start Free Trial" → signup form → dashboard flow works, refresh preserves auth state
-- Tune recipes and prompts based on real output quality
-- Remove `EMANATOR_NEW_PIPELINE` flag, delete legacy single-file prompt (lines 145–176 of message-stream.js)
+### P0 — Session 5 (NEXT)
+- Re-run Nexsara brief end-to-end with the double-escape fix to verify preview renders cleanly on first try (no more manual repair needed)
+- Once confirmed, remove `EMANATOR_NEW_PIPELINE` flag + delete legacy single-file prompt (lines 145–176 of message-stream.js)
+- Add missing recipes: `settings_page`, `profile_page`, `data_table`, `item_detail_crud`, `chat_interface`
+- Tune the wave prompts further based on observed quality gaps (the testing agent noted output could be polished further)
 
-### P1 — Session 5 (polish)
-- Remaining recipes: settings, profile, data_table, item_detail, search, chat_interface, conversations_list
-- Dry-run / confirm mode: pause at `brief_plan` event, require user click to start waves. Needs a new message round-trip — ~200 lines of UI + backend plumbing.
-- "Remix archetype" button: one-click switch archetype while keeping brand/copy
+### P1 — Session 6 (enhancement)
+- Optional dry-run / confirm-before-build mode (requires new message round-trip)
+- "Remix archetype" button: one-click switch archetype while preserving brand/copy
+- Archetype onboarding cards on Emanator landing (6 giant start-with-archetype tiles)
 
 ### P2 — Future (out of scope for architecture upgrade)
 - Real Supabase wiring (opt-in via user-provided keys)
