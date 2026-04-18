@@ -6,8 +6,9 @@
  *
  * Rendered in LeftPanel.jsx when message.metadata.briefProgress is present.
  */
-import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench, Timer, Share2 } from 'lucide-react'
+import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench, Timer, Share2, Shuffle } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { ARCHETYPES } from '@/lib/ai/archetypes'
 
 const WAVE_STATUS_ICON = {
   pending: <span className="w-3.5 h-3.5 rounded-full border border-white/20 bg-white/5" />,
@@ -136,6 +137,79 @@ export default function BriefProgressCard({ progress }) {
           seconds={displayElapsed}
           fileCount={totalFilesBuilt}
         />
+      ) : null}
+
+      {/* Remix archetype (only when complete) */}
+      {status === 'complete' && plan?.brand?.name ? (
+        <RemixArchetype
+          brand={plan.brand.name}
+          currentArchetypeId={plan.archetypeId || archetype?.id}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function RemixArchetype({ brand, currentArchetypeId }) {
+  const [open, setOpen] = useState(false)
+
+  const pickRemix = (archetypeId) => {
+    // Compose a Creative Brief message matching the pipeline's detection string.
+    // This pre-fills the chat composer — user clicks Send to actually remix.
+    const brief = [
+      `Build this project now with COMPLETE, production-ready output.`,
+      ``,
+      `Brand name (MUST use this exact name throughout the UI): ${brand}`,
+      `Archetype override: ${archetypeId}`,
+      ``,
+      `Remix: rebuild this project using the ${ARCHETYPES[archetypeId]?.label || archetypeId} archetype. Keep the brand name and tone; replace the file set with what this archetype needs.`,
+    ].join('\n')
+
+    const composerInput = document.querySelector('[data-testid="chat-input"]')
+    if (composerInput) {
+      composerInput.focus()
+      // Some composers are textarea (value), others contenteditable. Handle both.
+      if ('value' in composerInput) {
+        composerInput.value = brief
+      } else {
+        composerInput.textContent = brief
+      }
+      composerInput.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    setOpen(false)
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/5" data-testid="remix-archetype">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="remix-archetype-button"
+        className="flex items-center gap-1.5 text-[11px] text-white/60 hover:text-white/90 transition-colors"
+      >
+        <Shuffle className="w-3 h-3" />
+        Remix as different archetype
+      </button>
+      {open ? (
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-1.5 p-2 rounded-xl bg-black/40 border border-white/10" data-testid="remix-archetype-picker">
+          {Object.values(ARCHETYPES)
+            .filter((a) => a.id !== currentArchetypeId)
+            .slice(0, 12)
+            .map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => pickRemix(a.id)}
+                data-testid={'remix-pick-' + a.id}
+                className="text-left px-2 py-1.5 rounded-lg text-[10px] text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+              >
+                {a.label}
+              </button>
+            ))}
+        </div>
+      ) : null}
+      {open ? (
+        <p className="mt-2 text-[10px] text-white/40">Picking one will pre-fill the chat with a remix brief — click Send to rebuild.</p>
       ) : null}
     </div>
   )
