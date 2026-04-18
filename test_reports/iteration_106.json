@@ -1,0 +1,117 @@
+{
+  "summary": "Session 15+16 testing complete. ALL FEATURES PASSED: (1) Jest suite 130/130 tests passing (+10 stripe_wiring, +8 art_direction tests), (2) Stripe opt-in recipes verified: RECIPES.stripe_client and RECIPES.stripe_pricing_3tier exist, recipesForWave correctly swaps pricing_3tier for stripe_pricing_3tier when useStripe=true, (3) Stripe + Supabase coexist in scaffold recipes, (4) Vercel bundler with Stripe: includes @stripe/stripe-js dep, .env.local.example with VITE_STRIPE_PUBLISHABLE_KEY, README mentions Stripe, stripeClient.jsx rewritten to use import.meta.env, (5) BackendConfigModal has new Stripe publishable key field with data-testid='backend-stripe-key', validation rejects keys not starting with pk_test_ or pk_live_, (6) Art-direction analyzer unit tests pass: returns null on no images/empty/provider error, calls provider.chat with vision content, caps at 4 images, (7) Art-direction pipeline wiring verified in message-stream.js (Step 1.5), stream-client.js (onArtDirection callback), stream-handler.js (briefProgressAccumulator.artDirection), (8) BriefProgressCard has art-direction summary section with data-testid='art-direction-summary', (9) Responsive self-review: brief-builder.js has HARD RULE #14 RESPONSIVE BASELINE, brief-reviewer.js has RULE 7 for missing-responsive-classes, (10) Dashboard loads, no console errors, existing Supabase modal behavior works.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_stripe_wiring.test.js",
+    "/app/backend/tests/test_art_direction.test.js",
+    "/app/backend/tests/test_vercel_bundler.test.js",
+    "/app/backend/tests/test_supabase_wiring.test.js",
+    "/app/backend/tests/test_stats_my_builds.test.js",
+    "/app/backend/tests/test_archetypes.test.js",
+    "/app/backend/tests/test_brief_planner.test.js",
+    "/app/backend/tests/test_brief_builder.test.js",
+    "/app/backend/tests/test_brief_reviewer.test.js",
+    "/app/backend/tests/test_brief_utils.test.js"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: Jest suite 130/130 tests passing across 10 test files",
+    "PASS: RECIPES.stripe_client exists with file='components/stripeClient.jsx', preview-safe with window.__STRIPE_SDK__",
+    "PASS: RECIPES.stripe_pricing_3tier exists with file='pages/Pricing.jsx', falls back to signup when unconfigured",
+    "PASS: recipesForWave('scaffold', 'saas_tool', {useStripe: true}) includes 'stripe_client'",
+    "PASS: recipesForWave('public', 'saas_tool', {useStripe: true}) swaps 'pricing_3tier' for 'stripe_pricing_3tier'",
+    "PASS: Supabase and Stripe coexist in scaffold recipes (supabase_client + stripe_client)",
+    "PASS: planWaves with useStripe=true includes 'components/stripeClient.jsx' in scaffold wave",
+    "PASS: buildVercelReadyFileMap includes @stripe/stripe-js when settings.stripe.publishableKey is set",
+    "PASS: .env.local.example contains VITE_STRIPE_PUBLISHABLE_KEY with actual key value",
+    "PASS: README.md includes Stripe section with setup instructions",
+    "PASS: stripeClient.jsx rewritten to use loadStripe from @stripe/stripe-js + import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY",
+    "PASS: Both Supabase and Stripe env vars coexist in .env.local.example",
+    "PASS: BackendConfigModal has Stripe publishable key field with data-testid='backend-stripe-key'",
+    "PASS: Stripe validation rejects keys not starting with pk_test_ or pk_live_",
+    "PASS: analyzeArtDirection returns null on no attachments, no images, no data, provider error, tiny response",
+    "PASS: analyzeArtDirection calls provider.chat with vision content when image provided",
+    "PASS: analyzeArtDirection caps at 4 images to respect token budget",
+    "PASS: message-stream.js has Step 1.5 for art direction analysis before planning",
+    "PASS: stream-client.js has 'art_direction' SSE dispatch (line ~97)",
+    "PASS: stream-handler.js persists artDirection in briefProgressAccumulator",
+    "PASS: BriefProgressCard has art-direction summary section with data-testid='art-direction-summary'",
+    "PASS: brief-builder.js has HARD RULE #14 RESPONSIVE BASELINE (line 87)",
+    "PASS: brief-reviewer.js has RULE 7 for responsive baseline with missing-responsive-classes flag (line 70)",
+    "PASS: Dashboard loads with MyBuildsWidget showing build stats",
+    "PASS: No console errors on dashboard"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session 15+16 features complete. Stripe opt-in wiring added: RECIPES.stripe_client and stripe_pricing_3tier, recipesForWave swaps pricing when useStripe=true, Vercel bundler emits Stripe deps and rewrites stripeClient.jsx. BackendConfigModal has new Stripe field with validation. Art-direction analyzer added for GPT-4o Vision reference image analysis - unit tests pass, pipeline wiring in place (Step 1.5 in message-stream.js). BriefProgressCard shows art-direction summary. Responsive self-review rules added to brief-builder.js (HARD RULE #14) and brief-reviewer.js (RULE 7). Jest suite at 130/130 tests.",
+  "jest_test_results": {
+    "total_tests": 130,
+    "passed": 130,
+    "failed": 0,
+    "test_suites": [
+      {"file": "test_stripe_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_art_direction.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_vercel_bundler.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_supabase_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_stats_my_builds.test.js", "tests": 5, "status": "PASS"},
+      {"file": "test_brief_builder.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_archetypes.test.js", "tests": 35, "status": "PASS"},
+      {"file": "test_brief_planner.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_brief_utils.test.js", "tests": 19, "status": "PASS"},
+      {"file": "test_brief_reviewer.test.js", "tests": 8, "status": "PASS"}
+    ]
+  },
+  "frontend_verification": {
+    "backend_config_modal": {
+      "modal_opens": true,
+      "data_testid_present": "backend-config-modal",
+      "stripe_field_present": true,
+      "stripe_field_testid": "backend-stripe-key",
+      "stripe_validation_works": true,
+      "validation_error_message": "Stripe key must start with pk_test_ or pk_live_ (never the secret key!)",
+      "supabase_fields_present": true
+    },
+    "dashboard_smoke": {
+      "loads": true,
+      "my_builds_widget_present": true,
+      "projects_visible": true,
+      "no_console_errors": true
+    }
+  },
+  "code_verification": {
+    "stripe_recipes": {
+      "stripe_client_exists": true,
+      "stripe_pricing_3tier_exists": true,
+      "recipes_for_wave_swaps_pricing": true
+    },
+    "art_direction": {
+      "analyzer_function_exists": true,
+      "message_stream_step_1_5": true,
+      "stream_client_dispatch": true,
+      "stream_handler_accumulator": true,
+      "brief_progress_card_section": true
+    },
+    "responsive_rules": {
+      "brief_builder_hard_rule_14": true,
+      "brief_reviewer_rule_7": true
+    }
+  }
+}

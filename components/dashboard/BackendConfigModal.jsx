@@ -17,19 +17,27 @@ import { X, Database, CheckCircle2, ExternalLink, AlertTriangle } from 'lucide-r
  */
 export default function BackendConfigModal({ project, onClose, onSaved }) {
   const supa = project?.settings?.supabase || {}
+  const stripe = project?.settings?.stripe || {}
   const [url, setUrl] = useState(supa.url || '')
   const [anonKey, setAnonKey] = useState(supa.anonKey || '')
+  const [stripeKey, setStripeKey] = useState(stripe.publishableKey || '')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
   const isEnabled = !!(supa.url && supa.anonKey)
+  const isStripeEnabled = !!stripe.publishableKey
 
   const save = async () => {
     setErr('')
     const trimmedUrl = url.trim()
     const trimmedKey = anonKey.trim()
+    const trimmedStripe = stripeKey.trim()
     if (trimmedUrl && !/^https?:\/\/.+/.test(trimmedUrl)) {
       setErr('Supabase URL must start with https://')
+      return
+    }
+    if (trimmedStripe && !/^pk_(test|live)_/.test(trimmedStripe)) {
+      setErr('Stripe key must start with pk_test_ or pk_live_ (never the secret key!)')
       return
     }
     setSaving(true)
@@ -39,6 +47,11 @@ export default function BackendConfigModal({ project, onClose, onSaved }) {
         nextSettings.supabase = { url: trimmedUrl, anonKey: trimmedKey, configuredAt: new Date().toISOString() }
       } else {
         delete nextSettings.supabase
+      }
+      if (trimmedStripe) {
+        nextSettings.stripe = { publishableKey: trimmedStripe, configuredAt: new Date().toISOString() }
+      } else {
+        delete nextSettings.stripe
       }
       const res = await authFetch(`/api/projects/${project.id}`, {
         method: 'PATCH',
@@ -62,6 +75,7 @@ export default function BackendConfigModal({ project, onClose, onSaved }) {
   const disconnect = async () => {
     setUrl('')
     setAnonKey('')
+    setStripeKey('')
     setTimeout(save, 0)
   }
 
@@ -139,6 +153,30 @@ export default function BackendConfigModal({ project, onClose, onSaved }) {
           >
             Where to find these <ExternalLink className="w-3 h-3" aria-hidden="true" />
           </a>
+
+          <div className="pt-4 mt-2 border-t border-[rgba(255,255,255,0.08)]">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="backend-stripe-key" className="block text-[11px] font-medium em-text-secondary">Stripe publishable key <span className="em-text-muted">(optional)</span></label>
+              {isStripeEnabled ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 text-[10px] font-medium" data-testid="backend-stripe-status-enabled">
+                  <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> Connected
+                </span>
+              ) : null}
+            </div>
+            <input
+              id="backend-stripe-key"
+              type="password"
+              value={stripeKey}
+              onChange={(e) => setStripeKey(e.target.value)}
+              placeholder="pk_test_… or pk_live_…"
+              autoComplete="off"
+              className="w-full px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.10)] em-text-primary text-[12px] font-mono placeholder:text-[var(--em-text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--em-cyan)]/40 focus:border-[rgba(0,229,255,0.30)]"
+              data-testid="backend-stripe-key"
+            />
+            <p className="mt-1 text-[10px] em-text-muted">
+              Only the <strong>publishable</strong> key. Checkout sessions are created server-side — see the exported README for the serverless endpoint template.
+            </p>
+          </div>
 
           {err ? (
             <p role="alert" aria-live="polite" className="flex items-center gap-2 text-[11px] text-red-400" data-testid="backend-config-error">

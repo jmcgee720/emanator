@@ -19,7 +19,7 @@ const WAVE_STATUS_ICON = {
 
 export default function BriefProgressCard({ progress }) {
   if (!progress) return null
-  const { archetype, plan, waves, review, repair, status, startedAt } = progress
+  const { archetype, artDirection, plan, waves, review, repair, status, startedAt } = progress
 
   const waveList = waves || []
   const totalFilesBuilt = waveList.reduce((n, w) => n + (w.filesBuilt?.length || 0), 0)
@@ -88,6 +88,18 @@ export default function BriefProgressCard({ progress }) {
           <span className="text-white/40">•</span>
           <span className="text-white/50">{plannedFileCount || '…'} files</span>
         </div>
+      ) : null}
+
+      {/* Art direction chip (expandable) */}
+      {artDirection?.summary ? (
+        <details className="mb-3 group" data-testid="art-direction-summary">
+          <summary className="cursor-pointer list-none flex items-center gap-2 text-xs text-[var(--em-cyan)] hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--em-cyan)]/40 rounded">
+            <span aria-hidden="true">🖼</span>
+            <span>Art direction from {artDirection.imageCount || 1} reference{artDirection.imageCount === 1 ? '' : 's'}</span>
+            <span className="text-white/40 group-open:rotate-90 transition-transform" aria-hidden="true">›</span>
+          </summary>
+          <pre className="mt-2 p-3 rounded-lg bg-[rgba(0,229,255,0.04)] border border-[rgba(0,229,255,0.15)] text-[11px] text-white/70 whitespace-pre-wrap font-sans leading-relaxed">{artDirection.summary}</pre>
+        </details>
       ) : null}
 
       {/* Wave list */}
