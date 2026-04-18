@@ -127,13 +127,28 @@ export default function BriefProgressCard({ progress }) {
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Review passed — all flows wired</span>
             </div>
+          ) : repair?.filesRepaired?.length > 0 ? (
+            <div className="flex items-start gap-2 text-xs text-emerald-400" data-testid="review-repaired">
+              <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <div>
+                <div>Fixed {repair.filesRepaired.length} issue(s) during review</div>
+                <div className="text-white/40 mt-0.5 text-[10px]">Auto-repair addressed the gaps surfaced by self-review.</div>
+              </div>
+            </div>
           ) : (
             <div className="flex items-start gap-2 text-xs text-amber-300" data-testid="review-gaps">
               <Wrench className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
               <div>
-                <div>Found {review.missing.length + review.broken.length} gap(s)</div>
-                {repair ? (
-                  <div className="text-emerald-400 mt-1">Repaired {repair.filesRepaired?.length || 0} file(s)</div>
+                <div>{review.missing.length + review.broken.length} issue(s) need attention</div>
+                <div className="text-amber-200/70 mt-1 text-[10px]">
+                  Self-review flagged these but auto-repair didn't fully resolve them. Open Preview to check, or send a message describing what's off and I'll fix it.
+                </div>
+                {(review.missing?.length > 0 || review.broken?.length > 0) ? (
+                  <ul className="mt-1.5 text-[10px] text-amber-200/60 list-disc pl-4 space-y-0.5" data-testid="review-gap-list">
+                    {[...(review.missing || []), ...(review.broken || [])].slice(0, 4).map((g, i) => (
+                      <li key={i} className="truncate">{typeof g === 'string' ? g : (g.detail || g.file || JSON.stringify(g).slice(0, 80))}</li>
+                    ))}
+                  </ul>
                 ) : null}
               </div>
             </div>
