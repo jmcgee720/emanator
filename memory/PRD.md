@@ -37,27 +37,31 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - `/app/lib/ai/archetypes.js` — 17 archetypes (SaaS, AI app, marketplace, social, content, portfolio, e-commerce, dashboard, chat, utility, CRM, LMS, booking, community, media, productivity, landing-only), regex-first classifier + LLM fallback, mergeArchetypeWithBrief guaranteeing required routes, canonical ROUTE_FILE_MAP, normalizeRouteName alias resolver
 - `/app/lib/ai/brief-planner.js` — generatePlan() + validatePlan() + planWaves(). Routes list is deterministic (never dropped by LLM). Wave ordering: scaffold → public → auth → app. Empty waves filtered.
 - `/app/lib/ai/recipes.js` — 12 production-ready recipes: auth_context, mock_api, app_router, navbar_glass, footer_4col, signup_form, login_form, forgot_password_form, onboarding_wizard, pricing_3tier, dashboard_empty_state, landing_page. Tailwind-only, React-globals-compatible, data-testids on every interactive.
-- Tests: `/app/backend/tests/test_archetypes.test.js` + `test_brief_planner.test.js` — **48/48 tests pass**.
-- ZERO changes to existing fast-path. Smoke screenshot confirms app renders unchanged.
+- Tests: `/app/backend/tests/test_archetypes.test.js` + `test_brief_planner.test.js` — 48/48 tests pass.
+
+### Session 2 (COMPLETE, 2026-02-18)
+- `/app/lib/ai/brief-builder.js` — `buildWave()` runs a single wave via forced `create_files`, injects wave-specific recipes, enforces the wave's declared file list (over-produced files dropped), has tool_args_delta recovery + non-streaming retry. `runAllWaves()` orchestrates the full plan and aborts if scaffold fails.
+- `/app/lib/ai/message-stream.js` — added `runNewBriefPipeline()` module-level function at EOF. Fast-path gate now checks `EMANATOR_NEW_PIPELINE` env flag; when set, routes brief → classify archetype → generate plan → stream waves → save. When unset, legacy fast-path runs **unchanged** (proven by 401 on protected route, which means message-stream compiles fine).
+- `/app/lib/stream-client.js` — registered new SSE events (`archetype`, `wave_start`, `wave_complete`, `wave_error`, `build_aborted`) with callbacks (`onArchetype`, etc.). Unknown-event swallowing remains safe.
+- Tests: `/app/backend/tests/test_brief_builder.test.js` — 6 tests for wave orchestration, drop-outside-wave, recovery, abort-on-scaffold-fail. **54/54 total tests pass**.
+- ZERO changes to legacy path. Flag unset in env → legacy runs by default.
 
 ## Prioritized Backlog
 
-### P0 — Session 2 (NEXT)
-- `/app/lib/ai/brief-builder.js` — buildWave(plan, waveId, filesBuilt) — executes one wave, injects relevant recipes, streams to preview
-- Refactor `message-stream.js` fast-path (lines 106–427) to: classify archetype → plan → wave loop → save. Behind `EMANATOR_NEW_PIPELINE` flag.
-- SSE event wiring: `archetype`, `plan`, `wave_start`, `wave_complete` events in `useDashboardStream.js`
+### P0 — Session 3 (NEXT)
+- `/app/lib/ai/brief-reviewer.js` — self-review pass: list missing/dead flows from plan
+- Auto-repair: one repair wave via `update_files` to fix gaps found in review
+- Hook reviewer into `runNewBriefPipeline()` after `runAllWaves()` succeeds
+- Frontend UI (lightweight): render `archetype` + `wave_start` / `wave_complete` events in the chat log so user sees progress
+- `testing_agent_v3_fork` end-to-end test on Nexsara brief with `EMANATOR_NEW_PIPELINE=1`: assert Signup exists, pricing CTA routes to signup, refresh preserves auth state
 
-### P1 — Session 3
-- `/app/lib/ai/brief-reviewer.js` — self-review pass that lists missing/dead flows
-- Auto-repair: one repair wave fires when review finds gaps
-- `testing_agent_v3_fork` integration run on Nexsara brief — assert Signup exists even though brief didn't list it
+### P1 — Session 4 (polish)
+- Dogfood with 3 briefs (SaaS, marketplace, portfolio), tune recipes based on output quality
+- Remove `EMANATOR_NEW_PIPELINE` flag, delete legacy single-file prompt (lines 145–176 of message-stream.js)
+- Remaining recipes: settings, profile, data_table, item_detail, search, chat_interface, conversations_list
+- "Remix archetype" button on preview (enhancement)
 
-### P2 — Session 4 (polish)
-- Dogfood with real briefs, tune recipes based on output
-- Remove `EMANATOR_NEW_PIPELINE` flag, delete legacy single-file prompt
-- Remaining recipes: settings, profile, data_table, item_detail, search, chat_interface
-
-### P3 — Future (out of scope for architecture upgrade)
+### P2 — Future (out of scope for architecture upgrade)
 - Real Supabase wiring (opt-in)
 - Deployable export to Vercel
 - Responsive / accessibility passes
