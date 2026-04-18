@@ -30,6 +30,18 @@ export default function DeployTab({ project, addLog }) {
   const [netlifyResult, setNetlifyResult] = useState(null)
   const [deployingNetlify, setDeployingNetlify] = useState(false)
   const [pollingIds, setPollingIds] = useState({}) // { dbId: intervalRef }
+  const [saveVercelToken, setSaveVercelToken] = useState(false)
+
+  // Prefill Vercel token from saved project settings so the user doesn't
+  // need to re-paste it on every deploy.
+  useEffect(() => {
+    const saved = project?.settings?.vercel?.token
+    if (saved && !vercelToken) {
+      setVercelToken(saved)
+      setSaveVercelToken(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id])
 
   useEffect(() => {
     loadDeployments()
@@ -112,7 +124,7 @@ export default function DeployTab({ project, addLog }) {
       const res = await authFetch(`/api/projects/${project.id}/deploy/vercel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: vercelToken, projectName: project.name }),
+        body: JSON.stringify({ token: vercelToken, projectName: project.name, saveToken: saveVercelToken }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -274,8 +286,18 @@ export default function DeployTab({ project, addLog }) {
                     Cancel
                   </button>
                 </div>
+                <label className="flex items-center gap-2 text-[10px] cursor-pointer select-none" style={{ color: 'var(--em-text-muted)' }}>
+                  <input
+                    type="checkbox"
+                    checked={saveVercelToken}
+                    onChange={(e) => setSaveVercelToken(e.target.checked)}
+                    data-testid="deploy-vercel-save-token"
+                    className="accent-[var(--em-cyan)]"
+                  />
+                  <span>Remember token for this project</span>
+                </label>
                 <p className="text-[9px] leading-relaxed" style={{ color: 'var(--em-text-muted)', opacity: 0.6 }}>
-                  Get your token at vercel.com/account/tokens
+                  Get your token at <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">vercel.com/account/tokens</a>
                 </p>
               </div>
             )}
