@@ -8,6 +8,7 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 - Uses Art Direction (logos, style references) via GPT-4o Vision.
 - Does NOT produce generic outputs, does NOT hit context/stream timeouts.
 - **NEW**: Emanator must generate fully functioning, multi-page applications with real UX flows (auth, onboarding, dashboards) out of the box.
+- **NEW (Session 21)**: When the user uploads a logo/hero image, the generated app MUST render that actual image (not a placeholder gradient). The router MUST NOT duplicate the Navbar. Copy MUST be brand-specific, never generic SaaS boilerplate.
 
 ## User Personas
 - SaaS founder — needs prototype-to-demo in under 60 seconds
@@ -17,21 +18,65 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 ## Architecture (current state)
 - Next.js 14 + FastAPI + MongoDB + Supabase (projects/files)
 - `/app/lib/ai/message-stream.js` — Creative Brief fast-path
-- `/app/components/dashboard/tabs/PreviewTab.jsx` — Babel AST-based multi-file preview runtime (SUPPORTS multi-file today — verified)
+- `/app/lib/ai/brief-utils.js` — shared helpers (normalize, inject-imports, **mapImageAssets**, **buildAssetsFileContent**)
+- `/app/lib/ai/brief-builder.js` — wave build; `buildWaveSystemPrompt` now exported for test coverage
+- `/app/components/dashboard/tabs/PreviewTab.jsx` — Babel AST-based multi-file preview runtime (Axe-core audit included)
 - `/app/components/dashboard/useDashboardStream.js` — SSE client + auto-recovery polling
 - GPT-4o via Emergent LLM key (Vision enabled)
 
-## Architecture Upgrade (in progress — see /app/docs/ARCHITECTURE_UPGRADE.md)
-
-### Three unlocks
-1. **Archetype inference** — classifier + manifest of 17 app types with required routes/flows (SHIPPED Session 1)
-2. **Multi-file output** — use existing AST transform; emit one file per page/component
-3. **Plan-then-build chunked** — architect call → waves → self-review/auto-repair
-
-### Rollout
-Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until flag flips.
-
 ## Implemented (this session — 2026-02)
+
+### Session 21 (COMPLETE, 2026-02-18) — Regression guards for broken generations
+
+Real user feedback flagged 3 fatal regressions in the generated app output:
+1. Duplicate navbars stacked in the preview (router AND pages both rendered Navbar).
+2. User-uploaded logos were silently ignored — preview showed placeholder gradient squares instead.
+3. Marketing copy was generic "Welcome to our platform" SaaS boilerplate, not brand-specific.
+
+**Shipped (regression fixes + test coverage):**
+
+1. **`components/assets.js` auto-injection** — when the user attaches images to the brief, `mapImageAssets()` tags each upload with a role (logo/hero/reference) using filename heuristics, and `buildAssetsFileContent()` emits a valid JS module with escaped base64 data URLs. `message-stream.js` writes this file BEFORE the builder runs — bypassing the LLM entirely so base64 strings never get truncated. The builder prompt tells the LLM to `import { LOGO_URL, HERO_URL, REFERENCE_0 } from '../components/assets'` and render them instead of recipe gradient placeholders.
+
+2. **HARD RULE #15 in `brief-builder.js`** — "ROUTER CLEANLINESS": `app/page.jsx` MUST NOT render `<Navbar />` or `<Footer />` directly. Each page renders its own Navbar + Footer. Rule explicitly names "DUPLICATE navbars" so the LLM connects the rule to the bug class.
+
+3. **HARD RULE #16** — "USE PROVIDED IMAGE ASSETS": if `components/assets.js` exists, the Navbar MUST render `<img src={LOGO_URL} />` and hero MUST render `<img src={HERO_URL} />`, never a placeholder.
+
+4. **HARD RULE #17** — "BRAND COPY DISCIPLINE": the H1, subhead, feature cards, and CTAs must reference the brand's description/audience/tone. Bans "Get Started", "Welcome to our platform", "Lorem ipsum", generic "Fast · Secure · Scalable" bullets.
+
+5. **Reviewer rules 8, 9, 10 in `brief-reviewer.js`** — catches router-level Navbar rendering (`app/page.jsx: router-renders-navbar-causing-duplicates`), ignored logo/hero uploads (`ignored-user-logo` / `ignored-user-hero-image`), and generic marketing copy (`generic-marketing-copy`). Each flagged issue triggers the existing auto-repair wave.
+
+6. **`BriefProgressCard.jsx`** — when review flags gaps AND auto-repair didn't fully resolve them, now surfaces a list of the first 4 issues as actionable amber hints instead of silently showing green success.
+
+7. **Refactor**: extracted `mapImageAssets` + `buildAssetsFileContent` from the 3959-line `message-stream.js` into `brief-utils.js` so they're testable. Exported `buildWaveSystemPrompt` from `brief-builder.js` for prompt-rule regression tests.
+
+**Tests:** +27 targeted unit/prompt tests (`mapImageAssets` 9, `buildAssetsFileContent` 7, `buildWaveSystemPrompt` 7, `reviewBuild` prompt 4). Full suite **201/201 across 15 files**. Lint clean. Testing agent `iteration_112.json` confirmed zero issues, all regression guards in place.
+
+**Deferred (Session 22+):**
+- Real E2E build with actual image upload requires a live browser session + LLM credits — confirmed via prompt-rule coverage that the instructions reach the LLM; the LLM's adherence rate is naturally probabilistic and already backed by the reviewer + auto-repair loop.
+- Branded custom domains (Vercel DNS TXT verification flow).
+- Stripe Checkout server-function auto-gen.
+
+## Prioritized Backlog
+
+### P0 — Session 22
+- **Live dogfood** with an actual image upload + custom brief to verify the 3-rule combo solves the regression end-to-end in production.
+- **Branded custom domains** via Vercel Domains API — `POST /v10/projects/{id}/domains`, DNS TXT verification polling, verified badge when live.
+- **Auto-generated server-side Stripe Checkout function** in Vercel export (`api/stripe/checkout.js` template that reads user's secret key from env).
+
+### P1 — Session 23
+- **Share link analytics** — timeline of views + remixes per share token.
+- **Remix count badge** on the originating project so creators see their impact.
+- **Search/filter on gallery** — by archetype, by time, by popularity.
+
+### P2 — Growth (Session 24+)
+- Team collaboration (multi-user per project)
+- Analytics dashboard (build/deploy/archetype trends, funnel)
+- Referral / invite loops
+- Project templates / one-click starters
+- Per-archetype recipe tuning admin
+- Multi-image art-direction weighting
+
+## Implemented (earlier sessions — 2026-02)
 
 ### Session 20 (COMPLETE, 2026-02-18) — Public project gallery + publish toggle
 
