@@ -18,6 +18,7 @@ import * as snapshotsRoutes from '@/lib/api/routes/snapshots'
 import * as generationsRoutes from '@/lib/api/routes/generations'
 import * as memoryRoutes from '@/lib/api/routes/memory'
 import * as builderStatusRoutes from '@/lib/api/routes/builder-status'
+import * as statsRoutes from '@/lib/api/routes/stats'
 import * as promptLibraryRoutes from '@/lib/api/routes/prompt-library'
 import * as learningRoutes from '@/lib/api/routes/learning'
 import * as auroraRoutes from '@/lib/api/routes/aurora'
@@ -57,6 +58,7 @@ const phase1Modules = [
   generationsRoutes,
   memoryRoutes,
   builderStatusRoutes,
+  statsRoutes,
   promptLibraryRoutes,
   learningRoutes,
   auroraRoutes,
