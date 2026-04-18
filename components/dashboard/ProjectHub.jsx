@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History, Globe } from 'lucide-react'
 import BackendConfigModal from './BackendConfigModal'
 import VersionsPanel from './VersionsPanel'
+import PublishModal from './PublishModal'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -93,6 +94,7 @@ export default function ProjectHub({
   const [expanded, setExpanded] = useState(false)
   const [showBackendModal, setShowBackendModal] = useState(false)
   const [showVersions, setShowVersions] = useState(false)
+  const [showPublish, setShowPublish] = useState(false)
   const [localProject, setLocalProject] = useState(project)
 
   const submitRename = async (chatId) => {
@@ -156,6 +158,19 @@ export default function ProjectHub({
         <div className="ml-auto flex items-center gap-2">
           {!project?.settings?.is_core ? (
             <>
+              <button
+                onClick={() => setShowPublish(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                  (localProject || project)?.settings?.is_public
+                    ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
+                    : 'border-[rgba(255,255,255,0.12)] em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)]'
+                }`}
+                data-testid="hub-publish-btn"
+                aria-label="Publish to gallery"
+              >
+                <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+                {(localProject || project)?.settings?.is_public ? 'Public ✓' : 'Publish'}
+              </button>
               <button
                 onClick={() => setShowVersions(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 border-[rgba(255,255,255,0.12)] em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)]"
@@ -616,6 +631,16 @@ export default function ProjectHub({
             // reflect the restored state.
             setShowVersions(false)
             if (typeof window !== 'undefined') window.location.reload()
+          }}
+        />
+      ) : null}
+
+      {showPublish ? (
+        <PublishModal
+          project={localProject || project}
+          onClose={() => setShowPublish(false)}
+          onChanged={(updated) => {
+            if (updated) setLocalProject(updated)
           }}
         />
       ) : null}
