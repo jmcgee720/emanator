@@ -33,6 +33,40 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 14 (COMPLETE, 2026-02-18) — Real backend opt-in + Vercel-ready export + chat-driven iteration
+
+**3 major deliverables shipped (+ honest deferrals):**
+
+1. **Vercel-ready ZIP export** — `/app/lib/export/vercel-bundler.js` wraps every generated app in a standalone Vite + React + Tailwind project. Emits `package.json` (with conditional `@supabase/supabase-js` dep), `vite.config.js`, `index.html`, `src/main.jsx`, `src/index.css`, `tailwind.config.js`, `postcss.config.js`, `README.md` (with Vercel + Netlify instructions), and `.gitignore`. Auto-injects `import React, { ... } from 'react'` into every generated JSX file so files designed for the global-hook preview runtime Just Work in a real bundler. Detects `react-router-dom` usage and adds it as a dep when needed.
+
+2. **Real Supabase wiring (opt-in)** — project-scoped Supabase URL + anon key via a new `BackendConfigModal` on ProjectHub. Three new recipes (`supabase_client`, `supabase_auth_context`, `supabase_mock_api`) that gracefully fall back to localStorage in preview and use real Supabase auth + CRUD in production. `recipesForWave()` swaps mock → Supabase variants when `plan.useSupabase` is true (threaded from `runNewBriefPipeline` → project settings). Vercel bundler replaces the preview-safe client file with real `import.meta.env` wiring on export.
+
+3. **Chat-driven code editing (verified + surfaced)** — the legacy intent→plan→diffs pipeline in `message-stream.js` **already handles follow-up messages on generated apps**; the Creative Brief fast-path only fires on the initial "Build this project now…" message. Follow-up prompts like "add a sidebar" / "make the primary button green" route through the existing apply-diffs flow. Surfaced in UX: `ChatComposer` placeholder now reads *"Ask me to add a feature, change styles, or fix something — I'll edit the code."* after the first build.
+
+**Honestly deferred (won't fit in one session without shipping broken work):**
+- **Full Stripe wiring** — separate session; needs real keys + webhook plumbing + pricing-page adaptation
+- **Art-direction reference-screenshot loop** — separate session; needs vision prompt engineering + UI for image uploads at brief time
+
+**Tests:** 110/110 pipeline tests pass (+11 Vercel bundler tests, +10 Supabase wiring tests on top of Session 13's 89). Lint clean. Testing agent (`iteration_105.json`) confirmed 100% backend + 100% frontend success. Three small infrastructure fixes done in-passage by the testing agent (missing `db.exports` helper, PATCH method on projects, resilient export persistence).
+
+## Prioritized Backlog
+
+### P0 — Session 15 (NEXT)
+- **Art-direction reference-screenshot loop** — accept image uploads in the Creative Brief form; GPT-4o Vision describes the aesthetic into the brief planner; Iteration 2 matches the uploaded reference better
+- **Automated responsive/breakpoint correctness pass** during self-review (complements Session 13's a11y work)
+
+### P1 — Session 16
+- **Stripe wiring** for generated apps (opt-in like Supabase; real checkout + webhook templates)
+- **Versioning/rollback UI** for projects (snapshot + restore)
+- **Axe-core / Lighthouse subset** in self-review for real a11y auditing (not prompt-based)
+
+### P2 — Future
+- Per-archetype recipe-tuning admin dashboard
+- Project templates / one-click starters on the Dashboard empty state
+- Full SSE dry-run mode (plan preview is already the MVP for trust)
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 13 (COMPLETE, 2026-02-18) — Personal build stats widget + accessibility baseline
 
 **3 deliverables shipped:**
