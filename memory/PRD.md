@@ -74,6 +74,60 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - Added 4 recipes: `generic_list_page`, `item_detail_crud`, `forgot_password_success`, `search_page` wired into archetype-specific wave selection.
 
 ### Session 10 (COMPLETE, 2026-02-18) — Telemetry + Real P50 + Archetype Quick-Start
+- Build telemetry via existing `generation_runs` (tool_mode encoded as `new_pipeline:${archetype.id}`), no schema changes.
+- `/api/stats/build-times` endpoint with P50/P95/counts.
+- Landing page now shows real P50 median when ≥5 builds exist.
+- ArchetypeQuickStart tiles in InlineBrief (6 one-click starter archetypes).
+
+### Session 11 (COMPLETE, 2026-02-18) — Telemetry-Informed UX
+
+**UX-coherent delivery (respecting user's "build to the flow" directive):**
+
+1. **Per-archetype stats in the API** — `/api/stats/build-times` endpoint now returns `archetype_stats` with `total`, `success_rate`, `avg_seconds` per archetype. Computed from last 500 runs in the 30-day window.
+
+2. **Confidence badges in the archetype picker** — Picker items now show either:
+   - `N · XX%` pill (emerald if ≥80% success, amber 50-79%, grey <50%) when the archetype has ≥3 historical builds
+   - `New` badge for archetypes with no track record yet
+   - Tooltip on hover: "N builds · XX% success · avg Ys"
+   Users picking between "saas_tool" vs "ai_app" now see which is *proven* at a glance.
+
+3. **Telemetry-informed plan preview** — New bottom row on the ArchetypeHint card:
+   - `Plan preview: ~17 files · ~122s to build · 94% success across 12 builds`
+   - Uses archetype's own avg when available; falls back to global P50
+   - Zap icon, `data-testid="archetype-plan-preview"`
+   - This is effectively a client-side dry-run — users see what they're committing to BEFORE clicking Build, without the complexity of backend stream pause/resume.
+
+**The UX flow this session enables:**
+```
+User types brief → ArchetypeHint appears ("Looks like a SaaS tool / B2B software")
+  → User sees "~17 files · ~122s · 94% success" below
+  → Confidence: decide-go or remix archetype via picker
+  → Pick different archetype → see its confidence badge + updated plan preview
+  → Click Build with informed expectations
+```
+
+**Tests:** 84/84 pipeline tests pass. Lint clean. Stats endpoint verified returning `archetype_stats` (6 historical `unknown` builds; new builds will populate per-archetype).
+
+**Deliberately deferred:**
+- "Remix archetype" button on existing projects (rebuild-in-place needs file versioning plumbing; different feature) — Session 12
+- Full SSE pause/resume dry-run (complex backend; plan preview delivers the trust value without this) — Session 12 if still wanted
+
+## Prioritized Backlog
+
+### P0 — Session 12 (NEXT)
+- "Remix archetype" button on existing projects with file-archive + fresh-build
+- Real Supabase wiring opt-in for generated apps (replaces MockAPI with per-project real backend)
+- Deployable Vercel export
+
+### P1 — Session 13
+- Responsive / accessibility passes on generated output
+- Versioning/rollback UI for projects
+- Project templates / one-click starters
+
+### P2 — Future
+- Full SSE dry-run mode if plan-preview trust proves insufficient
+- Per-archetype recipe-tuning admin dashboard (uses the same telemetry)
+- Stripe wiring for user-paid builds
 
 **Build telemetry — zero schema changes:**
 - `runNewBriefPipeline` now logs `tool_mode: 'new_pipeline:${archetype.id}'` into the existing `generation_runs` table. Archetype is encoded in the tool_mode string; no migration needed.

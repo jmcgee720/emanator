@@ -1,18 +1,29 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Sparkles, ChevronDown } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { Sparkles, ChevronDown, Zap } from 'lucide-react'
 import { classifyArchetypeFast, ARCHETYPES } from '@/lib/ai/archetypes'
 
 /**
- * Live archetype hint shown under the brief's elevator-pitch field.
- * - Fires only when the user has typed enough to classify confidently
- * - Shows which archetype was detected and which flows Emanator will auto-build
- * - User can click the chip to override with a different archetype from the picker
+ * Live archetype hint with editable picker + telemetry-informed plan preview.
+ * - Archetype auto-detected as user types
+ * - User can click the chip to override with any of the 17 archetypes
+ * - Plan preview shows estimated file count + avg build time for confidence before commit
  */
 export default function ArchetypeHint({ brief, onOverride }) {
   const [override, setOverride] = useState(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [stats, setStats] = useState(null)
+
+  // Fetch telemetry once so we can enrich the picker + plan preview
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/stats/build-times')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (!cancelled && data) setStats(data) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const briefText = useMemo(() => {
     const parts = [
@@ -38,6 +49,11 @@ export default function ArchetypeHint({ brief, onOverride }) {
   const autoRoutes = (archetype.requiredRoutes || [])
     .filter((r) => !['landing', 'home', 'features', 'pricing', 'about', 'contact'].includes(r))
     .slice(0, 4)
+
+  // Plan preview estimates — informed by telemetry when available
+  const archStats = stats?.archetype_stats?.[archetype.id]
+  const estimatedFiles = (archetype.requiredRoutes?.length || 0) + 5 // shared components
+  const estimatedSeconds = archStats?.avg_seconds || stats?.p50_seconds || 100
 
   const handlePick = (id) => {
     setOverride(id)
@@ -76,20 +92,34 @@ export default function ArchetypeHint({ brief, onOverride }) {
         ) : null}
         {pickerOpen ? (
           <div
-            className="absolute top-6 left-4 z-30 w-64 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-2xl p-1"
+            className="absolute top-6 left-4 z-30 w-72 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-2xl p-1"
             data-testid="archetype-hint-picker"
           >
-            {Object.values(ARCHETYPES).map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => handlePick(a.id)}
-                className={'w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ' + (a.id === archetype.id ? 'bg-violet-500/20 text-violet-100' : 'text-white/70 hover:bg-white/5')}
-                data-testid={'archetype-picker-' + a.id}
-              >
-                {a.label}
-              </button>
-            ))}
+            {Object.values(ARCHETYPES).map((a) => {
+              const s = stats?.archetype_stats?.[a.id]
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => handlePick(a.id)}
+                  className={'w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex items-start justify-between gap-2 ' + (a.id === archetype.id ? 'bg-violet-500/20 text-violet-100' : 'text-white/70 hover:bg-white/5')}
+                  data-testid={'archetype-picker-' + a.id}
+                >
+                  <span className="flex-1">{a.label}</span>
+                  {s && s.total >= 3 ? (
+                    <span
+                      className={'text-[10px] font-medium px-1.5 py-0.5 rounded-md flex-shrink-0 ' + (s.success_rate >= 80 ? 'bg-emerald-500/15 text-emerald-300' : s.success_rate >= 50 ? 'bg-amber-500/15 text-amber-300' : 'bg-white/5 text-white/40')}
+                      data-testid={'archetype-picker-badge-' + a.id}
+                      title={`${s.total} builds · ${s.success_rate}% success · avg ${s.avg_seconds || '—'}s`}
+                    >
+                      {s.total} · {s.success_rate}%
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-white/30 flex-shrink-0" data-testid={'archetype-picker-new-' + a.id}>New</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         ) : null}
       </div>
@@ -112,6 +142,25 @@ export default function ArchetypeHint({ brief, onOverride }) {
           ))}
         </ul>
       ) : null}
+
+      {/* Telemetry-informed plan preview */}
+      <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-3 text-[11px]" data-testid="archetype-plan-preview">
+        <div className="flex items-center gap-1.5 text-white/60">
+          <Zap className="w-3 h-3 text-violet-300" />
+          <span>Plan preview:</span>
+        </div>
+        <span className="text-white/80" data-testid="plan-preview-files">~{estimatedFiles} files</span>
+        <span className="text-white/30">·</span>
+        <span className="text-white/80" data-testid="plan-preview-time">~{estimatedSeconds}s to build</span>
+        {archStats && archStats.total >= 3 ? (
+          <span className="text-white/30">·</span>
+        ) : null}
+        {archStats && archStats.total >= 3 ? (
+          <span className={archStats.success_rate >= 80 ? 'text-emerald-400' : archStats.success_rate >= 50 ? 'text-amber-400' : 'text-white/50'} data-testid="plan-preview-success">
+            {archStats.success_rate}% success across {archStats.total} builds
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }
