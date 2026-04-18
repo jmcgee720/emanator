@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Trash2, LayoutGrid, CreditCard, X, Archive, ArchiveRestore } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
 import InlineBrief from './InlineBrief'
+import MyBuildsWidget from './MyBuildsWidget'
 import NewProjectModal from './NewProjectModal'
 
 const THUMBNAIL_COLORS = [
@@ -154,6 +155,7 @@ export default function ProjectGrid({
 
       <div className="px-8 pb-12">
         <div className="max-w-5xl mx-auto">
+          <MyBuildsWidget />
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm" data-testid="projects-nav-tabs">
               <button
