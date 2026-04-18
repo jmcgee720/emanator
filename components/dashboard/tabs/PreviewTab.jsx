@@ -1073,14 +1073,21 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         if (e.data.error) {
           setA11y({ status: 'error', error: e.data.error })
         } else {
-          setA11y({
+          const result = {
             status: 'done',
             violations: e.data.violations || [],
             incomplete: e.data.incomplete || [],
             passes: e.data.passes || 0,
             auditedAt: e.data.auditedAt,
-          })
+          }
+          setA11y(result)
           setShowA11y(true)
+          // Expose the latest audit so QuickActionChips can offer a "Fix all
+          // violations" chip that pre-fills the chat with the concrete issues.
+          if (typeof window !== 'undefined') {
+            window.__EMANATOR_LATEST_A11Y__ = result
+            window.dispatchEvent(new CustomEvent('emanator:a11y-result', { detail: result }))
+          }
         }
       }
     }

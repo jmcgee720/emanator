@@ -1,14 +1,18 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Globe, Eye, Clock, Code2, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Globe, Eye, Clock, Code2, Loader2, GitFork } from 'lucide-react'
 
 export default function SharedPreviewPage({ params }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showCode, setShowCode] = useState(false)
+  const [remixing, setRemixing] = useState(false)
+  const [remixError, setRemixError] = useState('')
   const iframeRef = useRef(null)
+  const router = useRouter()
   const resolvedParams = params instanceof Promise ? null : params
 
   useEffect(() => {
@@ -32,6 +36,32 @@ export default function SharedPreviewPage({ params }) {
     }
     load()
   }, [])
+
+  async function handleRemix() {
+    const resolved = resolvedParams || await params
+    const token = resolved.token
+    setRemixing(true)
+    setRemixError('')
+    try {
+      // authFetch is not available on the public share page; use raw fetch.
+      // If unauthenticated, redirect to login with a return-URL back here so
+      // the user can immediately retry the remix.
+      const res = await fetch(`/api/shared/${token}/remix`, { method: 'POST', credentials: 'include' })
+      if (res.status === 401) {
+        const returnUrl = encodeURIComponent(`/share/${token}?remix=1`)
+        router.push(`/auth/login?next=${returnUrl}`)
+        return
+      }
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Remix failed')
+      // Navigate the user straight into their new project
+      router.push(`/?project=${result.project.id}`)
+    } catch (e) {
+      setRemixError(e.message || 'Remix failed')
+    } finally {
+      setRemixing(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -132,6 +162,31 @@ export default function SharedPreviewPage({ params }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleRemix}
+            disabled={remixing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0,229,255,0.18), rgba(138,43,226,0.18))',
+              border: '1px solid rgba(0,229,255,0.30)',
+              color: '#5eead4',
+            }}
+            data-testid="share-remix-btn"
+            aria-label="Remix this app into a new project"
+          >
+            {remixing ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" /> Remixing…
+              </>
+            ) : (
+              <>
+                <GitFork className="w-3 h-3" /> Remix this app
+              </>
+            )}
+          </button>
+          {remixError ? (
+            <span role="alert" className="text-[10px] text-red-400" data-testid="share-remix-error">{remixError}</span>
+          ) : null}
           <button
             onClick={() => setShowCode(!showCode)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200"
