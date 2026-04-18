@@ -463,6 +463,18 @@ export function useDashboardStream(ctx) {
             },
           } : m))
         },
+        onArtDirection: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                artDirection: data,
+              },
+            },
+          } : m))
+        },
         onBriefPlan: (data) => {
           setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
             ...m,
