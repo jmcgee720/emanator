@@ -570,13 +570,19 @@ export function useDashboardStream(ctx) {
           setMessages(prev => prev.map(m => {
             if (m.id !== streamingAssistantId) return m
             const existingImage = m.metadata?.generatedImage
+            const existingBriefProgress = m.metadata?.briefProgress
             return {
               ...m,
               id: data.id,
               content: data.contentOverride || m.content,
               streaming: false,
               clientMessageKey: m.clientMessageKey,  // Preserve stable identity across id swap
-              metadata: { ...updatedMeta, generatedImage: existingImage || null }
+              metadata: {
+                ...updatedMeta,
+                generatedImage: existingImage || null,
+                // Preserve new-pipeline progress card — marks build as complete in-place
+                ...(existingBriefProgress ? { briefProgress: { ...existingBriefProgress, status: 'complete', completedAt: existingBriefProgress.completedAt || Date.now() } } : {}),
+              }
             }
           }))
           setStreamingMessageId(null)
