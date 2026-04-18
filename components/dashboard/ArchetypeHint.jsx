@@ -36,14 +36,18 @@ export default function ArchetypeHint({ brief, onOverride }) {
     return parts.filter(Boolean).join(' ').trim()
   }, [brief.elevator_pitch, brief.primary_goal, brief.must_have_features, brief.custom_pages, brief.pages])
 
-  const { archetype: detected, confidence } = useMemo(() => {
-    if (briefText.length < 40) return { archetype: null, confidence: 0 }
+  const { archetype: detected, confidence, ambiguous, runnersUp } = useMemo(() => {
+    if (briefText.length < 40) return { archetype: null, confidence: 0, ambiguous: false, runnersUp: [] }
     return classifyArchetypeFast(briefText)
   }, [briefText])
 
   const archetype = override ? ARCHETYPES[override] : detected
 
   if (!archetype || (!override && confidence < 0.55)) return null
+
+  // Show the "Recommended" surface when classifier is ambiguous AND user hasn't picked an override yet.
+  // Turns "Emanator guessed" into "Emanator showed me the options."
+  const showRecommended = !override && ambiguous && (runnersUp?.length || 0) >= 2
 
   const sampleFlows = (archetype.requiredFlows || []).slice(0, 3).map((f) => f.desc)
   const autoRoutes = (archetype.requiredRoutes || [])
@@ -66,6 +70,46 @@ export default function ArchetypeHint({ brief, onOverride }) {
       className="mt-3 rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.07] to-indigo-500/[0.05] p-3 transition-opacity"
       data-testid="archetype-hint"
     >
+      {showRecommended ? (
+        <div className="mb-3" data-testid="archetype-recommended">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-violet-300" />
+            <span className="text-xs font-medium text-white/90">Multiple archetypes could fit — pick one:</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {runnersUp.slice(0, 3).map((a) => {
+              const s = stats?.archetype_stats?.[a.id]
+              const isTop = a.id === detected?.id
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => { setOverride(a.id); onOverride?.(a.id) }}
+                  data-testid={'archetype-recommended-' + a.id}
+                  className={'text-left p-3 rounded-xl border transition-all ' + (isTop ? 'border-violet-400/40 bg-violet-500/10 hover:border-violet-400/60' : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10')}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="text-xs font-medium text-white flex-1">{a.label}</span>
+                    {isTop ? <span className="text-[9px] text-violet-300 uppercase tracking-wide flex-shrink-0">Top</span> : null}
+                  </div>
+                  {s && s.total >= 3 ? (
+                    <div className={'text-[10px] ' + (s.success_rate >= 80 ? 'text-emerald-400' : s.success_rate >= 50 ? 'text-amber-400' : 'text-white/40')}>
+                      {s.total} builds · {s.success_rate}%
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-white/30">New archetype</div>
+                  )}
+                  {a.requiredFlows?.[0] ? (
+                    <div className="mt-1.5 text-[10px] text-white/50 line-clamp-2">{a.requiredFlows[0].desc}</div>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-2 text-[10px] text-white/40">Top match will be used if you don't pick — or just keep typing to refine.</p>
+        </div>
+      ) : null}
+
       <div className="flex items-center gap-2 mb-2 relative">
         <Sparkles className="w-3.5 h-3.5 text-violet-300 flex-shrink-0" />
         <span className="text-xs font-medium text-white/90 flex-1">

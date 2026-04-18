@@ -80,6 +80,54 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - ArchetypeQuickStart tiles in InlineBrief (6 one-click starter archetypes).
 
 ### Session 11 (COMPLETE, 2026-02-18) — Telemetry-Informed UX
+- `/api/stats/build-times` returns per-archetype `total`, `success_rate`, `avg_seconds`.
+- Confidence badges in archetype picker (Emerald ≥80%, Amber 50-79%, Grey <50%, "New" for untested).
+- Telemetry-informed plan preview on ArchetypeHint: "~17 files · ~122s to build · 94% success".
+
+### Session 12 (COMPLETE, 2026-02-18) — Recommended Archetypes + Remix
+
+**2 UX-coherent features landed:**
+
+1. **Recommended Archetypes surface** — when classifier confidence is 0.55–0.70 (ambiguous), ArchetypeHint now shows 2–3 archetype cards side-by-side instead of silently picking one. Each card:
+   - Archetype label
+   - Confidence badge (Emerald/Amber/Grey by success rate, or "New")
+   - First required flow as preview text
+   - "Top" indicator on the auto-detected winner
+   - Click → commits that archetype as override
+   - Tagline: "Top match will be used if you don't pick — or just keep typing to refine."
+
+   Turns "Emanator guessed" into "Emanator showed me the options." `classifyArchetypeFast` now returns `runnersUp: Archetype[]` (top 3) alongside the primary pick.
+
+2. **Remix archetype** — post-build, BriefProgressCard now shows a "Remix as different archetype" button with a dropdown picker of the other 16 archetypes (current one excluded). Clicking one:
+   - Composes a proper Creative Brief message with `Archetype override: <id>`
+   - Pre-fills the chat composer via the existing `[data-testid="chat-input"]` dispatch pattern
+   - User clicks Send to trigger the rebuild
+   - Tagline: "Picking one will pre-fill the chat with a remix brief — click Send to rebuild."
+
+   No new backend routes needed — reuses the existing archetype-override flow. Surgical UX addition, ~120 lines total across BriefProgressCard.
+
+**Tests:** 84/84 pipeline tests pass (33 archetype tests including new runnersUp assertions). Lint clean. HTTP 200.
+
+**Deliberately deferred:**
+- Real Supabase wiring opt-in → Session 13 (needs a full feature flow for key collection + MockAPI→Supabase template swap)
+- Deployable Vercel export → Session 14 (needs export format + deploy hook integration)
+
+## Prioritized Backlog
+
+### P0 — Session 13 (NEXT)
+- Real Supabase wiring opt-in for generated apps: user provides Supabase URL + anon key in project settings → recipes swap MockAPI calls for real Supabase client at generation time
+- Responsive / accessibility passes on generated output (mobile breakpoints, ARIA, focus states)
+
+### P1 — Session 14
+- Deployable Vercel export with one-click deploy-to-Vercel button
+- Versioning/rollback UI for projects
+- Project templates / one-click starters on the Dashboard empty state
+
+### P2 — Future
+- Stripe wiring for user-paid builds
+- Full SSE dry-run mode if plan preview isn't enough
+- Per-archetype recipe-tuning admin dashboard
+- Multi-step onboarding wizard for first-time Emanator users
 
 **UX-coherent delivery (respecting user's "build to the flow" directive):**
 
