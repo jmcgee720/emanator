@@ -64,6 +64,62 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - "From blank page to working app in under 2 minutes" credibility marker on `LoginPage.jsx`
 
 ### Session 8 (COMPLETE, 2026-02-18) — Codegen Robustness + Persistence + Share
+- `autoInjectMissingImports()` in `brief-utils.js` — scans every generated file for bare `useAuth()`/`useMockAPI()` calls and auto-inserts correct relative-path import. Runs in `normalizeFiles()` pipeline.
+- Backend persistence for BriefProgressCard — `stream-handler.js` accumulates archetype/plan/wave/review events into `messages.metadata.briefProgress` on save. Survives chat reload.
+- Editable archetype chip — `ArchetypeHint` picker dropdown with all 17 archetypes. Override flows via `Archetype override: <id>` in brief text, bypasses LLM classification.
+- Share-build-time feature — clipboard copy + twitter.com/intent/tweet link on BriefProgressCard.
+
+### Session 9 (COMPLETE, 2026-02-18) — 🎉 Full Validation, 4 New Recipes
+
+**Validation dogfood (iteration_103.json): ALL 5 FEATURES PASSED, 100% success rate.**
+
+- ✅ **Feature 1 — Archetype hint with editable picker** (SaaS tool / B2B software detected, picker has 17 archetypes, reset-to-auto works)
+- ✅ **Feature 2 — autoInjectMissingImports post-processor** (Signup.jsx first non-blank line is `import { useAuth } from '../components/AuthContext'` — LLM omitted the import, post-processor auto-inserted it)
+- ✅ **Feature 3 — Preview renders cleanly** (no useAuth/useMockAPI runtime errors)
+- ✅ **Feature 4 — BriefProgressCard persistence** (card survives tab switches, shows "72s to working app")
+- ✅ **Feature 5 — Share build time** (copy-to-clipboard works, tweet intent URL valid)
+
+**Build stats from the dogfood:**
+- Project: NexsaraV9 (SaaS archetype)
+- 17 files across 4 waves
+- Build time: **72 seconds** — beats the "under 2 minutes" promise on the landing page
+- Auto-generated Signup/Login/Dashboard/Onboarding without user asking for them
+
+**4 new recipes added this session:**
+- `generic_list_page` — list view with Navbar + DataTable + create CTA (used by CRM/marketplace/e-commerce/productivity)
+- `item_detail_crud` — edit/save/delete detail view (same archetypes)
+- `forgot_password_success` — standalone success page after forgot-password submit
+- `search_page` — live-filter search across any MockAPI collection (content_site/e-commerce/lms/marketplace/media)
+
+**Recipe wiring updated in `recipesForWave()`:**
+- Dashboard-heavy archetypes → get `data_table` + `generic_list_page` + `item_detail_crud`
+- Content/commerce archetypes → get `search_page`
+- Any archetype with `forgot_password_form` → automatically gets `forgot_password_success` too
+
+**Tests:** 84/84 pipeline tests pass, lint clean, HTTP 200.
+
+**Minor issues deferred:**
+- CORS warning for `react-router-dom` from unpkg in preview iframe (non-blocking, noted in test report)
+- Signup form could use more visual polish (recipe enhancement candidate)
+
+## Prioritized Backlog
+
+### P0 — Session 10 (NEXT)
+- Archetype onboarding cards on Emanator landing page (6 big tiles replacing/alongside the current login form — turns the landing into "what will you build today?")
+- "Remix archetype" button on existing projects: one-click swap archetype while preserving brand/copy
+- Optional dry-run / confirm-before-build mode (~200 lines UI + stream plumbing)
+- P50/P95 "time to working app" metric on Emanator's own dashboard (observability)
+
+### P1 — Session 11
+- Real Supabase wiring (opt-in via user-provided keys)
+- Deployable export to Vercel
+- "Build recipe" link next to each archetype in the picker showing file/flow breakdown
+
+### P2 — Future
+- Responsive / accessibility passes on generated output
+- Versioning/rollback UI for projects
+- Project templates / one-click starters
+- Real backend polish for generated apps (beyond MockAPI)
 
 **4 deliverables shipped:**
 
