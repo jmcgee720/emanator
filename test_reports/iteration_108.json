@@ -1,0 +1,119 @@
+{
+  "summary": "Session 17 Part 2 testing complete. ALL FEATURES VERIFIED: (1) Jest suite 148/148 tests passing (+10 snapshots_route tests), (2) Versions button (data-testid='hub-versions-btn') present in ProjectHub topbar, (3) Backend button (data-testid='hub-backend-btn') present in ProjectHub topbar, (4) VersionsPanel modal opens correctly with empty state ('No versions yet') when no snapshots exist, (5) Versions count displays correctly (0), (6) Modal close button works, (7) Snapshots route tests verify: GET list, POST create (requires name), POST restore (creates pre-restore safety snapshot), DELETE, 401/404 error handling, (8) db.snapshots.delete helper added to lib/supabase/db.js, (9) Auto-snapshot after build (kind='auto_build') implemented in message-stream.js Step 6, (10) Pre-restore safety snapshot (kind='pre_restore') created before restore.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_snapshots_route.test.js",
+    "/app/backend/tests/test_vercel_deploy.test.js",
+    "/app/backend/tests/test_archetypes.test.js",
+    "/app/backend/tests/test_brief_planner.test.js",
+    "/app/backend/tests/test_brief_builder.test.js",
+    "/app/backend/tests/test_brief_reviewer.test.js",
+    "/app/backend/tests/test_brief_utils.test.js",
+    "/app/backend/tests/test_stats_my_builds.test.js",
+    "/app/backend/tests/test_vercel_bundler.test.js",
+    "/app/backend/tests/test_supabase_wiring.test.js",
+    "/app/backend/tests/test_stripe_wiring.test.js",
+    "/app/backend/tests/test_art_direction.test.js"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: Jest suite 148/148 tests passing across 12 test files (+10 new snapshots_route tests)",
+    "PASS: GET /projects/:id/snapshots returns snapshot list ordered by created_at desc",
+    "PASS: POST /projects/:id/snapshots creates manual snapshot (requires name field)",
+    "PASS: POST /snapshots/:id/restore creates pre-restore safety snapshot before restoring",
+    "PASS: DELETE /snapshots/:id removes snapshot correctly",
+    "PASS: 401 returned when unauthenticated for all snapshot routes",
+    "PASS: 404 returned when snapshot not found for restore/delete",
+    "PASS: db.snapshots.delete(id) helper added to lib/supabase/db.js (lines 837-844)",
+    "PASS: Auto-snapshot after build implemented in message-stream.js Step 6 (lines 3860-3889)",
+    "PASS: Auto-snapshot uses kind='auto_build' in metadata",
+    "PASS: Pre-restore safety snapshot uses kind='pre_restore' in metadata",
+    "PASS: VersionsPanel.jsx renders correctly with data-testid='versions-panel'",
+    "PASS: Versions button in ProjectHub topbar with data-testid='hub-versions-btn'",
+    "PASS: Backend button in ProjectHub topbar with data-testid='hub-backend-btn'",
+    "PASS: Versions count displayed with data-testid='versions-count'",
+    "PASS: Empty state shows 'No versions yet' message",
+    "PASS: Close button works with data-testid='versions-panel-close'",
+    "PASS: Kind badges implemented: 'Auto · Build', 'Auto · Pre-restore', 'Manual'",
+    "PASS: DeployTab polling updates both deployments list AND deployResult card (lines 66-99)",
+    "PASS: Poll interval is 3000ms as specified",
+    "PASS: Dashboard loads with no console errors"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "testprov@test.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session 17 Part 2 complete. Versioning/rollback UI added with VersionsPanel.jsx modal. Snapshots route supports GET list, POST create, POST restore (with pre-restore safety snapshot), DELETE. Auto-snapshot after build uses kind='auto_build'. Pre-restore safety snapshot uses kind='pre_restore'. DeployTab polling now updates both deployments list and result card. Jest suite at 148/148 tests across 12 test files. The test account (testprov@test.com) has projects but no snapshots yet since no builds have been run.",
+  "jest_test_results": {
+    "total_tests": 148,
+    "passed": 148,
+    "failed": 0,
+    "test_suites": [
+      {"file": "test_snapshots_route.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_vercel_deploy.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_stripe_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_art_direction.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_vercel_bundler.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_supabase_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_stats_my_builds.test.js", "tests": 5, "status": "PASS"},
+      {"file": "test_brief_builder.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_archetypes.test.js", "tests": 35, "status": "PASS"},
+      {"file": "test_brief_planner.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_brief_utils.test.js", "tests": 19, "status": "PASS"},
+      {"file": "test_brief_reviewer.test.js", "tests": 8, "status": "PASS"}
+    ]
+  },
+  "frontend_verification": {
+    "project_hub": {
+      "versions_button_present": true,
+      "backend_button_present": true,
+      "versions_button_testid": "hub-versions-btn",
+      "backend_button_testid": "hub-backend-btn"
+    },
+    "versions_panel": {
+      "modal_opens": true,
+      "empty_state_shown": true,
+      "count_displayed": true,
+      "close_button_works": true,
+      "testid": "versions-panel"
+    },
+    "dashboard_smoke": {
+      "loads": true,
+      "projects_visible": true,
+      "no_critical_console_errors": true
+    }
+  },
+  "features_verified": {
+    "vercel_deploy_polling": "DeployTab setInterval updates both deployments list AND deployResult card at 3000ms interval",
+    "snapshot_auto_creation": "message-stream.js Step 6 creates auto_build snapshot after successful build",
+    "snapshots_route": {
+      "GET_list": "Returns snapshots ordered by created_at desc",
+      "POST_create": "Creates manual snapshot (requires name)",
+      "POST_restore": "Creates pre-restore safety snapshot, then restores target",
+      "DELETE": "Removes snapshot by id"
+    },
+    "db_snapshots_delete": "Helper added at lib/supabase/db.js lines 837-844",
+    "versions_panel_ui": {
+      "modal": "Opens from hub-versions-btn click",
+      "empty_state": "Shows 'No versions yet' with explanation",
+      "kind_badges": "Auto · Build, Auto · Pre-restore, Manual",
+      "latest_chip": "Marks latest snapshot, prevents restore (only delete)"
+    }
+  }
+}
