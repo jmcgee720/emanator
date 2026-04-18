@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database } from 'lucide-react'
+import BackendConfigModal from './BackendConfigModal'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -89,6 +90,8 @@ export default function ProjectHub({
   const [projectRenameValue, setProjectRenameValue] = useState('')
   const [projectRenameSaving, setProjectRenameSaving] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [showBackendModal, setShowBackendModal] = useState(false)
+  const [localProject, setLocalProject] = useState(project)
 
   const submitRename = async (chatId) => {
     const trimmed = renameValue.trim()
@@ -147,6 +150,22 @@ export default function ProjectHub({
           <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[rgba(0,229,255,0.08)] text-[var(--em-cyan)] border border-[rgba(0,229,255,0.15)] shrink-0">
             {framework === 'node' ? 'Node.js' : framework}
           </span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {!project?.settings?.is_core ? (
+            <button
+              onClick={() => setShowBackendModal(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                (localProject || project)?.settings?.supabase?.url
+                  ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
+                  : 'border-[rgba(255,255,255,0.12)] em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)]'
+              }`}
+              data-testid="hub-backend-btn"
+            >
+              <Database className="w-3.5 h-3.5" aria-hidden="true" />
+              {(localProject || project)?.settings?.supabase?.url ? 'Supabase ✓' : 'Backend'}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -564,6 +583,16 @@ export default function ProjectHub({
           </div>
         </div>
       </div>
+
+      {showBackendModal ? (
+        <BackendConfigModal
+          project={localProject || project}
+          onClose={() => setShowBackendModal(false)}
+          onSaved={(updated) => {
+            if (updated) setLocalProject(updated)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

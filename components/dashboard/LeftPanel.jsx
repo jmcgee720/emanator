@@ -801,6 +801,11 @@ export default function LeftPanel({
         onUploadFiles={onUploadFiles}
         visualMode={visualMode}
         onVisualModeChange={onVisualModeChange}
+        placeholder={
+          (messages?.length || 0) > 1
+            ? 'Ask me to add a feature, change styles, or fix something — I\'ll edit the code.'
+            : 'Describe what you want to build...'
+        }
       />
     </div>
   )
