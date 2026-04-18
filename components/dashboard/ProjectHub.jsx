@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History } from 'lucide-react'
 import BackendConfigModal from './BackendConfigModal'
+import VersionsPanel from './VersionsPanel'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
@@ -91,6 +92,7 @@ export default function ProjectHub({
   const [projectRenameSaving, setProjectRenameSaving] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [showBackendModal, setShowBackendModal] = useState(false)
+  const [showVersions, setShowVersions] = useState(false)
   const [localProject, setLocalProject] = useState(project)
 
   const submitRename = async (chatId) => {
@@ -153,18 +155,29 @@ export default function ProjectHub({
         </div>
         <div className="ml-auto flex items-center gap-2">
           {!project?.settings?.is_core ? (
-            <button
-              onClick={() => setShowBackendModal(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                (localProject || project)?.settings?.supabase?.url
-                  ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
-                  : 'border-[rgba(255,255,255,0.12)] em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)]'
-              }`}
-              data-testid="hub-backend-btn"
-            >
-              <Database className="w-3.5 h-3.5" aria-hidden="true" />
-              {(localProject || project)?.settings?.supabase?.url ? 'Supabase ✓' : 'Backend'}
-            </button>
+            <>
+              <button
+                onClick={() => setShowVersions(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 border-[rgba(255,255,255,0.12)] em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)]"
+                data-testid="hub-versions-btn"
+                aria-label="View version history"
+              >
+                <History className="w-3.5 h-3.5" aria-hidden="true" />
+                Versions
+              </button>
+              <button
+                onClick={() => setShowBackendModal(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                  (localProject || project)?.settings?.supabase?.url
+                    ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
+                    : 'border-[rgba(255,255,255,0.12)] em-text-secondary hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)]'
+                }`}
+                data-testid="hub-backend-btn"
+              >
+                <Database className="w-3.5 h-3.5" aria-hidden="true" />
+                {(localProject || project)?.settings?.supabase?.url ? 'Supabase ✓' : 'Backend'}
+              </button>
+            </>
           ) : null}
         </div>
       </div>
@@ -590,6 +603,19 @@ export default function ProjectHub({
           onClose={() => setShowBackendModal(false)}
           onSaved={(updated) => {
             if (updated) setLocalProject(updated)
+          }}
+        />
+      ) : null}
+
+      {showVersions ? (
+        <VersionsPanel
+          project={localProject || project}
+          onClose={() => setShowVersions(false)}
+          onRestored={() => {
+            // Refresh the page on restore so all tabs (Preview, Code, Files)
+            // reflect the restored state.
+            setShowVersions(false)
+            if (typeof window !== 'undefined') window.location.reload()
           }}
         />
       ) : null}

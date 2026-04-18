@@ -63,7 +63,7 @@ export default function DeployTab({ project, addLog }) {
     }
   }
 
-  const startPolling = (dbId, platformToken) => {
+  const startPolling = (dbId, platformToken, platform = 'vercel') => {
     if (!dbId || pollingIds[dbId]) return
     const interval = setInterval(async () => {
       try {
@@ -72,6 +72,13 @@ export default function DeployTab({ project, addLog }) {
         if (data.status) {
           // Update the deployment in the list
           setDeployments(prev => prev.map(d => d.id === dbId ? { ...d, status: data.status, url: data.url || d.url } : d))
+          // Also update the just-deployed result card so the user sees the
+          // amber → green transition without refreshing.
+          if (platform === 'vercel') {
+            setDeployResult(prev => prev ? { ...prev, status: data.status, url: data.url || prev.url } : prev)
+          } else if (platform === 'netlify') {
+            setNetlifyResult(prev => prev ? { ...prev, status: data.status, url: data.url || prev.url } : prev)
+          }
           // If reached terminal state, stop polling
           const terminal = ['ready', 'completed', 'success', 'error', 'failed', 'cancelled']
           if (terminal.includes((data.status || '').toLowerCase())) {
@@ -87,7 +94,7 @@ export default function DeployTab({ project, addLog }) {
       } catch {
         // Silently retry
       }
-    }, 5000) // Poll every 5 seconds
+    }, 3000) // Poll every 3 seconds (Vercel builds are fast)
     setPollingIds(prev => ({ ...prev, [dbId]: interval }))
   }
 
@@ -135,7 +142,7 @@ export default function DeployTab({ project, addLog }) {
         addLog?.('success', `Deployed to Vercel: ${data.url}`)
         loadDeployments()
         // Start status polling
-        if (data.db_id) startPolling(data.db_id, vercelToken)
+        if (data.db_id) startPolling(data.db_id, vercelToken, 'vercel')
       }
     } catch (err) {
       setDeployResult({ error: err.message })
@@ -164,7 +171,7 @@ export default function DeployTab({ project, addLog }) {
         addLog?.('success', `Deployed to Netlify: ${data.url}`)
         loadDeployments()
         // Start status polling
-        if (data.db_id) startPolling(data.db_id, netlifyToken)
+        if (data.db_id) startPolling(data.db_id, netlifyToken, 'netlify')
       }
     } catch (err) {
       setNetlifyResult({ error: err.message })
@@ -305,20 +312,38 @@ export default function DeployTab({ project, addLog }) {
             {deployResult && (
               <div
                 className="mt-3 p-2.5 rounded-lg text-[11px]"
-                style={{
-                  background: deployResult.error ? 'rgba(248,113,113,0.06)' : 'rgba(52,211,153,0.06)',
-                  border: deployResult.error ? '1px solid rgba(248,113,113,0.15)' : '1px solid rgba(52,211,153,0.15)',
-                  color: deployResult.error ? '#F87171' : '#34D399',
-                }}
+                style={(() => {
+                  const s = (deployResult.status || '').toLowerCase()
+                  const isReady = ['ready', 'completed', 'success'].includes(s)
+                  const isError = deployResult.error || ['error', 'failed', 'cancelled'].includes(s)
+                  if (isError) return { background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', color: '#F87171' }
+                  if (isReady) return { background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)', color: '#34D399' }
+                  return { background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', color: '#FBBF24' }
+                })()}
                 data-testid="deploy-result"
               >
                 {deployResult.error ? (
                   <span>{deployResult.error}</span>
                 ) : (
                   <a href={deployResult.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 font-medium">
-                    <Globe className="w-3 h-3" />
-                    {deployResult.url}
-                    <ArrowUpRight className="w-3 h-3 ml-auto" />
+                    {(() => {
+                      const s = (deployResult.status || '').toLowerCase()
+                      const isReady = ['ready', 'completed', 'success'].includes(s)
+                      return isReady ? <CheckCircle className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />
+                    })()}
+                    <span className="truncate">{deployResult.url}</span>
+                    <span
+                      className="ml-auto px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider opacity-80"
+                      style={{ background: 'rgba(0,0,0,0.20)' }}
+                      data-testid="deploy-result-status"
+                    >
+                      {(() => {
+                        const s = (deployResult.status || 'queued').toLowerCase()
+                        if (['ready', 'completed', 'success'].includes(s)) return 'Live'
+                        return deployResult.status || 'Building'
+                      })()}
+                    </span>
+                    <ArrowUpRight className="w-3 h-3" />
                   </a>
                 )}
               </div>
