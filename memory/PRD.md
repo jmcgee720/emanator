@@ -33,6 +33,48 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 20 (COMPLETE, 2026-02-18) — Public project gallery + publish toggle
+
+The social loop now has a front door. Together with the Remix endpoint shipped in Session 19, creators can publish → visitors discover → remix → build their own — end-to-end on the platform.
+
+**Shipped:**
+
+1. **Public `/gallery` page** (unauthenticated) — lists projects where `settings.is_public === true` as cards with thumbnail gradient, name, description, archetype badge, view count, and a "Remix" shortcut. Clicking a card navigates to `/share/{token}` (the shared preview + Remix button page shipped in Session 19). Empty state has a "Build the first one" CTA; populated state uses a responsive `sm:grid-cols-2 lg:grid-cols-3` grid. Cache headers `public, max-age=30` for scale.
+
+2. **Publish/Unpublish endpoints** — `POST /api/projects/:id/publish` (auth + ownership checked, requires files before publish). Mints a **never-expiring** share token if one doesn't exist; reuses existing if present. Sets `settings.is_public=true` + `published_at`. `POST /api/projects/:id/unpublish` removes those flags but keeps the share URL live (direct visitors can still access via `/share/{token}`, just no longer listed in gallery).
+
+3. **`PublishModal` + ProjectHub "Publish" button** — new button next to Versions/Backend. Opens modal with clear copy on what publishing does ("Anyone can preview + remix"). After successful publish, shows "View public page" + "Browse the gallery" shortcuts. Already-public projects get an "Unpublish" option.
+
+4. **Gallery discovery from LoginPage** — small cyan link "or explore apps built by the community" below the sign-in headline — exposes the gallery to unauthenticated visitors so the social loop spreads on public web surfaces without requiring account creation.
+
+5. **`db.projects.findPublic({limit, offset})`** new DB helper using JSONB `settings->>is_public` filter for scale.
+
+**Tests:** +13 gallery route tests (`test_gallery_routes.test.js`). Full suite **174/174 across 15 files**. Lint clean. Testing agent `iteration_111.json` confirmed 100% backend + 100% frontend success.
+
+**Deferred (Session 21):**
+- **Branded custom domains** — Vercel `/v10/projects/{id}/domains` API; needs DNS TXT verification flow + polling, whole UX panel of its own.
+
+## Prioritized Backlog
+
+### P0 — Session 21 (launch-polish)
+- **Branded custom domains** via Vercel Domains API — `POST /v10/projects/{id}/domains`, DNS TXT verification polling, verified badge when live
+- **Auto-generated server-side Stripe Checkout function** in Vercel export (`api/stripe/checkout.js` template that reads user's secret key from env)
+
+### P1 — Session 22
+- **Share link analytics** — timeline of views + remixes per share token
+- **Remix count badge** on the originating project so creators see their impact
+- **Search/filter on gallery** — by archetype, by time, by popularity
+
+### P2 — Growth (Session 23+)
+- Team collaboration (multi-user per project)
+- Analytics dashboard (build/deploy/archetype trends, funnel)
+- Referral / invite loops
+- Project templates / one-click starters
+- Per-archetype recipe tuning admin
+- Multi-image art-direction weighting
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 19 Part 1 (COMPLETE, 2026-02-18) — a11y-fix loop closure + Remix-this-app (social loop)
 
 Two high-ROI wins instead of the originally planned 3 items (Vercel webhook deferred — it needs team-level integration which end users don't have; polling at 3s is pragmatically fine).
