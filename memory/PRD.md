@@ -41,28 +41,35 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ### Session 2 (COMPLETE, 2026-02-18)
 - `/app/lib/ai/brief-builder.js` — `buildWave()` runs a single wave via forced `create_files`, injects wave-specific recipes, enforces the wave's declared file list (over-produced files dropped), has tool_args_delta recovery + non-streaming retry. `runAllWaves()` orchestrates the full plan and aborts if scaffold fails.
-- `/app/lib/ai/message-stream.js` — added `runNewBriefPipeline()` module-level function at EOF. Fast-path gate now checks `EMANATOR_NEW_PIPELINE` env flag; when set, routes brief → classify archetype → generate plan → stream waves → save. When unset, legacy fast-path runs **unchanged** (proven by 401 on protected route, which means message-stream compiles fine).
-- `/app/lib/stream-client.js` — registered new SSE events (`archetype`, `wave_start`, `wave_complete`, `wave_error`, `build_aborted`) with callbacks (`onArchetype`, etc.). Unknown-event swallowing remains safe.
-- Tests: `/app/backend/tests/test_brief_builder.test.js` — 6 tests for wave orchestration, drop-outside-wave, recovery, abort-on-scaffold-fail. **54/54 total tests pass**.
-- ZERO changes to legacy path. Flag unset in env → legacy runs by default.
+- `/app/lib/ai/message-stream.js` — added `runNewBriefPipeline()` module-level function at EOF. Fast-path gate now checks `EMANATOR_NEW_PIPELINE` env flag; when set, routes brief → classify archetype → generate plan → stream waves → save. When unset, legacy fast-path runs **unchanged**.
+- `/app/lib/stream-client.js` — registered new SSE events (`archetype`, `brief_plan`, `wave_start`, `wave_complete`, `wave_error`, `build_aborted`, `review_result`, `repair_start`) with callbacks.
+- Tests: `/app/backend/tests/test_brief_builder.test.js` — 6 tests.
+
+### Session 3 (COMPLETE, 2026-02-18)
+- `/app/lib/ai/brief-reviewer.js` — `reviewBuild()` runs a strict self-critique pass (JSON mode, peeks at scaffold + auth + landing files). `repairBuild()` runs ONE repair wave via `create_files`/`update_files` to fix missing/broken items. Non-blocking on provider failure.
+- `runNewBriefPipeline` now: classify → plan → build waves → **review → auto-repair** → done. Fetches content via `db.projectFiles.findByProjectId` for review context.
+- `/app/components/dashboard/BriefProgressCard.jsx` — live progress UI. Shows archetype badge, route/file count, per-wave status icons (pending/running/complete/error), review pass/gaps indicator, estimated time remaining.
+- `/app/components/dashboard/useDashboardStream.js` — wired `onArchetype`, `onBriefPlan`, `onWaveStart`, `onWaveComplete`, `onWaveError`, `onBuildAborted`, `onReviewResult`, `onRepairStart` callbacks; each updates `message.metadata.briefProgress` so the card re-renders live.
+- `/app/components/dashboard/LeftPanel.jsx` — imports & renders `<BriefProgressCard>` above PlanCard when message has `briefProgress` metadata.
+- Tests: `/app/backend/tests/test_brief_reviewer.test.js` — 8 tests covering review ok-path, missing flows, malformed JSON, empty files, provider failure, repair wave mechanics, tool_args_delta recovery. **62/62 total tests pass**.
+- Event collision fix: renamed new pipeline's `plan` event to `brief_plan` to avoid triggering existing approval UI.
+- ZERO impact on legacy flow. Flag still unset by default.
 
 ## Prioritized Backlog
 
-### P0 — Session 3 (NEXT)
-- `/app/lib/ai/brief-reviewer.js` — self-review pass: list missing/dead flows from plan
-- Auto-repair: one repair wave via `update_files` to fix gaps found in review
-- Hook reviewer into `runNewBriefPipeline()` after `runAllWaves()` succeeds
-- Frontend UI (lightweight): render `archetype` + `wave_start` / `wave_complete` events in the chat log so user sees progress
-- `testing_agent_v3_fork` end-to-end test on Nexsara brief with `EMANATOR_NEW_PIPELINE=1`: assert Signup exists, pricing CTA routes to signup, refresh preserves auth state
-
-### P1 — Session 4 (polish)
-- Dogfood with 3 briefs (SaaS, marketplace, portfolio), tune recipes based on output quality
+### P0 — Session 4 (NEXT)
+- **Flip the flag and dogfood** — set `EMANATOR_NEW_PIPELINE=1` in env, restart, run 3 briefs: Nexsara (SaaS), a marketplace, a portfolio
+- Run `testing_agent_v3_fork` end-to-end on Nexsara: assert ≥8 files produced, Signup exists even though brief didn't list it, "Start Free Trial" → signup form → dashboard flow works, refresh preserves auth state
+- Tune recipes and prompts based on real output quality
 - Remove `EMANATOR_NEW_PIPELINE` flag, delete legacy single-file prompt (lines 145–176 of message-stream.js)
+
+### P1 — Session 5 (polish)
 - Remaining recipes: settings, profile, data_table, item_detail, search, chat_interface, conversations_list
-- "Remix archetype" button on preview (enhancement)
+- Dry-run / confirm mode: pause at `brief_plan` event, require user click to start waves. Needs a new message round-trip — ~200 lines of UI + backend plumbing.
+- "Remix archetype" button: one-click switch archetype while keeping brand/copy
 
 ### P2 — Future (out of scope for architecture upgrade)
-- Real Supabase wiring (opt-in)
+- Real Supabase wiring (opt-in via user-provided keys)
 - Deployable export to Vercel
 - Responsive / accessibility passes
 - Versioning/rollback UI

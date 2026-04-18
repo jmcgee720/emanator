@@ -52,6 +52,7 @@ import MessageRenderer from './MessageRenderer'
 import MessageActions from './MessageActions'
 import ChatComposer from './ChatComposer'
 import PlanCard from './PlanCard'
+import BriefProgressCard from './BriefProgressCard'
 import DiffReviewPanel from './DiffReviewPanel'
 import GeneratedImageCard from './GeneratedImageCard'
 import ImageGenerationProgress from './ImageGenerationProgress'
@@ -669,6 +670,11 @@ export default function LeftPanel({
                             <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent" />
                           )}
                         </div>
+                        {message.metadata?.briefProgress && (
+                          <div className="mt-2" data-testid={`brief-progress-wrapper-${message.id}`}>
+                            <BriefProgressCard progress={message.metadata.briefProgress} />
+                          </div>
+                        )}
                         {message.metadata?.proposedPlan && message.metadata?.planStatus !== 'cancelled' && (
                           <div className="mt-2" data-testid={`plan-card-wrapper-${message.id}`}>
                             <PlanCard
