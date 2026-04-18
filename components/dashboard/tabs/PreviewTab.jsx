@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { authFetch } from '@/lib/auth-fetch'
 import {
   RefreshCw, AlertTriangle, MonitorSmartphone, Tablet, Monitor,
-  Loader2, FileCode, AlertCircle, Terminal, Play, Square, RotateCcw
+  Loader2, FileCode, AlertCircle, Terminal, Play, Square, RotateCcw,
+  Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink
 } from 'lucide-react'
 
 // ─── Project classifier ────────────────────────────────────────────
@@ -656,7 +657,7 @@ ${usesTailwind ? '<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>' :
 </body></html>`)
 }
 
-// ─── Error handler injected into every preview ─────────────────────
+// ─── Error handler + a11y auditor injected into every preview ─────────────────────
 function wrapWithErrorHandler(html) {
   const errorScript = `<script>
 window.onerror = function(msg, src, line, col, err) {
@@ -673,6 +674,58 @@ window.addEventListener('unhandledrejection', function(e) {
     window.parent.postMessage({ type: '__PREVIEW_CONSOLE__', level: level, message: args.join(' ') }, '*');
     orig.apply(console, arguments);
   };
+});
+// Accessibility auditor — loads axe-core on demand and runs against the preview DOM.
+// Parent frame sends { type: '__RUN_A11Y_AUDIT__' } and we respond with
+// { type: '__PREVIEW_A11Y_RESULT__', violations, passes, incomplete, auditedAt }.
+window.__emanatorRunAxe = function() {
+  function run() {
+    try {
+      if (!window.axe) {
+        window.parent.postMessage({ type: '__PREVIEW_A11Y_RESULT__', error: 'axe-core not loaded yet' }, '*');
+        return;
+      }
+      window.axe.run(document, { resultTypes: ['violations', 'incomplete'] }).then(function(results) {
+        var serialize = function(list) {
+          return (list || []).slice(0, 50).map(function(r) {
+            return {
+              id: r.id,
+              impact: r.impact,
+              help: r.help,
+              helpUrl: r.helpUrl,
+              nodes: (r.nodes || []).slice(0, 5).map(function(n) { return { target: n.target, html: (n.html || '').slice(0, 180) } })
+            };
+          });
+        };
+        window.parent.postMessage({
+          type: '__PREVIEW_A11Y_RESULT__',
+          violations: serialize(results.violations),
+          incomplete: serialize(results.incomplete),
+          passes: (results.passes || []).length,
+          auditedAt: new Date().toISOString()
+        }, '*');
+      }).catch(function(err) {
+        window.parent.postMessage({ type: '__PREVIEW_A11Y_RESULT__', error: err.message || 'axe.run failed' }, '*');
+      });
+    } catch (err) {
+      window.parent.postMessage({ type: '__PREVIEW_A11Y_RESULT__', error: err.message }, '*');
+    }
+  }
+  if (window.axe) { run(); return; }
+  // Lazy-load axe-core from unpkg the first time it's needed so we don't
+  // bloat every preview load. ~400 KB gzipped.
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/axe-core@4.10.0/axe.min.js';
+  s.onload = run;
+  s.onerror = function() {
+    window.parent.postMessage({ type: '__PREVIEW_A11Y_RESULT__', error: 'Failed to load axe-core CDN' }, '*');
+  };
+  document.head.appendChild(s);
+};
+window.addEventListener('message', function(ev) {
+  if (ev.data && ev.data.type === '__RUN_A11Y_AUDIT__') {
+    window.__emanatorRunAxe();
+  }
 });
 <\/script>`
 
@@ -934,6 +987,8 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   const [consoleLogs, setConsoleLogs] = useState([])
   const [showConsole, setShowConsole] = useState(false)
   const [iframeLoaded, setIframeLoaded] = useState(false)
+  const [a11y, setA11y] = useState(null) // { status: 'idle'|'running'|'done'|'error', violations, incomplete, passes, error }
+  const [showA11y, setShowA11y] = useState(false)
   const iframeRef = useRef(null)
   const prevFilesRef = useRef(null)
 
@@ -1013,6 +1068,20 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       }
       if (e.data?.type === '__PREVIEW_CONSOLE__') {
         setConsoleLogs(prev => [...prev.slice(-49), { level: e.data.level, message: e.data.message }])
+      }
+      if (e.data?.type === '__PREVIEW_A11Y_RESULT__') {
+        if (e.data.error) {
+          setA11y({ status: 'error', error: e.data.error })
+        } else {
+          setA11y({
+            status: 'done',
+            violations: e.data.violations || [],
+            incomplete: e.data.incomplete || [],
+            passes: e.data.passes || 0,
+            auditedAt: e.data.auditedAt,
+          })
+          setShowA11y(true)
+        }
       }
     }
     window.addEventListener('message', handler)
@@ -1461,6 +1530,32 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
             onClick={() => setShowConsole(v => !v)} data-testid="preview-toggle-console">
             <Terminal className={`w-3.5 h-3.5 ${consoleLogs.length > 0 ? 'text-blue-400' : ''}`} />
           </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1.5"
+            onClick={() => {
+              if (!iframeRef.current?.contentWindow) return
+              setA11y({ status: 'running' })
+              setShowA11y(true)
+              iframeRef.current.contentWindow.postMessage({ type: '__RUN_A11Y_AUDIT__' }, '*')
+            }}
+            disabled={!iframeLoaded || a11y?.status === 'running'}
+            data-testid="preview-audit-a11y"
+            aria-label="Run accessibility audit"
+          >
+            {a11y?.status === 'running' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Accessibility className={`w-3.5 h-3.5 ${a11y?.violations?.length ? 'text-red-400' : a11y?.status === 'done' ? 'text-emerald-400' : ''}`} />
+            )}
+            <span className="text-[11px]">Audit</span>
+            {a11y?.status === 'done' && a11y?.violations?.length > 0 ? (
+              <span className="ml-0.5 px-1 rounded-full bg-red-500/20 text-red-300 text-[9px] font-semibold" data-testid="preview-audit-count">
+                {a11y.violations.length}
+              </span>
+            ) : null}
+          </Button>
           <Button size="sm" variant="ghost" className="h-7 gap-1.5"
             onClick={handleRefresh} data-testid="preview-refresh">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
@@ -1550,6 +1645,61 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {showA11y && a11y && a11y.status !== 'idle' && (
+        <div className="border-t border-border/40 bg-muted/20 max-h-64 overflow-auto" data-testid="preview-a11y-panel">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
+            <span className="flex items-center gap-1.5 text-[11px] font-medium">
+              <Accessibility className="w-3.5 h-3.5" />
+              Accessibility audit
+              {a11y.status === 'running' ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              {a11y.status === 'done' && a11y.violations?.length === 0 ? (
+                <span className="flex items-center gap-1 text-emerald-400 text-[10px]" data-testid="a11y-clean">
+                  <CheckCircle2 className="w-3 h-3" /> No violations ({a11y.passes} checks passed)
+                </span>
+              ) : null}
+              {a11y.status === 'done' && a11y.violations?.length > 0 ? (
+                <span className="text-red-400 text-[10px]">{a11y.violations.length} violation{a11y.violations.length > 1 ? 's' : ''}{a11y.incomplete?.length ? ` · ${a11y.incomplete.length} to review` : ''}</span>
+              ) : null}
+              {a11y.status === 'error' ? (
+                <span className="text-amber-400 text-[10px]">{a11y.error}</span>
+              ) : null}
+            </span>
+            <Button size="sm" variant="ghost" className="h-5 px-1" onClick={() => setShowA11y(false)}>
+              <span className="text-[9px]">Close</span>
+            </Button>
+          </div>
+          {a11y.status === 'done' && a11y.violations?.length > 0 ? (
+            <div className="px-3 py-2 space-y-1.5 text-[11px]" data-testid="a11y-violations">
+              {a11y.violations.map((v, i) => (
+                <div key={v.id + i} className="rounded border border-red-500/20 bg-red-500/5 px-2 py-1.5" data-testid={`a11y-violation-${v.id}`}>
+                  <div className="flex items-center gap-1.5">
+                    <XCircle className="w-3 h-3 text-red-400 shrink-0" />
+                    <span className={`text-[9px] font-semibold uppercase px-1 rounded ${
+                      v.impact === 'critical' ? 'bg-red-500/20 text-red-300' :
+                      v.impact === 'serious' ? 'bg-orange-500/20 text-orange-300' :
+                      v.impact === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
+                      'bg-muted-foreground/20 text-muted-foreground'
+                    }`}>{v.impact || 'minor'}</span>
+                    <span className="font-medium">{v.help}</span>
+                    {v.helpUrl ? (
+                      <a href={v.helpUrl} target="_blank" rel="noopener noreferrer" className="ml-auto opacity-60 hover:opacity-100">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : null}
+                  </div>
+                  {v.nodes?.[0]?.html ? (
+                    <pre className="mt-1 text-[10px] text-muted-foreground/80 overflow-x-auto">{v.nodes[0].html}</pre>
+                  ) : null}
+                  {v.nodes?.length > 1 ? (
+                    <span className="text-[9px] opacity-50">+{v.nodes.length - 1} more element{v.nodes.length - 1 === 1 ? '' : 's'}</span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

@@ -51,6 +51,7 @@ import { BUILDER_MODES, getChatType, CHAT_TYPES, SELF_EDIT_PREFIX, SELF_EDIT_TAR
 import MessageRenderer from './MessageRenderer'
 import MessageActions from './MessageActions'
 import ChatComposer from './ChatComposer'
+import QuickActionChips from './QuickActionChips'
 import PlanCard from './PlanCard'
 import BriefProgressCard from './BriefProgressCard'
 import DiffReviewPanel from './DiffReviewPanel'
@@ -280,6 +281,17 @@ export default function LeftPanel({
     const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
   const userIsScrolledUpRef = useRef(false)
+  const composerRef = useRef(null)
+
+  // Extract the archetype from the latest assistant message with briefProgress
+  // so QuickActionChips can surface archetype-specific chips.
+  const latestArchetypeId = (() => {
+    for (let i = (messages || []).length - 1; i >= 0; i--) {
+      const archId = messages[i]?.metadata?.briefProgress?.archetype?.id
+      if (archId) return archId
+    }
+    return null
+  })()
 
   // Track if user has scrolled up
   const handleScroll = () => {
@@ -785,8 +797,20 @@ export default function LeftPanel({
         )}
       </div>
 
+      {/* Quick action chips — only show on existing projects with an already-built app */}
+      {selectedChat && (messages?.length || 0) > 1 ? (
+        <QuickActionChips
+          archetypeId={latestArchetypeId}
+          onChoose={(prompt) => {
+            composerRef.current?.setInput?.(prompt)
+            composerRef.current?.focus?.()
+          }}
+        />
+      ) : null}
+
       {/* Composer */}
       <ChatComposer
+        ref={composerRef}
         onSend={handleSendMessage}
         disabled={!selectedChat}
         sending={isStreaming || sending}
