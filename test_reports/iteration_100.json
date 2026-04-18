@@ -1,0 +1,72 @@
+{
+  "summary": "End-to-end testing of EMANATOR_NEW_PIPELINE with double-escape fix. CRITICAL ASSERTION 1 (files have actual newlines): PASS - All generated files (Signup.jsx, Dashboard.jsx, AuthContext.jsx, app/page.jsx) show proper line breaks in the code viewer, no literal \\n strings. The normalizeFileContent() fix in brief-utils.js is working. CRITICAL ASSERTION 2 (preview renders without Babel errors): PARTIAL PASS - No Babel syntax errors (the previous 'Expecting Unicode escape sequence' error is gone), but there's a runtime error 'useAuth is not a function' due to code generation inconsistency (not related to double-escape). The elapsed-time counter feature was NOT verified as BriefProgressCard was not visible in the completed build view.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Preview rendering",
+        "issue": "Runtime error 'useAuth is not a function' in Navbar component. This is a code generation inconsistency - Signup.jsx uses 'signUp' (camelCase) but AuthContext exports 'signup' (lowercase). NOT related to double-escape bug.",
+        "affected_selectors": ["Preview tab iframe"],
+        "priority": "MEDIUM"
+      },
+      {
+        "flow": "BriefProgressCard elapsed time",
+        "issue": "Could not verify the new elapsed-time counter (data-testid='brief-elapsed-time') because BriefProgressCard was not visible in the completed build conversation view. The card may only show during active builds.",
+        "affected_selectors": ["[data-testid='brief-progress-card']", "[data-testid='brief-elapsed-time']"],
+        "priority": "LOW"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_100.json"],
+  "action_items": [
+    "DOUBLE-ESCAPE FIX VERIFIED: The normalizeFileContent() and normalizeFiles() helpers in brief-utils.js are working correctly. Files have actual newlines.",
+    "FIX CODE GENERATION: The LLM is generating inconsistent function names - 'signUp' vs 'signup'. Ensure recipes use consistent naming.",
+    "VERIFY ELAPSED TIME COUNTER: The brief-elapsed-time counter could not be verified. Consider testing during an active build or checking if the card persists after completion."
+  ],
+  "critical_code_review_comments": [
+    "PASS: normalizeFileContent() correctly detects and fixes double-escaped content (no real newlines + literal \\n present)",
+    "PASS: normalizeFiles() is applied in both brief-builder.js (line 213) and brief-reviewer.js (line 235)",
+    "PASS: 17 files generated across 4 waves including Signup.jsx, Login.jsx, Dashboard.jsx (auth flows auto-generated)",
+    "ISSUE: Code generation inconsistency - AuthContext exports 'signup' but Signup.jsx destructures 'signUp'"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only test)",
+    "frontend": "85%"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "Created NexsaraTest147 project with Creative Brief: Brand='NexsaraTest147', Description='AI-powered marketing platform', Pages='Home, Features, Pricing' (NOT Sign Up/Login/Dashboard)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The double-escape fix is WORKING. Files have actual newlines. The preview runtime error is a separate code generation issue (function name inconsistency). The elapsed-time counter feature needs to be tested during an active build.",
+  "rca_of_the_issue": {
+    "root_cause": "The double-escape bug from iteration_99 has been FIXED. The normalizeFileContent() function in brief-utils.js correctly detects when content has no real newlines but contains literal \\n, and unescapes them. The current preview error is a different issue - code generation inconsistency where AuthContext exports 'signup' but components try to use 'signUp'.",
+    "reproduction_steps": [
+      "1. Login to Emanator with REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD",
+      "2. Open NexsaraTest147 project",
+      "3. Click on the conversation 'An AI-powered marketing platform...'",
+      "4. Click Code tab and view Signup.jsx, Dashboard.jsx, AuthContext.jsx, app/page.jsx",
+      "5. Verify all files have proper line breaks (not literal \\n)",
+      "6. Click Preview tab - see runtime error 'useAuth is not a function'"
+    ],
+    "mitigation": "The double-escape fix is complete. For the runtime error, update the recipes in recipes.js to use consistent function naming (either 'signup' or 'signUp' everywhere)."
+  },
+  "new_pipeline_verification": {
+    "archetype_classification": "PASS - Classified as 'AI app / copilot / chat-based tool'",
+    "plan_generation": "PASS - Generated 9 routes, 17 files, 4 waves",
+    "wave_building": "PASS - All 4 waves completed (scaffold, public, auth, app)",
+    "double_escape_fix": "PASS - Files have actual newlines, no literal \\n strings",
+    "key_assertion_1": "PASS - Signup.jsx, Dashboard.jsx, AuthContext.jsx all have proper line breaks",
+    "key_assertion_2": "PARTIAL - No Babel errors, but runtime error due to code generation inconsistency",
+    "total_files": 17,
+    "elapsed_time_counter": "NOT VERIFIED - BriefProgressCard not visible in completed build"
+  }
+}

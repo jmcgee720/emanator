@@ -414,6 +414,7 @@ export function useDashboardStream(ctx) {
                 briefProgress: {
                   ...((m.metadata?.briefProgress) || {}),
                   status: 'complete',
+                  completedAt: Date.now(),
                 },
               },
             } : m))
@@ -457,6 +458,7 @@ export function useDashboardStream(ctx) {
                 ...((m.metadata?.briefProgress) || {}),
                 archetype: data,
                 status: 'planning',
+                startedAt: (m.metadata?.briefProgress?.startedAt) || Date.now(),
               },
             },
           } : m))
