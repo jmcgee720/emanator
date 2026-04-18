@@ -405,6 +405,20 @@ export function useDashboardStream(ctx) {
             detail: data.proposedPlan ? 'Plan proposed — awaiting approval' : hasDiffs ? `${(data?.diffFiles || collectedDiffs).length} file(s) ready for review` : 'Generation complete'
           })
 
+          // Mark briefProgress as complete if this was a new-pipeline build
+          if (data?.toolMode === 'new_pipeline') {
+            setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+              ...m,
+              metadata: {
+                ...(m.metadata || {}),
+                briefProgress: {
+                  ...((m.metadata?.briefProgress) || {}),
+                  status: 'complete',
+                },
+              },
+            } : m))
+          }
+
           if (hasDiffs) {
             const diffs = data?.diffFiles || collectedDiffs
             setPendingDiffs(diffs)
@@ -431,6 +445,107 @@ export function useDashboardStream(ctx) {
 
         onPlan: (data) => {
           setPendingPlan(data)
+        },
+
+        // ── New pipeline live-progress events ──
+        onArchetype: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                archetype: data,
+                status: 'planning',
+              },
+            },
+          } : m))
+        },
+        onBriefPlan: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                plan: data,
+                waves: (data.waves || []).map(w => ({ id: w.id, label: w.label, status: 'pending', filesBuilt: [] })),
+                status: 'building',
+              },
+            },
+          } : m))
+        },
+        onWaveStart: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                waves: ((m.metadata?.briefProgress?.waves) || []).map(w =>
+                  w.id === data.waveId ? { ...w, status: 'running' } : w
+                ),
+              },
+            },
+          } : m))
+        },
+        onWaveComplete: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                waves: ((m.metadata?.briefProgress?.waves) || []).map(w =>
+                  w.id === data.waveId ? { ...w, status: 'complete', filesBuilt: data.filesBuilt || [] } : w
+                ),
+              },
+            },
+          } : m))
+        },
+        onWaveError: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                waves: ((m.metadata?.briefProgress?.waves) || []).map(w =>
+                  w.id === data.waveId ? { ...w, status: 'error' } : w
+                ),
+              },
+            },
+          } : m))
+          addLog('error', `Wave ${data.waveId} failed: ${data.message}`)
+        },
+        onBuildAborted: (data) => {
+          addLog('error', `Build aborted: ${data.reason}`)
+        },
+        onReviewResult: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                review: data,
+                status: data.ok ? 'complete' : 'repairing',
+              },
+            },
+          } : m))
+        },
+        onRepairStart: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                repair: { missing: data.missing, broken: data.broken, filesRepaired: [] },
+                status: 'repairing',
+              },
+            },
+          } : m))
         },
 
         onMessageSaved: async (data) => {
