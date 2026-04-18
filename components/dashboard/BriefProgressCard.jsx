@@ -6,7 +6,8 @@
  *
  * Rendered in LeftPanel.jsx when message.metadata.briefProgress is present.
  */
-import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench } from 'lucide-react'
+import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench, Timer } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 const WAVE_STATUS_ICON = {
   pending: <span className="w-3.5 h-3.5 rounded-full border border-white/20 bg-white/5" />,
@@ -17,7 +18,7 @@ const WAVE_STATUS_ICON = {
 
 export default function BriefProgressCard({ progress }) {
   if (!progress) return null
-  const { archetype, plan, waves, review, repair, status } = progress
+  const { archetype, plan, waves, review, repair, status, startedAt } = progress
 
   const waveList = waves || []
   const totalFilesBuilt = waveList.reduce((n, w) => n + (w.filesBuilt?.length || 0), 0)
@@ -26,6 +27,21 @@ export default function BriefProgressCard({ progress }) {
   // Rough estimate: scaffold ~12s, each other wave ~15–25s, review+repair ~10s
   const remainingWaves = waveList.filter((w) => w.status !== 'complete' && w.status !== 'error').length
   const estimatedSecondsRemaining = remainingWaves * 18 + (status === 'reviewing' || status === 'repairing' ? 10 : 0)
+
+  // Live "time to working app" counter
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  useEffect(() => {
+    if (!startedAt || status === 'complete') return
+    const tick = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)))
+    tick()
+    const id = setInterval(tick, 500)
+    return () => clearInterval(id)
+  }, [startedAt, status])
+
+  // Once complete, freeze the elapsed time
+  const displayElapsed = status === 'complete' && startedAt
+    ? Math.floor(((progress.completedAt || Date.now()) - startedAt) / 1000)
+    : elapsedSeconds
 
   return (
     <div
@@ -45,6 +61,18 @@ export default function BriefProgressCard({ progress }) {
         </span>
         {status !== 'complete' && status !== 'error' && estimatedSecondsRemaining > 0 ? (
           <span className="ml-auto text-[10px] text-white/40">~{estimatedSecondsRemaining}s remaining</span>
+        ) : null}
+        {status === 'complete' && displayElapsed > 0 ? (
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-emerald-400" data-testid="brief-elapsed-time">
+            <Timer className="w-3 h-3" />
+            {displayElapsed}s to working app
+          </span>
+        ) : null}
+        {status !== 'complete' && status !== 'error' && startedAt && displayElapsed > 0 ? (
+          <span className="flex items-center gap-1 text-[10px] text-white/40 ml-2" data-testid="brief-live-elapsed">
+            <Timer className="w-3 h-3" />
+            {displayElapsed}s
+          </span>
         ) : null}
       </div>
 
