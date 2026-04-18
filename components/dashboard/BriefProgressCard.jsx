@@ -6,7 +6,7 @@
  *
  * Rendered in LeftPanel.jsx when message.metadata.briefProgress is present.
  */
-import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench, Timer } from 'lucide-react'
+import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench, Timer, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const WAVE_STATUS_ICON = {
@@ -127,6 +127,61 @@ export default function BriefProgressCard({ progress }) {
           )}
         </div>
       ) : null}
+
+      {/* Share build time (only when complete) */}
+      {status === 'complete' && displayElapsed > 0 && plan?.brand?.name ? (
+        <ShareBuildTime
+          brand={plan.brand.name}
+          archetype={archetype?.label || 'app'}
+          seconds={displayElapsed}
+          fileCount={totalFilesBuilt}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function ShareBuildTime({ brand, archetype, seconds, fileCount }) {
+  const [copied, setCopied] = useState(false)
+
+  const tweet = `I just built ${brand} — a working ${archetype.toLowerCase()} with ${fileCount} files in ${seconds} seconds. 🚀`
+  const hashtag = '#Emanator'
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${tweet} ${hashtag}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    }
+  }
+
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet + ' ' + hashtag)}`
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/5" data-testid="share-build-time">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={copy}
+          data-testid="share-copy-button"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] text-white/80 hover:bg-white/10 transition-colors"
+          title={tweet}
+        >
+          <Share2 className="w-3 h-3" />
+          {copied ? 'Copied' : 'Share build time'}
+        </button>
+        <a
+          href={tweetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="share-tweet-link"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/20 border border-violet-400/20 text-[11px] text-violet-200 hover:from-violet-500/30 hover:to-indigo-500/30 transition-colors"
+        >
+          Tweet it
+        </a>
+      </div>
     </div>
   )
 }

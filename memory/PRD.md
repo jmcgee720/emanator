@@ -53,7 +53,50 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - Event collision fix: renamed new pipeline's `plan` event to `brief_plan`.
 - Tests: `test_brief_reviewer.test.js` — 8 tests.
 
+### Session 6 (COMPLETE, 2026-02-18) — Preview Fix + Archetype Hint
+- `/app/components/dashboard/ArchetypeHint.jsx` — live archetype preview chip in the brief form
+- `PreviewTab.jsx` AST plugin: added `window.__NAMED__` registry + `__namedImport()` resolver so named imports of non-component values (hooks, utils) work correctly. PascalCase named imports still use `__lazy`.
+
 ### Session 7 (COMPLETE, 2026-02-18) — Flag Removed, Legacy Deleted, Landing Metric
+- **REMOVED `EMANATOR_NEW_PIPELINE` feature flag** from `.env.local`
+- **DELETED 308 lines of legacy single-file code** from `message-stream.js` (was 4146, now 3838)
+- Global hook-name safety net (`window.useAuth`, `window.useMockAPI`) as runtime fallback for LLM-omitted imports
+- "From blank page to working app in under 2 minutes" credibility marker on `LoginPage.jsx`
+
+### Session 8 (COMPLETE, 2026-02-18) — Codegen Robustness + Persistence + Share
+
+**4 deliverables shipped:**
+
+1. **Missing-imports post-processor** — `autoInjectMissingImports()` in `/app/lib/ai/brief-utils.js` scans every generated file for bare `useAuth()`/`useMockAPI()` calls and auto-inserts the correct relative-path import if absent. Runs in `normalizeFiles()` after every wave + repair. Fixes the LLM's occasional import-omission at save time instead of relying on the runtime safety net. 11 new unit tests cover: pages/*, components/* (uses `./` path), never-touches-source-files, idempotent, combined imports, injects-after-existing-imports.
+
+2. **BriefProgressCard persistence to backend** — `stream-handler.js` now accumulates `archetype` / `brief_plan` / `wave_complete` / `review_result` events during the stream into `briefProgressAccumulator`, then writes it into `messages.metadata.briefProgress` on final save. Chat reload via `loadMessages()` now restores the progress card from database metadata — card survives page refresh.
+
+3. **Editable archetype chip** — ArchetypeHint now renders its archetype label as a clickable button with a ChevronDown. Click → opens a scrollable picker of all 17 archetypes. Selecting one sets `brief.archetype_override`, which gets appended to the build instructions ("Archetype override: saas_tool"). The pipeline's classifier step now checks for `Archetype override:` in the message text FIRST and skips LLM classification when user has explicitly chosen one. "Reset to auto" link returns to the auto-detected archetype.
+
+4. **Share-build-time button** — `ShareBuildTime` sub-component on `BriefProgressCard`. Shows two pills after build completion: "Share build time" (copies "I just built {brand} — a working {archetype} with {N} files in {seconds} seconds. 🚀 #Emanator" to clipboard) + "Tweet it" (opens pre-filled twitter.com/intent/tweet). Zero dependencies.
+
+**Tests:** **84/84 pipeline tests pass**, lint clean, service restart clean, HTTP 200. Smoke screenshot confirmed InlineBrief form renders properly with The Big Picture section visible.
+
+**Status of the runtime safety net:** still in place as belt-and-suspenders. Two layers now protect against missing imports: (1) codegen post-processor inserts them at save time, (2) runtime `window.useAuth` / `window.useMockAPI` catches any that slip through.
+
+## Prioritized Backlog
+
+### P0 — Session 9 (NEXT)
+- End-to-end validation dogfood confirming: new builds now include `useAuth` imports on first try, archetype override works, BriefProgressCard persists across reload, share button works
+- Optional dry-run / confirm-before-build mode: render the plan for 10 seconds with a Cancel button before starting waves
+- Remaining recipes: `forgot_password_success`, `generic_list_page`, `item_detail_crud`, `search_page`
+
+### P1 — Session 10
+- Archetype onboarding cards on landing (6 giant tiles instead of login form as primary CTA)
+- "Remix archetype" button on existing projects — swap archetype while preserving brand/copy
+- "Time to working app" metric that tracks the P50 / P95 over the last 100 builds (observability)
+
+### P2 — Future
+- Real Supabase wiring (opt-in via user-provided keys)
+- Deployable export to Vercel
+- Responsive / accessibility passes
+- Versioning/rollback UI
+- Project templates / one-click starters
 
 **🎉 MILESTONE: New pipeline is the only pipeline.** Fourth dogfood (iteration_102.json) confirmed:
 - ✅ `__namedImport` preview fix works (landing page renders cleanly, Navbar + Login with imports work)
