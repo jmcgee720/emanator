@@ -33,6 +33,36 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 18 (COMPLETE, 2026-02-18) — Axe-core a11y audit + conversational-edit quick-action chips
+
+**Shipped:**
+
+1. **Axe-core live a11y audit against preview iframe** — new "Audit" button in PreviewTab toolbar (`data-testid='preview-audit-a11y'`) posts `__RUN_A11Y_AUDIT__` to the iframe. Iframe lazy-loads axe-core from unpkg CDN (~400KB gzipped, only on first audit), runs `axe.run(document)` against the preview DOM, posts results back via `__PREVIEW_A11Y_RESULT__`. Parent renders results in a collapsible panel (`data-testid='preview-a11y-panel'`) with color-coded impact badges (critical/serious/moderate/minor), violation HTML snippets, and deep-links to the Deque help docs. Clean runs show green "No violations" confirmation with the passes count. Complements (and catches what's missed by) the existing prompt-based RULE 6 a11y gate in the reviewer.
+
+2. **Conversational-edit quick-action chips** — new `QuickActionChips.jsx` renders above ChatComposer on existing projects (`selectedChat && messages.length > 1`). 5 generic chips (Change color, Add a page, Mobile-friendlier, Rewrite copy, Polish UI) + 1 archetype-specific chip (Add feature for SaaS, Add project for portfolio, Tune prompt for AI apps, etc.). Clicking pre-populates the composer with a helpful starter prompt + focuses the textarea. ChatComposer now accepts `ref` from LeftPanel via `forwardRef` (already existed, just wired).
+
+**Tests:** +7 chip data tests (`test_quick_action_chips.test.js`). Full suite now **155/155 across 13 files**. Lint clean. Testing agent `iteration_109.json` confirmed 100% backend + 100% frontend success.
+
+## Prioritized Backlog
+
+### P0 — Session 19
+- **Vercel deploy webhook** — replace 3s polling with push notifications (Vercel sends state updates directly to our endpoint)
+- **Multi-image art-direction comparison** — when user uploads 3+ references, let them weight/reject individual images before the planner runs
+- **Per-archetype recipe tuning admin** — admin UI to edit recipe code + hot-reload without redeploy
+
+### P1 — Session 20 (launch-ready)
+- **Public project gallery + Remix button** — list public projects, "Remix" button clones the latest `auto_build` snapshot into a new project for the viewer
+- **Branded custom domains** — user attaches their own domain to a deployed Vercel project
+- **Auto-generated server-side Stripe Checkout function** — export includes `api/stripe/checkout.js` template that uses user's secret key env var
+
+### P2 — Growth/scale (Sessions 21+)
+- Team collaboration (multi-user per project)
+- Analytics dashboard (build counts, deploy counts, archetype trends, funnel)
+- Referral / invite loops
+- Project templates / one-click starters
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 17 Part 2 (COMPLETE, 2026-02-18) — Versioning/rollback UI + Vercel deploy status polling
 
 **Shipped:**
