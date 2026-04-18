@@ -33,6 +33,40 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 17 Part 2 (COMPLETE, 2026-02-18) — Versioning/rollback UI + Vercel deploy status polling
+
+**Shipped:**
+
+1. **Vercel deploy status polling UX fix** — polling infrastructure existed but only updated the history list; users stared at an amber "QUEUED" chip that never changed on the just-deployed card. Fixed: polling now updates both `deployments[]` AND the fresh `deployResult` card, so the chip flips amber "Building" → green "Live" automatically when Vercel returns READY. Poll interval dropped 5s → 3s. New status chip (`data-testid='deploy-result-status'`) on the result card.
+
+2. **Versioning/rollback UI** — complete snapshot system:
+   - **Auto-snapshot** after every successful brief build (`message-stream.js` Step 6, non-critical) with metadata `{ kind: 'auto_build', archetype, brand, file_count, run_id }`.
+   - **Pre-restore safety snapshot** — before destroying current state during a rollback, automatically snapshot it as `kind: 'pre_restore'` so the user can undo the undo.
+   - **DELETE /snapshots/:id** endpoint + `db.snapshots.delete()` helper.
+   - **`VersionsPanel.jsx`** modal opened from ProjectHub "Versions" button. Shows color-coded snapshot rows (cyan = auto build, amber = pre-restore, neutral = manual). Latest row marked with "latest" chip. Restore uses 2-click confirmation. Delete is hover-revealed.
+   - Share-link snapshots (`__share__*`) are filtered out so they don't clutter the version history.
+
+3. **Tests:** +10 new snapshot route tests (auth, CRUD, pre-restore flow). Full suite now 148/148 across 12 files.
+
+## Prioritized Backlog
+
+### P0 — Session 18
+- **Axe-core live a11y audit** against preview iframe (the one deferred item from Session 17)
+- **Conversational-edit quick-action chips** on generated files ("Change color", "Add a new page", "Rename") that pre-populate the chat composer
+
+### P1 — Session 19
+- **Per-archetype recipe tuning admin** — non-main-agent users can edit recipes without redeploy
+- **Multi-image art-direction comparison** — weight/reject individual references when user uploads 3+ images
+- **Vercel deploy webhook** — replace polling with push notifications
+
+### P2 — Launch-ready (Session 20+)
+- Public project gallery / remix-a-friend's-app
+- Branded custom domains for deployed apps
+- Team collaboration (multi-user per project)
+- Auto-generated server-side Stripe Checkout function in export
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 17 Part 1 (COMPLETE, 2026-02-18) — One-click Deploy to Vercel (real, not broken)
 
 The biggest launch-gating feature. Before this session the `/api/projects/:id/deploy/vercel` route technically existed but sent the raw generation output (React hooks-as-globals, no package.json scaffold, `framework: null`) — which would **fail on Vercel's build step**. This session wires the existing `buildVercelReadyFileMap` into the deploy path, turning the button from cosmetic into real.
