@@ -33,6 +33,43 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Sessions 15 + 16 (COMPLETE, 2026-02-18) — Stripe + art-direction + responsive review
+
+Shipped 3 of the 5 planned items thoroughly. Deferred 2 honestly for Session 17 (bigger UX projects — shipping them alongside would have been shallow).
+
+**Shipped:**
+
+1. **Stripe opt-in wiring (Session 16 headline)** — same pattern as Supabase. Two new recipes (`stripe_client`, `stripe_pricing_3tier`). `recipesForWave({useStripe})` swaps `pricing_3tier` → Stripe Checkout variant when the user has added a publishable key. `BackendConfigModal` got a Stripe field (validates `pk_test_` / `pk_live_` prefix — rejects secret keys). Vercel bundler emits `@stripe/stripe-js` dep, `VITE_STRIPE_PUBLISHABLE_KEY` in `.env.local.example`, and a README section with Checkout-session endpoint contract. Preview falls back to signup route when unconfigured.
+
+2. **Art-direction reference-screenshot loop (Session 15 headline)** — new `lib/ai/art-direction.js` runs GPT-4o Vision on 1–4 reference images uploaded with a Creative Brief. Produces a tight aesthetic brief (Aesthetic / Palette / Typography / Layout / Motion / AVOID). Piped BEFORE planning (Step 1.5 in `runNewBriefPipeline`) and injected into both the architect prompt and every wave's builder prompt. `BriefProgressCard` shows a collapsible "Art direction from N references" summary chip. SSE event `art_direction` wired end-to-end (stream-handler → stream-client → useDashboardStream → message metadata).
+
+3. **Responsive self-review pass** — new HARD RULE #14 in `brief-builder.js` (RESPONSIVE BASELINE: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`, responsive headlines, mobile nav toggles, `max-w-*` containers). Reviewer RULE 7 flags missing responsive classes as broken → triggers auto-repair.
+
+**Deferred to Session 17 (scope-managed):**
+- **Versioning/rollback UI** — real UX project (snapshot list, diff view, restore flow). Not a prompt tweak.
+- **Axe-core live a11y audit** — needs to run axe against the preview iframe. Expensive relative to existing prompt-based a11y gate (RULE 6 already catches most issues). Revisit if real a11y regressions appear post-launch.
+
+**Tests:** 130/130 pipeline tests pass (+10 Stripe wiring, +8 art-direction) across 10 test files. Testing agent `iteration_106.json` confirmed 100% backend + 100% frontend success. Lint clean.
+
+## Prioritized Backlog
+
+### P0 — Session 17 (NEXT)
+- **One-click Deploy to Vercel** — call out by user as highest-ROI next. Vercel Deploy API + OAuth. Takes "ZIP → manual upload" to "type brief → 2 min later live on the open internet".
+- **Versioning/rollback UI** — snapshot list + restore flow in ProjectHub
+- **Axe-core self-review** — run against the preview iframe for real a11y auditing (supersedes prompt-based RULE 6)
+
+### P1 — Session 18
+- **Conversational code editing UX polish** — quick-action chips on generated files ("Change color", "Add a new page"), surface file-edit intent clearer in the chat
+- **Per-archetype recipe tuning** — admin dashboard to edit recipes without redeploying
+- **Multi-image comparison in art-direction** — when user uploads 3+ references, let them weight/reject individual images
+
+### P2 — Future
+- Public project gallery / remix-a-friend's-app
+- Branded custom domains for deployed apps
+- Team collaboration (multi-user per project)
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 14 (COMPLETE, 2026-02-18) — Real backend opt-in + Vercel-ready export + chat-driven iteration
 
 **3 major deliverables shipped (+ honest deferrals):**
