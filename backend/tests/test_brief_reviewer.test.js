@@ -152,3 +152,49 @@ describe('repairBuild', () => {
     expect(result.filesRepaired).toContain('pages/Signup.jsx')
   })
 })
+
+// ──────────────────────────────────────────────────────────────────────
+// Prompt rule tests — capture the system prompt sent to the LLM and
+// assert the anti-duplicate-navbar + ignored-logo rules are present.
+// These are the rules that catch the regressions surfaced in v20 testing.
+// ──────────────────────────────────────────────────────────────────────
+describe('reviewBuild system prompt — hard rule coverage', () => {
+  async function captureSystemPrompt() {
+    const captured = { prompt: null }
+    const provider = {
+      chat: jest.fn().mockImplementation(async (messages) => {
+        captured.prompt = messages.find((m) => m.role === 'system')?.content || ''
+        return '{"ok":true,"missing":[],"broken":[]}'
+      }),
+    }
+    await reviewBuild({
+      plan,
+      filesBuilt: [{ path: 'app/page.jsx', content: 'x'.repeat(500) }],
+      provider,
+    })
+    return captured.prompt
+  }
+
+  test('prompt flags router-level Navbar as duplicate-causing', async () => {
+    const prompt = await captureSystemPrompt()
+    expect(prompt).toMatch(/Router cleanliness/i)
+    expect(prompt).toMatch(/DUPLICATE navbars?/i)
+    expect(prompt).toContain('router-renders-navbar-causing-duplicates')
+  })
+
+  test('prompt flags ignored user-uploaded logo/hero as broken', async () => {
+    const prompt = await captureSystemPrompt()
+    expect(prompt).toContain('components/assets.js')
+    expect(prompt).toContain('LOGO_URL')
+    expect(prompt).toContain('HERO_URL')
+    expect(prompt).toContain('ignored-user-logo')
+    expect(prompt).toContain('ignored-user-hero-image')
+  })
+
+  test('prompt flags generic marketing copy as broken', async () => {
+    const prompt = await captureSystemPrompt()
+    expect(prompt).toMatch(/Brand copy discipline/i)
+    expect(prompt).toContain('generic-marketing-copy')
+    expect(prompt).toContain('Welcome to our platform')
+  })
+})

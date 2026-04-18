@@ -1,0 +1,137 @@
+{
+  "summary": "Session 21 testing complete. ALL 201 TESTS PASSING across 15 test files. Verified new regression guards for: (1) mapImageAssets - 9 tests covering role tagging (logo/hero/reference), 4-image cap, data URI prefixing, first-of-≤2-is-logo heuristic, (2) buildAssetsFileContent - 7 tests covering LOGO_URL/HERO_URL/REFERENCE_N exports, backtick/$ escaping, valid JS output, (3) buildWaveSystemPrompt - 6 tests verifying HARD RULE #15 (router cleanliness/no duplicate navbars), #16 (use provided image assets), #17 (brand copy discipline), (4) reviewBuild prompt - 3 tests confirming router-renders-navbar-causing-duplicates flag, ignored-user-logo/hero flags, generic-marketing-copy flag.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_brief_utils.test.js",
+    "/app/backend/tests/test_brief_builder.test.js",
+    "/app/backend/tests/test_brief_reviewer.test.js",
+    "/app/backend/tests/test_archetypes.test.js",
+    "/app/backend/tests/test_art_direction.test.js",
+    "/app/backend/tests/test_brief_planner.test.js",
+    "/app/backend/tests/test_gallery_routes.test.js",
+    "/app/backend/tests/test_quick_action_chips.test.js",
+    "/app/backend/tests/test_share_remix.test.js",
+    "/app/backend/tests/test_snapshots_route.test.js",
+    "/app/backend/tests/test_stats_my_builds.test.js",
+    "/app/backend/tests/test_stripe_wiring.test.js",
+    "/app/backend/tests/test_supabase_wiring.test.js",
+    "/app/backend/tests/test_vercel_bundler.test.js",
+    "/app/backend/tests/test_vercel_deploy.test.js"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: mapImageAssets correctly tags roles (logo/hero/reference) based on filename hints",
+    "PASS: mapImageAssets caps at 4 images to respect token budget",
+    "PASS: mapImageAssets uses 'first of ≤2 is logo' heuristic for unnamed images",
+    "PASS: mapImageAssets prefixes data: URIs correctly by extension (png/jpg/webp/svg)",
+    "PASS: mapImageAssets preserves existing data: URIs without re-prefixing",
+    "PASS: buildAssetsFileContent returns valid JavaScript with LOGO_URL/HERO_URL/REFERENCE_N exports",
+    "PASS: buildAssetsFileContent escapes backticks and $ characters inside data URLs",
+    "PASS: buildWaveSystemPrompt contains HARD RULE #15 (ROUTER CLEANLINESS - no Navbar in router)",
+    "PASS: buildWaveSystemPrompt contains HARD RULE #16 (USE PROVIDED IMAGE ASSETS)",
+    "PASS: buildWaveSystemPrompt contains HARD RULE #17 (BRAND COPY DISCIPLINE)",
+    "PASS: buildWaveSystemPrompt includes USER-PROVIDED IMAGE ASSETS context block only when imageAssets populated",
+    "PASS: reviewBuild prompt flags router-renders-navbar-causing-duplicates",
+    "PASS: reviewBuild prompt flags ignored-user-logo and ignored-user-hero-image",
+    "PASS: reviewBuild prompt flags generic-marketing-copy",
+    "PASS: All 15 test files pass (201/201 tests)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend-only testing)"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session 21 complete. New regression guards added for duplicate navbar, ignored logo uploads, and generic copy issues. mapImageAssets + buildAssetsFileContent extracted to lib/ai/brief-utils.js. buildWaveSystemPrompt exported from lib/ai/brief-builder.js with HARD RULES 15/16/17. reviewBuild prompt in lib/ai/brief-reviewer.js has rules 8/9/10 for router/image/copy checks. Jest suite now at 201/201 tests across 15 files. All tests are pure unit/prompt tests - no DB, no LLM, no HTTP required.",
+  "jest_test_results": {
+    "total_tests": 201,
+    "passed": 201,
+    "failed": 0,
+    "test_suites": [
+      {"file": "test_brief_utils.test.js", "tests": 40, "status": "PASS"},
+      {"file": "test_brief_builder.test.js", "tests": 13, "status": "PASS"},
+      {"file": "test_brief_reviewer.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_archetypes.test.js", "tests": 35, "status": "PASS"},
+      {"file": "test_art_direction.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_brief_planner.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_gallery_routes.test.js", "tests": 13, "status": "PASS"},
+      {"file": "test_quick_action_chips.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_share_remix.test.js", "tests": 6, "status": "PASS"},
+      {"file": "test_snapshots_route.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_stats_my_builds.test.js", "tests": 5, "status": "PASS"},
+      {"file": "test_stripe_wiring.test.js", "tests": 12, "status": "PASS"},
+      {"file": "test_supabase_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_vercel_bundler.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_vercel_deploy.test.js", "tests": 8, "status": "PASS"}
+    ]
+  },
+  "features_verified": {
+    "mapImageAssets": {
+      "file": "lib/ai/brief-utils.js lines 108-124",
+      "tests": 9,
+      "coverage": [
+        "empty/null input returns []",
+        "filters attachments without data",
+        "filename 'logo/mark/icon/brand' → role=logo",
+        "filename 'hero/banner/cover/header' → role=hero",
+        "first of ≤2 unnamed images → role=logo",
+        "larger batches default to reference",
+        "caps at 4 images",
+        "prefixes data: URI by extension (png/jpg/webp/svg)",
+        "preserves existing data: URIs"
+      ]
+    },
+    "buildAssetsFileContent": {
+      "file": "lib/ai/brief-utils.js lines 135-145",
+      "tests": 7,
+      "coverage": [
+        "empty input returns ''",
+        "emits LOGO_URL for logo role",
+        "emits HERO_URL for hero role",
+        "emits REFERENCE_N for additional references",
+        "escapes backticks in data URL",
+        "escapes $ in data URL",
+        "output is valid evaluable JavaScript"
+      ]
+    },
+    "buildWaveSystemPrompt_hard_rules": {
+      "file": "lib/ai/brief-builder.js lines 76-99",
+      "tests": 6,
+      "coverage": [
+        "HARD RULE #15 (ROUTER CLEANLINESS) present",
+        "HARD RULE #16 (USE PROVIDED IMAGE ASSETS) present",
+        "HARD RULE #17 (BRAND COPY DISCIPLINE) present",
+        "Image-asset context block appears only when imageAssets populated",
+        "HERO_URL mentioned when hero asset present",
+        "Generic placeholder ban names real offenders"
+      ]
+    },
+    "reviewBuild_prompt_rules": {
+      "file": "lib/ai/brief-reviewer.js lines 61-78",
+      "tests": 3,
+      "coverage": [
+        "Rule 8: router-renders-navbar-causing-duplicates flag",
+        "Rule 9: ignored-user-logo / ignored-user-hero-image flags",
+        "Rule 10: generic-marketing-copy flag"
+      ]
+    }
+  },
+  "mocked_apis": {
+    "note": "All tests mock the LLM provider with jest.fn(). No external APIs called.",
+    "mocked": ["provider.chat (OpenAI / Emergent LLM)", "provider.chatWithToolsStream (OpenAI / Emergent LLM)"]
+  }
+}
