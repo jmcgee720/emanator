@@ -1,6 +1,7 @@
 'use client'
 
-import { Palette, Plus, Smartphone, Type, Wand2, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Palette, Plus, Smartphone, Type, Wand2, Trash2, Accessibility } from 'lucide-react'
 
 /**
  * Quick-action chips rendered just above the ChatComposer on existing projects.
@@ -72,8 +73,29 @@ export const ARCHETYPE_ACTIONS = {
 export default function QuickActionChips({ archetypeId, onChoose }) {
   if (typeof onChoose !== 'function') return null
 
+  // Subscribe to the latest a11y audit from PreviewTab so we can surface a
+  // one-click "Fix all violations" chip. Closes the audit → repair loop.
+  const [a11yViolations, setA11yViolations] = useState(() => {
+    if (typeof window === 'undefined') return []
+    return window.__EMANATOR_LATEST_A11Y__?.violations || []
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (ev) => setA11yViolations(ev.detail?.violations || [])
+    window.addEventListener('emanator:a11y-result', handler)
+    return () => window.removeEventListener('emanator:a11y-result', handler)
+  }, [])
+
   const archetypeExtras = ARCHETYPE_ACTIONS[archetypeId] || []
   const chips = [...archetypeExtras, ...GENERIC_ACTIONS].slice(0, 6)
+
+  // Build the a11y-fix prompt lazily from the current violations.
+  const a11yFixPrompt = () => {
+    const top = (a11yViolations || []).slice(0, 5)
+    if (top.length === 0) return ''
+    const bullets = top.map((v) => `- [${v.impact || 'minor'}] ${v.help}${v.nodes?.[0]?.html ? ` — in: \`${v.nodes[0].html.slice(0, 120)}\`` : ''}`).join('\n')
+    return `Fix these accessibility violations flagged by the audit:\n\n${bullets}\n\nPreserve the existing design — only change what's needed to resolve these issues.`
+  }
 
   return (
     <div
@@ -83,6 +105,21 @@ export default function QuickActionChips({ archetypeId, onChoose }) {
       data-testid="quick-action-chips"
     >
       <span className="text-[10px] em-text-muted mr-1">Quick edits:</span>
+
+      {/* Contextual a11y-fix chip — appears only when audit found issues */}
+      {a11yViolations.length > 0 ? (
+        <button
+          onClick={() => onChoose(a11yFixPrompt(), { id: 'fix-a11y', count: a11yViolations.length })}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/15 hover:text-red-200 transition-colors text-[10px] font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
+          data-testid="quick-action-fix-a11y"
+          type="button"
+          aria-label={`Fix ${a11yViolations.length} accessibility violations`}
+        >
+          <Accessibility className="w-3 h-3" aria-hidden="true" />
+          Fix {a11yViolations.length} a11y issue{a11yViolations.length === 1 ? '' : 's'}
+        </button>
+      ) : null}
+
       {chips.map((chip) => {
         const Icon = chip.icon
         return (
