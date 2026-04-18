@@ -33,6 +33,45 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 13 (COMPLETE, 2026-02-18) — Personal build stats widget + accessibility baseline
+
+**3 deliverables shipped:**
+
+1. **"Your builds this week" dashboard widget** — new `/api/stats/my-builds` endpoint (auth-gated, user-scoped) returns `{ total_this_week, fastest_seconds, favorite_archetype: { id, count, label } }` computed from the user's last 7 days of successful `new_pipeline:*` runs in `generation_runs`. New `MyBuildsWidget.jsx` renders 3 chips (total builds, fastest time, favorite archetype) above the Projects tab row. Self-hides when the user has zero builds — no dead UI.
+
+2. **Accessibility baseline across every generated app** — targeted a11y upgrade on 7 core recipes (`navbar_glass`, `signup_form`, `login_form`, `forgot_password_form`, `onboarding_wizard`, `pricing_3tier`, `landing_page`):
+   - `<label htmlFor="id">` pairs matched with `id` on every input
+   - `autoComplete` hints (`email`, `new-password`, `current-password`)
+   - `aria-invalid` / `aria-describedby` wiring on form inputs
+   - `role="alert"` + `aria-live="polite"` on error banners
+   - `<nav aria-label="Main navigation">` + `<main>` semantic landmark
+   - `role="progressbar"` with `aria-valuenow/min/max` on the onboarding wizard
+   - Skip-to-content link on `landing_page`
+   - `focus-visible:ring-2 focus-visible:ring-white/50` on every interactive element
+   - `aria-hidden="true"` on decorative gradients and icons
+
+3. **Enforcement in the pipeline prompts** — new **HARD RULE #13** in `brief-builder.js` mandates the accessibility baseline in all freshly generated files; `brief-reviewer.js` (line 69) now flags `missing-label-for-input` / `missing-role-alert` / missing `aria-label` as **broken** during the self-review pass, triggering auto-repair.
+
+**Tests:** 89/89 pipeline tests pass (added 5 new tests for `/stats/my-builds` in `test_stats_my_builds.test.js`). Lint clean. Testing agent confirmed 100% success on both backend and frontend checks (iteration_104.json).
+
+## Prioritized Backlog
+
+### P0 — Session 14 (NEXT)
+- Real Supabase wiring opt-in for generated apps: user provides Supabase URL + anon key in project settings → recipes swap MockAPI calls for real Supabase client at generation time
+- Responsive pass (mobile breakpoints, tablet) on generated output — complements the a11y work
+
+### P1 — Session 15
+- Deployable Vercel export with one-click deploy-to-Vercel button (verify `ExportTab.jsx` produces a working `package.json` + `next.config.js`)
+- Versioning/rollback UI for projects
+- Automated accessibility audit during the self-review (axe-core or lighthouse subset) instead of prompt-based review
+
+### P2 — Future
+- Stripe wiring for user-paid builds
+- Per-archetype recipe-tuning admin dashboard
+- Project templates / one-click starters on the Dashboard empty state
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 1 (COMPLETE, 2026-02-18)
 - `/app/lib/ai/archetypes.js` — 17 archetypes (SaaS, AI app, marketplace, social, content, portfolio, e-commerce, dashboard, chat, utility, CRM, LMS, booking, community, media, productivity, landing-only), regex-first classifier + LLM fallback, mergeArchetypeWithBrief guaranteeing required routes, canonical ROUTE_FILE_MAP, normalizeRouteName alias resolver
 - `/app/lib/ai/brief-planner.js` — generatePlan() + validatePlan() + planWaves(). Routes list is deterministic (never dropped by LLM). Wave ordering: scaffold → public → auth → app. Empty waves filtered.
