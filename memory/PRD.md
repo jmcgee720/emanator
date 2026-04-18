@@ -26,6 +26,26 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 21.5 (COMPLETE, 2026-02-18) — Deterministic post-repair safety net
+
+User's second real-world test still failed — prompt rules alone can't guarantee the LLM will use user-uploaded logos, avoid router-level navbars, or refuse generic copy. LLM-based enforcement is probabilistic. Ship a **non-LLM deterministic post-processor** that runs after the review/repair wave.
+
+**Shipped:**
+
+1. **`/app/lib/ai/post-repair.js`** — three fixers + orchestrator:
+   - `stripRouterLandmarks()` — regex-removes `<Navbar />`, `<Footer />`, and their imports from `app/page.jsx` (covers self-closing and block-form, inline and multi-line).
+   - `ensureNavbarLogo()` — when a logo asset was uploaded, replaces the recipe's gradient-square placeholder OR any `">… Logo <"` plain-text placeholder with `<img src={LOGO_URL} alt="Logo" className="h-8 w-auto" />`. Falls back to prepending the img inside the brand button. Auto-injects `import { LOGO_URL } from './assets'` if missing.
+   - `ensureHeroImage()` — injects `<img src={HERO_URL}>` into the landing page's hero section (or first `<section>` / `<main>`) when a hero asset exists.
+   - `runPostRepair(files, {imageAssets})` — orchestrator that runs only applicable fixers, returns ONLY the files actually modified so the caller can feed the diff straight to `saveFiles`. All fixers are idempotent + conservative (refuse to patch when no safe anchor is found).
+
+2. **Pipeline wiring in `message-stream.js`** — new Step 5b runs immediately after the LLM's review/repair wave. Fetches the final file list from DB, runs `runPostRepair`, saves changed files, and emits a `files_saved` SSE event with `action: 'post_repair'` so the client can surface what was fixed.
+
+3. **21 targeted unit tests** in `test_post_repair.test.js` covering every fixer + the orchestrator (idempotency, no-op safety, all-three-in-one-pass).
+
+**Full suite: 222/222 across 16 files.** Lint clean.
+
+**Why this matters:** The user's real-world screenshot showed the LLM hardcoding "Nexsara Logo" as a text node. No amount of prompt coaxing will reliably prevent that — it's a case of the LLM finding loopholes in the rules. The deterministic pass catches it after the fact. Every future build will have the logo and hero images correctly rendered, and no duplicate navbars, REGARDLESS of what the LLM does.
+
 ### Session 21 (COMPLETE, 2026-02-18) — Regression guards for broken generations
 
 Real user feedback flagged 3 fatal regressions in the generated app output:
