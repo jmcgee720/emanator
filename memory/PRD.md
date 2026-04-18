@@ -70,6 +70,45 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - Share-build-time feature — clipboard copy + twitter.com/intent/tweet link on BriefProgressCard.
 
 ### Session 9 (COMPLETE, 2026-02-18) — 🎉 Full Validation, 4 New Recipes
+- Validation dogfood (iteration_103.json): **5/5 features passed, 100% success**. NexsaraV9 built in 72 seconds, 17 files, auto-generated Signup/Login/Dashboard without being asked.
+- Added 4 recipes: `generic_list_page`, `item_detail_crud`, `forgot_password_success`, `search_page` wired into archetype-specific wave selection.
+
+### Session 10 (COMPLETE, 2026-02-18) — Telemetry + Real P50 + Archetype Quick-Start
+
+**Build telemetry — zero schema changes:**
+- `runNewBriefPipeline` now logs `tool_mode: 'new_pipeline:${archetype.id}'` into the existing `generation_runs` table. Archetype is encoded in the tool_mode string; no migration needed.
+- New `/api/stats/build-times` endpoint at `/app/lib/api/routes/stats.js`. Queries last 200 successful builds in the 30-day window, computes P50/P95/fastest, returns counts by archetype. 60-second cache. Public (no auth) — these are marketing metrics. Clamps anomalies (<5s, >15min).
+
+**Landing page now shows REAL data:**
+- `LoginPage.jsx` fetches `/api/stats/build-times` on mount. When ≥5 builds exist, the metric changes from static "under 2 minutes" to dynamic **"From blank page to working app in 122 seconds · median of 6 builds"** (cyan accent, dim subtitle). First-time credibility shifts from "claim" to "evidence".
+- Current live values: P50=122s, P95=162s, fastest=35s across 6 builds.
+
+**Archetype quick-start tiles in InlineBrief:**
+- New `/app/components/dashboard/ArchetypeQuickStart.jsx` — 6 clickable tiles (SaaS tool / AI app / Marketplace / Portfolio / Store / CRM) with icon + label. Renders above the "What are you building?" input.
+- Click fills `elevator_pitch` with a starter template + sets `archetype_override` so the pipeline skips LLM classification. Turns a blank form into a decisive starting point.
+
+**Tests:** 84/84 pipeline tests pass. Lint clean. HTTP 200. Stats endpoint verified returning real data. Screenshot confirmed P50 rendered cleanly on landing.
+
+**Deferred to Session 11 (scope creep defense):**
+- "Remix archetype" button on existing projects — overlaps with the editable picker; bigger ask than Session 10 budget
+- Dry-run / confirm-before-build mode — requires new SSE pause/resume plumbing
+
+## Prioritized Backlog
+
+### P0 — Session 11 (NEXT)
+- "Remix archetype" button on existing projects: rebuild with new archetype preserving brand/copy
+- Dry-run / confirm mode: pause pipeline at `brief_plan`, require user click to start waves
+- "Build recipe preview" link in archetype picker: show file/flow breakdown before committing
+
+### P1 — Session 12
+- Real Supabase wiring opt-in for generated apps (replace MockAPI with real backend)
+- Deployable Vercel export
+- Responsive / accessibility passes on generated output
+
+### P2 — Future
+- Versioning/rollback UI for projects
+- Project templates / one-click starters
+- Per-archetype success-rate dashboard (uses the same telemetry)
 
 **Validation dogfood (iteration_103.json): ALL 5 FEATURES PASSED, 100% success rate.**
 

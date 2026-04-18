@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +16,16 @@ export default function LoginPage({ onAuthSuccess }) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState('signin')
+  const [buildStats, setBuildStats] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/stats/build-times')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!cancelled && data?.total_builds > 5) setBuildStats(data) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
   const [staySignedIn, setStaySignedIn] = useState(true)
 
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -158,7 +168,14 @@ export default function LoginPage({ onAuthSuccess }) {
 
         <p className="mt-3 text-xs" style={{ color: '#6B7094' }} data-testid="landing-time-metric">
           From blank page to working app in{' '}
-          <span className="font-semibold" style={{ color: '#00E5FF' }}>under 2 minutes</span>
+          {buildStats?.p50_seconds ? (
+            <>
+              <span className="font-semibold" style={{ color: '#00E5FF' }} data-testid="landing-p50-seconds">{buildStats.p50_seconds} seconds</span>
+              <span style={{ color: '#4B5178' }}> · median of {buildStats.total_builds} builds</span>
+            </>
+          ) : (
+            <span className="font-semibold" style={{ color: '#00E5FF' }}>under 2 minutes</span>
+          )}
         </p>
       </div>
 
