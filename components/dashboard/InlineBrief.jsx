@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Loader2, ChevronDown, ChevronRight, Check, Sparkles, ImagePlus, X as XIcon } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
+import ArchetypeHint from './ArchetypeHint'
 
 const MOOD_OPTIONS = ['Professional', 'Playful', 'Bold', 'Minimal', 'Luxurious', 'Techy', 'Warm', 'Edgy', 'Elegant', 'Confident', 'Rustic']
 const PAGE_OPTIONS = ['Home', 'About', 'Pricing', 'Features', 'Blog', 'Contact', 'Dashboard', 'Login', 'FAQ', 'Testimonials', 'Gallery']
@@ -338,6 +339,7 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
             <Input value={brief.elevator_pitch} onChange={v => updateField('elevator_pitch', v)} placeholder="e.g., A SaaS landing page for freelancers who need simple task tracking" label="What are you building?" rows={2} testId="brief-elevator-pitch" />
             <Input value={brief.target_audience} onChange={v => updateField('target_audience', v)} placeholder="e.g., Freelance designers, 25-40, value simplicity" label="Who is it for?" rows={2} testId="brief-target-audience" />
             <Input value={brief.primary_goal} onChange={v => updateField('primary_goal', v)} placeholder="e.g., Increase signups through automated marketing with minimal manual work" label="Primary goal" rows={2} testId="brief-primary-goal" />
+            <ArchetypeHint brief={brief} />
           </BriefSection>
 
           <BriefSection title="Brand & Style" subtitle="Visual direction" open={!!openSections.brand} onToggle={() => toggleSection('brand')}>
