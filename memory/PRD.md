@@ -53,46 +53,63 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 - Event collision fix: renamed new pipeline's `plan` event to `brief_plan`.
 - Tests: `test_brief_reviewer.test.js` — 8 tests.
 
-### Session 5 (COMPLETE, 2026-02-18) — Fix Bug + Polish + New Recipes
+### Session 6 (COMPLETE, 2026-02-18) — Preview Fix + Archetype Hint
 
-**Re-dogfood results (iteration_100.json):**
-- ✅ Double-escape fix **verified working** — all generated files have real newlines, no literal `\n` strings
-- ✅ 17 files, 4 waves, archetype auto-classified (this time as `ai_app` because brief said "AI-powered"), Signup auto-generated
-- ❌ New issue discovered: LLM deviated from recipe naming and wrote `signUp` (camelCase) while AuthContext exports `signup` (lowercase), producing `useAuth is not a function` runtime error
-- ❌ BriefProgressCard disappeared after build completes (metadata was being wiped in `onMessageSaved`)
+**Third dogfood (iteration_101.json) key wins verified:**
+- ✅ Symbol-name fix **confirmed working** — all generated code uses lowercase `signup`/`login`/`logout`, no more camelCase drift
+- ✅ Double-escape fix holds — all 17 files have real newlines
+- ✅ **NEW: ArchetypeHint component** appears live as user types the brief. Verified: "Looks like a SaaS tool / B2B software" appears with auto-routes ("login · signup · forgot_password · dashboard"). Turns the invisible classification step into a trust-building moment before the 90-second build.
 
-**Fixes applied this session:**
-- Added "★ EXACT SYMBOL NAMES" section to both the builder's wave prompt and the reviewer's repair prompt — explicitly forbids renaming `signup` to `signUp`, `login` to `signIn`, etc. This kills the camelCase drift at generation time.
-- Fixed `onMessageSaved` in `useDashboardStream.js` to preserve `briefProgress` metadata across the message save boundary (previously it was wiped when the temp message id was swapped for the real one). Also force-sets status=complete when this happens.
-- Added live "time to working app" counter on `BriefProgressCard` — shows `Xs` while building, freezes at `Xs to working app` on completion (emerald color, Timer icon).
-- Added 5 new recipes: `settings_page`, `profile_page`, `data_table`, `chat_interface`, `empty_state`.
-- `recipesForWave()` now smart-injects recipes by archetype: `ai_app` / `chat_app` get `chat_interface`; `crm` / `dashboard_internal` / `marketplace` / `ecommerce` / `booking` / `productivity` get `data_table`; all non-landing archetypes get `settings_page` in the app wave.
-- Flag `EMANATOR_NEW_PIPELINE=1` remains set — the new pipeline is the active path.
+**Blocker surfaced: preview iframe threw `useAuth is not a function`** even though generated code was correct. Root cause: the Babel AST plugin in `PreviewTab.jsx` rewrote all named imports as `__lazy('useAuth')`, which returns a React component wrapper — not a callable hook.
 
-**Tests:** 73/73 pipeline tests still pass, lint clean.
+**Fix shipped (Session 6):**
+- Added `window.__NAMED__` registry to preview runtime preamble
+- Added `__namedImport(modName, exportName)` resolver — returns a deferred function that looks up the real hook at call time (handles any eval order)
+- Patched AST plugin's `ImportSpecifier` handler: PascalCase named imports keep the `__lazy` path (named component exports), lowercase ones use `__namedImport` (hooks/utils)
+- Patched AST plugin's `ExportNamedDeclaration` handler: now emits `window.__NAMED__[modName].exportName = exportName` for every named function/const export, so sibling files can resolve them
+
+**New components/files:**
+- `/app/components/dashboard/ArchetypeHint.jsx` — client-side live archetype preview below the elevator-pitch field
+
+**Known minor issue deferred to Session 7:**
+- BriefProgressCard disappears on chat reload because `briefProgress` metadata is frontend-only (not persisted to backend). The earlier preserve-on-save fix works during the stream, but `loadMessages()` wipes it on chat switch. Fix needs backend metadata persistence or sessionStorage hydration. LOW user-facing impact (card is correctly shown during the build — the moment that matters).
+
+**Flag status:** `EMANATOR_NEW_PIPELINE=1` remains active. Flag removal deferred to Session 7 pending one more dogfood confirming the preview actually renders end-to-end now.
 
 ## Prioritized Backlog
 
-### P0 — Session 6 (NEXT)
-- One more dogfood run to verify the symbol-name fix actually worked (LLM prompts are empirical, not deterministic)
-- If the run is clean, **remove the `EMANATOR_NEW_PIPELINE` flag and delete the legacy single-file prompt** (lines 145–176 of message-stream.js). Milestone: new pipeline becomes the only pipeline.
-- Add "Time to working app" metric to Emanator's own landing page as a credibility marker
+### P0 — Session 7 (NEXT)
+- **Final dogfood** to verify the `__namedImport` / `__NAMED__` fix makes the preview render cleanly (no `useAuth is not a function`). If green, **remove the flag and legacy single-file prompt** — milestone.
+- Fix BriefProgressCard persistence: persist `briefProgress` to message metadata in backend (small schema addition + write in runNewBriefPipeline), or sessionStorage hydration in useDashboardStream
+- Add the "Time to working app" metric (~90s) as a credibility marker on Emanator's landing page
 
-### P1 — Session 7
+### P1 — Session 8
 - Optional dry-run / confirm-before-build mode
-- "Remix archetype" button: one-click archetype switch
-- Archetype onboarding cards on Emanator landing (6 giant archetype tiles)
-- Remaining recipes: `forgot_password_success`, `generic_list_page`, `item_detail_crud`
+- "Remix archetype" button
+- Archetype onboarding cards on landing
+- Remaining recipes
 
 ### P2 — Future
 - Real Supabase wiring (opt-in via user-provided keys)
 - Deployable export to Vercel
-- Responsive / a11y passes
+- Responsive / accessibility passes
 - Versioning/rollback UI
 - Project templates / one-click starters
 
+### Session 4 (COMPLETE, 2026-02-18) — DOGFOOD + double-escape fix
+- Flipped `EMANATOR_NEW_PIPELINE=1`, ran testing agent on Nexsara brief → 17 files in 162s, Signup auto-generated ✓
+- Found bug: LLM double-escaped content in repair wave → literal `\n` instead of newlines
+- Fix: `/app/lib/ai/brief-utils.js` with `normalizeFileContent()` helpers, applied in builder + reviewer
+
+### Session 5 (COMPLETE, 2026-02-18) — Symbol-name discipline + 5 recipes
+- Second dogfood confirmed double-escape fix; surfaced LLM camelCase drift (`signUp` instead of `signup`)
+- Fix: "★ EXACT SYMBOL NAMES" prompt section in builder + reviewer
+- Added 5 recipes: settings_page, profile_page, data_table, chat_interface, empty_state
+- Smart archetype-aware recipe injection in `recipesForWave()`
+- Live "time to working app" elapsed counter on BriefProgressCard
+
 ## Known Issues
-None from this session.
+- BriefProgressCard disappears after chat reload (frontend-only metadata, not persisted). Deferred to Session 7.
 
 ## 3rd Party Integrations
 - OpenAI GPT-4o via Emergent LLM key (text + vision)
@@ -101,7 +118,7 @@ None from this session.
 
 ## Critical Rules for Next Agent
 - DO NOT install `sharp` or native binary modules (crashes Next.js).
-- DO NOT modify the existing fast-path in Session 2 without keeping it behind the flag — new code runs side-by-side with old.
 - The `frontend` supervisor entry is a dead CRA leftover; the real app runs via `nextjs_api`. Ignore frontend FATAL status unless port 3000 actually stops responding.
-- PreviewTab.jsx **does support multi-file imports** via its AST plugin (lines 362–444). The old handoff was wrong about this.
+- PreviewTab.jsx supports multi-file imports via its AST plugin. Now also supports NAMED imports of non-component values (hooks, utils) via the new `__NAMED__` registry + `__namedImport()` resolver (PascalCase = lazy component, camelCase = named function).
 - Tests use Jest via next/jest; run with `npx jest backend/tests/<file>.test.js`.
+- The legacy single-file fast-path at `message-stream.js` lines 145–176 is scheduled for removal next session, but remains in place until one more successful dogfood confirms the preview renders cleanly with the new `__namedImport` fix.
