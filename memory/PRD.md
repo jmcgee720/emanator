@@ -33,6 +33,42 @@ Behind `EMANATOR_NEW_PIPELINE` env flag. Current fast-path runs unchanged until 
 
 ## Implemented (this session — 2026-02)
 
+### Session 17 Part 1 (COMPLETE, 2026-02-18) — One-click Deploy to Vercel (real, not broken)
+
+The biggest launch-gating feature. Before this session the `/api/projects/:id/deploy/vercel` route technically existed but sent the raw generation output (React hooks-as-globals, no package.json scaffold, `framework: null`) — which would **fail on Vercel's build step**. This session wires the existing `buildVercelReadyFileMap` into the deploy path, turning the button from cosmetic into real.
+
+**Shipped:**
+
+- **Real Vercel deploy** — `POST /api/projects/:id/deploy/vercel` now uses `buildVercelReadyFileMap` to produce a Vite + React + Tailwind scaffold (package.json, index.html, src/main.jsx with React imports auto-injected into every generated file), sends `projectSettings.framework='vite'` + `buildCommand='npm run build'` + `outputDirectory='dist'`, and base64-encodes all file contents per Vercel API v13 spec. Conditional deps (@supabase/supabase-js, @stripe/stripe-js, react-router-dom) flow through from previous sessions.
+- **Token persistence** — optional "Remember token for this project" checkbox in DeployTab. When checked, Vercel PAT is saved to `project.settings.vercel.token` so the user only pastes it once. Prefills on subsequent visits.
+- **Project name sanitization** — `"Cool App!! 2026"` → `"cool-app-2026"` for Vercel's naming rules.
+- **Clear error surfacing** — Vercel API errors (expired token, forbidden, etc.) bubble through with original message + code.
+- **Tests:** +8 Jest tests in `test_vercel_deploy.test.js` (mocks db + global fetch, exercises all error paths + happy path + saveToken flow). Full suite now 138/138 across 11 test files.
+
+**Not shipped this session (Session 17 Part 2):**
+- Versioning/rollback UI — snapshot list + restore in ProjectHub
+- Axe-core live a11y audit against preview iframe
+
+## Prioritized Backlog
+
+### P0 — Session 17 Part 2
+- **Versioning/rollback UI** — snapshot list + diff view + restore flow in ProjectHub
+- **Axe-core live a11y audit** — run axe against preview iframe, surface issues as a tab
+
+### P1 — Session 18
+- **Vercel deploy status polling** — post-deploy, poll `/v13/deployments/{id}` until state=READY and auto-update the URL chip
+- **Conversational-edit quick actions** on generated files
+- **Per-archetype recipe tuning admin**
+- **Multi-image comparison in art-direction**
+
+### P2 — Future
+- Public project gallery / remix-a-friend's-app
+- Branded custom domains for deployed apps
+- Team collaboration
+- Server-side Stripe Checkout function auto-generated as part of the Vercel export
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Sessions 15 + 16 (COMPLETE, 2026-02-18) — Stripe + art-direction + responsive review
 
 Shipped 3 of the 5 planned items thoroughly. Deferred 2 honestly for Session 17 (bigger UX projects — shipping them alongside would have been shallow).
