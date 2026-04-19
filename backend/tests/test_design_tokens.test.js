@@ -13,6 +13,9 @@ import {
   buildThemeFile,
   formatTokensForPrompt,
   analyzeDesignTokens,
+  parseBlueprint,
+  formatBlueprintForPrompt,
+  analyzeLayoutBlueprint,
 } from '../../lib/ai/design-tokens.js'
 
 describe('parseTokens', () => {
@@ -229,5 +232,155 @@ describe('analyzeDesignTokens', () => {
     const userContent = messages[1].content
     const imageCount = userContent.filter((c) => c.type === 'image_url').length
     expect(imageCount).toBe(4)
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────
+// Layout blueprint — structural-reference extraction.
+// ──────────────────────────────────────────────────────────────────────
+describe('parseBlueprint', () => {
+  test('returns null for missing sections_order', () => {
+    expect(parseBlueprint(null)).toBe(null)
+    expect(parseBlueprint('{}')).toBe(null)
+    expect(parseBlueprint('{"hero_composition":"split-50-50"}')).toBe(null)
+  })
+
+  test('accepts a fully-populated blueprint', () => {
+    const input = JSON.stringify({
+      sections_order: ['hero', 'features-grid', 'pricing', 'faq'],
+      hero_composition: 'full-bleed-image',
+      hero_text_alignment: 'left',
+      navbar_style: 'minimal-left-brand',
+      feature_columns: 3,
+      feature_card_style: 'hairline-outlined',
+      pricing_pattern: 'three-column',
+      spacing_rhythm: 'generous',
+      noticeable_patterns: ['floating hero screenshot', 'dark CTAs'],
+    })
+    const out = parseBlueprint(input)
+    expect(out.sections_order).toEqual(['hero', 'features-grid', 'pricing', 'faq'])
+    expect(out.hero_composition).toBe('full-bleed-image')
+    expect(out.feature_columns).toBe(3)
+    expect(out.noticeable_patterns).toHaveLength(2)
+  })
+
+  test('coerces invalid enumerated values to safe defaults', () => {
+    const input = JSON.stringify({
+      sections_order: ['hero'],
+      hero_composition: 'magical-floating-3d',
+      feature_columns: 17,
+      pricing_pattern: 'random-value',
+    })
+    const out = parseBlueprint(input)
+    expect(out.hero_composition).toBe('split-50-50')
+    expect(out.feature_columns).toBe(3)
+    expect(out.pricing_pattern).toBe('three-column')
+  })
+
+  test('caps sections_order at 8 entries', () => {
+    const input = JSON.stringify({
+      sections_order: Array(12).fill('hero').map((s, i) => `${s}-${i}`),
+    })
+    const out = parseBlueprint(input)
+    expect(out.sections_order).toHaveLength(8)
+  })
+
+  test('caps noticeable_patterns at 6 entries', () => {
+    const input = JSON.stringify({
+      sections_order: ['hero'],
+      noticeable_patterns: Array(10).fill('observation'),
+    })
+    const out = parseBlueprint(input)
+    expect(out.noticeable_patterns).toHaveLength(6)
+  })
+
+  test('rejects non-JSON', () => {
+    expect(parseBlueprint('not json')).toBe(null)
+  })
+})
+
+describe('formatBlueprintForPrompt', () => {
+  test('renders section order arrow-joined + patterns bulleted', () => {
+    const text = formatBlueprintForPrompt({
+      sections_order: ['hero', 'features', 'pricing'],
+      hero_composition: 'split-50-50',
+      hero_text_alignment: 'left',
+      navbar_style: 'minimal-left-brand',
+      feature_columns: 3,
+      feature_card_style: 'filled-surface',
+      pricing_pattern: 'three-column',
+      spacing_rhythm: 'generous',
+      noticeable_patterns: ['dark hero background'],
+    })
+    expect(text).toContain('hero → features → pricing')
+    expect(text).toContain('• dark hero background')
+    expect(text).toContain('YOUR COMPOSITION MUST MATCH')
+  })
+
+  test('returns empty string for null input', () => {
+    expect(formatBlueprintForPrompt(null)).toBe('')
+  })
+})
+
+describe('analyzeLayoutBlueprint', () => {
+  test('returns null for empty input', async () => {
+    expect(await analyzeLayoutBlueprint([], {})).toBe(null)
+    expect(await analyzeLayoutBlueprint(null, {})).toBe(null)
+  })
+
+  test('calls provider with vision payload + json mode', async () => {
+    const chat = jest.fn().mockResolvedValue(JSON.stringify({
+      sections_order: ['hero', 'features', 'pricing'],
+      hero_composition: 'split-50-50',
+    }))
+    const out = await analyzeLayoutBlueprint(
+      [{ type: 'image', data: 'AAAA', name: 'ref.png' }],
+      { chat }
+    )
+    expect(chat).toHaveBeenCalled()
+    const [messages, opts] = chat.mock.calls[0]
+    expect(opts.response_format).toEqual({ type: 'json_object' })
+    const userContent = messages[1].content
+    expect(userContent.some((c) => c.type === 'image_url')).toBe(true)
+    expect(out.sections_order).toEqual(['hero', 'features', 'pricing'])
+  })
+
+  test('inlines user placement notes in the prompt', async () => {
+    const chat = jest.fn().mockResolvedValue(JSON.stringify({
+      sections_order: ['hero'],
+    }))
+    await analyzeLayoutBlueprint(
+      [{ type: 'image', data: 'AAAA', name: 'ref.png', note: 'copy the exact pricing strip' }],
+      { chat }
+    )
+    const [messages] = chat.mock.calls[0]
+    const text = messages[1].content.find((c) => c.type === 'text').text
+    expect(text).toContain('copy the exact pricing strip')
+  })
+
+  test('returns null when provider throws', async () => {
+    const chat = jest.fn().mockRejectedValue(new Error('rate limit'))
+    expect(await analyzeLayoutBlueprint([{ type: 'image', data: 'A' }], { chat })).toBe(null)
+  })
+
+  test('returns null when response is not valid JSON', async () => {
+    const chat = jest.fn().mockResolvedValue('oops')
+    expect(await analyzeLayoutBlueprint([{ type: 'image', data: 'A' }], { chat })).toBe(null)
+  })
+
+  test('caps at 4 images', async () => {
+    const chat = jest.fn().mockResolvedValue(JSON.stringify({ sections_order: ['hero'] }))
+    await analyzeLayoutBlueprint(
+      [
+        { type: 'image', data: 'a' },
+        { type: 'image', data: 'b' },
+        { type: 'image', data: 'c' },
+        { type: 'image', data: 'd' },
+        { type: 'image', data: 'e' },
+      ],
+      { chat }
+    )
+    const imgs = chat.mock.calls[0][0][1].content.filter((c) => c.type === 'image_url')
+    expect(imgs).toHaveLength(4)
   })
 })
