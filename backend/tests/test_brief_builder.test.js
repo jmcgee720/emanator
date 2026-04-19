@@ -281,4 +281,41 @@ describe('buildWaveSystemPrompt — hard rules enforcement', () => {
     expect(prompt).toContain('Welcome to our platform')
     expect(prompt).toContain('Get started today')
   })
+
+  test('HARD RULE #18 (THEME-TOKEN DISCIPLINE) bans hardcoded color classes', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).toContain('THEME-TOKEN DISCIPLINE')
+    expect(prompt).toMatch(/NEVER hardcode colors/)
+    expect(prompt).toContain('bg-[var(--primary)]')
+    expect(prompt).toContain('text-[var(--ink)]')
+    expect(prompt).toMatch(/bg-<color>-<shade>/)
+  })
+
+  test('DESIGN TOKENS block appears when plan.designTokens is populated', () => {
+    const withTokens = buildWaveSystemPrompt({
+      plan: {
+        ...samplePlan,
+        designTokens: {
+          bg: '#0a0a0a', ink: '#fff', primary: '#ff5a4e',
+          surface: '#111', surface2: '#1a1a1a', border: 'rgba(255,255,255,0.1)',
+          inkMuted: 'rgba(255,255,255,0.6)', primaryInk: '#000', accent: '#ffcc00',
+          radius: '0.5rem', radiusLg: '1rem',
+          fontDisplay: '"GT Sectra", serif', fontBody: '"Inter", sans-serif',
+          mode: 'dark', vibe: 'editorial-dark', avoid: [],
+        },
+      },
+      wave,
+      filesBuiltSoFar: [],
+    })
+    expect(withTokens).toContain('DESIGN TOKENS')
+    expect(withTokens).toContain('editorial-dark')
+    expect(withTokens).toContain('#ff5a4e')
+    expect(withTokens).toContain('bg-[var(--primary)]')
+    expect(withTokens).toContain('ThemeProvider')
+  })
+
+  test('DESIGN TOKENS block is absent when plan has no designTokens', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).not.toContain('═══ DESIGN TOKENS')
+  })
 })

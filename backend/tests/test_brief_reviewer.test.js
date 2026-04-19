@@ -197,4 +197,11 @@ describe('reviewBuild system prompt — hard rule coverage', () => {
     expect(prompt).toContain('generic-marketing-copy')
     expect(prompt).toContain('Welcome to our platform')
   })
+
+  test('prompt flags hardcoded colors as bypassing the theme', async () => {
+    const prompt = await captureSystemPrompt()
+    expect(prompt).toContain('hardcoded-color-classes-bypass-theme')
+    expect(prompt).toContain('components/theme.js')
+    expect(prompt).toContain('bg-[var(--primary)]')
+  })
 })
