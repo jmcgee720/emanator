@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Image as ImageIcon, Palette, Layout, Clock } from 'lucide-react'
+import { ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Image as ImageIcon, Palette, Layout, Clock, Layers } from 'lucide-react'
 
 /**
  * BuildObservatoryPanel — renders the build_manifest emitted by the
@@ -12,7 +12,7 @@ export default function BuildObservatoryPanel({ manifest }) {
   const [open, setOpen] = useState(true)
   if (!manifest) return null
 
-  const { assets, theme, blueprint, attachments, timings = [], integrity = [], warnings = [] } = manifest
+  const { assets, theme, blueprint, family, attachments, timings = [], integrity = [], warnings = [] } = manifest
   const passed = integrity.filter((c) => c.pass).length
   const failed = integrity.length - passed
 
@@ -102,6 +102,18 @@ export default function BuildObservatoryPanel({ manifest }) {
               </div>
             )}
           </Section>
+
+          {family && (
+            <Section icon={Layers} label="Recipe family" testId="observatory-family">
+              <div className="space-y-0.5">
+                <Kv k="pick" v={family.family} />
+                <Kv k="confidence" v={`${(family.confidence * 100).toFixed(0)}%`} />
+                {family.reason && (
+                  <div className="text-white/60 italic pt-1">{family.reason}</div>
+                )}
+              </div>
+            </Section>
+          )}
 
           {blueprint && (
             <Section icon={Layout} label="Layout blueprint" testId="observatory-blueprint">

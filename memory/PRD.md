@@ -26,6 +26,50 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 26 (COMPLETE, 2026-02-19) — Recipe Families (2/7)
+
+Biggest structural lift so far. Until now, every generated app shipped the same Navbar glass + 3-column feature grid, just in different colors. Now the recipe itself swaps based on the user's references — editorial magazine gets hairline serif layouts, brutalist reference gets chunky monospace with offset shadows, luxury gets generous whitespace with thin rules.
+
+**Shipped:**
+
+1. **`lib/ai/recipe-families.js`** — 4 alternate aesthetic families + baseline:
+   - `saas-clean` (implicit baseline — existing recipes.js)
+   - `editorial-serif` — magazine/editorial with display serif, hairline separators, oversized asymmetric hero, small-caps links, text-heavy feature rows
+   - `brutalist-raw` — 2-3px borders, ALL-CAPS display, `boxShadow: '8px 8px 0 var(--primary)'` offset shadows, monospace, no radius, raw feature blocks
+   - `luxury-minimal` — generous whitespace (py-40), thin hairlines, lowercase links, centered serif hero, aspect-ratio image sections
+   - `playful-illustrated` — full-radius pills, chunky font weights, emoji accents, hover -translate-y bouncy CTAs, pastel surfaces
+   - Each family currently overrides `navbar_glass` + `landing_page` (the two recipes that carry the aesthetic tone). Auth / dashboard / forms / pricing fall through to baseline — consistent app-UX patterns don't need aesthetic variance.
+   - All variants preserve `data-testid` contracts, file paths, and React-global rules so the rest of the pipeline (post-repair, reviewer) works unchanged.
+   - All variants use CSS-variable colors only (grep-verified zero hardcoded Tailwind color classes).
+
+2. **`classifyRecipeFamily()` Vision call** (in `design-tokens.js`) — new GPT-4o classifier takes aesthetic references, returns `{family, confidence, reason}` with family forced to one of the 5 allowed IDs. Strict JSON + allowlist validation. Silent fallback to baseline on failure.
+
+3. **`formatRecipesForPrompt(recipeIds, familyId)`** — the recipe formatter now accepts an optional family id. When present, variant recipes override baseline per recipeId; non-overridden recipes still come from baseline so you can freely mix a family's landing with the baseline settings page.
+
+4. **Pipeline wiring (`message-stream.js`)** — new Step 1.5 phase `recipe_family` runs after design-tokens, emits `recipe_family` SSE event with the chosen family + reason, attaches `plan.recipeFamily = {family, confidence, reason}`. `brief-builder.js` reads `plan.recipeFamily?.family` and passes it to `formatRecipesForPrompt`. Builder prompt now has a `RECIPE FAMILY` block explaining which variant was picked and telling the LLM "do not revert to the default SaaS aesthetic."
+
+5. **Observatory panel** — new "Recipe family" section in `BuildObservatoryPanel.jsx` showing the picked family id, confidence %, and the classifier's one-line reason. Sits between design tokens and layout blueprint. `build-observatory.js` includes `family` in the manifest.
+
+6. **+25 tests (`test_recipe_families.test.js`)** — structure validation (every variant has correct file/testids, zero hardcoded colors), classifier I/O, parseFamily validation, formatRecipesForPrompt family-swap behavior, mixed baseline+variant usage.
+
+**Full suite: 325/325 across 19 files** (18 test files I maintain + test_recipe_families). Lint clean. Platform healthy.
+
+**What this unblocks for your next build:**
+- Upload Zeely screenshots as Layout → Blueprint gets section order, hero comp, navbar style
+- Upload a moodboard as Aesthetic → classifier picks family (probably `saas-clean` for Zeely, but an editorial moodboard would flip it to `editorial-serif`)
+- Builder prompt includes the family's actual recipe code, not the baseline
+- Generated navbar + landing have the family's structural DNA, not just its colors
+- Observatory shows exactly which family won and why
+
+This is the first session where the "output looks fundamentally different per reference" promise is actually structural. Prior sessions only changed colors/tokens.
+
+**Sessions remaining in the 7-session roadmap:**
+- 3/7 Service-worker virtual filesystem — enables real image paths, unblocks base64 constraint
+- 4/7 Screenshot-verify (Puppeteer → Vision diff)
+- 5/7 Repair loop driven by visual diff
+- 6/7 Primitives decomposition + layout planner
+- 7/7 WebContainers end-state
+
 ### Session 25 (COMPLETE, 2026-02-19) — Build Observatory (debug visibility unlocks)
 
 Promised 7-session roadmap from user: Observatory → Recipe families → Service-worker FS → Screenshot verify → Screenshot repair loop → Primitives → WebContainers. This is Session 1/7.
