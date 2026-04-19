@@ -487,6 +487,18 @@ export function useDashboardStream(ctx) {
             },
           } : m))
         },
+        onRecipeFamily: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                recipeFamily: data,
+              },
+            },
+          } : m))
+        },
         onLayoutBlueprint: (data) => {
           setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
             ...m,
