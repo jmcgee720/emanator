@@ -245,14 +245,14 @@ describe('buildWaveSystemPrompt — hard rules enforcement', () => {
 
   test('Image-asset context block appears only when imageAssets is populated', () => {
     const without = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
-    expect(without).not.toContain('USER-PROVIDED IMAGE ASSETS')
+    expect(without).not.toContain('USER-PROVIDED BRAND ASSETS')
 
     const withImg = buildWaveSystemPrompt({
-      plan: { ...samplePlan, imageAssets: [{ role: 'logo', name: 'logo.png', index: 0 }] },
+      plan: { ...samplePlan, imageAssets: [{ role: 'logo', name: 'logo.png', index: 0, note: '' }] },
       wave,
       filesBuiltSoFar: [],
     })
-    expect(withImg).toContain('USER-PROVIDED IMAGE ASSETS')
+    expect(withImg).toContain('USER-PROVIDED BRAND ASSETS')
     expect(withImg).toContain('components/assets.js')
     expect(withImg).toContain('LOGO_URL')
     expect(withImg).toMatch(/MUST render <img src=\{LOGO_URL\}/i)
@@ -261,15 +261,72 @@ describe('buildWaveSystemPrompt — hard rules enforcement', () => {
   test('hero image context mentions HERO_URL export when a hero asset is present', () => {
     const prompt = buildWaveSystemPrompt({
       plan: { ...samplePlan, imageAssets: [
-        { role: 'logo', name: 'logo.png', index: 0 },
-        { role: 'hero', name: 'hero.jpg', index: 1 },
+        { role: 'logo', name: 'logo.png', index: 0, note: '' },
+        { role: 'hero', name: 'hero.jpg', index: 1, note: '' },
       ]},
       wave,
       filesBuiltSoFar: [],
     })
     expect(prompt).toContain('LOGO_URL')
     expect(prompt).toContain('HERO_URL')
-    expect(prompt).toMatch(/hero section MUST render <img src=\{HERO_URL\}/i)
+    expect(prompt).toMatch(/hero MUST render <img src=\{HERO_URL\}/i)
+  })
+
+  test('per-image note is inlined as a placement instruction in the prompt', () => {
+    const prompt = buildWaveSystemPrompt({
+      plan: { ...samplePlan, imageAssets: [
+        { role: 'logo', name: 'logo.png', index: 0, note: 'Use as navbar mark AND feature-card badge' },
+      ]},
+      wave,
+      filesBuiltSoFar: [],
+    })
+    expect(prompt).toContain('Use as navbar mark AND feature-card badge')
+    expect(prompt).toMatch(/FOLLOW THIS PLACEMENT INSTRUCTION EXACTLY/i)
+  })
+
+  test('PHOTO_N / ILLUSTRATION_N are documented when present', () => {
+    const prompt = buildWaveSystemPrompt({
+      plan: { ...samplePlan, imageAssets: [
+        { role: 'logo', name: 'l.png', index: 0, note: '' },
+        { role: 'photo', name: 'p.jpg', index: 1, note: '' },
+        { role: 'illustration', name: 'i.svg', index: 2, note: '' },
+      ]},
+      wave,
+      filesBuiltSoFar: [],
+    })
+    expect(prompt).toContain('PHOTO_0')
+    expect(prompt).toContain('ILLUSTRATION_0')
+  })
+
+  test('LAYOUT BLUEPRINT block appears when plan has layoutBlueprint', () => {
+    const prompt = buildWaveSystemPrompt({
+      plan: {
+        ...samplePlan,
+        layoutBlueprint: {
+          sections_order: ['hero', 'features-left-image', 'pricing', 'faq'],
+          hero_composition: 'full-bleed-image',
+          hero_text_alignment: 'left',
+          navbar_style: 'minimal-left-brand',
+          feature_columns: 2,
+          feature_card_style: 'hairline-outlined',
+          pricing_pattern: 'horizontal-strip',
+          spacing_rhythm: 'generous',
+          noticeable_patterns: ['hero has a floating product screenshot'],
+        },
+      },
+      wave,
+      filesBuiltSoFar: [],
+    })
+    expect(prompt).toContain('LAYOUT BLUEPRINT')
+    expect(prompt).toMatch(/YOUR COMPOSITION MUST MATCH/i)
+    expect(prompt).toContain('full-bleed-image')
+    expect(prompt).toContain('horizontal-strip')
+    expect(prompt).toContain('hero has a floating product screenshot')
+  })
+
+  test('LAYOUT BLUEPRINT is absent when plan has no layoutBlueprint', () => {
+    const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
+    expect(prompt).not.toContain('LAYOUT BLUEPRINT')
   })
 
   test('HARD RULE #17 (BRAND COPY DISCIPLINE) is present with concrete examples', () => {

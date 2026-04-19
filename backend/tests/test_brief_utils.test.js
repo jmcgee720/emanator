@@ -174,27 +174,31 @@ describe('mapImageAssets (user-uploaded images → role-tagged assets)', () => {
     expect(b[0].role).toBe('hero')
   })
 
-  test('first of ≤2 unnamed images is treated as logo', () => {
+  test('first of ≤2 unnamed images is treated as logo, second as hero', () => {
     const out = mapImageAssets([
       { data: 'a' },
       { data: 'b' },
     ])
     expect(out[0].role).toBe('logo')
-    expect(out[1].role).toBe('reference')
+    expect(out[1].role).toBe('hero')
   })
 
-  test('larger batches default to reference (no auto-logo promotion)', () => {
+  test('larger batches default to photo (no auto-logo promotion)', () => {
     const out = mapImageAssets([
       { data: 'a' }, { data: 'b' }, { data: 'c' },
     ])
-    expect(out.every((a) => a.role === 'reference')).toBe(true)
+    // First two get hero/logo via proximity heuristic; remaining are photos.
+    // Key invariant: larger batches never have ALL as 'reference' — they
+    // become renderable 'photo' exports instead.
+    expect(out.every((a) => ['logo', 'hero', 'photo'].includes(a.role))).toBe(true)
   })
 
-  test('caps at 4 images', () => {
+  test('caps at 8 images (expanded from legacy 4)', () => {
     const out = mapImageAssets([
-      { data: '1' }, { data: '2' }, { data: '3' }, { data: '4' }, { data: '5' },
+      { data: '1' }, { data: '2' }, { data: '3' }, { data: '4' },
+      { data: '5' }, { data: '6' }, { data: '7' }, { data: '8' }, { data: '9' },
     ])
-    expect(out).toHaveLength(4)
+    expect(out).toHaveLength(8)
   })
 
   test('prefixes data: URI correctly based on file extension', () => {
@@ -206,6 +210,43 @@ describe('mapImageAssets (user-uploaded images → role-tagged assets)', () => {
     expect(jpg[0].dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
     expect(webp[0].dataUrl.startsWith('data:image/webp;base64,')).toBe(true)
     expect(svg[0].dataUrl.startsWith('data:image/svg+xml;base64,')).toBe(true)
+  })
+
+  test('honours UI-supplied role "aesthetic" (never sub-classified to brand)', () => {
+    const out = mapImageAssets([
+      { data: 'a', name: 'moodboard.jpg', role: 'aesthetic', note: 'match this warm palette' },
+    ])
+    expect(out[0].role).toBe('aesthetic')
+    expect(out[0].note).toBe('match this warm palette')
+  })
+
+  test('honours UI-supplied role "structural"', () => {
+    const out = mapImageAssets([
+      { data: 'a', name: 'competitor.png', role: 'structural', note: 'copy the pricing strip layout' },
+    ])
+    expect(out[0].role).toBe('structural')
+    expect(out[0].note).toBe('copy the pricing strip layout')
+  })
+
+  test('"brand" role from UI is sub-classified into logo/hero/photo/illustration', () => {
+    const out = mapImageAssets([
+      { data: 'a', name: 'my-logo.png', role: 'brand' },
+      { data: 'b', name: 'banner.jpg', role: 'brand' },
+      { data: 'c', name: 'product-shot.jpg', role: 'brand' },
+      { data: 'd', name: 'mascot.svg', role: 'brand', note: 'illustration for empty state' },
+    ])
+    expect(out[0].role).toBe('logo')
+    expect(out[1].role).toBe('hero')
+    expect(out[2].role).toBe('photo')
+    // Note containing "illustration" promotes role
+    expect(out[3].role).toBe('illustration')
+  })
+
+  test('preserves note on every output asset', () => {
+    const out = mapImageAssets([
+      { data: 'a', role: 'brand', note: 'use as hero bg' },
+    ])
+    expect(out[0].note).toBe('use as hero bg')
   })
 
   test('preserves pre-formed data: URIs without re-prefixing', () => {
@@ -240,15 +281,33 @@ describe('buildAssetsFileContent (components/assets.js generator)', () => {
     expect(out).toContain('export const HERO_URL = `data:image/jpeg;base64,BBBB`')
   })
 
-  test('emits REFERENCE_N for additional references', () => {
+  test('emits PHOTO_N / ILLUSTRATION_N exports for extra brand assets', () => {
     const out = buildAssetsFileContent([
       { role: 'logo', name: 'l.png', dataUrl: 'data:image/png;base64,A', index: 0 },
-      { role: 'reference', name: 'r.png', dataUrl: 'data:image/png;base64,B', index: 1 },
-      { role: 'reference', name: 's.png', dataUrl: 'data:image/png;base64,C', index: 2 },
+      { role: 'photo', name: 'p1.jpg', dataUrl: 'data:image/png;base64,B', index: 1 },
+      { role: 'photo', name: 'p2.jpg', dataUrl: 'data:image/png;base64,C', index: 2 },
+      { role: 'illustration', name: 'i.svg', dataUrl: 'data:image/png;base64,D', index: 3 },
     ])
     expect(out).toContain('export const LOGO_URL')
-    expect(out).toContain('export const REFERENCE_1')
-    expect(out).toContain('export const REFERENCE_2')
+    expect(out).toContain('export const PHOTO_0')
+    expect(out).toContain('export const PHOTO_1')
+    expect(out).toContain('export const ILLUSTRATION_0')
+  })
+
+  test('non-renderable roles (aesthetic/structural) produce no exports', () => {
+    const out = buildAssetsFileContent([
+      { role: 'aesthetic', name: 'mood.jpg', dataUrl: 'data:image/png;base64,A', index: 0 },
+      { role: 'structural', name: 'layout.png', dataUrl: 'data:image/png;base64,B', index: 1 },
+    ])
+    expect(out).toBe('')
+  })
+
+  test('user placement note is rendered as JSDoc above the export', () => {
+    const out = buildAssetsFileContent([
+      { role: 'logo', name: 'l.png', dataUrl: 'data:image/png;base64,A', index: 0, note: 'Use in navbar and as feature-card badge' },
+    ])
+    expect(out).toContain('/** Use in navbar and as feature-card badge */')
+    expect(out).toContain('export const LOGO_URL')
   })
 
   test('escapes backticks inside the data URL (prevents template-literal break)', () => {
@@ -271,19 +330,19 @@ describe('buildAssetsFileContent (components/assets.js generator)', () => {
       { role: 'logo', name: 'x.png', dataUrl: 'data:image/png;base64,AAAA', index: 0 },
     ])
     expect(out).toContain('// AUTO-GENERATED by Emanator')
-    expect(out).toContain("import { LOGO_URL, HERO_URL, REFERENCE_0 } from '../components/assets'")
+    expect(out).toContain("import { LOGO_URL, HERO_URL, PHOTO_0, ILLUSTRATION_0 } from '../components/assets'")
   })
 
   test('is valid JavaScript (evaluable)', () => {
     const out = buildAssetsFileContent([
       { role: 'logo', name: 'x.png', dataUrl: 'data:image/png;base64,AAAA', index: 0 },
-      { role: 'reference', name: 'y.png', dataUrl: 'data:image/png;base64,B`${bad}C', index: 1 },
+      { role: 'photo', name: 'y.png', dataUrl: 'data:image/png;base64,B`${bad}C', index: 1 },
     ])
     // Evaluate as ESM would (replace `export const` with plain const, then eval)
-    const evaluable = out.replace(/export const/g, 'const') + '\nreturn { LOGO_URL, REFERENCE_1 }'
+    const evaluable = out.replace(/export const/g, 'const') + '\nreturn { LOGO_URL, PHOTO_0 }'
     // eslint-disable-next-line no-new-func
     const result = new Function(evaluable)()
     expect(result.LOGO_URL).toBe('data:image/png;base64,AAAA')
-    expect(result.REFERENCE_1).toBe('data:image/png;base64,B`${bad}C')
+    expect(result.PHOTO_0).toBe('data:image/png;base64,B`${bad}C')
   })
 })

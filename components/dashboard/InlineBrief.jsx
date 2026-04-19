@@ -84,60 +84,85 @@ function Chips({ selected = [], options, onChange, label, testId }) {
 }
 
 function ArtDirection({ assets = [], onChange }) {
+  // Three explicit categories so the pipeline knows what to DO with each image:
+  //   'brand'      → rendered in the generated site (logo, photos, illustrations)
+  //   'aesthetic'  → never rendered; used for palette/font/vibe extraction + image-in-wave
+  //   'structural' → never rendered; used for layout/flow blueprint extraction
+  const categories = [
+    { id: 'brand',      label: 'Brand assets',    hint: 'Logo, product photos, illustrations — these will be rendered in your site',  testId: 'upload-brand' },
+    { id: 'aesthetic',  label: 'Aesthetic inspo', hint: 'Mood boards, palette refs — guides colors, fonts, vibe (not shown in site)', testId: 'upload-aesthetic' },
+    { id: 'structural', label: 'Layout / flow',   hint: 'Screenshots of UIs whose layout you want — guides composition + section order', testId: 'upload-structural' },
+  ]
+
+  const buildAsset = (file, role, cb) => {
+    if (file.size > 5 * 1024 * 1024) return
+    const reader = new FileReader()
+    reader.onload = () => cb({
+      id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      role,
+      note: '',
+      name: file.name,
+      dataUrl: reader.result,
+      size: file.size,
+    })
+    reader.readAsDataURL(file)
+  }
+
+  const handleFiles = useCallback((files, role) => {
+    Array.from(files)
+      .filter((f) => f.type.startsWith('image/'))
+      .forEach((file) => buildAsset(file, role, (asset) => onChange((prev) => [...prev, asset])))
+  }, [onChange])
+
+  const updateNote = (id, note) => onChange((prev) => prev.map((a) => (a.id === id ? { ...a, note } : a)))
+  const removeAsset = (id) => onChange((prev) => prev.filter((a) => a.id !== id))
+
+  return (
+    <div className="space-y-3">
+      {categories.map((cat) => (
+        <CategoryDropzone
+          key={cat.id}
+          category={cat}
+          assets={assets.filter((a) => (a.role || 'brand') === cat.id)}
+          onFiles={(files) => handleFiles(files, cat.id)}
+          onNoteChange={updateNote}
+          onRemove={removeAsset}
+        />
+      ))}
+    </div>
+  )
+}
+
+function CategoryDropzone({ category, assets, onFiles, onNoteChange, onRemove }) {
   const fileInputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
-
-  const handleFiles = useCallback((files) => {
-    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
-    if (imageFiles.length === 0) return
-
-    imageFiles.forEach(file => {
-      if (file.size > 5 * 1024 * 1024) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        onChange(prev => [...prev, {
-          id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          name: file.name,
-          dataUrl: reader.result,
-          size: file.size,
-        }])
-      }
-      reader.readAsDataURL(file)
-    })
-  }, [onChange])
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     setDragging(false)
-    handleFiles(e.dataTransfer.files)
-  }, [handleFiles])
-
-  const removeAsset = (id) => onChange(prev => prev.filter(a => a.id !== id))
+    onFiles(e.dataTransfer.files)
+  }, [onFiles])
 
   return (
-    <div>
-      <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1.5 block">
-        Upload your logo, brand assets, screenshots, or mood board images to guide the design
+    <div data-testid={`category-${category.id}`}>
+      <label className="text-[10px] font-medium text-[var(--em-text-muted)] mb-1 block">
+        {category.label}
       </label>
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className="rounded-lg cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-4 gap-1.5"
+        className="rounded-lg cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-3 gap-1"
         style={{
           background: dragging ? 'rgba(0,229,255,0.06)' : 'rgba(255,255,255,0.03)',
           border: dragging ? '1.5px dashed rgba(0,229,255,0.4)' : '1.5px dashed rgba(255,255,255,0.10)',
         }}
-        data-testid="media-bin-dropzone"
+        data-testid={category.testId}
       >
-        <ImagePlus className="w-5 h-5 text-[var(--em-text-muted)]" style={{ opacity: 0.5 }} />
-        <span className="text-[10px] text-[var(--em-text-muted)]">
-          Drop images here or click to upload
-        </span>
-        <span className="text-[9px] text-[var(--em-text-muted)]" style={{ opacity: 0.5 }}>
-          Logos, screenshots, mood boards, product photos
-        </span>
+        <ImagePlus className="w-4 h-4 text-[var(--em-text-muted)]" style={{ opacity: 0.5 }} />
+        <span className="text-[10px] text-[var(--em-text-muted)]">Drop or click to upload</span>
+        <span className="text-[9px] text-[var(--em-text-muted)]" style={{ opacity: 0.6 }}>{category.hint}</span>
       </div>
       <input
         ref={fileInputRef}
@@ -145,24 +170,38 @@ function ArtDirection({ assets = [], onChange }) {
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => { handleFiles(e.target.files); e.target.value = '' }}
-        data-testid="media-bin-input"
+        onChange={(e) => { onFiles(e.target.files); e.target.value = '' }}
+        data-testid={`${category.testId}-input`}
       />
       {assets.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {assets.map(asset => (
-            <div key={asset.id} className="relative group rounded-lg overflow-hidden" style={{ width: 56, height: 56 }}>
-              <img src={asset.dataUrl} alt={asset.name} className="w-full h-full object-cover" />
-              <button
-                onClick={(e) => { e.stopPropagation(); removeAsset(asset.id) }}
-                className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: 'rgba(0,0,0,0.7)' }}
-                data-testid={`media-bin-remove-${asset.id}`}
-              >
-                <XIcon className="w-2.5 h-2.5 text-white" />
-              </button>
-              <div className="absolute bottom-0 left-0 right-0 px-1 py-0.5 truncate" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                <span className="text-[8px] text-white/80">{asset.name}</span>
+        <div className="space-y-2 mt-2">
+          {assets.map((asset) => (
+            <div key={asset.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="relative group rounded-md overflow-hidden shrink-0" style={{ width: 44, height: 44 }}>
+                <img src={asset.dataUrl} alt={asset.name} className="w-full h-full object-cover" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRemove(asset.id) }}
+                  className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: 'rgba(0,0,0,0.7)' }}
+                  data-testid={`asset-remove-${asset.id}`}
+                >
+                  <XIcon className="w-2.5 h-2.5 text-white" />
+                </button>
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="truncate text-[10px] text-[var(--em-text-muted)]">{asset.name}</div>
+                <input
+                  value={asset.note || ''}
+                  onChange={(e) => onNoteChange(asset.id, e.target.value)}
+                  placeholder={
+                    category.id === 'brand' ? 'How should this be used? e.g. "navbar logo + feature badges"'
+                    : category.id === 'aesthetic' ? 'What to match? e.g. "this exact palette + serif headlines"'
+                    : 'Which part inspires you? e.g. "copy the pricing layout"'
+                  }
+                  className="w-full px-2 py-1 rounded text-[10px] outline-none"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--em-text-primary)' }}
+                  data-testid={`asset-note-${asset.id}`}
+                />
               </div>
             </div>
           ))}
@@ -218,9 +257,15 @@ function buildPromptFromBrief(brief) {
   if (brief.budget_tier) instrParts.push(`Budget/scope: ${brief.budget_tier}`)
   if (brief.things_to_avoid) instrParts.push(`AVOID these (critical): ${brief.things_to_avoid}`)
 
-  // Art direction assets
+  // Art direction assets — three categories, each feeds the pipeline differently.
   if (brief.media_assets?.length > 0) {
-    instrParts.push(`Art direction: User uploaded ${brief.media_assets.length} image(s) as design assets. Use them as logos, hero images, product photos, or brand elements — integrate them into the design where they make sense.`)
+    const byRole = brief.media_assets.reduce((acc, a) => {
+      const r = a.role || 'brand'
+      acc[r] = (acc[r] || 0) + 1
+      return acc
+    }, {})
+    const summary = Object.entries(byRole).map(([r, n]) => `${n} ${r}`).join(', ')
+    instrParts.push(`Art direction: User uploaded ${brief.media_assets.length} image(s) — ${summary}. Brand assets will be rendered in the site (logo in navbar, photos in hero/feature slots). Aesthetic refs will drive palette/fonts/mood. Structural refs will drive layout/flow.`)
   }
 
   if (brief.project_name && instrParts.length <= 1) {
@@ -229,7 +274,13 @@ function buildPromptFromBrief(brief) {
   if (instrParts.length <= 1) return null
 
   const attachments = brief.media_assets?.length > 0
-    ? brief.media_assets.map(a => ({ type: 'image', name: a.name, data: a.dataUrl }))
+    ? brief.media_assets.map((a) => ({
+        type: 'image',
+        name: a.name,
+        data: a.dataUrl,
+        role: a.role || 'brand',
+        note: a.note || '',
+      }))
     : null
   return { displayMessage, fullInstruction: instrParts.join('\n'), attachments }
 }

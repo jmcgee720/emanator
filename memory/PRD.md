@@ -26,6 +26,65 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 24 (COMPLETE, 2026-02-19) — Three-slot upload UI + layout blueprint extraction
+
+User's sharp observation: "some uploads are logos that should be rendered, some are aesthetic inspiration, some are screenshots for layout/flow — current pipeline can't tell them apart." Correct. One affordance for three distinct intents was the structural bug. Fix: split the UI, honour the user's role tag end-to-end, and add a new Vision call specifically for layout/flow extraction.
+
+**Shipped:**
+
+1. **`InlineBrief.jsx` — three explicit upload categories, each with per-image notes:**
+   - 🎨 **Brand assets** → rendered in the generated site (logo in navbar/footer, photos in hero/feature slots, illustrations in empty states). Default placeholder: *"How should this be used? e.g. 'navbar logo + feature badges'"*
+   - 🎭 **Aesthetic inspiration** → never rendered; feeds `analyzeDesignTokens()` + attached to every builder wave as `image_url`. Placeholder: *"What to match? e.g. 'this exact palette + serif headlines'"*
+   - 🗺️ **Layout / flow** → never rendered; feeds the NEW `analyzeLayoutBlueprint()` Vision call. Placeholder: *"Which part inspires you? e.g. 'copy the pricing layout'"*
+   - Each attachment carries `{role, note, name, dataUrl}` through to the backend.
+
+2. **`lib/ai/brief-utils.js` — role-aware asset mapping:**
+   - `mapImageAssets()` now honours UI-supplied `role`. `'aesthetic'` and `'structural'` pass through untouched (never rendered). `'brand'` bucket sub-classifies into `logo | hero | photo | illustration` by filename + note + position. Cap raised from 4 → 8.
+   - `buildAssetsFileContent()` exports `LOGO_URL`, `HERO_URL`, `PHOTO_0..N`, `ILLUSTRATION_0..N`. Each export carries the user's per-image note as a JSDoc comment so the builder LLM sees WHERE to use it. Aesthetic/structural roles produce no exports (they're guidance, not content).
+
+3. **`lib/ai/design-tokens.js` — new `analyzeLayoutBlueprint()` Vision call:**
+   - Takes structural screenshots + their user notes. Returns strict JSON: `{sections_order[], hero_composition, hero_text_alignment, navbar_style, feature_columns, feature_card_style, pricing_pattern, spacing_rhythm, noticeable_patterns[]}`.
+   - All enumerated fields validated against allowlists in `parseBlueprint()` — invalid values coerce to safe defaults.
+   - `formatBlueprintForPrompt()` renders it as a compact prompt block.
+
+4. **`lib/ai/message-stream.js` — Step 1.5 fan-out:**
+   - Partitions attachments by role (`brand` / `aesthetic` / `structural`).
+   - Aesthetic → `analyzeArtDirection()` + `analyzeDesignTokens()` (prose + tokens).
+   - Structural → `analyzeLayoutBlueprint()` (new).
+   - Brand → `mapImageAssets()` → `assets.js`.
+   - Plan gets `plan.layoutBlueprint` + `plan.referenceImages` (aesthetic-first pool for image-in-wave attachment).
+   - Emits new SSE event `layout_blueprint` with the extracted JSON so the UI can surface "we understood this composition pattern from your screenshots."
+
+5. **`lib/ai/brief-builder.js` — prompt upgrade:**
+   - New `LAYOUT BLUEPRINT` block between DESIGN TOKENS and HARD RULES: *"YOUR COMPOSITION MUST MATCH — Section order: hero → features-left-image → pricing → faq · Hero: full-bleed-image · Features: 2-column grid · ..."*
+   - Brand-assets block now enumerates `LOGO_URL / HERO_URL / PHOTO_0 / ILLUSTRATION_0` and inlines each asset's user note with "FOLLOW THIS PLACEMENT INSTRUCTION EXACTLY."
+   - Builder waves receive `plan.referenceImages` (aesthetic-first) as actual image_url parts — unchanged from Session 23 but now sourced from the proper category.
+
+6. **`lib/ai/post-repair.js` — smarter hero fallback:**
+   - `ensureHeroImage(content, imageAssets)` now picks `HERO_URL` when tagged, falls back to `PHOTO_0` when only photos uploaded. Previously the safety net silently skipped hero injection if no image was explicitly tagged as `hero` — the real bug from the Nexsara screenshot.
+   - `runPostRepair` triggers hero injection for both hero-role AND photo-role assets.
+
+7. **Tests: +27 new targeted tests** (UI-role mapping, PHOTO/ILLUSTRATION exports, notes as JSDoc, blueprint parse/format, analyzeLayoutBlueprint, prompt blueprint block, prompt note rendering, PHOTO_N docs, hero PHOTO_0 fallback).
+   **Full suite: 283/283 across 17 files.** Lint clean.
+
+**What changes end-to-end on your next build:**
+
+1. You drop your logo in **🎨 Brand assets**, note "use in navbar + feature cards" → `assets.js` exports `LOGO_URL` with that note as JSDoc → builder + post-repair both honour it → logo renders in both places, guaranteed.
+
+2. You drop Zeely screenshots in **🗺️ Layout / flow**, note "copy the pricing strip and hero alignment" → Vision returns `{sections_order: ['hero','features-left-image','pricing','faq'], pricing_pattern: 'horizontal-strip', hero_composition: 'full-bleed-image'}` → the builder sees this as a required composition → generated landing mirrors Zeely's structure.
+
+3. You drop a moodboard in **🎭 Aesthetic inspiration**, note "match this warm editorial tone" → Vision extracts palette/fonts/radius + is attached to every wave's prompt → every file is written while the LLM sees the moodboard.
+
+Three distinct intents, three distinct pipelines, no more mixing. Each user note becomes a concrete instruction instead of being guessed.
+
+**Deferred (Session 25+):**
+- Pixel-based palette extraction via `node-vibrant` (stop trusting LLM hex codes).
+- Recipe families (`saas-clean` / `editorial-serif` / `brutalist-raw` / `luxury-minimal`) with Vision classifier picking per build.
+- Google Fonts auto-loading so `fontDisplay` actually renders.
+- "Assets in use" chip in PreviewTab showing which asset/token landed where.
+- Branded custom domains via Vercel Domains API.
+- Stripe Checkout server-function auto-gen.
+
 ### Session 23 (COMPLETE, 2026-02-18) — Reference images in every builder wave
 
 User's core insight: *"the builder never sees the image — it only reads my paraphrase of it, which is why output looks generic."* Correct. The fix mirrors how E1 itself handles uploaded images — attach the reference **to every wave's user message** as `image_url` content parts so GPT-4o Vision re-anchors on the reference while writing each file.
