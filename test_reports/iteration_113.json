@@ -1,0 +1,171 @@
+{
+  "summary": "Session 22 testing complete. ALL 248 TESTS PASSING across 17 test files. Verified new design-tokens module (22 tests) + theme-token discipline rules in brief-builder (#18) and brief-reviewer (rule 11). Grep sanity check confirms recipes.js has 0 hardcoded Tailwind color classes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_design_tokens.test.js",
+    "/app/backend/tests/test_brief_builder.test.js",
+    "/app/backend/tests/test_brief_reviewer.test.js",
+    "/app/backend/tests/test_archetypes.test.js",
+    "/app/backend/tests/test_art_direction.test.js",
+    "/app/backend/tests/test_brief_planner.test.js",
+    "/app/backend/tests/test_brief_utils.test.js",
+    "/app/backend/tests/test_gallery_routes.test.js",
+    "/app/backend/tests/test_post_repair.test.js",
+    "/app/backend/tests/test_quick_action_chips.test.js",
+    "/app/backend/tests/test_share_remix.test.js",
+    "/app/backend/tests/test_snapshots_route.test.js",
+    "/app/backend/tests/test_stats_my_builds.test.js",
+    "/app/backend/tests/test_stripe_wiring.test.js",
+    "/app/backend/tests/test_supabase_wiring.test.js",
+    "/app/backend/tests/test_vercel_bundler.test.js",
+    "/app/backend/tests/test_vercel_deploy.test.js"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: design-tokens.js parseTokens validates essential keys (bg/ink/primary required)",
+    "PASS: design-tokens.js parseTokens merges FALLBACK_TOKENS for missing fields",
+    "PASS: design-tokens.js parseTokens coerces invalid mode to 'dark'",
+    "PASS: design-tokens.js parseTokens caps avoid list at 6 entries",
+    "PASS: design-tokens.js buildThemeFile emits DESIGN_TOKENS, cssVars, ThemeProvider exports",
+    "PASS: design-tokens.js buildThemeFile inlines user's hex palette",
+    "PASS: design-tokens.js buildThemeFile escapes backticks",
+    "PASS: design-tokens.js buildThemeFile produces valid JS even with null input",
+    "PASS: design-tokens.js analyzeDesignTokens returns null on empty/invalid input",
+    "PASS: design-tokens.js analyzeDesignTokens calls provider with vision payload + json_object response_format",
+    "PASS: design-tokens.js analyzeDesignTokens caps at 4 images",
+    "PASS: design-tokens.js formatTokensForPrompt renders palette + vibe + avoid list",
+    "PASS: design-tokens.js formatTokensForPrompt defaults to 'AVOID generic violet/indigo/cyan'",
+    "PASS: brief-builder.js buildWaveSystemPrompt contains HARD RULE #18 (THEME-TOKEN DISCIPLINE)",
+    "PASS: brief-builder.js buildWaveSystemPrompt includes DESIGN TOKENS block when plan.designTokens populated",
+    "PASS: brief-builder.js imports formatTokensForPrompt from design-tokens.js",
+    "PASS: brief-reviewer.js system prompt includes rule 11 (hardcoded-color-classes-bypass-theme)",
+    "PASS: brief-reviewer.js mentions components/theme.js as source of truth",
+    "PASS: message-stream.js imports analyzeDesignTokens, buildThemeFile, FALLBACK_TOKENS",
+    "PASS: message-stream.js Step 1.5 calls analyzeDesignTokens at line ~3743",
+    "PASS: message-stream.js emits components/theme.js deterministically at line ~3825",
+    "PASS: message-stream.js sets plan.designTokens = designTokens || FALLBACK_TOKENS at line ~3772",
+    "PASS: recipes.js has 0 hardcoded Tailwind color classes (grep sanity check passed)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend-only testing)"
+  },
+  "test_credentials": {
+    "email": "testprov@test.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session 22 complete. New design-tokens module added at lib/ai/design-tokens.js with exports: FALLBACK_TOKENS, parseTokens, buildThemeFile, formatTokensForPrompt, analyzeDesignTokens. Integration in message-stream.js at Step 1.5 (~lines 3720-3830). HARD RULE #18 (THEME-TOKEN DISCIPLINE) added to brief-builder.js at line 101. Rule 11 (hardcoded-color-classes-bypass-theme) added to brief-reviewer.js at line 74. All recipes in recipes.js converted to use CSS variables via arbitrary-value Tailwind syntax. Jest suite now at 248/248 tests across 17 files. All tests are pure unit/prompt tests - no DB, no LLM, no HTTP required.",
+  "jest_test_results": {
+    "total_tests": 248,
+    "passed": 248,
+    "failed": 0,
+    "test_suites": [
+      {"file": "test_design_tokens.test.js", "tests": 22, "status": "PASS"},
+      {"file": "test_brief_builder.test.js", "tests": 17, "status": "PASS"},
+      {"file": "test_brief_reviewer.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_archetypes.test.js", "tests": 35, "status": "PASS"},
+      {"file": "test_art_direction.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_brief_planner.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_brief_utils.test.js", "tests": 40, "status": "PASS"},
+      {"file": "test_gallery_routes.test.js", "tests": 13, "status": "PASS"},
+      {"file": "test_post_repair.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_quick_action_chips.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_share_remix.test.js", "tests": 6, "status": "PASS"},
+      {"file": "test_snapshots_route.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_stats_my_builds.test.js", "tests": 5, "status": "PASS"},
+      {"file": "test_stripe_wiring.test.js", "tests": 12, "status": "PASS"},
+      {"file": "test_supabase_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_vercel_bundler.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_vercel_deploy.test.js", "tests": 8, "status": "PASS"}
+    ]
+  },
+  "features_verified": {
+    "design_tokens_parseTokens": {
+      "file": "lib/ai/design-tokens.js line ~148",
+      "tests": 7,
+      "coverage": [
+        "returns null for empty/bad input",
+        "accepts fully-populated JSON string",
+        "accepts object directly (not string)",
+        "rejects when essential keys (bg/ink/primary) missing",
+        "merges fallback for missing non-essential keys",
+        "coerces invalid mode to 'dark'",
+        "caps avoid list at 6 entries and drops non-strings"
+      ]
+    },
+    "design_tokens_buildThemeFile": {
+      "file": "lib/ai/design-tokens.js line ~190",
+      "tests": 7,
+      "coverage": [
+        "emits DESIGN_TOKENS, cssVars, ThemeProvider exports",
+        "inlines user's palette values",
+        "merges FALLBACK_TOKENS for missing keys",
+        "escapes backticks in font family strings",
+        "sets CSS custom properties via --var naming",
+        "ThemeProvider applies tokens as style + data-theme attr",
+        "null input returns valid fallback theme file"
+      ]
+    },
+    "design_tokens_analyzeDesignTokens": {
+      "file": "lib/ai/design-tokens.js line ~111",
+      "tests": 6,
+      "coverage": [
+        "returns null for empty attachments",
+        "returns null when no images have data",
+        "calls provider with vision payload + json response_format",
+        "returns null when provider throws (non-blocking)",
+        "returns null when response is not valid JSON",
+        "caps at 4 reference images"
+      ]
+    },
+    "design_tokens_formatTokensForPrompt": {
+      "file": "lib/ai/design-tokens.js line ~261",
+      "tests": 2,
+      "coverage": [
+        "lists palette + vibe for builder grounding",
+        "defaults to 'avoid violet/indigo/cyan' when no explicit avoid"
+      ]
+    },
+    "brief_builder_hard_rule_18": {
+      "file": "lib/ai/brief-builder.js line 101",
+      "tests": 4,
+      "coverage": [
+        "THEME-TOKEN DISCIPLINE bans hardcoded color classes",
+        "DESIGN TOKENS block appears when plan.designTokens populated",
+        "DESIGN TOKENS block absent when no designTokens",
+        "formatTokensForPrompt imported and used"
+      ]
+    },
+    "brief_reviewer_rule_11": {
+      "file": "lib/ai/brief-reviewer.js line 74",
+      "tests": 1,
+      "coverage": [
+        "hardcoded-color-classes-bypass-theme flag present",
+        "components/theme.js mentioned as source of truth"
+      ]
+    },
+    "recipes_sanity_check": {
+      "file": "lib/ai/recipes.js",
+      "tests": 1,
+      "coverage": [
+        "grep confirms 0 hardcoded Tailwind color classes (text-white, bg-white, border-white, from-violet, to-indigo, bg-black, bg-violet, text-black, text-gray-*, bg-gray-*)"
+      ]
+    }
+  },
+  "mocked_apis": {
+    "note": "All tests mock the LLM provider with jest.fn(). No external APIs called.",
+    "mocked": ["provider.chat (GPT-4o Vision)", "provider.chatWithToolsStream"]
+  }
+}
