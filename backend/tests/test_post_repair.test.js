@@ -148,6 +148,26 @@ export default function Navbar() {
     expect(changed).toBe(false)
     expect(content).toBe(input)
   })
+
+  test('replaces the Session-22 THEMED square placeholder (bg-[var(--primary)])', () => {
+    // This is the exact shape the Session 22 recipe rewrite emits. The stale
+    // Session-21.5 regex only matched `from-violet-500` and missed this —
+    // was why the logo never rendered in Session 24 production builds.
+    const input = `export default function Navbar() {
+  return (
+    <nav>
+      <button data-testid="navbar-brand">
+        <span className="w-8 h-8 rounded-[var(--radius)] bg-[var(--primary)]" aria-hidden="true" />
+        <span>Nexsara</span>
+      </button>
+    </nav>
+  )
+}`
+    const { content, changed } = ensureNavbarLogo(input)
+    expect(changed).toBe(true)
+    expect(content).toContain('src={LOGO_URL}')
+    expect(content).not.toMatch(/bg-\[var\(--primary\)\]/)
+  })
 })
 
 // ── ensureHeroImage ──────────────────────────────────────────────────
@@ -203,6 +223,19 @@ describe('ensureHeroImage', () => {
     const { content } = ensureHeroImage(input, [{ role: 'hero' }, { role: 'photo' }])
     expect(content).toContain('src={HERO_URL}')
     expect(content).not.toContain('src={PHOTO_0}')
+  })
+
+  test('replaces the Session-22 THEMED accent-square hero placeholder', () => {
+    // The exact shape the Session 22 recipe emits for the hero image slot.
+    // Was rendering as the "big black half-circle" in production because
+    // the stale regex couldn't match it.
+    const input = `<section className="hero">
+  <div className="w-full h-full rounded-[var(--radius-lg)] bg-[var(--accent)] opacity-30" />
+</section>`
+    const { content, changed } = ensureHeroImage(input, [{ role: 'hero' }])
+    expect(changed).toBe(true)
+    expect(content).toContain('src={HERO_URL}')
+    expect(content).not.toMatch(/bg-\[var\(--accent\)\]\s+opacity-30/)
   })
 })
 
