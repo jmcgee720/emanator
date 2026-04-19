@@ -26,6 +26,48 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 23 (COMPLETE, 2026-02-18) — Reference images in every builder wave
+
+User's core insight: *"the builder never sees the image — it only reads my paraphrase of it, which is why output looks generic."* Correct. The fix mirrors how E1 itself handles uploaded images — attach the reference **to every wave's user message** as `image_url` content parts so GPT-4o Vision re-anchors on the reference while writing each file.
+
+**Shipped:**
+
+1. **`buildWaveUserPrompt({wave, referenceImages})`** now returns a multi-part OpenAI user message (`[{type:'text',...}, {type:'image_url',...}, ...]`) when `plan.imageAssets` is populated, or a plain string when none (no token overhead for imageless builds).
+   - Cap: 2 images per wave (token cost management; logo + hero = the "what should this look like" intent).
+   - `detail: 'low'` — ~85 tokens per image vs ~1000 for detail:high; enough for aesthetic grounding.
+   - Explicit text directive: *"Reference image(s) attached below — USE these as your visual source of truth for palette, typography mood, and composition. Match what you see; do not default to generic SaaS aesthetics."*
+
+2. **`repairBuild()` in `brief-reviewer.js`** also attaches the reference images to the repair wave's user message when `plan.imageAssets` is present — so when the reviewer flags `ignored-user-logo` / `generic-marketing-copy` / `hardcoded-color-classes-bypass-theme`, the repair LLM can actually *see* the reference while rewriting the broken file.
+
+3. **Provider verification** — `lib/ai/providers/openai.js` passes `messages` straight to `client.chat.completions.create()`. Multi-part content (text + image_url) is the OpenAI Vision API native contract. Default model alias `gpt-4o` maps to `gpt-4o-mini` which supports Vision; `o3` maps to full `gpt-4o`. No provider changes needed.
+
+4. **+8 targeted tests** (6 buildWave, 2 repairBuild) that capture the messages passed to the provider and assert:
+   - User message is multi-part array when imageAssets present, plain string otherwise.
+   - Exactly 2 image_url parts when ≥2 images (cap enforced).
+   - Preamble text contains "visual source of truth" + "palette, typography mood, and composition".
+   - `detail: 'low'` on every image.
+   - URLs thread through from imageAssets to the provider call unchanged.
+
+**Full suite: 256/256 across 17 files.** Lint clean.
+
+**What changes on your next build with references:**
+- Wave 1 (scaffold): builder sees Navbar.jsx *and* your logo/hero images while writing the Navbar → Navbar actually gets your palette + your logo.
+- Wave 2 (public): builder sees Landing.jsx *and* your reference → hero composition, hierarchy, typography all re-anchored on your reference.
+- Wave 3 (auth): same — auth forms inherit the visual language instead of regressing to a template.
+- Wave 4 (dashboard): same — dashboard looks like part of the same designed product.
+- Repair wave: if any of the above gets flagged as broken, the repair also sees the image.
+
+Visual fidelity no longer decays across waves because the LLM re-anchors visually every file it writes. Same pattern E1 uses when I'm building apps directly.
+
+**Token cost delta:** ~170 extra input tokens per wave × 4 waves = ~680 extra input tokens per build (low-detail image = ~85 tokens). Negligible relative to the 8k-16k output budget per wave.
+
+**Still deferred (Session 24+):**
+- Deterministic pixel-based palette extraction (stop asking LLM for hex codes; use k-means on image bytes).
+- Recipe families (`saas-clean` / `editorial-serif` / `brutalist-raw` / `luxury-minimal` / ...) with Vision classifier picking which family per reference.
+- Google Fonts auto-loading (so `fontDisplay: Playfair Display` actually renders as Playfair, not system serif).
+- Vision-extracted layout blueprint (closed-form Q&A) feeding parameterized recipe primitives.
+- Generative brand imagery via Nano Banana / GPT Image 1.
+
 ### Session 22 (COMPLETE, 2026-02-18) — Design tokens: art direction that actually ships
 
 User feedback: *"it's still not using the art direction — people need to upload any image and have the AI generate off of that."* Prior sessions extracted prose like *"warm palette, clean sans-serif"* and stuffed it in the prompt. LLMs ignored it because recipes hardcoded `bg-violet-500` / `bg-black/40` / `text-white/70`. Prompts lost to recipe source code every time.

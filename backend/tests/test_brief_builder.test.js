@@ -13,13 +13,17 @@ import { buildWave, runAllWaves } from '../../lib/ai/brief-builder.js'
 // ── Helpers ─────────────────────────────────────────────────────────
 function makeStreamingProvider(toolCallsByCall) {
   let callIdx = 0
-  return {
-    chatWithToolsStream: async function* () {
+  const messageLog = []
+  const p = {
+    chatWithToolsStream: async function* (messages) {
+      messageLog.push(messages)
       const tool_calls = toolCallsByCall[callIdx++] || []
       yield { type: 'tool_calls', tool_calls }
     },
     chatWithTools: async () => ({ content: '', tool_calls: toolCallsByCall[callIdx++] || [] }),
+    messageLog,
   }
+  return p
 }
 
 function makeToolCall(files) {
@@ -317,5 +321,91 @@ describe('buildWaveSystemPrompt — hard rules enforcement', () => {
   test('DESIGN TOKENS block is absent when plan has no designTokens', () => {
     const prompt = buildWaveSystemPrompt({ plan: samplePlan, wave, filesBuiltSoFar: [] })
     expect(prompt).not.toContain('═══ DESIGN TOKENS')
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────
+// Image-in-wave tests — the builder must receive the actual reference
+// images as OpenAI vision image_url content parts for every wave when
+// plan.imageAssets is populated. This is the "builder LLM sees the
+// reference while writing code" fix.
+// ──────────────────────────────────────────────────────────────────────
+describe('buildWave — reference-image attachment', () => {
+  const planWithImages = {
+    ...testPlan,
+    imageAssets: [
+      { role: 'logo', name: 'logo.png', dataUrl: 'data:image/png;base64,AAAA', index: 0 },
+      { role: 'hero', name: 'hero.jpg', dataUrl: 'data:image/jpeg;base64,BBBB', index: 1 },
+    ],
+  }
+
+  async function runAndCaptureMessages(plan) {
+    const provider = makeStreamingProvider([
+      makeToolCall([
+        { path: 'app/page.jsx', content: 'export default function App() { return null }' + ' '.repeat(100) },
+        { path: 'components/Navbar.jsx', content: 'export default function Navbar() { return null }' + ' '.repeat(100) },
+      ]),
+    ])
+    const gen = buildWave({
+      plan,
+      wave: plan.waves[0],
+      filesBuiltSoFar: [],
+      provider,
+      waveIndex: 0,
+      wavesTotal: 3,
+      onFilesProduced: async (files) => files.map((f) => ({ ...f, id: 'x', action: 'created' })),
+    })
+    await collectEvents(gen)
+    return provider.messageLog[0]
+  }
+
+  test('user message is a multi-part array when imageAssets are present', async () => {
+    const messages = await runAndCaptureMessages(planWithImages)
+    const userMsg = messages[1]
+    expect(Array.isArray(userMsg.content)).toBe(true)
+  })
+
+  test('user message contains one image_url part per reference (capped at 2)', async () => {
+    const messages = await runAndCaptureMessages(planWithImages)
+    const userContent = messages[1].content
+    const imgs = userContent.filter((c) => c.type === 'image_url')
+    expect(imgs).toHaveLength(2)
+    expect(imgs[0].image_url.url).toBe('data:image/png;base64,AAAA')
+    expect(imgs[1].image_url.url).toBe('data:image/jpeg;base64,BBBB')
+  })
+
+  test('excess images beyond 2 are dropped to control token cost', async () => {
+    const many = {
+      ...testPlan,
+      imageAssets: [
+        { role: 'logo', dataUrl: 'data:image/png;base64,A', index: 0 },
+        { role: 'hero', dataUrl: 'data:image/png;base64,B', index: 1 },
+        { role: 'reference', dataUrl: 'data:image/png;base64,C', index: 2 },
+        { role: 'reference', dataUrl: 'data:image/png;base64,D', index: 3 },
+      ],
+    }
+    const messages = await runAndCaptureMessages(many)
+    const imgs = messages[1].content.filter((c) => c.type === 'image_url')
+    expect(imgs).toHaveLength(2)
+  })
+
+  test('text part includes the "USE these as visual source of truth" directive', async () => {
+    const messages = await runAndCaptureMessages(planWithImages)
+    const text = messages[1].content.find((c) => c.type === 'text')
+    expect(text).toBeDefined()
+    expect(text.text).toMatch(/Reference image/i)
+    expect(text.text).toMatch(/visual source of truth/i)
+    expect(text.text).toMatch(/palette, typography mood, and composition/i)
+  })
+
+  test('user message is a plain string when no imageAssets — no regression', async () => {
+    const messages = await runAndCaptureMessages(testPlan)
+    expect(typeof messages[1].content).toBe('string')
+  })
+
+  test('image_url parts use detail=low to keep token cost reasonable', async () => {
+    const messages = await runAndCaptureMessages(planWithImages)
+    const imgs = messages[1].content.filter((c) => c.type === 'image_url')
+    expect(imgs.every((i) => i.image_url.detail === 'low')).toBe(true)
   })
 })
