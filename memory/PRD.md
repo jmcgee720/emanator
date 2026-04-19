@@ -26,6 +26,58 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 25 (COMPLETE, 2026-02-19) — Build Observatory (debug visibility unlocks)
+
+Promised 7-session roadmap from user: Observatory → Recipe families → Service-worker FS → Screenshot verify → Screenshot repair loop → Primitives → WebContainers. This is Session 1/7.
+
+**Shipped all four Observatory pieces:**
+
+1. **Assets manifest (a)** — every build now emits a `build_manifest` SSE event with:
+   - `assets.js` export list: each with name (LOGO_URL / HERO_URL / PHOTO_N / ILLUSTRATION_N), source filename, byte size, and the user's placement note.
+   - Missing-export list (e.g. "HERO_URL — not provided") so it's obvious why a slot is empty.
+
+2. **Build trace timeline (b)** — `timings: [{stage, ms}]` captured per pipeline phase: art_direction, design_tokens, layout_blueprint, post_repair, total. Rendered in the observatory panel.
+
+3. **Live preview console (c)** — already existed (`__PREVIEW_CONSOLE__` / `__PREVIEW_ERROR__` postMessage from iframe → captured in `iframeErrors` + `consoleLogs` state in `PreviewTab.jsx`). Confirmed working.
+
+4. **Self-tests (d)** — `runIntegrityChecks()` in `build-observatory.js` produces pass/fail on:
+   - `components/theme.js` emitted
+   - `components/assets.js` emitted when brand uploads present
+   - `LOGO_URL` exported when user uploaded a logo
+   - Navbar actually renders `<img src={LOGO_URL}>`
+   - Landing renders hero image (`HERO_URL` or `PHOTO_0`)
+   - Router does NOT render `<Navbar>` (no duplicate landmarks)
+   Each check has a human-readable `detail` field so the panel can explain WHY it failed.
+   Also emits `project.integrity.json` into the project tree so the build carries its own self-test result.
+
+**Actionable warnings layer** — `collectWarnings()` surfaces high-signal issues in plain English at the top of the panel:
+- "You uploaded images but none were tagged as Brand — nothing will be rendered."
+- "LOGO_URL exists but Navbar does not reference it — the navbar will show a placeholder."
+- "Hero/photo assets exist but Landing does not reference them — the hero shows a themed placeholder instead."
+These are the exact error classes that produced Nexsara's failures.
+
+**Frontend (`BuildObservatoryPanel.jsx`)** — collapsible card rendered at the bottom of every `BriefProgressCard`. Shows warnings first, then assets manifest with color swatches + exports, then design tokens with inline palette swatches, then layout blueprint when available, then integrity checks with ✅/❌ per item, then per-phase timings. Every chunk has its own `data-testid`.
+
+**Tests:** +15 targeted tests in `test_build_observatory.test.js` covering:
+- Empty input null-safety
+- Role-correct export summarisation + note preservation + size estimation
+- Attachment role counting (brand / aesthetic / structural / untagged)
+- All integrity checks (theme, assets, LOGO_URL, navbar-usage, hero-image, router-cleanliness)
+- Warnings (untagged uploads, unused LOGO_URL, unused hero)
+- Timing pass-through
+
+**Full suite: 300/300 across 18 files.** Lint clean. Platform healthy.
+
+**What this unblocks:** Every future user build shows EXACTLY what reached `assets.js`, which tokens were extracted, which integrity checks passed/failed, and which phase took how long. "Why isn't my logo there?" now has a 3-second answer: look at the observatory panel. If LOGO_URL is listed → it's a render bug. If it's missing → it's an upload/tagging bug. No more mystery.
+
+**Next sessions (remaining 6/7):**
+2. Recipe families (saas-clean / editorial-serif / brutalist-raw / luxury-minimal / playful-illustrated) + Vision classifier picking per build.
+3. Service-worker virtual filesystem for iframe preview (fixes the "images must be inlined as base64" constraint).
+4. Screenshot-based visual verification after build (Puppeteer headless → Vision diff against user reference).
+5. Screenshot repair loop (if mismatch, auto-repair wave + re-screenshot; N rounds capped).
+6. Primitives-based composition (decompose recipes into `<Hero>`, `<FeatureGrid>`, `<Pricing>` with composition props + a layout planner).
+7. WebContainers (StackBlitz) — end-state filesystem/dev-server.
+
 ### Session 24.1 (COMPLETE, 2026-02-19) — Post-repair regex fix (real root cause of Nexsara's missing logo)
 
 User's Session-24 build: logo still not rendering, hero slot still showing a "big black half-circle". Traced the code end-to-end — **found a bug I shipped in Session 22 and missed in Sessions 21.5 / 23 / 24.**
