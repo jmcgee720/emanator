@@ -26,6 +26,27 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 24.1 (COMPLETE, 2026-02-19) — Post-repair regex fix (real root cause of Nexsara's missing logo)
+
+User's Session-24 build: logo still not rendering, hero slot still showing a "big black half-circle". Traced the code end-to-end — **found a bug I shipped in Session 22 and missed in Sessions 21.5 / 23 / 24.**
+
+**Root cause:** In Session 21.5 I wrote deterministic regex safety nets for duplicate navbars, ignored logos, ignored heroes. The regexes matched the Session-21 recipe shapes exactly:
+- `<span className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500" />`
+
+In Session 22 I rewrote every recipe to use CSS variables:
+- `<span className="w-8 h-8 rounded-[var(--radius)] bg-[var(--primary)]" />`
+
+I did not update the Session-21.5 regexes. So the safety net silently no-oped on every Session-22+ build. The LLM's default output (themed placeholder span) was structurally valid, so the reviewer also passed. Three layers of protection, all rendered useless by the regex mismatch. Result: the themed placeholder kept shipping in place of the user's actual logo / hero image.
+
+**Shipped:**
+1. **`ensureNavbarLogo` regex** — now matches BOTH the legacy violet-gradient shape AND the Session-22 themed `bg-[var(--primary)]` / `bg-[var(--accent)]` square span. Any `w-N h-N`, any radius form (rounded-xl / rounded-lg / `rounded-[var(--radius)]`), any themed-color fill.
+2. **`ensureHeroImage` regex** — added a primary branch that replaces the themed hero placeholder div (`bg-[var(--accent)] opacity-30 rounded-[var(--radius-lg)]`) before falling back to the section-injection path.
+3. **Two regression tests** that feed the exact Session-22 shapes and assert the safety net fires. Would have caught this bug on the first Session-22 commit.
+
+**Full suite: 285/285 across 17 files.** Lint clean.
+
+**What this unblocks:** Next Session-24+ build with a logo in `assets.js` will actually render it. Same for heroes. The code was right, the fixer was stale.
+
 ### Session 24 (COMPLETE, 2026-02-19) — Three-slot upload UI + layout blueprint extraction
 
 User's sharp observation: "some uploads are logos that should be rendered, some are aesthetic inspiration, some are screenshots for layout/flow — current pipeline can't tell them apart." Correct. One affordance for three distinct intents was the structural bug. Fix: split the UI, honour the user's role tag end-to-end, and add a new Vision call specifically for layout/flow extraction.
