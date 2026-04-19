@@ -9,6 +9,7 @@
 import { Sparkles, Loader2, CheckCircle2, AlertCircle, Wrench, Timer, Share2, Shuffle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ARCHETYPES } from '@/lib/ai/archetypes'
+import BuildObservatoryPanel from './BuildObservatoryPanel'
 
 const WAVE_STATUS_ICON = {
   pending: <span className="w-3.5 h-3.5 rounded-full border border-white/20 bg-white/5" />,
@@ -19,7 +20,7 @@ const WAVE_STATUS_ICON = {
 
 export default function BriefProgressCard({ progress }) {
   if (!progress) return null
-  const { archetype, artDirection, plan, waves, review, repair, status, startedAt } = progress
+  const { archetype, artDirection, plan, waves, review, repair, status, startedAt, manifest } = progress
 
   const waveList = waves || []
   const totalFilesBuilt = waveList.reduce((n, w) => n + (w.filesBuilt?.length || 0), 0)
@@ -283,6 +284,12 @@ function ShareBuildTime({ brand, archetype, seconds, fileCount }) {
           Tweet it
         </a>
       </div>
+
+      {manifest && (
+        <div className="mt-3" data-testid="brief-progress-observatory">
+          <BuildObservatoryPanel manifest={manifest} />
+        </div>
+      )}
     </div>
   )
 }

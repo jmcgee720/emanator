@@ -475,6 +475,42 @@ export function useDashboardStream(ctx) {
             },
           } : m))
         },
+        onDesignTokens: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                designTokens: data?.tokens || null,
+              },
+            },
+          } : m))
+        },
+        onLayoutBlueprint: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                layoutBlueprint: data?.blueprint || null,
+              },
+            },
+          } : m))
+        },
+        onBuildManifest: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                manifest: data,
+              },
+            },
+          } : m))
+        },
         onBriefPlan: (data) => {
           setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
             ...m,
