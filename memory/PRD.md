@@ -26,6 +26,58 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 22 (COMPLETE, 2026-02-18) — Design tokens: art direction that actually ships
+
+User feedback: *"it's still not using the art direction — people need to upload any image and have the AI generate off of that."* Prior sessions extracted prose like *"warm palette, clean sans-serif"* and stuffed it in the prompt. LLMs ignored it because recipes hardcoded `bg-violet-500` / `bg-black/40` / `text-white/70`. Prompts lost to recipe source code every time.
+
+**The unlock: structured tokens + CSS-variable recipes.**
+
+**Shipped:**
+
+1. **`/app/lib/ai/design-tokens.js`** — new module.
+   - `analyzeDesignTokens(images, provider)` → second Vision call (separate from `analyzeArtDirection`) returns STRICT JSON: `{bg, surface, surface2, border, ink, inkMuted, primary, primaryInk, accent, radius, radiusLg, fontDisplay, fontBody, mode, vibe, avoid[]}`. Uses `response_format: json_object`. Non-blocking on failure.
+   - `parseTokens(raw)` → validates essentials (bg/ink/primary required), merges `FALLBACK_TOKENS` for missing keys, coerces `mode` to dark|light, caps `avoid` list at 6.
+   - `buildThemeFile(tokens)` → deterministic generator for `components/theme.js`. Exports `DESIGN_TOKENS`, `cssVars` (keyed by `--var`), and `<ThemeProvider>` that wraps children with the CSS vars applied as inline style + sets `data-theme` + `data-vibe` attributes. Escapes backticks/`$` in font-family strings.
+   - `formatTokensForPrompt(tokens)` → compact string the builder prompt inlines with palette + vibe + explicit "avoid" rules.
+   - `FALLBACK_TOKENS` → safe default matching the prior aesthetic so projects with no uploaded references don't regress.
+
+2. **Pipeline wiring in `message-stream.js`** — new Step 1.5b after art direction: calls `analyzeDesignTokens`, attaches result to `plan.designTokens`, emits SSE `design_tokens` event. Before the builder runs, writes `components/theme.js` to the project via `aiService.saveFiles` (same LLM-bypass strategy as `components/assets.js`).
+
+3. **Recipe rewrite (the critical structural change).** Every themed recipe was swapped from hardcoded Tailwind colors to CSS-variable arbitrary-value syntax:
+   - `text-white` → `text-[var(--ink)]`, `text-white/70` → `text-[var(--ink-muted)]`
+   - `bg-white` / `bg-white/5` → `bg-[var(--primary)]` / `bg-[var(--surface)]`
+   - `bg-black/40` → `bg-[var(--surface-2)]`
+   - `border-white/10` → `border-[var(--border)]`
+   - `bg-white text-black` → `bg-[var(--primary)] text-[var(--primary-ink)]`
+   - `from-violet-500 to-indigo-500` → `from-[var(--primary)] to-[var(--accent)]`
+   - `rounded-xl` stays, but brand accents use `rounded-[var(--radius)]` / `rounded-[var(--radius-lg)]`
+   - `font-display` set via `style={{ fontFamily: 'var(--font-display)' }}` on `h1`/`h2`
+   - Rewritten: `app_router` (wraps in `<ThemeProvider>`), `navbar_glass`, `footer_4col`, `landing_page`, `signup_form`, `login_form`, `forgot_password_form`, `forgot_password_success`, `pricing_3tier`, `onboarding_wizard`, `dashboard_empty_state`, `settings_page`, `data_table`, `chat_interface`, `search_page`, `generic_list_page`, `item_detail_crud`, `empty_state`, `profile_page`, `stripe_pricing_3tier`.
+   - `grep -cE "text-white|bg-white|border-white|from-violet|to-indigo|bg-black|bg-violet|text-black|text-gray-|bg-gray-" lib/ai/recipes.js` → **0 matches.** Recipes are fully theme-token-driven.
+
+4. **Builder prompt (`brief-builder.js`)** — new DESIGN TOKENS block between BRAND and HARD RULES, rendering the tokens + listing the exact arbitrary-value classes the LLM must use. New **HARD RULE #18 (THEME-TOKEN DISCIPLINE)** bans `text-white`, `bg-white`, `from-violet-500`, etc., and enumerates the allowed `var()` classes.
+
+5. **Reviewer (`brief-reviewer.js`)** — new **rule 11** flags any generated file with hardcoded Tailwind color classes as `<path>: hardcoded-color-classes-bypass-theme`, which triggers the repair wave to rewrite in theme variables.
+
+6. **`+22` design-token tests** + 5 new builder/reviewer prompt tests. **Full suite: 248/248 across 17 files.** Lint clean. Testing agent `iteration_113.json` confirmed 0 issues + grep sanity check of recipes.js.
+
+**What happens now on a fresh build with uploaded references:**
+1. Vision #1 → `analyzeArtDirection()` prose (kept for semantic grounding in planner).
+2. Vision #2 → `analyzeDesignTokens()` → JSON palette/fonts/radius/vibe.
+3. `components/theme.js` emitted deterministically with the user's actual palette.
+4. `app/page.jsx` wraps in `<ThemeProvider>` which sets CSS vars on the root.
+5. Every recipe renders with `bg-[var(--primary)]`, `text-[var(--ink)]`, etc. — which resolve to the user's palette.
+6. Reviewer flags any deviation; repair wave rewrites.
+7. Post-repair safety net (from Session 21.5) still runs.
+
+Output should now reflect the uploaded references' actual palette, typography, radius, and mood — not the default violet/cyan slop.
+
+**Deferred (Session 23+):**
+- Option B (layout cloning from references — blueprint-aware landing page).
+- Option C (Nano Banana / GPT Image 1 for brand-styled hero/feature illustrations).
+- Branded custom domains via Vercel Domains API.
+- Stripe Checkout server-function auto-gen.
+
 ### Session 21.5 (COMPLETE, 2026-02-18) — Deterministic post-repair safety net
 
 User's second real-world test still failed — prompt rules alone can't guarantee the LLM will use user-uploaded logos, avoid router-level navbars, or refuse generic copy. LLM-based enforcement is probabilistic. Ship a **non-LLM deterministic post-processor** that runs after the review/repair wave.
