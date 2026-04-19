@@ -23,12 +23,15 @@ const plan = {
 }
 
 function makeProvider({ chatResponse, streamToolCalls, streamToolArgs } = {}) {
+  const streamMessageLog = []
   return {
     chat: jest.fn().mockResolvedValue(chatResponse || '{"ok":true}'),
-    chatWithToolsStream: async function* () {
+    chatWithToolsStream: async function* (messages) {
+      streamMessageLog.push(messages)
       if (streamToolArgs) yield { type: 'tool_args_delta', delta: streamToolArgs }
       yield { type: 'tool_calls', tool_calls: streamToolCalls || [] }
     },
+    streamMessageLog,
   }
 }
 
@@ -203,5 +206,77 @@ describe('reviewBuild system prompt — hard rule coverage', () => {
     expect(prompt).toContain('hardcoded-color-classes-bypass-theme')
     expect(prompt).toContain('components/theme.js')
     expect(prompt).toContain('bg-[var(--primary)]')
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────
+// Image-in-repair tests — the repair wave must ALSO receive the user's
+// reference images so it can actually see what the palette/logo/hero
+// should look like when rewriting "ignored-user-logo" / "generic copy" /
+// "hardcoded-colors" flagged files.
+// ──────────────────────────────────────────────────────────────────────
+describe('repairBuild — reference-image attachment', () => {
+  async function collect(gen) {
+    const events = []
+    let result
+    while (true) {
+      const next = await gen.next()
+      if (next.done) { result = next.value; break }
+      events.push(next.value)
+    }
+    return { events, result }
+  }
+
+  test('attaches image_url parts to the repair user message when imageAssets present', async () => {
+    const provider = makeProvider({
+      streamToolCalls: [{
+        function: {
+          name: 'update_files',
+          arguments: JSON.stringify({ files: [{ path: 'pages/Landing.jsx', content: 'x'.repeat(200) }] }),
+        },
+      }],
+    })
+    const planWithImages = {
+      ...plan,
+      imageAssets: [
+        { role: 'logo', dataUrl: 'data:image/png;base64,LOGO', index: 0 },
+        { role: 'hero', dataUrl: 'data:image/jpeg;base64,HERO', index: 1 },
+      ],
+    }
+    const gen = repairBuild({
+      plan: planWithImages,
+      review: { ok: false, missing: [], broken: ['pages/Landing.jsx: ignored-user-logo'], notes: [] },
+      filesBuilt: [{ path: 'pages/Landing.jsx', content: '<div>plain text logo</div>' + 'x'.repeat(200) }],
+      provider,
+      saveFiles: async (files) => files.map((f) => ({ ...f, id: 'x', action: 'updated' })),
+    })
+    await collect(gen)
+    const userContent = provider.streamMessageLog[0][1].content
+    expect(Array.isArray(userContent)).toBe(true)
+    const imgs = userContent.filter((c) => c.type === 'image_url')
+    expect(imgs).toHaveLength(2)
+    expect(imgs[0].image_url.url).toContain('base64,LOGO')
+    expect(imgs[1].image_url.url).toContain('base64,HERO')
+  })
+
+  test('repair user message is a plain string when no imageAssets (no regression)', async () => {
+    const provider = makeProvider({
+      streamToolCalls: [{
+        function: {
+          name: 'update_files',
+          arguments: JSON.stringify({ files: [{ path: 'pages/Signup.jsx', content: 'x'.repeat(200) }] }),
+        },
+      }],
+    })
+    const gen = repairBuild({
+      plan, // no imageAssets
+      review: { ok: false, missing: [], broken: ['pages/Signup.jsx: generic-marketing-copy'], notes: [] },
+      filesBuilt: [{ path: 'pages/Signup.jsx', content: 'x'.repeat(200) }],
+      provider,
+      saveFiles: async (files) => files.map((f) => ({ ...f, id: 'x', action: 'updated' })),
+    })
+    await collect(gen)
+    const userContent = provider.streamMessageLog[0][1].content
+    expect(typeof userContent).toBe('string')
   })
 })
