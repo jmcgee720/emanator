@@ -20,7 +20,7 @@ const WAVE_STATUS_ICON = {
 
 export default function BriefProgressCard({ progress }) {
   if (!progress) return null
-  const { archetype, artDirection, plan, waves, review, repair, status, startedAt, manifest } = progress
+  const { archetype, artDirection, plan, waves, review, repair, status, startedAt, manifest, screenshotVerify } = progress
 
   const waveList = waves || []
   const totalFilesBuilt = waveList.reduce((n, w) => n + (w.filesBuilt?.length || 0), 0)
@@ -287,7 +287,7 @@ function ShareBuildTime({ brand, archetype, seconds, fileCount }) {
 
       {manifest && (
         <div className="mt-3" data-testid="brief-progress-observatory">
-          <BuildObservatoryPanel manifest={manifest} />
+          <BuildObservatoryPanel manifest={manifest} screenshotVerify={screenshotVerify} />
         </div>
       )}
     </div>
