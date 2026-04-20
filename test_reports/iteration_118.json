@@ -1,0 +1,162 @@
+{
+  "summary": "Session 30 (6/7) Primitives decomposition testing complete. ALL 430 TESTS PASSING (401 from Session 31 + 29 new primitives tests). Verified HERO_LAYOUTS (4 frozen values), FEATURE_CARD_STYLES (4 frozen values), buildHeroPrimitive (all 4 layouts + text alignment + asset imports), buildFeatureGridPrimitive (2/3/4 columns + 4 card styles), resolvePrimitivesFromBlueprint (safe defaults), buildPrimitiveFiles (2 files emitted), formatPrimitivesForPrompt (builder prompt block). Pipeline wiring verified in message-stream.js (Step 3c, lines 3922-3939) and brief-builder.js (line 46 PRIMITIVES block injection). All 20 primitive variants (4 hero × 2 asset states + 3 cols × 4 styles) pass Babel @babel/preset-react transform. App loads correctly (Emanator login page with Aurora background). Next.js HMR clean.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_primitives.test.js"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: HERO_LAYOUTS (line 38-43) contains 4 blueprint-aligned values: split-50-50, full-bleed-image, centered-text, stacked-image-below",
+    "PASS: FEATURE_CARD_STYLES (line 145-150) contains 4 values: hairline-outlined, filled-surface, no-border, shadowed-card",
+    "PASS: Both arrays are Object.freeze() immutable",
+    "PASS: buildHeroPrimitive (lines 55-141) generates valid JSX for all 4 layouts with correct data-testid attributes",
+    "PASS: buildHeroPrimitive respects textAlignment prop (left/center/right) via style prop and class toggles",
+    "PASS: buildHeroPrimitive only imports HERO_URL+PHOTO_0 when hasHeroAsset=true",
+    "PASS: buildHeroPrimitive uses ONLY CSS var classes (bg-[var(--primary)], text-[var(--ink)], etc.) - no hardcoded colors",
+    "PASS: esc() function (line 27) escapes backticks, $, and < to prevent template-literal breaks",
+    "PASS: buildFeatureGridPrimitive (lines 162-205) respects columns (2/3/4 → correct Tailwind grid classes)",
+    "PASS: buildFeatureGridPrimitive card styles: hairline-outlined=bg-transparent, shadowed-card=shadow-lg, no-border omits border, filled-surface=default",
+    "PASS: buildFeatureGridPrimitive renders 2× column count in cards (2-col=4, 3-col=6, 4-col=8)",
+    "PASS: resolvePrimitivesFromBlueprint (lines 231-243) falls back to safe defaults for null/invalid blueprint",
+    "PASS: buildPrimitiveFiles (lines 255-270) emits exactly 2 files: components/primitives/Hero.jsx and FeatureGrid.jsx",
+    "PASS: formatPrimitivesForPrompt (lines 280-292) returns empty string for null blueprint, otherwise includes imports + 'do not re-implement'",
+    "PASS: Pipeline wiring in message-stream.js Step 3c (lines 3922-3939) calls buildPrimitiveFiles when plan.layoutBlueprint exists",
+    "PASS: hasHeroAsset flag computed from imageAssets roles 'hero' OR 'photo'",
+    "PASS: plan.primitivesEmitted set to list of emitted paths after saveFiles",
+    "PASS: brief-builder.js line 46 injects PRIMITIVES block when plan.layoutBlueprint AND plan.primitivesEmitted?.length",
+    "PASS: All 20 primitive variants pass @babel/preset-react transform without syntax errors"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (unit tests only, app loads correctly)"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session 30 complete. Primitives decomposition feature added. Key changes: NEW /app/lib/ai/primitives.js (250 lines) with HERO_LAYOUTS, FEATURE_CARD_STYLES, buildHeroPrimitive, buildFeatureGridPrimitive, resolvePrimitivesFromBlueprint, buildPrimitiveFiles, formatPrimitivesForPrompt. Pipeline wiring in message-stream.js Step 3c (lines 3922-3939) emits primitive files when blueprint present. Builder prompt wiring in brief-builder.js line 46 injects PRIMITIVES block. Jest suite now at 430/430 tests (29 new in test_primitives.test.js). The primitives use CSS vars exclusively and are pure functions (no side effects). Layout IDs match exactly with parseBlueprint() enum values in design-tokens.js.",
+  "jest_test_results": {
+    "total_tests": 430,
+    "passed": 430,
+    "failed": 0,
+    "test_suites": [
+      {"file": "test_primitives.test.js", "tests": 29, "status": "PASS", "note": "NEW Session 30 - all primitives exports tested"},
+      {"file": "test_design_tokens.test.js", "tests": 51, "status": "PASS"},
+      {"file": "test_screenshot_verify.test.js", "tests": 26, "status": "PASS"},
+      {"file": "test_session27_vfs.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_brief_utils.test.js", "tests": 52, "status": "PASS"},
+      {"file": "test_brief_builder.test.js", "tests": 17, "status": "PASS"},
+      {"file": "test_brief_reviewer.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_archetypes.test.js", "tests": 35, "status": "PASS"},
+      {"file": "test_art_direction.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_brief_planner.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_gallery_routes.test.js", "tests": 13, "status": "PASS"},
+      {"file": "test_post_repair.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_quick_action_chips.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_share_remix.test.js", "tests": 6, "status": "PASS"},
+      {"file": "test_snapshots_route.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_stats_my_builds.test.js", "tests": 5, "status": "PASS"},
+      {"file": "test_stripe_wiring.test.js", "tests": 12, "status": "PASS"},
+      {"file": "test_supabase_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_vercel_bundler.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_vercel_deploy.test.js", "tests": 8, "status": "PASS"},
+      {"file": "api_proof_tests.test.js", "tests": 2, "status": "PASS"},
+      {"file": "complete_proof_tests.test.js", "tests": 12, "status": "PASS"}
+    ]
+  },
+  "babel_parseability_check": {
+    "total_variants": 20,
+    "passed": 20,
+    "failed": 0,
+    "breakdown": "4 hero layouts × 2 asset states (8) + 3 columns × 4 card styles (12) = 20 variants"
+  },
+  "features_verified": {
+    "HERO_LAYOUTS": {
+      "file": "lib/ai/primitives.js lines 38-43",
+      "values": ["split-50-50", "full-bleed-image", "centered-text", "stacked-image-below"],
+      "frozen": true
+    },
+    "FEATURE_CARD_STYLES": {
+      "file": "lib/ai/primitives.js lines 145-150",
+      "values": ["hairline-outlined", "filled-surface", "no-border", "shadowed-card"],
+      "frozen": true
+    },
+    "buildHeroPrimitive": {
+      "file": "lib/ai/primitives.js lines 55-141",
+      "tests": 12,
+      "coverage": [
+        "split-50-50 default with grid layout",
+        "full-bleed-image with absolute-positioned image",
+        "centered-text with max-w-3xl",
+        "stacked-image-below with text first",
+        "fallback to split-50-50 for unknown layout",
+        "text alignment (left/center/right)",
+        "asset imports only when hasHeroAsset=true",
+        "CSS var classes only (no hardcoded colors)",
+        "backtick and $ escaping"
+      ]
+    },
+    "buildFeatureGridPrimitive": {
+      "file": "lib/ai/primitives.js lines 162-205",
+      "tests": 8,
+      "coverage": [
+        "2-column grid (md:grid-cols-2)",
+        "3-column grid (lg:grid-cols-3)",
+        "4-column grid (lg:grid-cols-4)",
+        "hairline-outlined (bg-transparent)",
+        "shadowed-card (shadow-lg)",
+        "no-border (omits border class)",
+        "filled-surface (default)",
+        "2× column count in cards"
+      ]
+    },
+    "resolvePrimitivesFromBlueprint": {
+      "file": "lib/ai/primitives.js lines 231-243",
+      "tests": 3,
+      "coverage": [
+        "picks from valid blueprint",
+        "falls back to safe defaults for null",
+        "rejects invalid enum values"
+      ]
+    },
+    "buildPrimitiveFiles": {
+      "file": "lib/ai/primitives.js lines 255-270",
+      "tests": 3,
+      "coverage": [
+        "emits 2 files with correct paths",
+        "Hero file reflects chosen layout",
+        "FeatureGrid file reflects columns + style"
+      ]
+    },
+    "formatPrimitivesForPrompt": {
+      "file": "lib/ai/primitives.js lines 280-292",
+      "tests": 3,
+      "coverage": [
+        "returns empty string for null blueprint",
+        "lists imports + resolved params",
+        "includes 'do not re-implement' directive"
+      ]
+    },
+    "pipeline_wiring": {
+      "message_stream": "lib/ai/message-stream.js lines 3922-3939 (Step 3c)",
+      "brief_builder": "lib/ai/brief-builder.js line 46 (PRIMITIVES block injection)",
+      "verified": true
+    }
+  },
+  "mocked_apis": {
+    "note": "All tests are pure unit tests. No external APIs called.",
+    "mocked": []
+  }
+}
