@@ -1,0 +1,147 @@
+{
+  "summary": "Session 27 Virtual Filesystem Layer testing complete. ALL 360 TESTS PASSING across 22 test files. Verified new VFS helpers (resolveBrandAssets, buildBrandVfsMap) in brief-utils.js, SSE emission of generated_images_map with source='brand_vfs' in message-stream.js, frontend iframe VFS injection in PreviewTab.jsx, and merge logic in useDashboardStream.js. App loads correctly (Emanator login page with Aurora background). Login flow not fully tested due to Supabase auth dependency in preview environment.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_session27_vfs.test.js",
+    "/app/backend/tests/test_brief_utils.test.js"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: brief-utils.js resolveBrandAssets assigns canonical VFS paths (/logo.png, /hero.jpg, /images/photo-N.png, /illustrations/illustration-N.svg)",
+    "PASS: brief-utils.js buildBrandVfsMap produces {placeholder, dataUrl} pairs with VFS paths as keys",
+    "PASS: brief-utils.js buildAssetsFileContent emits VIRTUAL_FS block with correct path mappings",
+    "PASS: brief-utils.js buildAssetsFileContent emits window.__EMANATOR_VFS__ runtime registration",
+    "PASS: message-stream.js line 3910-3914 emits generated_images_map SSE event with source='brand_vfs' after assets.js is saved",
+    "PASS: message-stream.js imports buildBrandVfsMap from brief-utils.js (line 25)",
+    "PASS: useDashboardStream.js onGeneratedImagesMap (lines 226-238) MERGES by placeholder key instead of replacing",
+    "PASS: PreviewTab.jsx parseBrandVfsFromAssetsModule (lines 18-35) correctly extracts VFS entries from persisted assets.js",
+    "PASS: PreviewTab.jsx iframe script injection (lines 240-291) populates window.__GEN_IMAGE_MAP__ AND window.__EMANATOR_VFS__",
+    "PASS: PreviewTab.jsx __normalizeVfsKey helper (lines 250-256) handles ./ and public/ path normalization",
+    "PASS: PreviewTab.jsx __fixImages MutationObserver (lines 258-289) resolves both substring-match (legacy) AND path-form VFS lookup",
+    "PASS: PreviewTab.jsx mergedImageAssets (lines 1225-1226) combines SSE map + persisted _assets/ + brandVfsFromModule",
+    "PASS: test_brief_utils.test.js has 52 tests including 6 new Session 27 VFS tests (all passing)",
+    "PASS: test_session27_vfs.test.js has 15 comprehensive VFS layer tests (all passing)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_session27_vfs.test.js"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (unit tests only, app loads correctly)"
+  },
+  "test_credentials": {
+    "email": "REDACTED_LEAKED_USER",
+    "password": "REDACTED_LEAKED_PASSWORD"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Session 27 complete. Virtual Filesystem layer added for brand assets. Key files: lib/ai/brief-utils.js (resolveBrandAssets, buildBrandVfsMap), lib/ai/message-stream.js (SSE emission at line 3910-3914), components/dashboard/tabs/PreviewTab.jsx (parseBrandVfsFromAssetsModule, iframe VFS injection), components/dashboard/useDashboardStream.js (merge logic at line 226-238). Jest suite now at 360/360 tests across 22 files. All tests are pure unit/prompt tests - no DB, no LLM, no HTTP required. The VFS layer enables LLM-generated code like <img src=\"/logo.png\"> to resolve to uploaded brand asset data URLs at iframe runtime.",
+  "jest_test_results": {
+    "total_tests": 360,
+    "passed": 360,
+    "failed": 0,
+    "test_suites": [
+      {"file": "test_session27_vfs.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_brief_utils.test.js", "tests": 52, "status": "PASS"},
+      {"file": "test_design_tokens.test.js", "tests": 22, "status": "PASS"},
+      {"file": "test_brief_builder.test.js", "tests": 17, "status": "PASS"},
+      {"file": "test_brief_reviewer.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_archetypes.test.js", "tests": 35, "status": "PASS"},
+      {"file": "test_art_direction.test.js", "tests": 8, "status": "PASS"},
+      {"file": "test_brief_planner.test.js", "tests": 15, "status": "PASS"},
+      {"file": "test_gallery_routes.test.js", "tests": 13, "status": "PASS"},
+      {"file": "test_post_repair.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_quick_action_chips.test.js", "tests": 7, "status": "PASS"},
+      {"file": "test_share_remix.test.js", "tests": 6, "status": "PASS"},
+      {"file": "test_snapshots_route.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_stats_my_builds.test.js", "tests": 5, "status": "PASS"},
+      {"file": "test_stripe_wiring.test.js", "tests": 12, "status": "PASS"},
+      {"file": "test_supabase_wiring.test.js", "tests": 10, "status": "PASS"},
+      {"file": "test_vercel_bundler.test.js", "tests": 11, "status": "PASS"},
+      {"file": "test_vercel_deploy.test.js", "tests": 8, "status": "PASS"},
+      {"file": "api_proof_tests.test.js", "tests": 2, "status": "PASS"}
+    ]
+  },
+  "features_verified": {
+    "resolveBrandAssets": {
+      "file": "lib/ai/brief-utils.js lines 169-202",
+      "tests": 3,
+      "coverage": [
+        "assigns canonical VFS paths per role",
+        "second logo falls through to PHOTO_N",
+        "ignores aesthetic and structural roles"
+      ]
+    },
+    "buildBrandVfsMap": {
+      "file": "lib/ai/brief-utils.js lines 213-218",
+      "tests": 2,
+      "coverage": [
+        "produces {placeholder, dataUrl} pairs with VFS paths as keys",
+        "returns empty array for no renderable assets"
+      ]
+    },
+    "buildAssetsFileContent_VIRTUAL_FS": {
+      "file": "lib/ai/brief-utils.js lines 236-272",
+      "tests": 2,
+      "coverage": [
+        "emits VIRTUAL_FS block with correct path mappings",
+        "emits window.__EMANATOR_VFS__ runtime registration"
+      ]
+    },
+    "message_stream_SSE_emission": {
+      "file": "lib/ai/message-stream.js lines 3910-3914",
+      "tests": 1,
+      "coverage": [
+        "emits generated_images_map event with source='brand_vfs' after assets.js saved"
+      ]
+    },
+    "useDashboardStream_merge_logic": {
+      "file": "components/dashboard/useDashboardStream.js lines 226-238",
+      "tests": 0,
+      "coverage": [
+        "code review verified: MERGES by placeholder key instead of replacing"
+      ]
+    },
+    "PreviewTab_VFS_injection": {
+      "file": "components/dashboard/tabs/PreviewTab.jsx lines 240-291",
+      "tests": 0,
+      "coverage": [
+        "code review verified: populates window.__GEN_IMAGE_MAP__ AND window.__EMANATOR_VFS__",
+        "code review verified: __normalizeVfsKey handles ./ and public/ normalization",
+        "code review verified: __fixImages resolves both substring-match AND path-form VFS"
+      ]
+    },
+    "parseBrandVfsFromAssetsModule": {
+      "file": "components/dashboard/tabs/PreviewTab.jsx lines 18-35",
+      "tests": 3,
+      "coverage": [
+        "extracts VFS entries from persisted components/assets.js",
+        "returns empty array for invalid/empty source",
+        "handles normal data URLs"
+      ]
+    },
+    "end_to_end_VFS_resolution": {
+      "tests": 5,
+      "coverage": [
+        "LLM writes <img src=\"/logo.png\"> - resolves via VFS",
+        "LLM writes <img src=\"./logo.png\"> - resolves via VFS",
+        "LLM writes <img src=\"public/logo.png\"> - resolves via VFS",
+        "data: URIs are left alone (no rewriting)",
+        "legacy placeholder URLs still work via substring match"
+      ]
+    }
+  },
+  "mocked_apis": {
+    "note": "All tests are pure unit tests. No external APIs called.",
+    "mocked": []
+  }
+}
