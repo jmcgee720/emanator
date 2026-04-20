@@ -3,7 +3,7 @@
  * Guards against the double-escape regression.
  */
 
-import { normalizeFileContent, normalizeFiles, autoInjectMissingImports, mapImageAssets, buildAssetsFileContent } from '../../lib/ai/brief-utils.js'
+import { normalizeFileContent, normalizeFiles, autoInjectMissingImports, mapImageAssets, buildAssetsFileContent, resolveBrandAssets, buildBrandVfsMap } from '../../lib/ai/brief-utils.js'
 
 describe('normalizeFileContent', () => {
   test('pass-through when content already has real newlines', () => {
@@ -344,5 +344,74 @@ describe('buildAssetsFileContent (components/assets.js generator)', () => {
     const result = new Function(evaluable)()
     expect(result.LOGO_URL).toBe('data:image/png;base64,AAAA')
     expect(result.PHOTO_0).toBe('data:image/png;base64,B`${bad}C')
+  })
+})
+
+describe('resolveBrandAssets / buildBrandVfsMap (Session 27 Virtual FS)', () => {
+  test('resolveBrandAssets assigns canonical VFS paths per role', () => {
+    const resolved = resolveBrandAssets([
+      { role: 'logo', name: 'brand.png', dataUrl: 'data:image/png;base64,L', index: 0 },
+      { role: 'hero', name: 'hero.jpg', dataUrl: 'data:image/jpeg;base64,H', index: 1 },
+      { role: 'photo', name: 'p1.png', dataUrl: 'data:image/png;base64,P0', index: 2 },
+      { role: 'photo', name: 'p2.png', dataUrl: 'data:image/png;base64,P1', index: 3 },
+      { role: 'illustration', name: 'i.svg', dataUrl: 'data:image/svg+xml;base64,I', index: 4 },
+    ])
+    expect(resolved.map(r => [r.exportName, r.vfsPath])).toEqual([
+      ['LOGO_URL', '/logo.png'],
+      ['HERO_URL', '/hero.jpg'],
+      ['PHOTO_0', '/images/photo-0.png'],
+      ['PHOTO_1', '/images/photo-1.png'],
+      ['ILLUSTRATION_0', '/illustrations/illustration-0.svg'],
+    ])
+  })
+
+  test('resolveBrandAssets second logo falls through to PHOTO_N (slot already claimed)', () => {
+    const resolved = resolveBrandAssets([
+      { role: 'logo', name: 'a.png', dataUrl: 'data:,A', index: 0 },
+      { role: 'logo', name: 'b.png', dataUrl: 'data:,B', index: 1 },
+    ])
+    expect(resolved.map(r => r.exportName)).toEqual(['LOGO_URL', 'PHOTO_0'])
+    expect(resolved.map(r => r.vfsPath)).toEqual(['/logo.png', '/images/photo-0.png'])
+  })
+
+  test('resolveBrandAssets ignores aesthetic and structural (never rendered)', () => {
+    const resolved = resolveBrandAssets([
+      { role: 'aesthetic', name: 'moodboard.png', dataUrl: 'data:,X', index: 0 },
+      { role: 'structural', name: 'layout.png', dataUrl: 'data:,Y', index: 1 },
+      { role: 'logo', name: 'real-logo.png', dataUrl: 'data:,Z', index: 2 },
+    ])
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0].exportName).toBe('LOGO_URL')
+  })
+
+  test('buildBrandVfsMap emits {placeholder,dataUrl} pairs with VFS paths as keys', () => {
+    const vfs = buildBrandVfsMap([
+      { role: 'logo', name: 'l.png', dataUrl: 'data:,L', index: 0 },
+      { role: 'hero', name: 'h.jpg', dataUrl: 'data:,H', index: 1 },
+    ])
+    expect(vfs).toEqual([
+      { placeholder: '/logo.png', dataUrl: 'data:,L' },
+      { placeholder: '/hero.jpg', dataUrl: 'data:,H' },
+    ])
+  })
+
+  test('buildBrandVfsMap returns empty array for no renderable assets', () => {
+    expect(buildBrandVfsMap([])).toEqual([])
+    expect(buildBrandVfsMap(null)).toEqual([])
+    expect(buildBrandVfsMap([{ role: 'aesthetic', name: 'x.png', dataUrl: 'data:,X', index: 0 }])).toEqual([])
+  })
+
+  test('VFS paths match the paths baked into buildAssetsFileContent VIRTUAL_FS block', () => {
+    const assets = [
+      { role: 'logo', name: 'l.png', dataUrl: 'data:,L', index: 0 },
+      { role: 'hero', name: 'h.jpg', dataUrl: 'data:,H', index: 1 },
+      { role: 'photo', name: 'p.png', dataUrl: 'data:,P', index: 2 },
+    ]
+    const content = buildAssetsFileContent(assets)
+    const vfs = buildBrandVfsMap(assets)
+    // Every path from buildBrandVfsMap must appear as a key in the emitted VIRTUAL_FS
+    for (const entry of vfs) {
+      expect(content).toContain(`'${entry.placeholder}'`)
+    }
   })
 })

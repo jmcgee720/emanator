@@ -9,6 +9,31 @@ import {
   Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink
 } from 'lucide-react'
 
+// ─── Parse VFS entries out of a components/assets.js module ────────
+// Used on project reload (no live SSE map available) so path-form
+// `<img src="/logo.png">` continues to resolve against the persisted
+// brand-asset module. We don't evaluate JS — we regex-grab
+// `'\/path': EXPORT_NAME` pairs from the VIRTUAL_FS block and match
+// each to its `export const EXPORT_NAME = \`data:...\`` literal.
+function parseBrandVfsFromAssetsModule(source) {
+  if (typeof source !== 'string' || !source) return []
+  const exportRe = /export\s+const\s+([A-Z0-9_]+)\s*=\s*`(data:[^`]+)`/g
+  const byName = {}
+  let m
+  while ((m = exportRe.exec(source)) !== null) byName[m[1]] = m[2]
+
+  const vfsBlock = source.match(/VIRTUAL_FS\s*=\s*\{([\s\S]*?)\}/)
+  if (!vfsBlock) return []
+  const pairRe = /['"]([^'"]+)['"]\s*:\s*([A-Z0-9_]+)/g
+  const out = []
+  while ((m = pairRe.exec(vfsBlock[1])) !== null) {
+    const path = m[1]
+    const name = m[2]
+    if (byName[name]) out.push({ placeholder: path, dataUrl: byName[name] })
+  }
+  return out
+}
+
 // ─── Project classifier ────────────────────────────────────────────
 function classifyProject(files) {
   if (!files?.length) return { type: 'empty', files: [] }
@@ -217,25 +242,49 @@ function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind,
       'window.__GEN_IMAGE_MAP__ = ' + JSON.stringify(
         Object.fromEntries(imageAssets.map(a => [a.placeholder, a.dataUrl]))
       ).replace(/</g, '\\u003c') + ';',
-      '/* After each render, replace placeholder image URLs with actual data */',
+      '/* Virtual filesystem — merges pre-injected brand-asset paths with anything',
+      '   a later-loading components/assets.js module registers at runtime. */',
+      'window.__EMANATOR_VFS__ = Object.assign({}, window.__EMANATOR_VFS__ || {}, window.__GEN_IMAGE_MAP__);',
+      '/* Strip leading ./ and optional public/ so "./logo.png" and "public/logo.png"',
+      '   both resolve to the same VFS key "/logo.png". */',
+      'window.__normalizeVfsKey = function(s) {',
+      '  var v = String(s || "");',
+      '  v = v.replace(/^\\.\\//, "/");',
+      '  if (v.charAt(0) !== "/") v = "/" + v;',
+      '  v = v.replace(/^\\/public\\//, "/");',
+      '  return v;',
+      '};',
+      '/* After each render, replace placeholder/path image URLs with actual data. */',
       'window.__fixImages = function() {',
+      '  var map = Object.assign({}, window.__GEN_IMAGE_MAP__ || {}, window.__EMANATOR_VFS__ || {});',
+      '  var keys = Object.keys(map);',
+      '  if (keys.length === 0) return;',
       '  document.querySelectorAll("img").forEach(function(img) {',
       '    var src = img.getAttribute("src") || "";',
-      '    Object.keys(window.__GEN_IMAGE_MAP__).forEach(function(key) {',
-      '      if (src.indexOf(key) !== -1) img.src = window.__GEN_IMAGE_MAP__[key];',
-      '    });',
+      '    if (src.indexOf("data:") === 0) return;',
+      '    /* 1. substring match on full placeholder URLs (stock/generated images) */',
+      '    for (var i = 0; i < keys.length; i++) {',
+      '      var k = keys[i];',
+      '      if (k.charAt(0) !== "/" && src.indexOf(k) !== -1) { img.src = map[k]; return; }',
+      '    }',
+      '    /* 2. path-form VFS resolve (leading slash + ./ + public/) */',
+      '    var norm = window.__normalizeVfsKey(src);',
+      '    if (map[norm]) { img.src = map[norm]; return; }',
       '  });',
-      '  /* Also fix CSS background-image */',
+      '  /* Also fix CSS background-image url(...) references */',
       '  document.querySelectorAll("[style]").forEach(function(el) {',
       '    var s = el.getAttribute("style") || "";',
-      '    Object.keys(window.__GEN_IMAGE_MAP__).forEach(function(key) {',
-      '      if (s.indexOf(key) !== -1) el.setAttribute("style", s.split(key).join(window.__GEN_IMAGE_MAP__[key]));',
+      '    if (!/url\\(/.test(s)) return;',
+      '    var changed = false;',
+      '    keys.forEach(function(k) {',
+      '      if (s.indexOf(k) !== -1) { s = s.split(k).join(map[k]); changed = true; }',
       '    });',
+      '    if (changed) el.setAttribute("style", s);',
       '  });',
       '};',
       '/* Run image fixer after initial render and on every DOM mutation */',
-      'new MutationObserver(function() { window.__fixImages(); }).observe(document.body, { childList: true, subtree: true });',
-      '/* Safety: run image fixer after a short delay in case MutationObserver missed initial render */',
+      'new MutationObserver(function() { window.__fixImages(); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src","style"] });',
+      '/* Safety: run image fixer after short delays in case MutationObserver missed initial render */',
       'setTimeout(function() { window.__fixImages(); }, 500);',
       'setTimeout(function() { window.__fixImages(); }, 2000);',
       '<\/script>',
@@ -1165,8 +1214,16 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         const filename = f.path.split('/').pop()
         return { placeholder: `https://emanator-generated.img/${filename}`, dataUrl: f.content }
       })
+    // Parse brand VFS entries from components/assets.js on reload — so
+    // path-form `<img src="/logo.png">` continues to resolve even after
+    // the SSE stream is gone. We extract each `export const NAME = \`data:...\``
+    // pair and re-map it to its canonical VFS path.
+    const assetsModule = (files || []).find(f => f.path === 'components/assets.js')
+    const brandVfsFromModule = assetsModule?.content ? parseBrandVfsFromAssetsModule(assetsModule.content) : []
     // Merge: SSE mapping (live build) takes priority, then persisted _assets/ files (reload)
-    const mergedImageAssets = generatedImageMap.length > 0 ? generatedImageMap : assetImageMap
+    // Brand VFS is ADDITIVE — it never conflicts with stock/generated image URLs
+    const liveOrReload = generatedImageMap.length > 0 ? generatedImageMap : assetImageMap
+    const mergedImageAssets = [...liveOrReload, ...brandVfsFromModule]
 
     switch (info.type) {
       case 'html': html = buildHtmlPreview(info); break

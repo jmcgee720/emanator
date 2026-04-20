@@ -225,8 +225,16 @@ export function useDashboardStream(ctx) {
 
         onGeneratedImagesMap: (data) => {
           if (data?.images?.length > 0) {
-            setGeneratedImageMap(data.images)
-            addLog('info', `Mapped ${data.images.length} generated image(s) for preview`)
+            // Merge with any prior emissions (e.g., stock/generated images arrive first,
+            // then brand VFS map arrives after assets.js is saved). Dedupe by placeholder
+            // key — latest emission wins for the same key.
+            setGeneratedImageMap((prev) => {
+              const byKey = new Map()
+              ;(prev || []).forEach((entry) => { if (entry?.placeholder) byKey.set(entry.placeholder, entry) })
+              data.images.forEach((entry) => { if (entry?.placeholder) byKey.set(entry.placeholder, entry) })
+              return Array.from(byKey.values())
+            })
+            addLog('info', `Mapped ${data.images.length} ${data.source === 'brand_vfs' ? 'brand asset' : 'generated image'}(s) for preview`)
           }
         },
 
