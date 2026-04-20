@@ -546,6 +546,19 @@ export function useDashboardStream(ctx) {
             ? `Visual verify: matches references (${Math.round((data.confidence || 0) * 100)}%)`
             : `Visual verify: ${data?.findings?.length || 0} mismatch(es) found`)
         },
+        onVisualRepairComplete: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                visualRepair: { filesRepaired: data?.filesRepaired || [] },
+              },
+            },
+          } : m))
+          addLog('success', `Visual repair wave applied to ${data?.filesRepaired?.length || 0} file(s)`)
+        },
         onBriefPlan: (data) => {
           setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
             ...m,
