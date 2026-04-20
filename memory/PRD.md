@@ -26,6 +26,61 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 31 (COMPLETE, 2026-02-20) — Google Fonts auto-load (typography fix)
+
+Fixes the recurring bug where Vision extracted `'"Playfair Display", Georgia, serif'` but the preview iframe rendered in system Times New Roman because no `<link>` to Google Fonts was emitted. 50% of an aesthetic's "vibe" is typography — this closes the loop.
+
+**Shipped:**
+
+1. **`GOOGLE_FONTS_ALLOWLIST`** in `design-tokens.js` — 22 high-frequency editorial/SaaS/luxury/monospace families (Inter, Playfair Display, Fraunces, Cormorant Garamond, DM Sans, IBM Plex Sans/Mono, JetBrains Mono, Space Grotesk, Bebas Neue, Syne, etc.). Fonts outside the list silently fall back to their family stack — no 404s.
+
+2. **`primaryFontName(familyString)`** — parses CSS font-family strings to extract the primary name. Handles quoted (`"Playfair Display"`), unquoted (`Inter, sans-serif`), and returns null for generic/system stacks so the caller skips the Google fetch.
+
+3. **`buildGoogleFontsHref(tokens)`** — produces a Google Fonts v2 stylesheet URL combining display + body fonts. Dedupes when both fonts match. `display=swap` so pages render in the fallback immediately, then swap to the branded font once loaded — zero FOIT, no blocking on the CDN. Weight range `@400;500;600;700;800` covers body + bold + display.
+
+4. **`buildThemeFile` upgrade** — emits two new artifacts:
+   - `export const GOOGLE_FONTS_HREF = "..."` — the resolved stylesheet URL (empty string when no allowlisted fonts).
+   - `ensureGoogleFonts()` helper — SSR-safe (`typeof document === 'undefined'` guard), idempotent (probes for `link[data-emanator-fonts="1"]` before appending).
+   - `ThemeProvider` now calls `ensureGoogleFonts()` via `useEffect` on first mount so the `<link>` is appended to `document.head` inside both the preview iframe AND the exported Vercel build.
+
+5. **+15 targeted tests** in `test_design_tokens.test.js`:
+   - `primaryFontName` handles quoted/unquoted/generic stacks and bad input (4 tests)
+   - `buildGoogleFontsHref` system-only return, non-allowlist return, css2 format, dual-font combine, dedupe, null-safety, weight range (7 tests)
+   - `GOOGLE_FONTS_ALLOWLIST` contains expected families (1 test)
+   - `buildThemeFile` integration: emits `GOOGLE_FONTS_HREF`, empty when no allowlist hit, SSR-safe + idempotent guards (3 tests)
+
+**Full suite: 401/401 across 23 files.** Lint clean. Testing agent `iteration_117.json` confirmed zero issues.
+
+**What changes end-to-end on your next build:**
+- User uploads a moodboard. Vision picks `fontDisplay: '"Fraunces", Georgia, serif'`, `fontBody: '"Inter", sans-serif'`.
+- `theme.js` is emitted with `GOOGLE_FONTS_HREF = "https://fonts.googleapis.com/css2?family=Fraunces:wght@...&family=Inter:wght@...&display=swap"`.
+- On first render, `ThemeProvider` lazy-appends the stylesheet `<link>` to `document.head` inside the iframe.
+- The `<h1>` styled with `fontFamily: 'var(--font-display)'` now actually renders in Fraunces — not Times New Roman.
+- Exported Vercel build inherits the same behavior — the published site loads the correct fonts too.
+
+### Session 29 (COMPLETE, 2026-02-20) — Visual-diff-driven repair loop (5/7)
+
+Consumes the `verifyResult.findings[]` from Session 28 and synthesizes a `review`-shaped payload the existing `repairBuild()` wave can digest. Closes the visual-fidelity feedback loop: if Vision says "hero composition is off and palette uses violet instead of black," a targeted repair wave fires with those findings as targeted broken-file instructions — and the LLM sees the user's reference images during the repair (already wired from Session 23).
+
+**Shipped:**
+
+1. **`findingsToReviewShape(result)`** in `screenshot-verify.js` — synthesizes `{missing: [], broken: ["<path>: vision-<category>-<slug> — fix: <hint>"]}`. The `file:` prefix is load-bearing: `repairBuild`'s `brokenPathRegex = /^([^:]+):/` uses it to pick which files to re-send to the repair LLM. Skips malformed findings (no file, no issue). Appends the LLM's own suggested fix as a trailing hint the repair prompt preserves.
+
+2. **Pipeline Step 5d** in `message-stream.js` — runs right after `screenshot_verify`. Guard: only fires when `!matches && findings.length > 0`. Reads fresh files from DB, synthesizes review, calls `repairBuild` (existing reviewer function, unchanged), emits `visual_repair_complete` SSE when done with the list of files repaired. Capped at 1 round for v1 cost control; future iteration can widen to N rounds with re-verify between each.
+
+3. **SSE plumbing** — new `visual_repair_complete` case in `stream-client.js`; `onVisualRepairComplete` handler in `useDashboardStream.js` writes to `briefProgress.visualRepair` and emits an `addLog` success line ("Visual repair wave applied to 3 file(s)").
+
+4. **+4 targeted tests** covering empty-input safety, `broken[]` format, file-prefix regex contract (against the actual `repairBuild` regex), and malformed-finding skip.
+
+**Full suite: 386/386 across 22 files after Session 29.** Lint clean.
+
+**What the user experiences on the next build with references:**
+1. Build runs normally (classify → plan → 4 waves → review → repair).
+2. Post-repair integrity checks run.
+3. **NEW**: Vision reads generated source + reference images → structured diff.
+4. **NEW**: If diff is non-empty, targeted repair wave runs with per-file hints.
+5. Observatory shows: "✅ matches references" OR "⚠ Vision: 3 off · repair applied to 2 file(s)".
+
 ### Session 28 (COMPLETE, 2026-02-20) — Visual verification pass (4/7)
 
 Closes the "did the output actually match the reference?" feedback gap. Before this session the pipeline built, reviewed, self-repaired, ran integrity checks — but never actually *looked* at whether the rendered output visually matched the user's uploaded reference. Session 28 adds that loop.
