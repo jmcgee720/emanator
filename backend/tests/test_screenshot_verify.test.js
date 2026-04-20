@@ -16,6 +16,7 @@ import {
   parseVerifyResult,
   verifyBuild,
   formatVerifyForRepairPrompt,
+  findingsToReviewShape,
 } from '../../lib/ai/screenshot-verify.js'
 
 describe('pickInspectionFiles', () => {
@@ -256,5 +257,56 @@ describe('formatVerifyForRepairPrompt', () => {
     expect(out).toContain('wrong color')
     expect(out).toContain('FIX: swap bg')
     expect(out).toContain('several gaps')
+  })
+})
+
+describe('findingsToReviewShape (Session 29 visual-repair bridge)', () => {
+  test('returns empty shape when no findings', () => {
+    expect(findingsToReviewShape(null)).toEqual({ missing: [], broken: [] })
+    expect(findingsToReviewShape({ matches: true, findings: [] })).toEqual({ missing: [], broken: [] })
+  })
+
+  test('synthesizes broken[] entries with file: prefix repairBuild expects', () => {
+    const out = findingsToReviewShape({
+      matches: false,
+      confidence: 0.6,
+      summary: 'gaps',
+      findings: [
+        { file: 'components/Landing.jsx', category: 'palette', issue: 'hero uses wrong color', fix: 'use var(--primary)' },
+        { file: 'components/Navbar.jsx', category: 'imagery', issue: 'logo missing', fix: 'import LOGO_URL' },
+      ],
+    })
+    expect(out.missing).toEqual([])
+    expect(out.broken).toHaveLength(2)
+    // repairBuild parses file prefix via /^([^:]+):/ — the ':' must come after the file path
+    expect(out.broken[0]).toMatch(/^components\/Landing\.jsx: vision-palette-/)
+    expect(out.broken[1]).toMatch(/^components\/Navbar\.jsx: vision-imagery-/)
+    // The suggested fix from Vision MUST survive into the repair prompt
+    expect(out.broken[0]).toContain('use var(--primary)')
+    expect(out.broken[1]).toContain('import LOGO_URL')
+  })
+
+  test('skips findings missing file or issue', () => {
+    const out = findingsToReviewShape({
+      matches: false, confidence: 0.5, findings: [
+        { file: '', category: 'palette', issue: 'x', fix: '' },
+        { file: 'app/page.jsx', category: 'other', issue: '', fix: '' },
+        { file: 'app/page.jsx', category: 'other', issue: 'real issue', fix: '' },
+      ],
+    })
+    expect(out.broken).toHaveLength(1)
+    expect(out.broken[0]).toContain('app/page.jsx')
+  })
+
+  test('produces a slug that survives repairBuild\'s prefix regex parse', () => {
+    const out = findingsToReviewShape({
+      matches: false, confidence: 0.5, findings: [
+        { file: 'components/Hero.jsx', category: 'spacing', issue: 'CRAMPED! hero: padding too small', fix: 'py-20' },
+      ],
+    })
+    const brokenPathRegex = /^([^:]+):/  // same regex repairBuild uses
+    const match = brokenPathRegex.exec(out.broken[0])
+    expect(match).not.toBeNull()
+    expect(match[1]).toBe('components/Hero.jsx')
   })
 })

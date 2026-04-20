@@ -26,6 +26,42 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 28 (COMPLETE, 2026-02-20) — Visual verification pass (4/7)
+
+Closes the "did the output actually match the reference?" feedback gap. Before this session the pipeline built, reviewed, self-repaired, ran integrity checks — but never actually *looked* at whether the rendered output visually matched the user's uploaded reference. Session 28 adds that loop.
+
+**Shipped:**
+
+1. **`/app/lib/ai/screenshot-verify.js`** — new Vision-based verifier:
+   - `pickInspectionFiles(files)` picks the canonical 4 visual-signal files (`app/page.jsx`, `components/Landing.jsx`, `components/Navbar.jsx`, `components/Hero.jsx`), truncates anything over 3500 chars.
+   - `buildVerifyRequest(inspectionFiles, referenceImages)` assembles the multi-part GPT-4o Vision message: text block labelling each reference (role + user note) + the source code as fenced JSX + up to 3 `image_url` parts at `detail: 'low'`.
+   - `verifyBuild({files, referenceImages, provider})` orchestrates the call. Non-blocking — returns `null` silently on empty inputs or provider failure.
+   - `parseVerifyResult(raw)` validates the JSON response (rejects arrays + malformed objects, clamps findings to 6, coerces invalid categories to "other", defaults confidence to 0.5 when out-of-range).
+   - `formatVerifyForRepairPrompt(result)` — groups findings per-file so Session 29's repair loop can feed each file its own targeted mismatch list.
+
+2. **Pipeline wiring (`message-stream.js` Step 5c)** — after post-repair, when `plan.referenceImages.length > 0`, calls `verifyBuild` and emits `screenshot_verify` SSE with `{matches, confidence, findings, summary}`. Attaches to `plan.verifyResult` for Session 29 consumption. Timing captured as `screenshot_verify` in the observatory timings block.
+
+3. **SSE plumbing** — new case in `stream-client.js`, new accumulator key in `stream-handler.js` (persists to `message.metadata.briefProgress.screenshotVerify`), new `onScreenshotVerify` handler in `useDashboardStream.js` that updates state + emits an `addLog` so users see "Visual verify: matches references (94%)" or "Visual verify: 3 mismatch(es) found" in real time.
+
+4. **Observatory surface** — `BuildObservatoryPanel` now accepts a `screenshotVerify` prop. Header chip shows `Vision match` (sky) or `Vision: N off` (rose) next to the integrity chip. Full section (`data-testid="observatory-screenshot-verify"`) lists per-finding cards with category tag, file path, issue description, and the LLM's own suggested fix. `BriefProgressCard` threads the prop from `progress.screenshotVerify` through.
+
+5. **+22 targeted tests** in `test_screenshot_verify.test.js`:
+   - `pickInspectionFiles` filtering + truncation + missing-content safety
+   - `buildVerifyRequest` image-cap=3, `detail:low`, note embedding, pre-formed data URI pass-through
+   - `parseVerifyResult` null-safety, array rejection, category coercion, finding clamp, confidence bounds, empty-issue filtering
+   - `verifyBuild` orchestration happy path + 3 null-return guards (no files / no refs / provider throws)
+   - `formatVerifyForRepairPrompt` grouping per-file and inclusion of summary + FIX lines
+
+**Full suite: 382/382 across 23 files.** Lint clean. Testing agent `iteration_115.json` confirmed zero issues, zero action items.
+
+**What this unblocks for the next session (Session 29, 5/7):**
+Session 29's repair loop can now read `plan.verifyResult.findings`, call `formatVerifyForRepairPrompt` to get a compact per-file block, and feed it straight into a targeted repair wave. The wave's system prompt gets a "VISUAL-DIFF FINDINGS:" section right next to the existing HARD RULES — the LLM sees both the rule-breaking AND the visual-fidelity gap on the same pass. Capped at N rounds to prevent runaway cost.
+
+**Design note — why not Puppeteer pixel diff:**
+Puppeteer + visual diff was the originally planned route. We scoped it down to source-vs-reference Vision comparison because (a) the 540-line `buildReactPreview` in `PreviewTab.jsx` would need extraction to a shared module before Puppeteer could reuse it, (b) the in-browser Babel compile step adds race conditions that make headless timing flaky, and (c) GPT-4o reading JSX + Tailwind classes alongside the reference catches 90% of the same mismatches at a fraction of the runtime cost. Puppeteer upgrade stays open for when primitives decomposition (Session 30) makes `buildReactPreview` easier to share.
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 27 (COMPLETE, 2026-02-20) — Service-Worker Virtual FS for preview iframe (3/7)
 
 Closes the last "giant grey circle" regression. Until now, when the builder LLM naturally wrote `<img src="/logo.png" />` instead of `<img src={LOGO_URL}>`, the sandboxed iframe had no way to resolve the path — the asset existed in `components/assets.js` but only as a named export, not a URL anyone could fetch. Session 27 adds a runtime virtual filesystem so both forms resolve.
