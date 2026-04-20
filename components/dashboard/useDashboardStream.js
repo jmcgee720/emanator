@@ -531,6 +531,21 @@ export function useDashboardStream(ctx) {
             },
           } : m))
         },
+        onScreenshotVerify: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                screenshotVerify: data,
+              },
+            },
+          } : m))
+          addLog('info', data?.matches
+            ? `Visual verify: matches references (${Math.round((data.confidence || 0) * 100)}%)`
+            : `Visual verify: ${data?.findings?.length || 0} mismatch(es) found`)
+        },
         onBriefPlan: (data) => {
           setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
             ...m,

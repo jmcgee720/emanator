@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Image as ImageIcon, Palette, Layout, Clock, Layers } from 'lucide-react'
+import { ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Image as ImageIcon, Palette, Layout, Clock, Layers, Eye } from 'lucide-react'
 
 /**
  * BuildObservatoryPanel — renders the build_manifest emitted by the
@@ -8,13 +8,14 @@ import { ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Image 
  * Collapses by default; expand to see assets.js contents, theme tokens,
  * layout blueprint, integrity checks, and per-phase timing.
  */
-export default function BuildObservatoryPanel({ manifest }) {
+export default function BuildObservatoryPanel({ manifest, screenshotVerify }) {
   const [open, setOpen] = useState(true)
   if (!manifest) return null
 
   const { assets, theme, blueprint, family, attachments, timings = [], integrity = [], warnings = [] } = manifest
   const passed = integrity.filter((c) => c.pass).length
   const failed = integrity.length - passed
+  const verifyFindings = screenshotVerify?.findings?.length || 0
 
   return (
     <div
@@ -43,6 +44,15 @@ export default function BuildObservatoryPanel({ manifest }) {
           {failed === 0 && integrity.length > 0 && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-emerald-300 bg-emerald-500/10" data-testid="observatory-pass-chip">
               <CheckCircle2 className="w-3 h-3" /> {passed}/{integrity.length} integrity
+            </span>
+          )}
+          {screenshotVerify && (
+            <span
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${screenshotVerify.matches ? 'text-sky-300 bg-sky-500/10' : 'text-rose-300 bg-rose-500/10'}`}
+              data-testid="observatory-verify-chip"
+            >
+              <Eye className="w-3 h-3" />
+              {screenshotVerify.matches ? 'Vision match' : `Vision: ${verifyFindings} off`}
             </span>
           )}
         </span>
@@ -144,6 +154,38 @@ export default function BuildObservatoryPanel({ manifest }) {
                   </li>
                 ))}
               </ul>
+            </Section>
+          )}
+
+          {screenshotVerify && (
+            <Section icon={Eye} label="Vision verify (reference vs. generated code)" testId="observatory-screenshot-verify">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  {screenshotVerify.matches ? (
+                    <span className="inline-flex items-center gap-1 text-sky-300"><CheckCircle2 className="w-3 h-3" /> matches references</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-rose-300"><XCircle className="w-3 h-3" /> {verifyFindings} mismatch(es)</span>
+                  )}
+                  <span className="text-white/45">· {Math.round((screenshotVerify.confidence || 0) * 100)}% confidence</span>
+                </div>
+                {screenshotVerify.summary && (
+                  <div className="text-white/65 italic" data-testid="observatory-verify-summary">{screenshotVerify.summary}</div>
+                )}
+                {verifyFindings > 0 && (
+                  <ul className="space-y-1 mt-1" data-testid="observatory-verify-findings">
+                    {screenshotVerify.findings.map((f, i) => (
+                      <li key={i} className="border-l-2 border-rose-400/30 pl-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-[10px] uppercase tracking-wide text-rose-200/70 font-mono">{f.category}</span>
+                          <span className="text-white/75">{f.issue}</span>
+                        </div>
+                        {f.file && <div className="text-[10px] text-white/45 font-mono">{f.file}</div>}
+                        {f.fix && <div className="text-[10px] text-emerald-200/70">→ {f.fix}</div>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </Section>
           )}
 
