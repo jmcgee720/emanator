@@ -26,6 +26,47 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 27 (COMPLETE, 2026-02-20) — Service-Worker Virtual FS for preview iframe (3/7)
+
+Closes the last "giant grey circle" regression. Until now, when the builder LLM naturally wrote `<img src="/logo.png" />` instead of `<img src={LOGO_URL}>`, the sandboxed iframe had no way to resolve the path — the asset existed in `components/assets.js` but only as a named export, not a URL anyone could fetch. Session 27 adds a runtime virtual filesystem so both forms resolve.
+
+**Shipped:**
+
+1. **`resolveBrandAssets(imageAssets)`** in `brief-utils.js` — new pure helper that pairs each brand upload with its canonical export name (`LOGO_URL` / `HERO_URL` / `PHOTO_N` / `ILLUSTRATION_N`) **and** its canonical VFS path (`/logo.png`, `/hero.jpg`, `/images/photo-N.png`, `/illustrations/illustration-N.svg`). `buildAssetsFileContent` now uses this helper (DRY). Second-logo auto-downgrades to `PHOTO_0` + `/images/photo-0.png`. Aesthetic / structural roles correctly produce zero entries.
+
+2. **`buildBrandVfsMap(imageAssets)`** — sibling helper that emits `[{placeholder: '/logo.png', dataUrl: 'data:...'}, ...]` for SSE transport. Same paths that get baked into the `VIRTUAL_FS` block of `components/assets.js` — verified by a cross-test that asserts every `buildBrandVfsMap` path appears in `buildAssetsFileContent`'s output.
+
+3. **SSE emission** — `message-stream.js` line ~3910, immediately after `components/assets.js` is saved, emits a `generated_images_map` event with `source: 'brand_vfs'` carrying the VFS map. Piggybacks on the existing SSE event to avoid a new contract on the client.
+
+4. **`onGeneratedImagesMap` → merge semantics** — `useDashboardStream.js` now merges by placeholder-key instead of replacing, so stock/generated images (emitted at Step 2b) and brand VFS (emitted at Step 3) coexist in the same map.
+
+5. **PreviewTab iframe runtime** —
+   - `parseBrandVfsFromAssetsModule(source)` helper extracts the VFS pairs out of a persisted `components/assets.js` module on reload (regex-based, no eval). Merged into `mergedImageAssets` alongside the SSE map and the legacy `_assets/__gen_img*` placeholder list.
+   - The injected `<script>` block now populates BOTH `window.__GEN_IMAGE_MAP__` (legacy substring match for full-URL placeholders) AND `window.__EMANATOR_VFS__` (path-form lookup).
+   - `__normalizeVfsKey(s)` strips leading `./` and optional `public/` so `./logo.png` and `public/logo.png` both resolve to the same `/logo.png` key.
+   - `__fixImages` MutationObserver runs a two-pass lookup: (a) legacy substring match for non-absolute-path keys (stock photo URLs), (b) path-form VFS lookup for keys starting with `/`. Skips `data:` URIs so we don't clobber inline images. Also rewrites CSS `url(...)` references in inline styles.
+
+6. **Tests** — +6 targeted tests in `test_brief_utils.test.js` (resolveBrandAssets canonical paths, logo slot-exhaustion fallback, aesthetic/structural exclusion, buildBrandVfsMap shape, null-safety, cross-file path consistency). Testing agent added `test_session27_vfs.test.js` with 15 more comprehensive VFS layer tests.
+
+**Full suite: 360/360 across 22 files.** Lint clean. Zero issues, zero action items from the testing agent.
+
+**What this unblocks end-to-end:**
+- Upload a logo → `components/assets.js` exports `LOGO_URL` + `VIRTUAL_FS['/logo.png']` → SSE emits `/logo.png` → dataUrl.
+- LLM writes `<img src="/logo.png" />` (natural HTML syntax) → iframe `__fixImages` resolves to the data URL at every render, on every route change.
+- LLM writes `<img src={LOGO_URL} />` (import syntax) → works as before.
+- LLM writes `<img src="./logo.png" />` or `src="public/logo.png"` → normalized to `/logo.png` and resolved.
+- On reload, `parseBrandVfsFromAssetsModule` rebuilds the VFS from persisted `assets.js` — no SSE needed.
+
+Session 27 removes the "LLM must remember to import the asset constant" fragility entirely. The previous giant-grey-circle regressions were all instances of the LLM finding a loophole and writing a plain path. Now every path form resolves to the user's upload.
+
+**Next sessions (4/7 → 7/7):**
+- 4/7 Puppeteer screenshot-verify + Vision diff against reference image
+- 5/7 Screenshot repair loop (N-round visual self-correction)
+- 6/7 Primitives decomposition (`<Hero layout="split">`, `<FeatureGrid columns={3}>`)
+- 7/7 WebContainers end-state sandbox
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 26 (COMPLETE, 2026-02-19) — Recipe Families (2/7)
 
 Biggest structural lift so far. Until now, every generated app shipped the same Navbar glass + 3-column feature grid, just in different colors. Now the recipe itself swaps based on the user's references — editorial magazine gets hairline serif layouts, brutalist reference gets chunky monospace with offset shadows, luxury gets generous whitespace with thin rules.
