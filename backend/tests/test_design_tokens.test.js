@@ -16,6 +16,9 @@ import {
   parseBlueprint,
   formatBlueprintForPrompt,
   analyzeLayoutBlueprint,
+  primaryFontName,
+  buildGoogleFontsHref,
+  GOOGLE_FONTS_ALLOWLIST,
 } from '../../lib/ai/design-tokens.js'
 
 describe('parseTokens', () => {
@@ -382,5 +385,106 @@ describe('analyzeLayoutBlueprint', () => {
     )
     const imgs = chat.mock.calls[0][0][1].content.filter((c) => c.type === 'image_url')
     expect(imgs).toHaveLength(4)
+  })
+})
+
+describe('Google Fonts loader (Session 31)', () => {
+  describe('primaryFontName', () => {
+    test('extracts name from quoted first family', () => {
+      expect(primaryFontName('"Playfair Display", Georgia, serif')).toBe('Playfair Display')
+      expect(primaryFontName("'Inter', system-ui, sans-serif")).toBe('Inter')
+    })
+    test('returns null for system/generic stacks', () => {
+      expect(primaryFontName('sans-serif')).toBeNull()
+      expect(primaryFontName('system-ui, -apple-system')).toBeNull()
+      expect(primaryFontName('serif')).toBeNull()
+      expect(primaryFontName('monospace')).toBeNull()
+    })
+    test('returns null for missing/bad input', () => {
+      expect(primaryFontName(null)).toBeNull()
+      expect(primaryFontName('')).toBeNull()
+      expect(primaryFontName(undefined)).toBeNull()
+    })
+    test('handles unquoted first family', () => {
+      expect(primaryFontName('Inter, sans-serif')).toBe('Inter')
+    })
+  })
+
+  describe('buildGoogleFontsHref', () => {
+    test('returns empty string when both fonts are system stacks', () => {
+      expect(buildGoogleFontsHref({ fontDisplay: 'system-ui', fontBody: 'sans-serif' })).toBe('')
+    })
+    test('returns empty string when fonts are not on allowlist (prevents 404s)', () => {
+      expect(buildGoogleFontsHref({
+        fontDisplay: '"Custom Internal Font", sans-serif',
+        fontBody: '"Another Private", sans-serif',
+      })).toBe('')
+    })
+    test('emits css2 URL with display=swap for allowlisted display font', () => {
+      const href = buildGoogleFontsHref({ fontDisplay: '"Playfair Display", Georgia, serif', fontBody: 'system-ui' })
+      expect(href).toContain('https://fonts.googleapis.com/css2?')
+      expect(href).toContain('family=Playfair%20Display')
+      expect(href).toContain('display=swap')
+    })
+    test('combines both fonts into a single href when both on allowlist', () => {
+      const href = buildGoogleFontsHref({
+        fontDisplay: '"Playfair Display", serif',
+        fontBody: '"Inter", sans-serif',
+      })
+      expect(href).toContain('family=Playfair%20Display')
+      expect(href).toContain('family=Inter')
+      expect(href.match(/family=/g)).toHaveLength(2)
+    })
+    test('dedupes when display and body are the same font', () => {
+      const href = buildGoogleFontsHref({ fontDisplay: '"Inter", sans-serif', fontBody: '"Inter", sans-serif' })
+      expect(href.match(/family=/g)).toHaveLength(1)
+    })
+    test('returns empty for null/missing tokens', () => {
+      expect(buildGoogleFontsHref(null)).toBe('')
+      expect(buildGoogleFontsHref(undefined)).toBe('')
+      expect(buildGoogleFontsHref({})).toBe('')
+    })
+    test('requests the common weight range (400..800)', () => {
+      const href = buildGoogleFontsHref({ fontDisplay: '"Inter", sans-serif' })
+      expect(href).toContain('wght@400;500;600;700;800')
+    })
+  })
+
+  describe('GOOGLE_FONTS_ALLOWLIST', () => {
+    test('includes common editorial + SaaS families', () => {
+      expect(GOOGLE_FONTS_ALLOWLIST).toContain('Inter')
+      expect(GOOGLE_FONTS_ALLOWLIST).toContain('Playfair Display')
+      expect(GOOGLE_FONTS_ALLOWLIST).toContain('Fraunces')
+      expect(GOOGLE_FONTS_ALLOWLIST).toContain('JetBrains Mono')
+    })
+  })
+
+  describe('buildThemeFile integration', () => {
+    test('emits GOOGLE_FONTS_HREF export with the resolved URL', () => {
+      const out = buildThemeFile({
+        fontDisplay: '"Playfair Display", serif',
+        fontBody: '"Inter", sans-serif',
+        bg: '#fff', ink: '#000', primary: '#000',
+      })
+      expect(out).toContain('export const GOOGLE_FONTS_HREF = `https://fonts.googleapis.com/css2?')
+      expect(out).toContain('ensureGoogleFonts')
+      expect(out).toContain('data-emanator-fonts')
+    })
+    test('emits empty GOOGLE_FONTS_HREF when no allowlisted fonts', () => {
+      const out = buildThemeFile({
+        fontDisplay: 'system-ui', fontBody: 'system-ui',
+        bg: '#fff', ink: '#000', primary: '#000',
+      })
+      expect(out).toContain('export const GOOGLE_FONTS_HREF = ``')
+    })
+    test('ensureGoogleFonts guard is SSR-safe and idempotent', () => {
+      const out = buildThemeFile({
+        fontDisplay: '"Inter", sans-serif', bg: '#fff', ink: '#000', primary: '#000',
+      })
+      // SSR guard
+      expect(out).toContain("typeof document === 'undefined'")
+      // Idempotency probe — checks for a pre-existing link tag
+      expect(out).toContain('data-emanator-fonts="1"')
+    })
   })
 })
