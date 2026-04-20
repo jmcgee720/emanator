@@ -26,6 +26,50 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 30 (COMPLETE, 2026-02-20) — Primitives decomposition (6/7)
+
+The 7-session roadmap's biggest compositional unlock. Until now, when the Vision layout-blueprint call said `{hero_composition: 'full-bleed-image', feature_columns: 2, feature_card_style: 'hairline-outlined'}`, the builder got those values only as *text in the prompt*. The LLM was supposed to adapt the hardcoded landing_page recipe to match — which it did inconsistently. Session 30 emits the blueprint **as actual code files** the builder imports and composes.
+
+**Shipped:**
+
+1. **`/app/lib/ai/primitives.js`** — new 250-line module, 20 parameterized variants:
+   - **`HERO_LAYOUTS`** (frozen) — `split-50-50`, `full-bleed-image`, `centered-text`, `stacked-image-below`. Keys match `parseBlueprint().hero_composition` exactly so the pipeline picks by blueprint value without mapping.
+   - **`FEATURE_CARD_STYLES`** (frozen) — `hairline-outlined`, `filled-surface`, `no-border`, `shadowed-card`. Same alignment.
+   - **`buildHeroPrimitive(layout, brand, opts)`** — emits a complete `Hero.jsx` file with data-testids on every landmark (`hero-section`, `hero-text-block`, `hero-primary-cta`, `hero-secondary-cta`, `hero-visual`). Uses CSS vars exclusively (no hardcoded colors). Conditionally imports `HERO_URL, PHOTO_0` from `../assets` only when hasHeroAsset=true. Respects textAlignment (left/center/right).
+   - **`buildFeatureGridPrimitive(columns, cardStyle, brand, opts)`** — emits `FeatureGrid.jsx` with correct Tailwind grid classes (1/md:2/lg:3 or 1/md:2/lg:4), card class computed from style enum, 2× column count in cards (6 for 3-col, 8 for 4-col, 4 for 2-col). Falls back to 6 generic brand-specific features when opts.features isn't supplied.
+   - **`resolvePrimitivesFromBlueprint(blueprint, flags)`** — pure picker with safe defaults for null/invalid blueprint. Returns `{hero, featureGrid}` specs.
+   - **`buildPrimitiveFiles(blueprint, brand, flags)`** — orchestrator. Emits both files as `[{path, content}]` ready for `aiService.saveFiles`.
+   - **`formatPrimitivesForPrompt(blueprint)`** — compact builder-prompt block: lists the two imports + resolved params + "do not re-implement" directive.
+
+2. **Pipeline wiring (`message-stream.js` Step 3c)** — after assets.js + theme.js are emitted, when `plan.layoutBlueprint` exists, computes `hasHeroAsset` from `plan.imageAssets` roles, calls `buildPrimitiveFiles`, saves both primitives to the project, sets `plan.primitivesEmitted = [paths]`. Non-blocking on failure.
+
+3. **Builder prompt (`brief-builder.js`)** — when both `plan.layoutBlueprint` AND `plan.primitivesEmitted?.length` are present, injects a `PRIMITIVES` block between LAYOUT BLUEPRINT and RECIPE FAMILY blocks telling the LLM: *"Emanator has pre-composed these layout primitives from the user's blueprint. Import and USE them directly. Do NOT re-implement."* with the exact import paths baked in.
+
+4. **+29 targeted tests** in `test_primitives.test.js`:
+   - Frozen allowlists (3 tests)
+   - `buildHeroPrimitive` — all 4 layouts, falls-back, text alignment, asset-import gating, CSS-var-only discipline, backtick/$ escape safety (8 tests)
+   - `buildFeatureGridPrimitive` — all 3 column counts, all 4 card styles (hairline/filled/no-border/shadowed), safe defaults, 2× card rendering (8 tests)
+   - `resolvePrimitivesFromBlueprint` — valid/null/invalid (3 tests)
+   - `buildPrimitiveFiles` — emits correct paths + content per blueprint (3 tests)
+   - `formatPrimitivesForPrompt` — null guard, content structure, "do not re-implement" directive (3 tests)
+   - Plus an integration check that all 20 variants pass `@babel/preset-react` transform (Babel is what the preview iframe uses).
+
+**Full suite: 430/430 across 24 files.** Lint clean. Testing agent `iteration_118.json` confirmed zero issues, zero action items. All 20 primitive variants Babel-parseable.
+
+**What the user experiences on the next build with structural references:**
+1. Upload Zeely screenshots as Layout/flow references.
+2. `analyzeLayoutBlueprint()` extracts `{hero_composition: 'full-bleed-image', feature_columns: 2, ...}`.
+3. Pipeline emits `components/primitives/Hero.jsx` (full-bleed) and `components/primitives/FeatureGrid.jsx` (2-col) as actual files.
+4. Builder sees the pre-composed primitives in the prompt — imports and composes them in `app/page.jsx` / `components/Landing.jsx`.
+5. Result: the generated landing's hero composition + feature grid columns + card style ALL match the reference's blueprint, pixel-close. No LLM drift.
+
+This is the first session where "what Vision saw in your reference" literally becomes "the code shape of the output". Sessions 22-27 shipped tokens / recipe families / visual verify — all gradually tightening the loop. Session 30 closes it structurally.
+
+**Still open from the 7-session roadmap:**
+- 7/7 — WebContainers (StackBlitz) end-state sandbox to replace the Babel iframe.
+
+## Implemented (earlier sessions — 2026-02)
+
 ### Session 31 (COMPLETE, 2026-02-20) — Google Fonts auto-load (typography fix)
 
 Fixes the recurring bug where Vision extracted `'"Playfair Display", Georgia, serif'` but the preview iframe rendered in system Times New Roman because no `<link>` to Google Fonts was emitted. 50% of an aesthetic's "vibe" is typography — this closes the loop.
