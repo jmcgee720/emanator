@@ -394,6 +394,10 @@ const ChatComposer = forwardRef(function ChatComposer({
         open={compareOpen}
         onOpenChange={setCompareOpen}
         initialPrompt={input}
+        onApplyLane={({ provider, model }) => {
+          onAiProviderChange?.(provider)
+          onAiModelChange?.(model)
+        }}
       />
     </div>
   )

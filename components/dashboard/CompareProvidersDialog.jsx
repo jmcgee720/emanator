@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Loader2, GitCompare, Play, RotateCcw, X, Zap, Brain, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Loader2, GitCompare, Play, RotateCcw, X, Zap, Brain, Sparkles, CheckCircle2, AlertTriangle, ArrowUpRight } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
 
 const PROVIDER_ICONS = { openai: Zap, anthropic: Brain, gemini: Sparkles, google: Sparkles }
@@ -37,7 +37,7 @@ const ALL_MODELS = {
   ],
 }
 
-export default function CompareProvidersDialog({ open, onOpenChange, initialPrompt = '' }) {
+export default function CompareProvidersDialog({ open, onOpenChange, initialPrompt = '', onApplyLane = null }) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [lanes, setLanes] = useState(DEFAULT_LANES)
   const [laneState, setLaneState] = useState({}) // { [index]: { content, status, ms, error } }
@@ -230,6 +230,20 @@ export default function CompareProvidersDialog({ open, onOpenChange, initialProm
                     <div className="text-muted-foreground text-xs italic">Hit Compare to stream output here.</div>
                   )}
                 </div>
+
+                {/* Winner-apply footer — only renders when onApplyLane prop is set AND lane completed */}
+                {state.status === 'done' && onApplyLane && (
+                  <div className="border-t border-border/40 px-3 py-2 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-muted-foreground truncate">Pick this provider + model for your next message</span>
+                    <button
+                      onClick={() => { onApplyLane({ provider: lane.provider, model: lane.model }); onOpenChange(false) }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                      data-testid={`ab-compare-lane-${index}-apply`}
+                    >
+                      <ArrowUpRight className="w-3 h-3" /> Use this
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}
