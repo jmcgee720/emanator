@@ -13,6 +13,7 @@
     "dependencies": {
         "@anthropic-ai/sdk": "^0.78.0",
         "@e2b/code-interpreter": "^2.4.0",
+        "@google/generative-ai": "^0.24.1",
         "@hookform/resolvers": "^5.1.1",
         "@radix-ui/react-accordion": "^1.2.11",
         "@radix-ui/react-alert-dialog": "^1.1.14",
