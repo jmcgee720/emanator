@@ -26,6 +26,46 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 32 (COMPLETE, 2026-02-21) — N-round visual-repair loop with re-verify
+
+Widens the Session-29 visual-repair step from **1 round** → **up to 3 rounds** (configurable via `VISUAL_REPAIR_MAX_ROUNDS`). Each round: verify → repair → re-verify. Stops early when Vision signals MATCH or when there's nothing concrete to repair.
+
+**Why it matters**: Session 29 capped at 1 round for cost control. Deep mismatches (palette + composition + typography together) often need a second pass — the first repair focuses on the biggest gap and leaves smaller ones. Now the loop iterates until Vision is satisfied OR we've used the budget.
+
+**Shipped**:
+
+1. **`shouldContinueVisualLoop(verifyResult, round, maxRounds)`** in `screenshot-verify.js` — pure decision function with 5 stop conditions: `no-verdict`, `matches`, `no-findings`, `max-rounds`, `continue`. Factored out of the pipeline so the stop logic is unit-testable.
+
+2. **`message-stream.js` Steps 5c+5d UNIFIED** — collapsed into one N-round loop that:
+   - Runs `verifyBuild` at the start of every round and emits `screenshot_verify` with `round: N` tagged.
+   - Calls `shouldContinueVisualLoop()` with the fresh verdict; breaks early on stop conditions.
+   - Synthesizes repair input via `findingsToReviewShape` + runs `repairBuild`.
+   - Emits `visual_repair_complete` per round with `{round, filesRepaired}`.
+   - Bails out if repair made zero changes (don't re-verify the same state).
+   - At the end, emits a new `visual_loop_summary` event with `{rounds[], initialFindings, totalFilesRepaired, finalMatches}`.
+
+3. **SSE plumbing** — new `visual_loop_summary` case in `stream-client.js`, `onVisualLoopSummary` handler in `useDashboardStream.js` (writes to `briefProgress.visualLoopSummary`, emits success/info `addLog`), and `stream-handler.js` accumulator so the summary persists in message metadata.
+
+4. **Observatory UI** — new section in `BuildObservatoryPanel.jsx` (`data-testid="observatory-visual-loop"`): shows initial findings count, total files repaired across rounds, final MATCH/partial-match verdict, and per-round breakdown with confidence %. Threaded from `progress.visualLoopSummary` through `BriefProgressCard`.
+
+5. **+8 targeted tests** covering `shouldContinueVisualLoop` stop conditions (null input, matches=true, empty findings, non-array findings, final-round, continue state, max=1 degenerate, matches+round-0 short-circuit).
+
+**Full suite: 488/488 across 25 files.** Lint clean.
+
+**Cost envelope**:
+- Best case (MATCH on round 1): **1 Vision call** + 0 repair waves — cheapest outcome, identical to pre-Session-32.
+- Typical case (round 2 fixes everything): **2 Vision calls** + 1 repair wave.
+- Worst case (max 3 rounds, still not matching): **3 Vision calls** + 2 repair waves — capped and predictable.
+- New `VISUAL_REPAIR_MAX_ROUNDS` env knob lets users dial it down to 1 for budget-conscious setups.
+
+**What the observatory looks like end-to-end**:
+```
+Visual repair loop (2 rounds)
+  Initial findings: 4 · Repaired: 3 file(s) · Final: MATCH
+  #1  4 findings · 3 file(s) repaired · 65%
+  #2  0 findings · 0 file(s) repaired · MATCH
+```
+
 ### Session 33 (COMPLETE, 2026-02-21) — Pricing + Testimonials + CTA primitives
 
 Extends Session 30's primitives system from 2 primitives (`<Hero>`, `<FeatureGrid>`) to 5. Every major landing section is now pre-composed from the blueprint and handed to the builder LLM as "just import and compose" instead of "here's a description, good luck."
