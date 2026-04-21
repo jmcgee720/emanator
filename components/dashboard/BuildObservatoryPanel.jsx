@@ -8,7 +8,7 @@ import { ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Image 
  * Collapses by default; expand to see assets.js contents, theme tokens,
  * layout blueprint, integrity checks, and per-phase timing.
  */
-export default function BuildObservatoryPanel({ manifest, screenshotVerify }) {
+export default function BuildObservatoryPanel({ manifest, screenshotVerify, visualLoopSummary }) {
   const [open, setOpen] = useState(true)
   if (!manifest) return null
 
@@ -16,6 +16,7 @@ export default function BuildObservatoryPanel({ manifest, screenshotVerify }) {
   const passed = integrity.filter((c) => c.pass).length
   const failed = integrity.length - passed
   const verifyFindings = screenshotVerify?.findings?.length || 0
+  const loopRounds = visualLoopSummary?.rounds?.length || 0
 
   return (
     <div
@@ -185,6 +186,36 @@ export default function BuildObservatoryPanel({ manifest, screenshotVerify }) {
                     ))}
                   </ul>
                 )}
+              </div>
+            </Section>
+          )}
+
+          {visualLoopSummary && loopRounds > 0 && (
+            <Section icon={Layers} label={`Visual repair loop (${loopRounds} round${loopRounds === 1 ? '' : 's'})`} testId="observatory-visual-loop">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3 text-white/65">
+                  <span>Initial findings: <strong className="text-white/85">{visualLoopSummary.initialFindings}</strong></span>
+                  <span>·</span>
+                  <span>Repaired: <strong className="text-white/85">{visualLoopSummary.totalFilesRepaired}</strong> file(s)</span>
+                  <span>·</span>
+                  <span className={visualLoopSummary.finalMatches ? 'text-emerald-300' : 'text-amber-300'}>
+                    {visualLoopSummary.finalMatches ? 'Final: MATCH' : 'Final: partial match'}
+                  </span>
+                </div>
+                <ol className="mt-1 space-y-0.5" data-testid="observatory-visual-rounds">
+                  {visualLoopSummary.rounds.map((r, i) => (
+                    <li key={i} className="flex items-center gap-2 text-[11px] font-mono">
+                      <span className="text-white/45">#{r.round}</span>
+                      <span className="text-white/65">{r.findings} finding{r.findings === 1 ? '' : 's'}</span>
+                      <span className="text-white/45">·</span>
+                      <span className="text-white/65">{r.filesRepaired} file(s) repaired</span>
+                      <span className="text-white/45">·</span>
+                      <span className={r.matches ? 'text-emerald-300' : 'text-amber-300'}>
+                        {r.matches ? 'MATCH' : `${Math.round((r.confidence || 0) * 100)}%`}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
               </div>
             </Section>
           )}

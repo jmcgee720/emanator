@@ -17,6 +17,7 @@ import {
   verifyBuild,
   formatVerifyForRepairPrompt,
   findingsToReviewShape,
+  shouldContinueVisualLoop,
 } from '../../lib/ai/screenshot-verify.js'
 
 describe('pickInspectionFiles', () => {
@@ -308,5 +309,58 @@ describe('findingsToReviewShape (Session 29 visual-repair bridge)', () => {
     const match = brokenPathRegex.exec(out.broken[0])
     expect(match).not.toBeNull()
     expect(match[1]).toBe('components/Hero.jsx')
+  })
+})
+
+describe('shouldContinueVisualLoop (Session 32 N-round gate)', () => {
+  const baseVerdict = (overrides = {}) => ({
+    matches: false,
+    confidence: 0.6,
+    findings: [{ file: 'components/Landing.jsx', category: 'palette', issue: 'x', fix: 'y' }],
+    summary: 'x',
+    ...overrides,
+  })
+
+  test('stops with reason "no-verdict" when input is null', () => {
+    expect(shouldContinueVisualLoop(null, 0, 3)).toEqual({ stop: true, reason: 'no-verdict' })
+  })
+
+  test('stops with reason "matches" when Vision says we\'re done', () => {
+    const out = shouldContinueVisualLoop(baseVerdict({ matches: true }), 0, 3)
+    expect(out).toEqual({ stop: true, reason: 'matches' })
+  })
+
+  test('stops with reason "no-findings" when findings array is empty', () => {
+    const out = shouldContinueVisualLoop(baseVerdict({ findings: [] }), 0, 3)
+    expect(out).toEqual({ stop: true, reason: 'no-findings' })
+  })
+
+  test('stops with reason "no-findings" when findings is not an array', () => {
+    const out = shouldContinueVisualLoop(baseVerdict({ findings: null }), 0, 3)
+    expect(out).toEqual({ stop: true, reason: 'no-findings' })
+  })
+
+  test('stops with reason "max-rounds" when on the final round', () => {
+    // 0-indexed round: round=2 is the LAST of 3 rounds (0,1,2)
+    const out = shouldContinueVisualLoop(baseVerdict(), 2, 3)
+    expect(out).toEqual({ stop: true, reason: 'max-rounds' })
+  })
+
+  test('continues when there are findings and rounds remaining', () => {
+    // round 0 of 3: two more repair opportunities remain
+    expect(shouldContinueVisualLoop(baseVerdict(), 0, 3)).toEqual({ stop: false, reason: 'continue' })
+    expect(shouldContinueVisualLoop(baseVerdict(), 1, 3)).toEqual({ stop: false, reason: 'continue' })
+  })
+
+  test('honours maxRounds=1 (degenerate single-shot)', () => {
+    // With max=1, round=0 is both first and last — stop with max-rounds
+    const out = shouldContinueVisualLoop(baseVerdict(), 0, 1)
+    expect(out).toEqual({ stop: true, reason: 'max-rounds' })
+  })
+
+  test('matches=true short-circuits even on round 0', () => {
+    const out = shouldContinueVisualLoop(baseVerdict({ matches: true }), 0, 5)
+    expect(out.stop).toBe(true)
+    expect(out.reason).toBe('matches')
   })
 })

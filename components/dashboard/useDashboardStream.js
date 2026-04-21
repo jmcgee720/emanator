@@ -553,11 +553,26 @@ export function useDashboardStream(ctx) {
               ...(m.metadata || {}),
               briefProgress: {
                 ...((m.metadata?.briefProgress) || {}),
-                visualRepair: { filesRepaired: data?.filesRepaired || [] },
+                visualRepair: { filesRepaired: data?.filesRepaired || [], round: data?.round },
               },
             },
           } : m))
-          addLog('success', `Visual repair wave applied to ${data?.filesRepaired?.length || 0} file(s)`)
+          addLog('success', `Visual repair round ${data?.round || 1}: applied to ${data?.filesRepaired?.length || 0} file(s)`)
+        },
+        onVisualLoopSummary: (data) => {
+          setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
+            ...m,
+            metadata: {
+              ...(m.metadata || {}),
+              briefProgress: {
+                ...((m.metadata?.briefProgress) || {}),
+                visualLoopSummary: data,
+              },
+            },
+          } : m))
+          const r = data?.rounds?.length || 0
+          addLog(data?.finalMatches ? 'success' : 'info',
+            `Visual loop: ${r} round${r === 1 ? '' : 's'} · ${data?.initialFindings || 0} initial findings → ${data?.finalMatches ? 'MATCH' : 'partial match'} · ${data?.totalFilesRepaired || 0} file(s) repaired total`)
         },
         onBriefPlan: (data) => {
           setMessages(prev => prev.map(m => m.id === streamingAssistantId ? {
