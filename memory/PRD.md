@@ -26,6 +26,57 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 33 (COMPLETE, 2026-02-21) — Pricing + Testimonials + CTA primitives
+
+Extends Session 30's primitives system from 2 primitives (`<Hero>`, `<FeatureGrid>`) to 5. Every major landing section is now pre-composed from the blueprint and handed to the builder LLM as "just import and compose" instead of "here's a description, good luck."
+
+**Shipped in `/app/lib/ai/primitives.js`**:
+
+1. **`PRICING_PATTERNS`** (frozen) — `three-column`, `horizontal-strip`, `single-featured`, `toggle-annual-monthly`. Keys match `blueprint.pricing_pattern` exactly. `buildPricingPrimitive(pattern, brand, {tiers})`:
+   - `three-column` — standard 3-tier grid with `data-testid="pricing-tier-{N}"` + CTA on each.
+   - `horizontal-strip` — uniform row with `divide-x` between tiers, compact copy.
+   - `single-featured` — one centered tier (picks the highlighted one from `tiers[1]`).
+   - `toggle-annual-monthly` — 3-tier grid + pill toggle with `useState(false)` for annual/monthly, `data-testid="pricing-cycle-{monthly|annual}"`.
+
+2. **`TESTIMONIAL_STYLES`** (frozen) — `card-grid`, `single-quote-hero`, `marquee-logos-plus-quote`. `buildTestimonialsPrimitive(style, brand, {testimonials})`:
+   - `card-grid` — 3 `<figure>` cards with quote + avatar letter + name/role.
+   - `single-quote-hero` — one centered 3xl-italic pull-quote, avatar row below.
+   - `marquee-logos-plus-quote` — top quote + 4 logo placeholders below for social proof.
+
+3. **`CTA_STYLES`** (frozen) — `centered-rounded`, `full-width-accent`, `split-image`. `buildCtaPrimitive(style, brand, {hasHeroAsset, headline, subhead})`:
+   - `centered-rounded` — framed card centered on bg.
+   - `full-width-accent` — full-width `bg-primary` strip with `text-primary-ink`, dual CTA.
+   - `split-image` — 2-col with text left, image right (imports `HERO_URL || PHOTO_0` when `hasHeroAsset=true`).
+
+4. **Orchestrator updates**:
+   - `resolvePrimitivesFromBlueprint` now returns `{hero, featureGrid, pricing, testimonials, cta}`. Safely handles missing `testimonials_style` / `cta_style` fields (not in blueprint today — future-ready).
+   - `buildPrimitiveFiles` emits 5 files instead of 2.
+   - `formatPrimitivesForPrompt` lists all 5 imports + resolved params in the builder prompt.
+
+**Quality gates**:
+- +25 tests in `test_primitives.test.js` (total now 54/54): immutable allowlists, each pattern/style variant, fallback on bad enum, CSS-var discipline, `hasHeroAsset` gating for CTA, custom opts override defaults.
+- All 13 new variants pass `@babel/preset-react` transform (`4 pricing + 3 testimonials + 3 CTA × 2 asset states = 13 variants` — confirmed via Node Babel integration check).
+- **Full Jest suite: 480/480** across 25 files (+25 new Session-33 tests on top of the 455 from multi-provider session). Lint clean.
+
+**Rolls up a full-width structural transformation**: Session 30 closed the loop for `<Hero>` + `<FeatureGrid>` (60% of above-the-fold real estate). Session 33 closes the loop for Pricing + Testimonials + CTA (40% of below-the-fold real estate). Combined, the builder LLM now gets ALL 5 major landing primitives handed to it as code files — not prompts to emulate.
+
+**What the user sees on next build with a blueprint**:
+1. Vision extracts `pricing_pattern: 'single-featured'` + `hero_composition: 'full-bleed-image'` from uploaded refs.
+2. Pipeline emits 5 primitive files with those exact parameters baked in.
+3. Builder LLM composes `<Hero />`, `<FeatureGrid />`, `<Pricing />`, `<Testimonials />`, `<CTA />` in the blueprint's section order.
+4. Every primitive already inherits theme tokens (CSS vars) from `<ThemeProvider>`, Google Fonts load automatically (Session 31), brand assets resolve via VFS (Session 27), Vision verifies against reference (Session 28) and repairs mismatches (Session 29).
+
+### A/B winner "Use this" capstone (COMPLETE, 2026-02-21)
+
+Closed the loop on the multi-provider Compare feature. Each finished lane in `CompareProvidersDialog` now has an **"Use this" button** that:
+- Sets `aiProvider` + `aiModel` on the parent `ChatComposer`
+- Closes the dialog
+- Wired via new `onApplyLane({provider, model})` prop
+
+Users can now: pick the best-looking lane → one click → next message goes through that provider.
+
+Test ID: `[data-testid="ab-compare-lane-{N}-apply"]`.
+
 ### Multi-provider LLM routing + A/B comparison (COMPLETE, 2026-02-21)
 
 **User request**: "make Emanator be like Emergent, where it can use OpenAI + Anthropic + Google. Make sure they're all wired properly by fixing any fallback-map, verifying anthropic provider works, and run a test build. Then build a toggle between them." + "b and c — biggest scope" (Nano Banana + split-view A/B).
