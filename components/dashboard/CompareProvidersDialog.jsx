@@ -104,6 +104,17 @@ export default function CompareProvidersDialog({ open, onOpenChange, initialProm
                 [data.lane]: { ...(prev[data.lane] || { content: '', status: 'running', ms: 0 }), content: (prev[data.lane]?.content || '') + data.delta },
               }))
               break
+            case 'lane_retry':
+              setLaneState((prev) => ({
+                ...prev,
+                [data.lane]: {
+                  ...(prev[data.lane] || { status: 'running', ms: 0 }),
+                  content: '', // reset partial content on retry
+                  status: 'retrying',
+                  retryInfo: { attempt: data.attempt, reason: data.reason, waitMs: data.waitMs },
+                },
+              }))
+              break
             case 'lane_done':
               setLaneState((prev) => ({
                 ...prev,
@@ -269,6 +280,14 @@ function LaneStatusBadge({ state }) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-rose-400" data-testid="ab-compare-lane-status-error">
         <AlertTriangle className="w-3 h-3" /> error
+      </span>
+    )
+  }
+  if (state.status === 'retrying') {
+    const reason = state.retryInfo?.reason === 'rate_limit' ? 'rate limit' : 'server error'
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400" data-testid="ab-compare-lane-status-retrying" title={`Retrying after ${state.retryInfo?.waitMs || 0}ms (${reason})`}>
+        <Loader2 className="w-3 h-3 animate-spin" /> retry #{state.retryInfo?.attempt || 1}
       </span>
     )
   }

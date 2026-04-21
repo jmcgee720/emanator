@@ -26,6 +26,37 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Blueprint ↔ Primitives contract closed (COMPLETE, 2026-02-21)
+
+Closes the last gap in the Session 30 + 33 primitives system. Until this change, the Vision layout-blueprint call extracted `hero_composition`, `feature_columns`, `feature_card_style`, `pricing_pattern` — but **not** `testimonials_style` or `cta_style`. So Session 33's `Testimonials.jsx` + `CTA.jsx` primitives always fell back to their defaults (`card-grid` + `centered-rounded`), ignoring the user's reference images.
+
+**Shipped in `design-tokens.js`**:
+- Extended `BLUEPRINT_SYSTEM_PROMPT` with the two new enum fields + per-field picking rules:
+  - `testimonials_style`: `card-grid` | `single-quote-hero` | `marquee-logos-plus-quote` — with guidance on when to pick each ("one big centered pull-quote", "3+ equal-sized cards", "logo row + small quote").
+  - `cta_style`: `centered-rounded` | `full-width-accent` | `split-image` — with visual cues ("edge-to-edge colored strip", "2-column with image", "framed centered card").
+- `parseBlueprint()` validates both with safe-default coercion for unknown values.
+- `formatBlueprintForPrompt()` renders two new lines in the builder prompt.
+- JSDoc typedef updated for both fields.
+
+**+4 new tests** in `test_design_tokens.test.js`: valid extraction, invalid-value coercion, missing-field defaults, `formatBlueprintForPrompt` rendering.
+
+**End-to-end effect**: when the user uploads a reference with a single centered testimonial quote + an accent-color full-width CTA, the generated app now renders `<Testimonials />` in `single-quote-hero` mode and `<CTA />` in `full-width-accent` mode — automatically. Previously the LLM got the same default every time.
+
+### A/B Compare rate-limit awareness (COMPLETE, 2026-02-21)
+
+Added per-lane retry with exponential backoff when a provider returns 429 / 5xx. Previously one provider throttling would turn that lane into a hard error; now the lane retries up to **2 times** with 500ms → 1000ms → 2000ms backoff.
+
+**Shipped in `/api/ab-compare/route.js`**:
+- `runLane` now wraps the stream in a retry loop that classifies rate-limit vs server errors.
+- New SSE event: `lane_retry` with `{lane, attempt, reason: 'rate_limit' | 'server_error', waitMs}`.
+- Partial output is discarded on retry so the lane starts fresh.
+
+**Shipped in `CompareProvidersDialog.jsx`**:
+- New `retrying` lane status with `<LaneStatusBadge>` showing spinner + "retry #N".
+- `data-testid="ab-compare-lane-status-retrying"` + tooltip with wait time + reason.
+
+**Full suite: 492/492 across 25 files.** Lint clean.
+
 ### Session 32 (COMPLETE, 2026-02-21) — N-round visual-repair loop with re-verify
 
 Widens the Session-29 visual-repair step from **1 round** → **up to 3 rounds** (configurable via `VISUAL_REPAIR_MAX_ROUNDS`). Each round: verify → repair → re-verify. Stops early when Vision signals MATCH or when there's nothing concrete to repair.

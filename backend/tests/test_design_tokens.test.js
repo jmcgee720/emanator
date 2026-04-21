@@ -288,6 +288,34 @@ describe('parseBlueprint', () => {
     expect(out.sections_order).toHaveLength(8)
   })
 
+  test('accepts testimonials_style + cta_style (Session post-32 blueprint extensions)', () => {
+    const input = JSON.stringify({
+      sections_order: ['hero', 'testimonials', 'final-cta'],
+      testimonials_style: 'single-quote-hero',
+      cta_style: 'full-width-accent',
+    })
+    const out = parseBlueprint(input)
+    expect(out.testimonials_style).toBe('single-quote-hero')
+    expect(out.cta_style).toBe('full-width-accent')
+  })
+
+  test('coerces invalid testimonials_style + cta_style to safe defaults', () => {
+    const input = JSON.stringify({
+      sections_order: ['hero'],
+      testimonials_style: 'bouncy-carousel',
+      cta_style: 'spinning-3d-object',
+    })
+    const out = parseBlueprint(input)
+    expect(out.testimonials_style).toBe('card-grid')
+    expect(out.cta_style).toBe('centered-rounded')
+  })
+
+  test('defaults testimonials_style + cta_style when missing', () => {
+    const input = JSON.stringify({ sections_order: ['hero'] })
+    const out = parseBlueprint(input)
+    expect(out.testimonials_style).toBe('card-grid')
+    expect(out.cta_style).toBe('centered-rounded')
+  })
   test('caps noticeable_patterns at 6 entries', () => {
     const input = JSON.stringify({
       sections_order: ['hero'],
@@ -322,6 +350,24 @@ describe('formatBlueprintForPrompt', () => {
 
   test('returns empty string for null input', () => {
     expect(formatBlueprintForPrompt(null)).toBe('')
+  })
+
+  test('includes testimonials_style + cta_style lines', () => {
+    const text = formatBlueprintForPrompt({
+      sections_order: ['hero', 'testimonials', 'final-cta'],
+      hero_composition: 'split-50-50',
+      hero_text_alignment: 'left',
+      navbar_style: 'minimal-left-brand',
+      feature_columns: 3,
+      feature_card_style: 'filled-surface',
+      pricing_pattern: 'three-column',
+      testimonials_style: 'single-quote-hero',
+      cta_style: 'full-width-accent',
+      spacing_rhythm: 'generous',
+      noticeable_patterns: [],
+    })
+    expect(text).toContain('Testimonials: single-quote-hero')
+    expect(text).toContain('Final CTA: full-width-accent')
   })
 })
 

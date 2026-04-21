@@ -110,28 +110,50 @@ export async function POST(request) {
 async function runLane({ index, lane, messages, dbUser, send }) {
   const t0 = Date.now()
   let fullContent = ''
-  try {
-    const svc = new AIService(lane.provider, lane.model)
-    const iter = svc.provider.chatStream(messages, { temperature: 0.7, max_tokens: 1500 })
-    for await (const ev of iter) {
-      if (ev?.type === 'token' && ev.content) {
-        fullContent += ev.content
-        send('token', { lane: index, delta: ev.content })
+  const maxRetries = 2
+  let lastErr
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const svc = new AIService(lane.provider, lane.model)
+      const iter = svc.provider.chatStream(messages, { temperature: 0.7, max_tokens: 1500 })
+      for await (const ev of iter) {
+        if (ev?.type === 'token' && ev.content) {
+          fullContent += ev.content
+          send('token', { lane: index, delta: ev.content })
+        }
       }
+      const ms = Date.now() - t0
+      send('lane_done', { lane: index, ms, content: fullContent, provider: lane.provider, model: lane.model })
+      creditsDb.deductCredits(dbUser.id, 'comparison').catch(() => {})
+      return
+    } catch (err) {
+      lastErr = err
+      // Rate limit (429) / overload — back off exponentially and retry
+      const isRateLimit = err?.error_type === 'rate_limit' || err?.status === 429
+        || (err?.status >= 500 && err?.status < 600)
+      if (isRateLimit && attempt < maxRetries) {
+        const backoffMs = 500 * Math.pow(2, attempt) // 500ms, 1000ms, 2000ms
+        send('lane_retry', {
+          lane: index, attempt: attempt + 1, waitMs: backoffMs,
+          reason: isRateLimit ? (err.status === 429 ? 'rate_limit' : 'server_error') : 'unknown',
+        })
+        await new Promise((r) => setTimeout(r, backoffMs))
+        fullContent = '' // discard partial output on retry
+        continue
+      }
+      // Non-retryable — emit error and bail
+      break
     }
-    const ms = Date.now() - t0
-    send('lane_done', { lane: index, ms, content: fullContent, provider: lane.provider, model: lane.model })
-    // Deduct once per lane after success
-    creditsDb.deductCredits(dbUser.id, 'comparison').catch(() => {})
-  } catch (err) {
-    send('lane_error', {
-      lane: index,
-      error: String(err?.user_message || err?.message || err).slice(0, 300),
-      provider: lane.provider,
-      model: lane.model,
-      ms: Date.now() - t0,
-    })
   }
+
+  send('lane_error', {
+    lane: index,
+    error: String(lastErr?.user_message || lastErr?.message || lastErr).slice(0, 300),
+    provider: lane.provider,
+    model: lane.model,
+    ms: Date.now() - t0,
+  })
 }
 
 export async function OPTIONS() {
