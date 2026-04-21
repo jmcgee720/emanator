@@ -26,6 +26,73 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Multi-provider LLM routing + A/B comparison (COMPLETE, 2026-02-21)
+
+**User request**: "make Emanator be like Emergent, where it can use OpenAI + Anthropic + Google. Make sure they're all wired properly by fixing any fallback-map, verifying anthropic provider works, and run a test build. Then build a toggle between them." + "b and c — biggest scope" (Nano Banana + split-view A/B).
+
+**Root-cause diagnosis uncovered a critical bug I had misdiagnosed earlier**:
+- I previously claimed "Emanator always runs GPT-4o even when Claude is picked" based on reading `FALLBACK_MAP`. That was wrong — FALLBACK_MAP only fires on runtime error. Correct mental model of the ACTUAL bug:
+- **Emergent Universal Key uses an OpenAI-compatible proxy at `https://integrations.emergentagent.com/llm/v1`**. Anthropic + Gemini requests go through the SAME endpoint with model IDs prefixed (`gemini/gemini-2.5-pro` for Google).
+- The `.env.local` shipped with a direct `ANTHROPIC_API_KEY` whose Anthropic-billing balance was depleted. My `_apiKey()` found it first (direct > proxy), set `_usingDirect=true`, skipped the proxy, and hit `api.anthropic.com` directly — which returned "Your credit balance is too low to access the Anthropic API." The user saw "Claude works!" in the UI but got a billing error on every call.
+
+**Shipped (one single pass)**:
+
+1. **`/app/lib/ai/providers/gemini.js`** — new 280-line provider matching `BaseAIProvider` contract: `chat`, `chatStream`, `chatWithToolsStream`, `generateStructured`, plus `generateImage` for Nano Banana. Handles OpenAI-shape ↔ Gemini-format conversion (system → systemInstruction, assistant → model, `image_url` data URIs → `inlineData`, tool calls → functionDeclarations with schema sanitization).
+
+2. **`providers/index.js` rewrite** — new `normalizeModelForProxy(provider, model)` (prefixes `gemini/` when going through the Emergent proxy). `createProvider` now routes ALL three providers through `OpenAIProvider` when `baseURL` is set, or through their native SDK when a direct key is present.
+
+3. **Routing priority fix in `service.js`** — the LOAD-BEARING fix for the original bug. `_apiKey()` now prefers the Emergent proxy over direct keys when `PREFER_EMERGENT_PROXY=1` (default). Direct keys still work if the user explicitly sets `PREFER_EMERGENT_PROXY=0`.
+
+4. **`FALLBACK_MAP` cleanup** — intra-provider fallbacks only:
+   - GPT-5.2 → GPT-5.1 → GPT-4o → GPT-4o-mini (never Claude)
+   - Claude Opus 4.5 → Claude Sonnet 4.5 → Claude Haiku 4.5 (never GPT-4o)
+   - Gemini 2.5 Pro → Gemini 2.5 Flash → Gemini Flash-Lite (never Claude)
+   - Legacy aliases (`claude-sonnet-4-6`, `claude-opus-4-6`) preserved for backward-compat with saved sessions.
+
+5. **Model ID refresh** — UI + service defaults now use current Emergent catalog IDs:
+   - `claude-sonnet-4-5-20250929`, `claude-opus-4-5-20251101`, `claude-haiku-4-5-20251001`
+   - `gpt-5.2`, `gpt-5.1`, `gpt-4o`, `gpt-4o-mini`
+   - `gemini-2.5-pro`, `gemini-3-flash-preview`, `gemini-2.5-flash`
+
+6. **`ModelSelector.jsx`** — three provider groups (OpenAI / Anthropic / Google) with Sparkles icon for Google + refreshed model badges (Latest / Recommended / Balanced / Powerful / Fast / Preview). Cost tiers in `MODEL_COSTS` updated to match.
+
+7. **Nano Banana image gen** — `GeminiProvider.generateImage(prompt, {reference_images})` calls `gemini-2.5-flash-image-preview` and returns the OpenAI-shape `{b64_json, mimeType}` callers already expect. `ImageService` accepts `imageProvider: 'gemini'` (or `'nano-banana'`) and references, routes to the Gemini client lazily. `/projects/:id/generate-image` API now accepts `imageProvider` + `referenceImages` body fields for image-to-image editing.
+
+8. **A/B Compare UI** — `CompareProvidersDialog.jsx` + `/api/ab-compare` endpoint:
+   - Dialog opened via new `[data-testid="ab-compare-trigger"]` button in ChatComposer.
+   - Default lanes: OpenAI GPT-5.1 / Claude Sonnet 4.5 / Gemini 2.5 Pro.
+   - Per-lane provider + model selects (editable before run).
+   - Same prompt fires in parallel via `Promise.allSettled` — one lane failing never aborts others.
+   - SSE events: `start` (lanes), `token` (streamed chunks tagged with lane index), `lane_done` (ms + full content), `lane_error`, `done`.
+   - Credits: 0.5 per lane (updated `CREDIT_COSTS.comparison`).
+
+**Verified live (self-identify test)**:
+- Lane 0 (OpenAI GPT-4o-mini): *"AI language model developed by OpenAI."* — 2.4s
+- Lane 1 (Anthropic Claude Haiku 4.5): *"I am Claude, made by Anthropic."* — 0.7s
+- Lane 2 (Gemini 2.5 Flash): *"I am a Google AI."* — 2.9s
+
+Each provider self-identifies correctly with their REAL model/company — not silently routing to GPT-4o. Credit meter ticked down correctly (−2.5 for 3 lanes + baseline overhead).
+
+**+25 Gemini provider tests** in `test_gemini_provider.test.js`:
+- `chat` happy path + system concatenation + multi-part content with image_url data URIs + assistant→model role mapping + temperature/max_tokens/json_object config
+- `chatWithToolsStream` — tool conversion, token streaming, tool_choice→toolConfig
+- `generateStructured` — forces JSON mime type, handles unparseable response
+- `generateImage` (Nano Banana) — inlineData extraction, reference image pass-through, empty-response throws, custom model override
+- Helpers: `_extractText`, `_toGeminiParts`, `_sanitizeSchema`
+
+**Full suite: 455/455 across 25 files.** Lint clean. Testing agent `iteration_119.json` confirmed zero issues, zero action items. Live browser self-identify test confirmed routing integrity.
+
+**Env setup**:
+- `EMERGENT_PROXY_URL=https://integrations.emergentagent.com/llm/v1` added to `.env.local` + `backend/.env`
+- `PREFER_EMERGENT_PROXY=1` (default, set via `String(env || '1') !== '0'`)
+
+**What's deliberately skipped (per user scope convo)**:
+- Whisper audio transcription — no audio input UI in Emanator
+- GPT Image 1 rewrite — already shipped via existing `OpenAIProvider.generateImage`
+- Splitting `buildReactPreview` out of PreviewTab.jsx for shared Puppeteer use — deferred
+
+## Implemented (earlier in 2026-02)
+
 ### Session 30 (COMPLETE, 2026-02-20) — Primitives decomposition (6/7)
 
 The 7-session roadmap's biggest compositional unlock. Until now, when the Vision layout-blueprint call said `{hero_composition: 'full-bleed-image', feature_columns: 2, feature_card_style: 'hairline-outlined'}`, the builder got those values only as *text in the prompt*. The LLM was supposed to adapt the hardcoded landing_page recipe to match — which it did inconsistently. Session 30 emits the blueprint **as actual code files** the builder imports and composes.
