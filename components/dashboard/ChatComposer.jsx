@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Send, Paperclip, Loader2, Layers, Globe, Image as ImageIcon, FileText,
-  X, File, FileCode, FileImage, Upload, Sparkles, Camera
+  X, File, FileCode, FileImage, Upload, Sparkles, Camera, GitCompare
 } from 'lucide-react'
 import ModelSelector from './ModelSelector'
 import RecipeSelector from './RecipeSelector'
 import ScopeSelector from './ScopeSelector'
+import CompareProvidersDialog from './CompareProvidersDialog'
 
 const modeIcons = { app: Layers, website: Globe, image: ImageIcon, document: FileText }
 const modeLabels = { app: 'App', website: 'Web', image: 'Image', document: 'Doc' }
@@ -93,6 +94,7 @@ const ChatComposer = forwardRef(function ChatComposer({
   const [dragOver, setDragOver] = useState(false)
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
+  const [compareOpen, setCompareOpen] = useState(false)
 
   useImperativeHandle(ref, () => ({
     setInput: (text) => setInput(text),
@@ -303,6 +305,15 @@ const ChatComposer = forwardRef(function ChatComposer({
           providerStatus={providerStatus}
         />
 
+        <button
+          onClick={() => setCompareOpen(true)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50 hover:text-foreground transition-all cursor-pointer"
+          title="Compare providers side-by-side on the same prompt"
+          data-testid="ab-compare-trigger"
+        >
+          <GitCompare className="w-3 h-3" /> Compare
+        </button>
+
         <RecipeSelector onSelectRecipe={handleRecipeSelect} />
         <ScopeSelector scope={scope} onScopeChange={onScopeChange} />
 
@@ -378,6 +389,12 @@ const ChatComposer = forwardRef(function ChatComposer({
       <p className="text-[10px] text-muted-foreground/50 mt-1.5 text-center">
         Enter to send · Shift+Enter for new line · Drop files to attach
       </p>
+
+      <CompareProvidersDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        initialPrompt={input}
+      />
     </div>
   )
 })

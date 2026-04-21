@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
-import { Brain, ChevronDown, Zap, Check, CircleAlert, CircleDollarSign, ShieldAlert, WifiOff } from 'lucide-react'
+import { Brain, ChevronDown, Zap, Check, CircleAlert, CircleDollarSign, ShieldAlert, WifiOff, Sparkles } from 'lucide-react'
 
 const PROVIDERS = [
   {
@@ -20,19 +20,32 @@ const PROVIDERS = [
     name: 'OpenAI',
     icon: Zap,
     models: [
-      { id: 'gpt-4o', name: 'GPT-4o', badge: 'Latest', badgeColor: 'text-blue-400 border-blue-400/30' },
-    ]
+      { id: 'gpt-5.2',     name: 'GPT-5.2',     badge: 'Latest',      badgeColor: 'text-sky-400 border-sky-400/30' },
+      { id: 'gpt-5.1',     name: 'GPT-5.1',     badge: 'Recommended', badgeColor: 'text-emerald-400 border-emerald-400/30' },
+      { id: 'gpt-4o',      name: 'GPT-4o',      badge: 'Proven',      badgeColor: 'text-blue-400 border-blue-400/30' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o mini', badge: 'Fast',        badgeColor: 'text-green-400 border-green-400/30' },
+    ],
   },
   {
     id: 'anthropic',
     name: 'Anthropic',
     icon: Brain,
     models: [
-      { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', badge: 'Balanced', badgeColor: 'text-amber-400 border-amber-400/30' },
-      { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', badge: 'Powerful', badgeColor: 'text-purple-400 border-purple-400/30' },
-      { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', badge: 'Fast', badgeColor: 'text-green-400 border-green-400/30' },
-    ]
-  }
+      { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', badge: 'Balanced', badgeColor: 'text-amber-400 border-amber-400/30' },
+      { id: 'claude-opus-4-5-20251101',   name: 'Claude Opus 4.5',   badge: 'Powerful', badgeColor: 'text-purple-400 border-purple-400/30' },
+      { id: 'claude-haiku-4-5-20251001',  name: 'Claude Haiku 4.5',  badge: 'Fast',     badgeColor: 'text-green-400 border-green-400/30' },
+    ],
+  },
+  {
+    id: 'gemini',
+    name: 'Google',
+    icon: Sparkles,
+    models: [
+      { id: 'gemini-2.5-pro',         name: 'Gemini 2.5 Pro',      badge: 'Recommended', badgeColor: 'text-emerald-400 border-emerald-400/30' },
+      { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash',      badge: 'Preview',     badgeColor: 'text-cyan-400 border-cyan-400/30' },
+      { id: 'gemini-2.5-flash',       name: 'Gemini 2.5 Flash',    badge: 'Fast',        badgeColor: 'text-green-400 border-green-400/30' },
+    ],
+  },
 ]
 
 const STATUS_CONFIG = {
@@ -45,12 +58,17 @@ const STATUS_CONFIG = {
 }
 
 const MODEL_COST_TIERS = {
-  'gpt-4o':            { credits: 1.0, label: 'High' },
-  'gpt-4o-mini':       { credits: 0.25, label: 'Standard' },
-  'o3':                { credits: 2.0, label: 'Premium' },
-  'claude-sonnet-4-6': { credits: 1.0, label: 'High' },
-  'claude-opus-4-6':   { credits: 2.5, label: 'Premium' },
-  'claude-haiku-4-5':  { credits: 0.25, label: 'Standard' },
+  'gpt-5.2':                          { credits: 1.5, label: 'Premium' },
+  'gpt-5.1':                          { credits: 1.25, label: 'High' },
+  'gpt-4o':                           { credits: 1.0, label: 'High' },
+  'gpt-4o-mini':                      { credits: 0.25, label: 'Standard' },
+  'o3':                               { credits: 2.0, label: 'Premium' },
+  'claude-sonnet-4-5-20250929':       { credits: 1.25, label: 'High' },
+  'claude-opus-4-5-20251101':         { credits: 2.5, label: 'Premium' },
+  'claude-haiku-4-5-20251001':        { credits: 0.3, label: 'Standard' },
+  'gemini-2.5-pro':                   { credits: 1.0, label: 'High' },
+  'gemini-3-flash-preview':           { credits: 0.5, label: 'Standard' },
+  'gemini-2.5-flash':                 { credits: 0.25, label: 'Standard' },
 }
 
 const COST_COLORS = {
