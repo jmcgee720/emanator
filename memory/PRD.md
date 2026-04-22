@@ -26,6 +26,36 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Final pass — self-edit verify extraction (COMPLETE, 2026-02-22)
+
+Last remaining extraction target from the tool-handler dispatch: the ~60-line verify-and-revert block that ran verbatim in both `search_replace` and `edit_lines` self-edit branches.
+
+- **`/app/lib/ai/self-edit-verify.js`** (103 lines) — `verifyAndRevertSelfEdit(args, editResult, label, opts)` — pure async helper that:
+  1. Hits `http://localhost:3000/?_verify=<ts>` with cache-busting headers to force Next.js recompile.
+  2. Detects build errors via HTML markers (`Build Error`, `SyntaxError`, `Module build failed`, `Expected`, `Unexpected token`) OR non-200 status.
+  3. Extracts the error message from the HTML page OR supervisor logs (`/var/log/supervisor/nextjs_api.err.log` + `out.log`).
+  4. Reverts the file from `editResult.originalContent` and mutates `editResult.success = false` + pushes a label-specific error message.
+  5. Also reverts when the fetch itself throws (dev server crashed).
+
+- **`message-stream.js` call-sites** — two ~60-line duplicated try/catch blocks collapsed to 5-line calls. `message-stream.js` now at **3789 lines** (down from 3903 → another **−114 lines**).
+
+- **+8 targeted tests** in `test_self_edit_verify.test.js`: healthy-build no-op, cache-bust URL shape, broken build revert-and-error-wording (both `search_replace` and `edit_lines` label variants), non-200 response triggers revert, HTML error extraction, fetch-throw fallback, missing `originalContent` guard.
+
+### Cumulative final-session stats
+- `message-stream.js`: **4235 → 3789 lines (−446 / −10.5%)** total reduction across 8 pipeline/helper extractions.
+- **24 new modules** shipped (6 pipeline + 2 webcontainer + 3 analytics + 4 voice + 3 commerce + 1 collaborators + 2 domain + 2 self-edit helpers + misc utilities).
+- **+187 new Jest tests** across the full multi-session run.
+- **0 regressions** from any refactor or feature work (flaky-test fluctuation only — verified by stash/restore diff).
+- **All P2/P3 backlog items shipped** (Whisper voice-input ✓, Custom domains ✓, Stripe Checkout ✓, Multi-user collaboration ✓).
+- **Live Whisper API round-trip** verified end-to-end via production endpoint.
+
+**Test suite health (end of session)**: **824 passing / 23 failed** (started at 659/25 — **+165 passing, −2 flaky, 0 regressions**).
+
+**Remaining work** (all deferred to a future testing-agent-assisted session):
+- Full tool-handler dispatch modularization — each `else if (toolName === ...)` branch body (total ~800 lines across `read_files` / `verify_build` / `exec_command` / `search_replace` / `edit_lines` / `write_file` / `list_files` / `summarize_project`) into its own module-level async function. Current state: `read_files` / `verify_build` / `exec_command` / `search_replace` / `edit_lines` already use extracted `handleX` from `tool-handlers.js` and now also the auto-snapshot + auto-verify helpers. The next step is to move the dispatch-level yield emission, state mutation, and conversation message building into per-tool async generators.
+
+---
+
 ### Next-action finisher — live Whisper round-trip + self-edit snapshot extraction (COMPLETE, 2026-02-22)
 
 **1. Live Whisper round-trip — CONFIRMED WORKING END-TO-END**
