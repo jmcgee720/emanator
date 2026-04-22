@@ -12,7 +12,7 @@ export default function BuildObservatoryPanel({ manifest, screenshotVerify, visu
   const [open, setOpen] = useState(true)
   if (!manifest) return null
 
-  const { assets, theme, blueprint, family, attachments, timings = [], integrity = [], warnings = [] } = manifest
+  const { assets, theme, blueprint, family, attachments, timings = [], integrity = [], warnings = [], qualityScore = null } = manifest
   const passed = integrity.filter((c) => c.pass).length
   const failed = integrity.length - passed
   const verifyFindings = screenshotVerify?.findings?.length || 0
@@ -32,6 +32,15 @@ export default function BuildObservatoryPanel({ manifest, screenshotVerify, visu
         <span className="flex items-center gap-2">
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           Build observatory
+          {qualityScore && (
+            <span
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${GRADE_CHIP_CLASSES[qualityScore.gradeColor] || GRADE_CHIP_CLASSES.sky}`}
+              data-testid="observatory-quality-chip"
+              title={qualityScore.headline}
+            >
+              {qualityScore.total}/100 · {qualityScore.grade}
+            </span>
+          )}
           {warnings.length > 0 && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-300 bg-amber-500/10" data-testid="observatory-warnings-chip">
               <AlertTriangle className="w-3 h-3" /> {warnings.length}
@@ -61,6 +70,7 @@ export default function BuildObservatoryPanel({ manifest, screenshotVerify, visu
 
       {open && (
         <div className="px-3 pb-3 space-y-3 text-[11px]">
+          {qualityScore && <QualityScoreCard score={qualityScore} />}
           {warnings.length > 0 && (
             <div className="space-y-1" data-testid="observatory-warnings">
               {warnings.map((w, i) => (
@@ -272,4 +282,72 @@ function formatBytes(n) {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
   return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
+
+// ── Quality-score visuals ──
+// Static Tailwind class maps so the JIT compiler can see every utility.
+const GRADE_CHIP_CLASSES = {
+  emerald: 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/20',
+  sky:     'text-sky-300 bg-sky-500/10 border border-sky-500/20',
+  amber:   'text-amber-300 bg-amber-500/10 border border-amber-500/20',
+  rose:    'text-rose-300 bg-rose-500/10 border border-rose-500/20',
+}
+
+const GRADE_RING = {
+  emerald: { ring: 'ring-emerald-500/40', glow: 'shadow-[0_0_40px_rgba(16,185,129,0.25)]', text: 'text-emerald-300' },
+  sky:     { ring: 'ring-sky-500/40',     glow: 'shadow-[0_0_40px_rgba(56,189,248,0.25)]',  text: 'text-sky-300' },
+  amber:   { ring: 'ring-amber-500/40',   glow: 'shadow-[0_0_40px_rgba(245,158,11,0.22)]',  text: 'text-amber-300' },
+  rose:    { ring: 'ring-rose-500/40',    glow: 'shadow-[0_0_40px_rgba(244,63,94,0.22)]',   text: 'text-rose-300' },
+}
+
+function QualityScoreCard({ score }) {
+  const palette = GRADE_RING[score.gradeColor] || GRADE_RING.sky
+  return (
+    <div
+      className={`rounded-lg border border-white/10 bg-[rgba(255,255,255,0.02)] p-3 ring-1 ${palette.ring} ${palette.glow}`}
+      data-testid="observatory-quality-score"
+    >
+      <div className="flex items-start gap-4">
+        <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-xl bg-[rgba(0,0,0,0.35)] border border-white/10">
+          <div className={`text-3xl font-bold tracking-tight ${palette.text}`} data-testid="observatory-quality-total">
+            {score.total}
+          </div>
+          <div className="text-[9px] uppercase tracking-widest text-white/40">/ 100</div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-white/45">Build quality</span>
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${GRADE_CHIP_CLASSES[score.gradeColor] || GRADE_CHIP_CLASSES.sky}`}
+              data-testid="observatory-quality-grade"
+            >
+              {score.grade}
+            </span>
+          </div>
+          <div className="text-white/90 mt-0.5" data-testid="observatory-quality-headline">{score.headline}</div>
+          <ul className="mt-2 space-y-1" data-testid="observatory-quality-breakdown">
+            {score.components.map((c) => {
+              const rate = c.max > 0 ? c.points / c.max : 0
+              const barClass =
+                rate >= 0.9 ? 'bg-emerald-400' :
+                rate >= 0.5 ? 'bg-sky-400' :
+                rate >= 0.25 ? 'bg-amber-400' : 'bg-rose-400'
+              const testId = `observatory-quality-component-${c.name.replace(/\s+/g, '-').toLowerCase()}`
+              return (
+                <li key={c.name} className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-2" data-testid={testId}>
+                  <span className="text-white/65 truncate">{c.name}</span>
+                  <span className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <span className={`block h-full ${barClass}`} style={{ width: `${Math.max(2, rate * 100)}%` }} />
+                  </span>
+                  <span className="font-mono text-[10px] text-white/55 tabular-nums">
+                    {c.points}/{c.max} <span className="text-white/35">· {c.note}</span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
 }
