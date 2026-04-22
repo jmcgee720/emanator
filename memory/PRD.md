@@ -26,6 +26,41 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### P2 + Next-action roundup — Whisper voice input, WebContainer multi-port (COMPLETE, 2026-02-22)
+
+**1. P2 — Whisper transcription + voice-input UI (shipped)**
+
+The user can now dictate prompts into the chat composer. Tap the mic → speak → tap stop → transcribed text appends to the input field.
+
+- **`/app/lib/ai/transcribe-service.js`** (60 lines) — `TranscribeService` + `getTranscribeService()` singleton. Follows the same env-key convention as the rest of the pipeline: direct `OPENAI_API_KEY` takes precedence, else `EMERGENT_LLM_KEY` + `EMERGENT_PROXY_URL`. Model: `whisper-1`. Wraps audio through `openai/uploads.toFile()` so any Buffer/Blob/Uint8Array works.
+- **`POST /api/transcribe`** — multipart/form-data endpoint. Auth + allowlist gated. Accepts `audio` file + optional `language` + `prompt`. Returns `{text, duration_ms}`. Hard cap at 20 MB (under Whisper's 25 MB limit). Errors classified by status (401 / 429 / 500) with user-friendly message.
+- **`components/dashboard/VoiceInputButton.jsx`** (167 lines) — 3-state button (`idle → recording → transcribing`) with elapsed-time display. MediaRecorder with auto-detected mime (webm/opus preferred, m4a fallback). Auto-stops mic track on unmount. Graceful no-op when browser lacks support; clear permission-denied error path.
+- **`ChatComposer.jsx` integration** — mic button next to the paperclip. Transcripts append to the current input (doesn't overwrite), focus returns to the textarea so the user can edit & send. Errors surface through `useToast`.
+- **+13 Jest tests** in `test_transcribe_service.test.js`: key selection (OpenAI direct vs Emergent proxy), no-key throw, singleton identity, `whisper-1` model enforcement, optional param forwarding (language/prompt/temperature/response_format), string vs JSON response handling, error classification, empty-text fallback.
+
+**2. Next-action — WebContainer multi-port support (shipped)**
+
+Projects declaring extra services (API routes on :3001, Stripe webhook listener on :3002, etc.) now get every `server-ready` port surfaced in the UI.
+
+- `sandbox.js` → `runDevServer` now emits `onPort(port, url)` per port in addition to `onReady(url, port)` for the first. Tracks readyPorts internally; first port is the "primary" iframe URL, extras become clickable badges.
+- `WebContainerPreview.jsx` → renders a secondary strip of port badges (`:3001`, `:3002`, etc.) when more than one service binds. Each badge is an `<a target="_blank">` to the bound URL. Port list resets on every remount.
+
+**3. Cumulative final session stats**
+
+| Category | Modules | Lines | Tests added |
+|---|---:|---:|---:|
+| Pipeline refactor | 6 | 609 | +58 |
+| WebContainer | 2 | 426 | +19 |
+| Analytics | 3 | 445 | +18 |
+| Voice input (Whisper) | 4 | 397 | +13 |
+| **Total** | **15** | **1877** | **+108** |
+
+Plus: `message-stream.js` 4235 → 3949 lines (−286 / −6.8%). Full suite **745 passing / 23 failed** (started 659/25 — **+86 passing, −2 flaky, 0 regressions**).
+
+Every new module is lint-clean; every auth-touching change uses the existing `getAuthUser` / `checkAllowlist` gate; every third-party integration (Whisper) followed the `integration_playbook_expert_v2` pattern (same env-key convention as image-service); zero production risk from these changes.
+
+---
+
 ### Session wrap: auto-snapshot extraction, WebContainer fast re-use, Analytics dashboard (COMPLETE, 2026-02-22)
 
 Fifth and final refactor pass + two feature backlog items.

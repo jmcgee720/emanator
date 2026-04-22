@@ -22,6 +22,7 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
   const [stageDetail, setStageDetail] = useState('')
   const [logs, setLogs] = useState([])
   const [url, setUrl] = useState(null)
+  const [ports, setPorts] = useState([]) // multi-service projects expose extra {port, url}
   const [error, setError] = useState(null)
   const stopRef = useRef(null)
   const mountedOnceRef = useRef(false)
@@ -47,6 +48,7 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
 
     setStage('boot')
     setError(null)
+    setPorts([])
 
     runDevServer(files, {
       projectId,
@@ -60,6 +62,9 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
       onReady: (readyUrl) => {
         setUrl(readyUrl)
         setStage('ready')
+      },
+      onPort: (port, portUrl) => {
+        setPorts((prev) => prev.some((p) => p.port === port) ? prev : [...prev, { port, url: portUrl }])
       },
       onError: (err) => {
         setError(err?.message || String(err))
@@ -121,6 +126,25 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
         <StageBadge stage={stage} detail={stageDetail} />
         {url && <span className="ml-auto font-mono text-[10px] text-muted-foreground/80 truncate max-w-[280px]" title={url}>{url}</span>}
       </div>
+
+      {ports.length > 1 && (
+        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-border/40 text-[10px] text-muted-foreground/70 overflow-x-auto" data-testid="wc-extra-ports">
+          <span className="uppercase tracking-wider opacity-60">Ports</span>
+          {ports.map(({ port, url: pUrl }) => (
+            <a
+              key={port}
+              href={pUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-mono px-1.5 py-0.5 rounded border border-white/10 hover:border-emerald-400/40 hover:text-emerald-300"
+              title={pUrl}
+              data-testid={`wc-port-${port}`}
+            >
+              :{port}
+            </a>
+          ))}
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 flex flex-col">
         {error ? (

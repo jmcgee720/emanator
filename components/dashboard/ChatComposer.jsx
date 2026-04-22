@@ -10,6 +10,8 @@ import {
 import ModelSelector from './ModelSelector'
 import RecipeSelector from './RecipeSelector'
 import ScopeSelector from './ScopeSelector'
+import VoiceInputButton from './VoiceInputButton'
+import { useToast } from '@/hooks/use-toast'
 import CompareProvidersDialog from './CompareProvidersDialog'
 
 const modeIcons = { app: Layers, website: Globe, image: ImageIcon, document: FileText }
@@ -95,6 +97,14 @@ const ChatComposer = forwardRef(function ChatComposer({
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
   const [compareOpen, setCompareOpen] = useState(false)
+  const { toast } = useToast()
+
+  const appendTranscript = useCallback((text) => {
+    if (!text) return
+    setInput((prev) => prev ? `${prev.replace(/\s+$/, '')} ${text}` : text)
+    // Re-focus so the user sees the caret and can continue editing.
+    queueMicrotask(() => textareaRef.current?.focus())
+  }, [])
 
   useImperativeHandle(ref, () => ({
     setInput: (text) => setInput(text),
@@ -361,6 +371,12 @@ const ChatComposer = forwardRef(function ChatComposer({
         >
           <Paperclip className="w-4 h-4" />
         </Button>
+
+        <VoiceInputButton
+          onTranscript={appendTranscript}
+          onError={(msg) => toast({ title: 'Voice input', description: msg, variant: 'destructive' })}
+          disabled={disabled || sending || uploading}
+        />
 
         <div className="flex-1 relative">
           <textarea
