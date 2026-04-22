@@ -26,6 +26,57 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Pipeline refactor Parts 3 + 4 — deterministic-files + review-repair extraction (COMPLETE, 2026-02-22)
+
+Third and fourth refactor passes. `message-stream.js` now at **3975 lines** (started session at 4235 — total reduction **−260 lines / −6.1%** across 5 extractions).
+
+**Shipped**:
+
+1. **`/app/lib/ai/pipeline/deterministic-files.js`** (86 lines) — `emitDeterministicFiles()` async generator: unifies Steps 3a/3b/3c into one dependency-safe sequence.
+   - **3a** — `components/theme.js` via `buildThemeFile(designTokens)`
+   - **3b** — `components/assets.js` + brand-VFS SSE map
+   - **3c** — `components/primitives/*.jsx` via `buildPrimitiveFiles(blueprint, brand, {hasHeroAsset})`
+   - Each step independently fault-tolerant — one failure never blocks the rest. Mutates `plan.primitivesEmitted` with the emitted paths.
+
+2. **`/app/lib/ai/pipeline/review-repair.js`** (108 lines) — `runReviewAndRepair()` async generator: unifies Steps 5 + 5b.
+   - **5** — `reviewBuild()` LLM review; if non-OK, runs `repairBuild()` repair wave
+   - **5b** — deterministic `runPostRepair()` safety net (Session 21.5 invariants)
+   - No-ops when `allSavedFiles` is empty. DB-query failure falls back to empty-content file list (reviewer handles gracefully). Post-repair failure is fully swallowed.
+   - Returns `{reviewResult}` so downstream consumers can introspect.
+
+3. **`message-stream.js` call-sites**:
+   - Step 3a+3b+3c: ~65 lines of inline logic collapsed to a 10-line delegate loop.
+   - Step 5+5b: ~60 lines of inline logic collapsed to an 8-line delegate loop.
+   - **5 unused imports cleaned up**: `buildThemeFile`, `buildAssetsFileContent`, `buildBrandVfsMap`, `buildPrimitiveFiles`, `formatPrimitivesForPrompt`, `reviewBuild`, `repairBuild`, `runPostRepair`.
+
+4. **+26 targeted tests** across two new suites:
+   - `test_deterministic_files.test.js` (14 tests): theme emission always runs, assets skip when empty, VFS SSE event fires only when map non-empty, primitives skip when no blueprint, `hasHeroAsset` flag toggles correctly, each individual failure isolated from the rest, full happy path composition.
+   - `test_review_repair.test.js` (12 tests): no-op empty list, review OK path skips repair, review non-OK runs repair with accurate issue count in status, post-repair emits `files_saved` + respects plan.imageAssets, DB fallback, post-repair throw swallowed, review error does not abort post-repair.
+
+**Cumulative session refactor stats**:
+
+| Module | Lines | New tests |
+|---|---:|---:|
+| `pipeline/visual-loop.js` | 152 | +11 |
+| `pipeline/observatory-emit.js` | 62 | — |
+| `pipeline/art-direction-fanout.js` | 146 | +12 |
+| `pipeline/deterministic-files.js` | 86 | +14 |
+| `pipeline/review-repair.js` | 108 | +12 |
+| **Total extracted** | **554** | **+49** |
+
+**Test suite health (end of session)**:
+- **710 passing / 23 failed** (started session at 659/25 — **+51 passing, −2 flaky, 0 regressions from refactor work**).
+- Lint clean across all 5 pipeline modules + `message-stream.js` + all 5 test files.
+- Smoke test ✓: app compiles and loads.
+
+**What `message-stream.js` still looks like**: primarily the first ~3000 lines are tool-handler dispatch (the conversational AI agent loop for non-brief projects), classifier shims, prompt injection for the builder, and post-build snapshot/logging. The Creative Brief pipeline path (Steps 0–6) is now ~150 lines of orchestrator delegate loops. Future extraction targets:
+
+- Tool-handler dispatch table (~800 lines across `message-stream.js` lines ~400–3200 — could move to `/app/lib/ai/tool-dispatch/` alongside existing `tool-handlers.js`).
+- Stream-shell HTML rendering + project post-processing (~200 lines).
+- Auto-snapshot creation on finalize (~50 lines — already wrapped in try/catch, clean extraction target).
+
+---
+
 ### Pipeline refactor Part 2 — art-direction fan-out extraction (COMPLETE, 2026-02-22)
 
 Second refactor pass. Extracted the ~80-line Step 1.5 block (4-way Vision fan-out) into a self-contained module. Total session reduction in `message-stream.js`: **4235 → 4067 lines (−168 lines / −4%)** across three extractions.
