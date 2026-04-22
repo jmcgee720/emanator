@@ -17,7 +17,7 @@ import {
  *   boot  → mount → install → dev → ready (url)
  * File changes trigger hot `updateFiles` calls (no re-install).
  */
-export default function WebContainerPreview({ files, viewport = '100%' }) {
+export default function WebContainerPreview({ files, viewport = '100%', projectId }) {
   const [stage, setStage] = useState('idle')
   const [stageDetail, setStageDetail] = useState('')
   const [logs, setLogs] = useState([])
@@ -49,6 +49,7 @@ export default function WebContainerPreview({ files, viewport = '100%' }) {
     setError(null)
 
     runDevServer(files, {
+      projectId,
       onStage: (s, detail) => {
         setStage(s)
         if (detail) setStageDetail(detail)

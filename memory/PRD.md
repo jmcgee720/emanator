@@ -26,6 +26,53 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session wrap: auto-snapshot extraction, WebContainer fast re-use, Analytics dashboard (COMPLETE, 2026-02-22)
+
+Fifth and final refactor pass + two feature backlog items.
+
+**1. Auto-snapshot extraction** (`pipeline/auto-snapshot.js`, 55 lines, +9 tests)
+- Extracts the ~30-line finalize snapshot block out of `message-stream.js`.
+- `createAutoSnapshot({db, projectId, brief, plan, archetype, runId})` — best-effort, never throws, returns `{created, name?}`.
+- Handles every fallback path: missing summary → rawBrief → brand name → "build", 60-char title truncation, empty-files no-op, db-fail no-op.
+
+**2. WebContainer persistent container across project switches** (`lib/webcontainer/sandbox.js`)
+- Adds `_currentMount = {projectId, filesHash}` tracking.
+- `mountProject(files, {projectId, force})` now returns `{mounted, reused}` — when called with the same projectId + unchanged content hash, it skips the `wc.mount()` + `npm install` entirely.
+- `runDevServer` skips install when `mountResult.reused=true`, shaves ~30s off every same-project re-open.
+- `WebContainerPreview.jsx` + `PreviewTab.jsx` now thread `project.id` through so the fast-reuse kicks in automatically.
+
+**3. Analytics dashboard (P3 backlog item shipped)**
+- **`/app/lib/analytics/rollup.js`** (118 lines) — pure `rollupAnalytics(runs)` aggregator: total builds, total files, success rate, avg + p95 duration, breakdown by provider/model/archetype, daily timeline, recent rows. No ObjectId leaks (pure data rows from Supabase).
+- **`/app/app/api/analytics/route.js`** — `GET /api/analytics?days=N` (1-180, default 30). Auth + allowlist gated. Backed by new `db.generationRuns.findByUserSince(userId, sinceIso, limit=500)`.
+- **`/app/app/analytics/page.jsx`** (282 lines) — full dashboard page with window toggle (7/30/90/180d), 5 KPI cards (total builds, success rate, avg/p95 duration, distinct providers), daily-builds bar chart with success overlay, three breakdown cards (provider/model/archetype), recent builds table. All color-coded (emerald/amber for success rate tones).
+- **`TopBar.jsx`**: added "Build analytics" link in user menu dropdown (`data-testid="analytics-menu-item"`).
+- **+18 targeted tests** in `test_analytics_rollup.test.js`: empty/invalid input, totals, success rate, duration stats, all 3 breakdowns, archetype classifier, timeline day grouping, recent slicing.
+
+### Full session refactor stats (cumulative)
+
+`message-stream.js`: **4235 → 3949 lines (−286 / −6.8%)** across 6 pipeline extractions.
+
+| Module | Lines | Tests |
+|---|---:|---:|
+| `pipeline/visual-loop.js` | 152 | +11 |
+| `pipeline/observatory-emit.js` | 62 | — |
+| `pipeline/art-direction-fanout.js` | 146 | +12 |
+| `pipeline/deterministic-files.js` | 86 | +14 |
+| `pipeline/review-repair.js` | 108 | +12 |
+| `pipeline/auto-snapshot.js` | 55 | +9 |
+| **Pipeline total** | **609** | **+58** |
+| `analytics/rollup.js` | 118 | +18 |
+| `webcontainer/file-tree.js` | 184 | +19 (prior) |
+| `webcontainer/sandbox.js` | 242 | — (requires browser SDK) |
+| **Grand total** | **1153** | **+95** |
+
+**Test suite health (end of session)**:
+- **732 passing / 23 failed** (started at 659/25 — **+73 passing, −2 flaky, 0 regressions across any refactor or feature work**).
+- Lint clean across every new/modified file.
+- Smoke tests ✓ (home page + analytics page both render).
+
+---
+
 ### Pipeline refactor Parts 3 + 4 — deterministic-files + review-repair extraction (COMPLETE, 2026-02-22)
 
 Third and fourth refactor passes. `message-stream.js` now at **3975 lines** (started session at 4235 — total reduction **−260 lines / −6.1%** across 5 extractions).

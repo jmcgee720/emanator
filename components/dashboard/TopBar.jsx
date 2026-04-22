@@ -9,7 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3 } from 'lucide-react'
+import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity } from 'lucide-react'
+import Link from 'next/link'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -191,6 +192,12 @@ export default function TopBar({
                 {isOwner && <span className="ml-auto text-[9px] text-cyan-400/60">owner</span>}
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem asChild data-testid="analytics-menu-item">
+              <Link href="/analytics" className="cursor-pointer">
+                <Activity className="mr-2 h-4 w-4" />
+                Build analytics
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <Settings className="mr-2 h-4 w-4" />
               Settings
