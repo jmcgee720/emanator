@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity } from 'lucide-react'
 import Link from 'next/link'
+import { useState } from 'react'
+import CollaboratorsModal from './CollaboratorsModal'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function EmanatorLogo({ className }) {
@@ -43,6 +45,7 @@ export default function TopBar({
 }) {
   const initials = user?.email?.slice(0, 2).toUpperCase() || 'U'
   const canViewAdmin = hasPermission(getUserRole(dbUser), 'view_admin')
+  const [collabOpen, setCollabOpen] = useState(false)
   const role = dbUser?.role || 'member'
   const roleBadgeClass = role === 'owner' ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' :
     role === 'admin' ? 'text-purple-400 bg-purple-500/10 border-purple-500/20' :
@@ -154,6 +157,19 @@ export default function TopBar({
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setCollabOpen(true)}
+            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
+            title="Collaborators"
+            data-testid="collaborators-btn"
+          >
+            <Users className="w-3.5 h-3.5" />
+          </Button>
+        )}
+
+        {selectedProject && (
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onOpenDesign}
             className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
             title={isMonitored ? 'Restricted for monitored accounts' : 'Design Intelligence'}
@@ -210,6 +226,12 @@ export default function TopBar({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <CollaboratorsModal
+        open={collabOpen}
+        onClose={() => setCollabOpen(false)}
+        projectId={selectedProject?.id}
+        projectName={selectedProject?.name}
+      />
     </div>
   )
 }
