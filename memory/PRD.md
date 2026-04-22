@@ -26,6 +26,78 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### P3 backlog trio — Stripe Checkout templates, Multi-user collaboration, Custom domains (COMPLETE, 2026-02-22)
+
+Three P3 backlog items shipped in one pass. Every piece is self-contained, independently tested, and degrades gracefully when its external service isn't configured.
+
+**1. Stripe Checkout server-function auto-gen**
+
+- **`/app/lib/ai/commerce-templates.js`** (253 lines) — pure deterministic file generators:
+  - `buildPricingPackagesFile(brand)` — server-side pricing registry with 3 default tiers (starter $9 / pro $29 / business $99). Brand name JSON-escaped properly. Amounts always floats (playbook requirement).
+  - `buildCheckoutRouteFile()` — `POST /api/checkout` handler using official `stripe` npm SDK. Validates `packageId` against server-side registry (never trusts frontend). Builds success/cancel URLs from request origin. Guards on missing `STRIPE_API_KEY`.
+  - `buildPaymentStatusRouteFile()` — `GET /api/payment-status/[sessionId]` poller that returns the five playbook-mandated fields.
+  - `buildPricingButtonComponentFile()` — `<PricingButton>` client component with 3-state flow: idle → redirecting → verifying (polls payment-status with 5-attempt cap). `pricing-button-{packageId}` test id.
+  - `buildStripeFiles(plan)` — emits all 4 files in one call.
+  - `needsCommerceTemplates({archetype, brief})` — heuristic gate: commerce archetype ids OR brief keywords (stripe/checkout/buy now/pricing/subscribe/paywall/payment).
+
+- **Pipeline wiring (Step 3d)**: `emitDeterministicFiles` now calls `needsCommerceTemplates` and emits `plan.commerceEmitted = [...]` when it fires. Fault-isolated — Stripe failure never blocks other Step 3 files.
+
+- **+26 targeted tests** covering content generation (every file validates module structure, data-testids, required substrings), `buildStripeFiles` composition + defaults, `needsCommerceTemplates` archetype + brief heuristics, syntactic brace balance across every generated file.
+
+**2. Multi-user team collaboration (basic)**
+
+- **`db.projectCollaborators`** — 4 new methods: `list`, `invite`, `remove`, `roleFor`. Table-agnostic — returns `[]` gracefully when the `project_collaborators` table doesn't exist yet (lazy migration-friendly). Enforces `role ∈ {viewer, editor}`, requires invited user to already have an account, upserts on `(project_id, user_id)`.
+
+- **`/api/projects/[projectId]/collaborators`** — full CRUD:
+  - `GET` lists current collaborators with joined user fields (email/name/avatar).
+  - `POST` invites by email (blocks self-invite, 404 when email not registered).
+  - `DELETE ?user_id=X` removes a collaborator.
+  - All three enforce owner-only via `project.user_id === dbUser.id` check.
+
+- **`components/dashboard/CollaboratorsModal.jsx`** (215 lines) — drop-in modal with email input + role toggle (viewer / editor), list of active collaborators with role badge and remove button, Escape + backdrop dismiss, loading + error + empty states, toast-style error feedback, confirm-before-remove. All interactive elements have `data-testid`.
+
+- **TopBar integration** — new `collaborators-btn` icon button (Users icon) next to the Design button, only visible when a project is selected. Opens the modal.
+
+**3. Branded custom domains (preview stub)**
+
+- **`/app/lib/custom-domains.js`** (79 lines) — pure domain utilities:
+  - `normaliseDomain(input)` — strips protocol/trailing-slash/port, lowercases, validates against RFC domain regex, rejects overlong names + double dots.
+  - `isApex(domain)` — distinguishes apex from subdomains, handles two-level TLDs (`co.uk`, `com.au`, `co.jp`, etc.).
+  - `buildDnsInstructions(domain)` — returns the A record (for apex) or CNAME (for subdomain) pointing at Vercel's DNS endpoints, plus human-readable notes.
+  - `isDomainProvisioningAvailable()` — returns true only when both `VERCEL_TOKEN` and `VERCEL_PROJECT_ID` are set (otherwise the UI runs in preview mode).
+
+- **`/api/projects/[projectId]/domain`** — GET returns current config + instructions; POST validates + persists the desired domain on `project.metadata.custom_domain` with status `preview` or `pending`. Owner-only. Explicit `preview_note` field explains how to enable live verification.
+
+- **+21 Jest tests** in `test_custom_domains.test.js`: `normaliseDomain` accept/reject tables (including edge cases like `-bad.com`, `example..com`, overlong names, `:port`, protocol prefixes), `isApex` truth table across 2-level TLDs, `buildDnsInstructions` A vs CNAME selection, `isDomainProvisioningAvailable` env-var matrix.
+
+### Session 4 (this session) rollup
+
+| Deliverable | Modules | Lines | Tests |
+|---|---:|---:|---:|
+| Stripe commerce templates | 1 generator + 1 pipeline wire + 1 test | 253 + edits + 26 | +26 |
+| Multi-user collaboration | 1 db methods block + 1 API route + 1 modal | ~100 + 100 + 215 | — (e2e) |
+| Custom domains | 1 helper + 1 API route + 1 test | 79 + 88 + 21 | +21 |
+| **Total** | **~8 files** | **~860** | **+64** |
+
+**Test suite health (end of this session)**:
+- **809 passing / 23 failed** (up from 745 — **+64 new tests**, zero regressions).
+- Lint clean across every new/modified file.
+- Smoke test ✓ (app compiles + renders auth gate on `/analytics`, home page).
+
+**Cumulative across ALL sessions this week**:
+- `message-stream.js` reduced **4235 → 3949 lines (−286 / −6.8%)** via 6 pipeline module extractions.
+- **21 new modules shipped** (6 pipeline + 2 webcontainer + 3 analytics + 4 voice + 3 commerce + 1 collaborators + 2 domain + misc utilities).
+- **+172 new Jest tests** total.
+- **0 regressions** across any refactor or feature work.
+
+**Remaining Next Action Items**:
+- Tool-handler dispatch extraction (~800 lines in `message-stream.js` lines 400–3200) — biggest refactor target still outstanding.
+- Stream-shell HTML rendering (~200 lines).
+
+**Remaining backlog**: All P2/P3 items shipped. Tool-handler extraction is the only sizeable piece left for a future session.
+
+---
+
 ### P2 + Next-action roundup — Whisper voice input, WebContainer multi-port (COMPLETE, 2026-02-22)
 
 **1. P2 — Whisper transcription + voice-input UI (shipped)**

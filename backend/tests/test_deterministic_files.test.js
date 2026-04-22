@@ -34,6 +34,8 @@ function makeDeps(overrides = {}) {
     buildAssetsFileContent: jest.fn().mockReturnValue('export const LOGO_URL = "x"'),
     buildBrandVfsMap: jest.fn().mockReturnValue([]),
     buildPrimitiveFiles: jest.fn().mockReturnValue([]),
+    buildStripeFiles: jest.fn().mockReturnValue([]),
+    needsCommerceTemplates: jest.fn().mockReturnValue(false),
     ...overrides,
   }
 }
@@ -214,9 +216,55 @@ describe('emitDeterministicFiles — primitives emission (Step 3c)', () => {
   })
 })
 
-describe('emitDeterministicFiles — composition', () => {
-  it('full happy path: theme + assets + VFS + primitives all emit', async () => {
+describe('emitDeterministicFiles — commerce templates (Step 3d)', () => {
+  it('skips Stripe templates when needsCommerceTemplates returns false', async () => {
     const ai = mockAi()
+    const deps = makeDeps({
+      needsCommerceTemplates: jest.fn().mockReturnValue(false),
+    })
+    const plan = { designTokens: {}, archetype: { id: 'blog' } }
+    await drain(emitDeterministicFiles({
+      plan, imageAssets: [], projectId: 'p1', aiService: ai, deps,
+    }))
+    expect(deps.buildStripeFiles).not.toHaveBeenCalled()
+    expect(plan.commerceEmitted).toBeUndefined()
+  })
+
+  it('emits Stripe files when needsCommerceTemplates returns true', async () => {
+    const ai = mockAi()
+    const stripeFiles = [
+      { path: 'app/api/checkout/route.js', content: 'x' },
+      { path: 'lib/pricing-packages.js', content: 'x' },
+    ]
+    const deps = makeDeps({
+      needsCommerceTemplates: jest.fn().mockReturnValue(true),
+      buildStripeFiles: jest.fn().mockReturnValue(stripeFiles),
+    })
+    const plan = { designTokens: {}, archetype: { id: 'ecommerce' }, brief: { summary: 'stripe checkout' } }
+    await drain(emitDeterministicFiles({
+      plan, imageAssets: [], projectId: 'p1', aiService: ai, deps,
+    }))
+    expect(deps.buildStripeFiles).toHaveBeenCalledWith(plan)
+    expect(plan.commerceEmitted).toEqual(['app/api/checkout/route.js', 'lib/pricing-packages.js'])
+    const saved = ai._saved.map((f) => f.path)
+    expect(saved).toContain('app/api/checkout/route.js')
+    expect(saved).toContain('lib/pricing-packages.js')
+  })
+
+  it('Stripe files failure does not abort (non-fatal)', async () => {
+    const ai = mockAi()
+    const deps = makeDeps({
+      needsCommerceTemplates: jest.fn().mockReturnValue(true),
+      buildStripeFiles: jest.fn().mockImplementation(() => { throw new Error('boom') }),
+    })
+    await expect(drain(emitDeterministicFiles({
+      plan: { designTokens: {} }, imageAssets: [], projectId: 'p1', aiService: ai, deps,
+    }))).resolves.not.toThrow()
+  })
+})
+
+describe('emitDeterministicFiles — composition', () => {
+  it('full happy path: theme + assets + VFS + primitives all emit', async () => {    const ai = mockAi()
     const primitives = [{ path: 'components/primitives/Hero.jsx', content: 'h' }]
     const deps = makeDeps({
       buildBrandVfsMap: jest.fn().mockReturnValue([{ placeholder: '/logo.png', dataUrl: 'data:...' }]),
