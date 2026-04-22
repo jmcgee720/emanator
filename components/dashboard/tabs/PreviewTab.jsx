@@ -6,8 +6,10 @@ import { authFetch } from '@/lib/auth-fetch'
 import {
   RefreshCw, AlertTriangle, MonitorSmartphone, Tablet, Monitor,
   Loader2, FileCode, AlertCircle, Terminal, Play, Square, RotateCcw,
-  Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink
+  Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, Zap
 } from 'lucide-react'
+import WebContainerPreview from './WebContainerPreview'
+import { isWebContainerEnabled } from '../../../lib/webcontainer/sandbox.js'
 
 // ─── Parse VFS entries out of a components/assets.js module ────────
 // Used on project reload (no live SSE map available) so path-form
@@ -1032,6 +1034,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [previewEngine, setPreviewEngine] = useState('babel') // 'babel' | 'webcontainer'
   const [iframeErrors, setIframeErrors] = useState([])
   const [consoleLogs, setConsoleLogs] = useState([])
   const [showConsole, setShowConsole] = useState(false)
@@ -1577,6 +1580,26 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
           <span className="ml-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded" data-testid="preview-mode-label">
             {modeLabel}{projectInfo.usesTailwind ? ' + Tailwind' : ''}
           </span>
+          {isWebContainerEnabled() && (
+            <div className="ml-2 inline-flex rounded border border-border/40 overflow-hidden" data-testid="preview-engine-toggle">
+              <button
+                onClick={() => setPreviewEngine('babel')}
+                className={`px-2 py-0.5 text-[10px] font-medium ${previewEngine === 'babel' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
+                data-testid="preview-engine-babel"
+                title="Fast Babel-transform preview (current default)"
+              >
+                Babel
+              </button>
+              <button
+                onClick={() => setPreviewEngine('webcontainer')}
+                className={`px-2 py-0.5 text-[10px] font-medium inline-flex items-center gap-1 ${previewEngine === 'webcontainer' ? 'bg-emerald-500/15 text-emerald-300' : 'text-muted-foreground hover:bg-muted/40'}`}
+                data-testid="preview-engine-webcontainer"
+                title="Real Next.js dev server via WebContainer (experimental)"
+              >
+                <Zap className="w-3 h-3" /> WebContainer
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -1654,30 +1677,38 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       )}
 
       <div className="flex-1 min-h-0 overflow-hidden bg-white flex justify-center relative">
-        {!iframeLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background z-10" data-testid="preview-loading">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Loading preview...</span>
-            </div>
+        {previewEngine === 'webcontainer' ? (
+          <div className="absolute inset-0">
+            <WebContainerPreview files={files} viewport={viewports[viewportSize].width} />
           </div>
+        ) : (
+          <>
+            {!iframeLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background z-10" data-testid="preview-loading">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Loading preview...</span>
+                </div>
+              </div>
+            )}
+            {previewBlank && iframeLoaded && (
+              <div className="absolute bottom-3 left-3 right-3 z-20 bg-amber-950/80 border border-amber-800/50 rounded-lg px-3 py-2 text-amber-200 text-[11px] backdrop-blur-sm" data-testid="preview-blank-warning">
+                Preview rendered blank. The component may have a runtime error or missing dependencies. Check the console below.
+              </div>
+            )}
+            <iframe
+              ref={iframeRef}
+              key={refreshKey}
+              srcDoc={effectivePreviewHtml}
+              title="Preview"
+              sandbox="allow-scripts allow-forms allow-modals allow-popups"
+              className="absolute inset-0 w-full h-full border-0"
+              style={{ maxWidth: viewports[viewportSize].width === '100%' ? '100%' : viewports[viewportSize].width, margin: viewports[viewportSize].width === '100%' ? undefined : '0 auto' }}
+              onLoad={() => { setIframeLoaded(true); handleLiveIframeLoad() }}
+              data-testid="preview-iframe"
+            />
+          </>
         )}
-        {previewBlank && iframeLoaded && (
-          <div className="absolute bottom-3 left-3 right-3 z-20 bg-amber-950/80 border border-amber-800/50 rounded-lg px-3 py-2 text-amber-200 text-[11px] backdrop-blur-sm" data-testid="preview-blank-warning">
-            Preview rendered blank. The component may have a runtime error or missing dependencies. Check the console below.
-          </div>
-        )}
-        <iframe
-          ref={iframeRef}
-          key={refreshKey}
-          srcDoc={effectivePreviewHtml}
-          title="Preview"
-          sandbox="allow-scripts allow-forms allow-modals allow-popups"
-          className="absolute inset-0 w-full h-full border-0"
-          style={{ maxWidth: viewports[viewportSize].width === '100%' ? '100%' : viewports[viewportSize].width, margin: viewports[viewportSize].width === '100%' ? undefined : '0 auto' }}
-          onLoad={() => { setIframeLoaded(true); handleLiveIframeLoad() }}
-          data-testid="preview-iframe"
-        />
       </div>
 
       {showConsole && (

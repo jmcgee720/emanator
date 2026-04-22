@@ -26,6 +26,72 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Session 7/7 — WebContainers end-state sandbox (COMPLETE, 2026-02-22)
+
+Closes the 7-session roadmap. Replaces (alongside, actually — opt-in) the Babel-in-iframe preview with an actual `next dev` server running inside a StackBlitz WebContainer. Off by default behind a feature flag; the Babel engine remains the default for every user until they flip the switch.
+
+**Why this matters**: Babel-in-iframe compiles each JSX file at render time, relying on AST regex hacks for imports/exports, and can't run any server code (API routes, middleware, SSR). WebContainers boots real Node.js in the browser, mounts the generated project as a real filesystem, runs `npm install && npm run dev`, and serves the real Next.js output in an iframe. This is how StackBlitz itself works.
+
+**Shipped**:
+
+1. **`/app/lib/webcontainer/file-tree.js`** — pure module, zero browser deps:
+   - `toWebContainerTree(files)` — flat `[{path, content}]` → nested `FileSystemTree` with `{file: {contents}}` leaves and `{directory: {...}}` branches. Handles leading slashes, deep paths, invalid entries, non-string content.
+   - `ensureScaffolding(tree, {projectName})` — injects `package.json`, `next.config.js`, `tailwind.config.js`, `postcss.config.js`, `app/globals.css`, `app/layout.jsx` only when missing. Never overwrites user files.
+   - `buildPackageJson(name)` — deterministic Next 14.2.3 + React 18.3.1 + Tailwind 3 pinned to match `/app` itself. Sanitises the name to kebab-case.
+   - `flattenTree(tree)` — inverse of `toWebContainerTree`, useful for round-trip tests.
+
+2. **`/app/lib/webcontainer/sandbox.js`** — browser-side singleton:
+   - `isWebContainerSupported()` — checks `window.crossOriginIsolated` + `SharedArrayBuffer` so callers can fall back early.
+   - `isWebContainerEnabled()` — reads `NEXT_PUBLIC_WEBCONTAINERS_ENABLED`. Off by default.
+   - `bootSandbox()` — lazy-imports `@webcontainer/api`, reserves one WebContainer per session, reuses on subsequent calls.
+   - `mountProject(files)` — tree conversion + scaffolding + `wc.mount()`.
+   - `updateFiles(files)` — hot file writes via `wc.fs.writeFile` for near-instant refresh without re-installing.
+   - `runDevServer(files, cbs)` — full lifecycle: boot → mount → `npm install` → `npm run dev` → stream stdout. Resolves `{stop}` the UI can call on unmount. Emits `onStage`, `onLog`, `onReady(url, port)`, `onError` callbacks.
+
+3. **`/app/components/dashboard/tabs/WebContainerPreview.jsx`** — UI wrapper:
+   - Explicit states: `idle → boot → mount → install → dev → ready | error`.
+   - Disabled banner if the feature flag is off, "cross-origin isolation unavailable" banner if the browser can't support it.
+   - Live log stream (last 200 lines) shown below the loader.
+   - On `ready`, renders an iframe pointed at the WebContainer's `server-ready` URL with `sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"`.
+   - Hot-updates files via `updateFiles()` when the files array changes (debounced by content hash).
+
+4. **PreviewTab mode toggle** — when `isWebContainerEnabled()`, a pill toggle appears next to the mode label: `[Babel | WebContainer]`. Default `babel` preserves the existing zero-dependency preview experience for every user. Selecting `webcontainer` renders `<WebContainerPreview>` in place of the Babel iframe.
+
+5. **Cross-origin isolation headers** in `next.config.js` — COOP `same-origin` + COEP `require-corp` scoped to `/project/*` routes only, and only injected when `NEXT_PUBLIC_WEBCONTAINERS_ENABLED=1`. Marketing pages, login, and public app list all continue to load third-party scripts (fonts, analytics) unconstrained.
+
+6. **+19 targeted tests** in `test_webcontainer_file_tree.test.js`:
+   - `toWebContainerTree`: empty/null input, single file, deep nesting, leading slashes, invalid entries, non-string content coercion.
+   - `buildPackageJson`: valid JSON, correct versions, name sanitisation, fallback to default, newline termination.
+   - `ensureScaffolding`: all 6 scaffolding files injected on empty tree, user files preserved, merging correctness, custom project name, every scaffolding constant validated.
+   - `flattenTree`: null guard, round-trip integrity, post-scaffolding completeness.
+
+**Test suite health**: +19 new tests pass. 0 regressions in observatory / pipeline / auth / stream tests. Lint clean across all 5 new/modified files (`file-tree.js`, `sandbox.js`, `WebContainerPreview.jsx`, `PreviewTab.jsx`, `next.config.js`).
+
+**How to enable end-to-end**:
+```bash
+# .env.local
+NEXT_PUBLIC_WEBCONTAINERS_ENABLED=1
+```
+Then restart, open any project, click the `WebContainer` pill in the Preview tab's header, and watch the real `next dev` boot in-browser.
+
+**What's deliberately scoped out of this session**:
+- Multi-port support (API routes on :3001). WebContainer binds one port; revisit when projects start declaring multiple services.
+- Persistent container between project switches (would save ~30s install time). Currently we destroy + rebuild on unmount for safety.
+- Full-page refresh on fatal errors. Partial log stream surfaced in the error state is enough for v1.
+
+**This closes the original 7-session structural roadmap**:
+- ✅ 1/7 Build Observatory
+- ✅ 2/7 Recipe families
+- ✅ 3/7 Service-worker Virtual FS
+- ✅ 4/7 Visual verification pass
+- ✅ 5/7 Visual-diff repair loop
+- ✅ 6/7 Primitives decomposition
+- ✅ 7/7 WebContainers end-state sandbox
+
+Plus the Build Quality Score capstone layered on top.
+
+---
+
 ### Build Quality Score capstone (COMPLETE, 2026-02-22)
 
 Closes the observability loop. Every build now surfaces a single 0–100 grade at the top of the Build Observatory that aggregates every pipeline signal into one number the user can eyeball in half a second.
