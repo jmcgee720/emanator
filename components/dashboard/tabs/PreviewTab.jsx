@@ -1679,7 +1679,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       <div className="flex-1 min-h-0 overflow-hidden bg-white flex justify-center relative">
         {previewEngine === 'webcontainer' ? (
           <div className="absolute inset-0">
-            <WebContainerPreview files={files} viewport={viewports[viewportSize].width} />
+            <WebContainerPreview files={files} viewport={viewports[viewportSize].width} projectId={project?.id} />
           </div>
         ) : (
           <>
