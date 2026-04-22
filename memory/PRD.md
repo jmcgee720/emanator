@@ -26,6 +26,57 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Build Quality Score capstone (COMPLETE, 2026-02-22)
+
+Closes the observability loop. Every build now surfaces a single 0–100 grade at the top of the Build Observatory that aggregates every pipeline signal into one number the user can eyeball in half a second.
+
+**Scoring weights (sum to 100)**:
+- **30 pts — Integrity checks** — linear by pass-rate of `manifest.integrity[]`. All passing = 30, half passing = 15, none = 0. No checks run = neutral 15.
+- **30 pts — Visual verify** — MATCH with 100% confidence = 30; scales down with confidence. Non-match: `30 × (1 − findings/6) × confidence`. No verify run = neutral 15.
+- **15 pts — Repair efficiency** — 0 rounds = 15. Each extra round `−5 pts`. Partial final match costs an extra 3 pts on top.
+- **15 pts — Brand assets** — 6 (logo) + 4 (hero/photo) + 3 (non-default palette) + 2 (branded display font). No manifest = neutral 7.
+- **10 pts — Clean warnings** — 10 minus one per warning, floored at 0.
+
+**Grade bands**: `excellent` (90+, emerald) · `good` (75+, sky) · `ok` (60+, amber) · `needs-work` (<60, rose).
+
+**Shipped**:
+
+1. **`/app/lib/ai/quality-score.js`** — pure `computeQualityScore({manifest, screenshotVerify, visualLoopSummary})` returns `{total, grade, gradeColor, headline, components[]}`. Each component has `{name, points, max, note}` so the UI can render a per-dimension breakdown without re-running the math. `scoreAssets` reads directly from `manifest.assets.exports[].role` + `manifest.theme.tokens.*` — no schema changes upstream.
+
+2. **`build-observatory.js` wiring** — `buildManifest()` now imports `computeQualityScore` and attaches `manifest.qualityScore` automatically. Accepts `screenshotVerify` + `visualLoopSummary` opts. Backward compatible — old callers that don't pass these still get a score (all neutral-band components).
+
+3. **`message-stream.js` Step 6** — passes `plan.verifyResult` + `visualLoopSummary` (when rounds > 0) into `buildManifest`. Score is included in the `build_manifest` SSE event automatically.
+
+4. **`BuildObservatoryPanel.jsx` header card** — prominent score card at the top of the expanded panel with a 20×20 rounded-xl badge showing the total, a grade chip, a headline, and a 5-row bar-chart breakdown (bar color degrades from emerald → sky → amber → rose by dimension ratio). Collapsed state shows a compact `92/100 · excellent` chip next to the existing integrity/vision chips so users see the grade even when the panel is collapsed. All static Tailwind class maps (GRADE_CHIP_CLASSES, GRADE_RING) so the JIT compiles correctly.
+
+5. **+28 targeted tests** in `test_quality_score.test.js`:
+   - Shape (`{total, grade, gradeColor, headline, components[]}`, 5 components, clamped 0-100, each component valid).
+   - Grade boundaries (perfect=excellent, empty=ok at 62, disaster=needs-work, headline text per band).
+   - `scoreIntegrity`: all/half/none passing, no checks neutral, non-array defaults.
+   - `scoreVerify`: MATCH at 100%/60%, 1-finding mismatch = 25, 6-finding floor = 0, no verify = neutral, missing confidence defaults to 0.5.
+   - `scoreRepairEfficiency`: no loop = 15, 1 round = 15, 2 rounds = 10, 3 rounds partial = 2, 5 rounds floors at 0.
+   - `scoreAssets`: logo+hero+palette+font = 15, logo-only = 6, photo-as-hero = 4, default palette doesn't score, system font doesn't score, missing manifest neutral 7.
+   - `scoreWarnings`: 0=10, 3=7, floor at 0, missing array = 10.
+   - Integration: `buildManifest()` returns `manifest.qualityScore` populated end-to-end.
+
+**Full suite health**: 28 new tests pass, 0 regressions in the observatory/pipeline layer. Pre-existing phase12/self-builder failures (23) are unrelated and predate this change. Lint clean across all 4 modified files.
+
+**What the user sees on their next build**:
+```
+┌─ Build observatory  [92/100 · excellent]  [4/4 integrity]  [Vision match] ─┐
+│                                                                             │
+│  ┌──────┐  BUILD QUALITY    EXCELLENT                                      │
+│  │  92  │  Ship it.                                                        │
+│  │ /100 │  Integrity          ████████████████████  30/30 · 4/4 passing    │
+│  └──────┘  Visual verify      ████████████████████  29/30 · MATCH (95%)   │
+│            Repair efficiency  ████████████████████  15/15 · no loop needed │
+│            Brand assets       ████████████████      13/15 · logo + hero... │
+│            Clean warnings     ████████████████████  10/10 · zero warnings  │
+│  ...                                                                        │
+```
+
+---
+
 ### Blueprint ↔ Primitives contract closed (COMPLETE, 2026-02-21)
 
 Closes the last gap in the Session 30 + 33 primitives system. Until this change, the Vision layout-blueprint call extracted `hero_composition`, `feature_columns`, `feature_card_style`, `pricing_pattern` — but **not** `testimonials_style` or `cta_style`. So Session 33's `Testimonials.jsx` + `CTA.jsx` primitives always fell back to their defaults (`card-grid` + `centered-rounded`), ignoring the user's reference images.
