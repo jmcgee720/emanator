@@ -26,6 +26,36 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Pipeline refactor — visual loop + observatory extraction (COMPLETE, 2026-02-22)
+
+First cleanup pass on the `message-stream.js` bloat problem flagged across the last ~5 sessions. File reduced from **4235 → 4126 lines** (−109 lines, −2.6%). Two logical chunks moved to `/app/lib/ai/pipeline/` with their own dedicated tests.
+
+**Shipped**:
+
+1. **`/app/lib/ai/pipeline/visual-loop.js`** (143 lines) — `runVisualFidelityLoop()` async generator. Extracts the entire Session-32 N-round verify → repair → re-verify cycle. Preserves every SSE event (`screenshot_verify`, `status`, `visual_repair_complete`, `visual_loop_summary`) and returns the final `VisualLoopSummary` via the generator return value so the orchestrator can thread it into the build manifest.
+   - Accepts optional `deps` param for dependency injection — lets Jest exercise the control flow without hitting Vision or the repair LLM.
+
+2. **`/app/lib/ai/pipeline/observatory-emit.js`** (62 lines) — `emitBuildObservatory()` async generator. Extracts Step-6 manifest assembly + `build_manifest` SSE emission + `project.integrity.json` persistence. Also now writes `qualityScore` into the integrity snapshot so it's queryable on disk.
+
+3. **`message-stream.js` call-sites** — the two extracted blocks are now 15-line orchestrator-delegate loops instead of the inline 110+ line walls of code. Four unused imports (`verifyBuild`, `findingsToReviewShape`, `shouldContinueVisualLoop`, `formatVerifyForRepairPrompt`, `buildManifest`) cleaned up.
+
+4. **+11 targeted tests** in `test_visual_loop.test.js`:
+   - No-op paths: empty referenceImages, missing field, null verify verdict.
+   - Single-round MATCH: exactly one `screenshot_verify` event, `plan.verifyResult` mutation.
+   - Repair + re-verify: round counting, file-repair tracking, `visual_repair_complete` + `visual_loop_summary` emission.
+   - Guard rails: `maxRounds` cap, error swallow, `initialFindings` recorded from round 0, zero-change repair bail-out, zero-broken-findings skip.
+
+**Test suite health**:
+- Before refactor: 659 passed / 25 failed
+- After extraction + 11 new tests: **672 passed / 23 failed** (net +13 passing, −2 flaky pre-existing, 0 regressions from this work)
+- Lint clean across all 4 modified/new files.
+- Smoke test confirms the app compiles + loads.
+
+**What's still bloated**:
+- `message-stream.js` is still 4126 lines. The remaining top candidates for extraction are: (a) layout-blueprint extraction fan-out (~120 lines), (b) primitives orchestration (~70 lines), (c) wave execution + review/repair block (~300 lines), (d) the tool-handler dispatch table (~400 lines). Each can ship as its own module on its own session without disturbing the others.
+
+---
+
 ### Session 7/7 — WebContainers end-state sandbox (COMPLETE, 2026-02-22)
 
 Closes the 7-session roadmap. Replaces (alongside, actually — opt-in) the Babel-in-iframe preview with an actual `next dev` server running inside a StackBlitz WebContainer. Off by default behind a feature flag; the Babel engine remains the default for every user until they flip the switch.
