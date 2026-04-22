@@ -33,6 +33,18 @@ const nextConfig = {
           { key: "Access-Control-Allow-Headers", value: "*" },
         ],
       },
+      // ── WebContainer cross-origin isolation (Session 7/7) ──
+      // StackBlitz WebContainers need SharedArrayBuffer, which the browser
+      // only exposes to cross-origin-isolated contexts. We scope these to
+      // the project dashboard + API so the public marketing pages still
+      // load any third-party script (fonts, analytics, etc.).
+      ...(process.env.NEXT_PUBLIC_WEBCONTAINERS_ENABLED === '1' ? [{
+        source: "/project/(.*)",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+        ],
+      }] : []),
     ];
   },
 };
