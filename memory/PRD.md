@@ -26,6 +26,50 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### Pipeline refactor Part 2 — art-direction fan-out extraction (COMPLETE, 2026-02-22)
+
+Second refactor pass. Extracted the ~80-line Step 1.5 block (4-way Vision fan-out) into a self-contained module. Total session reduction in `message-stream.js`: **4235 → 4067 lines (−168 lines / −4%)** across three extractions.
+
+**Shipped**:
+
+1. **`/app/lib/ai/pipeline/art-direction-fanout.js`** (146 lines) — `runArtDirectionFanout()` async generator:
+   - Partitions attachments by `role` (brand / aesthetic / structural).
+   - Runs four independent Vision calls in sequence: art-direction prose, design tokens, recipe family, layout blueprint.
+   - Each call is try-catch wrapped with timing — one failed call never blocks the others.
+   - Legacy fallback: when no `aesthetic` role is set, brand uploads feed the aesthetic pipeline (one-slot legacy UX).
+   - Yields `status`, `art_direction`, `design_tokens`, `recipe_family`, `layout_blueprint` SSE events.
+   - Returns `{artDirection, designTokens, recipeFamily, layoutBlueprint, imageAssets}` via generator return.
+   - Optional `deps` param for dependency injection in tests.
+
+2. **`message-stream.js` Step 1.5** — 80-line inline block collapsed to a 25-line orchestrator delegate. Removed two now-unused imports (`analyzeLayoutBlueprint`, `classifyRecipeFamily`, `analyzeDesignTokens`, `mapImageAssets`).
+
+3. **+12 targeted tests** in `test_art_direction_fanout.test.js`:
+   - No-op paths: empty attachments, non-image attachments.
+   - Brand-only: re-use for aesthetic, status event count accuracy.
+   - Tagged uploads: aesthetic → tokens, structural → blueprint, mixed, untagged → brand fallback.
+   - Fault tolerance: single failed call continues, all failed yields safe nulls, timings recorded on failure, suppressed emissions when result is null.
+
+**Cumulative session refactor stats**:
+| Module | Lines | Tests |
+|---|---|---|
+| `pipeline/visual-loop.js` | 152 | +11 |
+| `pipeline/observatory-emit.js` | 62 | — (covered by `test_build_observatory`) |
+| `pipeline/art-direction-fanout.js` | 146 | +12 |
+| **Total extracted** | **360 lines** | **+23 tests** |
+
+**Test suite health (end of session)**:
+- 684 passing / 23 failed (up from 659/25 at session start — **+25 passing, -2 flaky**).
+- Lint clean across all 3 new modules + modified `message-stream.js`.
+- Smoke test ✓: app compiles and loads.
+
+**Remaining extraction targets** in `message-stream.js` (4067 lines):
+- `components/assets.js` + `components/theme.js` emission block (~45 lines, Step 3a+3b).
+- Primitives emit block (~18 lines, Step 3c).
+- Wave execution + review/repair (~300 lines, Steps 4+5 — highest value, highest risk).
+- Tool-handler dispatch table (~400 lines — separate concern, good candidate for its own module).
+
+---
+
 ### Pipeline refactor — visual loop + observatory extraction (COMPLETE, 2026-02-22)
 
 First cleanup pass on the `message-stream.js` bloat problem flagged across the last ~5 sessions. File reduced from **4235 → 4126 lines** (−109 lines, −2.6%). Two logical chunks moved to `/app/lib/ai/pipeline/` with their own dedicated tests.
