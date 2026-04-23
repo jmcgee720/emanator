@@ -26,6 +26,49 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### WP7c — Growth analyze+drafts ported to Vercel-native (COMPLETE, 2026-04-23)
+
+Finished the Vercel-only migration: the last two LLM-heavy Growth endpoints now run as native Next.js code. The FastAPI backend is genuinely optional on Vercel deployments.
+
+**Shipped**:
+
+1. **`/app/lib/growth/analyze-native.js`** (414 lines):
+   - `analyzeNative({userId, pageId, personaId})` — full SEO analyzer with trend + persona context injection, OpenAI SDK direct, handles both flat-key and nested `{ANALYSIS, FIXES}` LLM response shapes, strips markdown fences, stores opportunities+fixes on the `growth_pages` doc.
+   - `generateDraftsNative({userId, pageId, personaId})` — marketing-channel draft generator (social_post / search_ad / email), persona+trend+SEO-fix context injection.
+   - `buildTrendContext` + `buildPersonaContext` helpers — 1:1 port of the Python logic.
+
+2. **`/app/lib/api/routes/growth.js`** — swapped the last 2 proxy calls (`/growth/analyze` and `/growth/generate-drafts`) to call the native lib directly. The `BACKEND_URL` env var is now only needed for Playwright-based `/growth/crawl` (which still requires Railway).
+
+3. **+10 new Jest tests** in `/app/backend/tests/test_growth_native.test.js`:
+   - Validation: 400 on missing user_id, 400 on missing page_id, 500 on missing OPENAI_API_KEY.
+   - Response parsing: flat-key LLM output, nested `{ANALYSIS, FIXES}` output, markdown-fence stripping.
+   - Error classification: 502 on invalid JSON.
+   - Draft generation: channel-key expected shape, fill-empty when LLM omits channels.
+   - Test suite: **851 passing / 23 failed** (up from 840/24 — **+11 net passing, 0 new regressions**).
+
+**Verified**: `/api/health` 200, `/api/growth/analyze` returns 401 unauth (handler wired correctly).
+
+**Architecture after this change** (what runs where on a pure-Vercel deploy):
+- Vercel: all `/api/stripe/*`, `/api/growth/analyze`, `/api/growth/generate-drafts`, `/api/trends/*`, all LLM chat endpoints, all pages.
+- Railway (optional): only `/api/internal/growth/crawl` + `/crawl/progress` (Playwright-dependent). Skip Railway if you don't use the web crawler.
+
+**What `server.py` now owns** (post-cleanup):
+- `/api/internal/growth/crawl` + `/crawl/progress` — Playwright crawler (Railway-only).
+- `/api/internal/growth/analyze` + `/generate-drafts` — **duplicate / dead-path** of the new native lib. Still works as fallback, but Next.js no longer calls them. Safe to delete when you're confident in the native port.
+- `/api/internal/trends/*` — **dead-path**, Next.js handles directly.
+- `/api/preview/*` — still active, consumed by `PreviewTab.jsx`. Refactor to WebContainers before deleting.
+- `/api/{path:path}` catch-all → Next.js proxy.
+
+---
+
+### 🔖 USER REMINDERS (surface when appropriate)
+
+- **"Remind me to flip on Vercel Web Analytics → Audiences when it's time"** (requested 2026-04-23). `@vercel/analytics` is already in `app/layout.js`; once the user deploys to Vercel, they need to go to the Vercel dashboard → Analytics tab → toggle Web Analytics on, then (after a few days of data) enable the **Audiences** feature for conversion-funnel segmentation.
+
+---
+
+
+
 ### WP7b — Deep decoupling, native trends, Vercel Analytics (COMPLETE, 2026-04-23)
 
 Continuation of WP7. Removed the remaining Emergent couplings in both Next.js and FastAPI, ported the Trends feature to Vercel-native, and wired up Vercel Analytics.

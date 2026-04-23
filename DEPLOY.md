@@ -249,17 +249,18 @@ Check the build log for the specific error. Most common: missing env var or typo
 - [x] Emergent LLM calls removed from FastAPI (`openai` SDK direct)
 - [x] Env files cleaned (no `EMERGENT_*` vars)
 - [x] Trends endpoints ported native (Vercel-compatible)
+- [x] `growth/analyze` + `generate-drafts` ported native (Vercel-compatible)
 - [x] `BACKEND_URL` env support for growth endpoints
 - [x] Gemini API key added
 - [x] Vercel Analytics + Speed Insights wired
-- [x] Tests updated + passing at baseline
-- [ ] (Optional) Port `growth/analyze` + `generate-drafts` to Next.js (would kill the Python backend's last LLM calls)
-- [ ] Delete legacy `/api/preview/*` + `/api/proxy/*` from server.py
+- [x] Tests updated + passing at baseline (851/23)
+- [ ] Delete legacy `/api/preview/*` + `/api/proxy/*` from server.py (requires PreviewTab.jsx refactor to WebContainers)
 - [ ] MongoDB data migrated to Atlas
 - [ ] Repo pushed to GitHub
-- [ ] Railway deployment (if keeping Growth crawler) — deploy `/app/backend/` via Dockerfile or Procfile
+- [ ] Railway deployment (OPTIONAL — only if keeping Growth crawler) — deploy `/app/backend/` via Dockerfile or Procfile
 - [ ] Vercel deployment live
-- [ ] `BACKEND_URL` set in Vercel env (if using Railway)
+- [ ] `BACKEND_URL` set in Vercel env (only if using Railway)
 - [ ] Stripe webhook configured (endpoint URL + `STRIPE_WEBHOOK_SECRET`)
 - [ ] First successful production purchase
+- [ ] **Flip on Vercel Web Analytics + Audiences** (user-requested reminder)
 - [ ] Custom domain set up (optional)
