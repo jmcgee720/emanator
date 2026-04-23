@@ -99,6 +99,27 @@ export default function LoginPage({ onAuthSuccess }) {
     e.preventDefault()
     setLoading(true)
     try {
+      // Rate-limit check BEFORE hitting Supabase so abusive IPs don't waste auth writes.
+      try {
+        const rlRes = await fetch('/api/auth/signup-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        })
+        if (rlRes.status === 429) {
+          const json = await rlRes.json().catch(() => ({}))
+          toast({
+            title: 'Too Many Attempts',
+            description: json.error || 'Please slow down and try again later.',
+            variant: 'destructive',
+          })
+          setLoading(false)
+          return
+        }
+      } catch {
+        // Rate-limit service is a best-effort guard — fall through on network errors.
+      }
+
       const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: getEmailRedirectUrl() } })
       if (error) {
         toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' })

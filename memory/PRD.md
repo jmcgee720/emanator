@@ -26,6 +26,46 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### WP7d — Signup rate-limit + Referral bonus system (COMPLETE, 2026-04-23)
+
+Closed out the last two UI-polish items from the original self-edit prompt. Both shipped natively with tests.
+
+**Shipped**:
+
+1. **Signup rate-limit** (`/app/lib/rate-limit.js`, 102 lines):
+   - `checkRateLimit(key, limit, windowMs, {record})` — MongoDB-backed sliding window counter using `rate_limit_attempts` collection with a TTL index (auto-cleanup after 2h).
+   - `formatRetryAfter(ms)` — human-readable "X minutes / seconds / hours".
+   - `getClientIp(request)` — prefers `X-Forwarded-For`, falls back to `X-Real-IP`, then `unknown`.
+   - Endpoint `POST /api/auth/signup-check` (added to `/app/lib/api/routes/auth.js`): rate-limits per-IP (5 signups / hour) AND per-email-domain (20 / hour — protects against `+aliases`). Returns 429 with `Retry-After` header when exceeded.
+   - `LoginPage.jsx handleSignUp` calls `/api/auth/signup-check` BEFORE `supabase.auth.signUp` so abusive IPs don't consume Supabase auth writes. Non-fatal on network errors — the rate-limiter is a best-effort guard, not a critical-path dependency.
+   - +11 Jest tests in `test_rate_limit.test.js` covering: allow-N, block-N+1, per-key independence, record=false, window expiry, retry-after formatting, IP header parsing.
+
+2. **Referral bonus system** (+REFERRAL_BONUS_CREDITS constant):
+   - New `creditsDb.recordReferral(newUserId, referrerUserId)` — idempotent. Rejects self-referral, validates the referrer has a balance doc, sets `referred_by` + `referred_at` on the new user (upsert). No-op if already referred.
+   - `creditsDb.addCredits` — on first paid purchase with `referred_by` set, atomically flips `referral_payout_completed: true` BEFORE payout to guarantee idempotency under concurrent calls, then credits BOTH parties +25 each.
+   - `getBalance` response now includes `referred_by` and `referral_payout_completed`.
+   - Response payload from `addCredits` now includes `referralBonus` + `referrerId` fields.
+   - New endpoint `POST /api/credits/apply-referral` (in `/app/lib/api/routes/credits.js`): accepts `{referral_code}` (= referrer's `user_id`), validates, calls `recordReferral`, returns `{recorded, reason?}`.
+   - `/app/app/pricing/page.jsx` — on mount, parses `?ref=<code>` from URL, POSTs to `/credits/apply-referral`, shows success toast, clears the query param via `history.replaceState` so a refresh doesn't re-apply.
+   - +9 Jest tests in `test_referral.test.js` covering: missing IDs, self-referral, invalid referrer, successful record, idempotent overwrite, first-purchase payout, non-first-purchase no-pay, double-call idempotency (flag check prevents re-pay), non-referred no-pay.
+
+3. **`creditsDb.recordReferral` bug fix during test development**: the initial `findOneAndUpdate` with `$in: [null, undefined]` + `upsert:true` would have created a duplicate `user_id` row when the new user already had a referral recorded. Switched to an explicit existence check + plain `updateOne(...upsert: true)` path.
+
+**Test health**: **871 passing / 23 failed** (up from 851/23 — **+20 net passing, zero new regressions**). The 23 failures are the same 8 pre-existing flaky suites.
+
+**End-to-end user story unlocked**:
+- Existing user shares `https://emanator.com/pricing?ref=<their-user-id>` with a friend.
+- Friend clicks → lands on `/pricing` → if signed in, toast says "Referral applied — you and your friend will both get 25 credits on your first purchase."
+- Friend buys $10 Starter pack.
+- Friend's balance: **175 credits** (100 base + 50 first-purchase bonus + 25 referral bonus).
+- Original referrer's balance: **+25 credits** silently added.
+- Subsequent purchases by the friend: no more referral bonus, no double-pay on webhook retries.
+- Abusive signups (>5/hour from one IP): **429 Too Many Attempts — try again in 53 minutes**.
+
+---
+
+
+
 ### WP7c — Growth analyze+drafts ported to Vercel-native (COMPLETE, 2026-04-23)
 
 Finished the Vercel-only migration: the last two LLM-heavy Growth endpoints now run as native Next.js code. The FastAPI backend is genuinely optional on Vercel deployments.
