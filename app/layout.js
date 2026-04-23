@@ -1,5 +1,7 @@
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata = {
   title: 'Emanator — AI Builder Platform',
@@ -15,6 +17,9 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen antialiased" style={{ background: 'transparent' }}>
         {children}
         <Toaster />
+        {/* Vercel Analytics + Speed Insights — no-op outside Vercel. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )

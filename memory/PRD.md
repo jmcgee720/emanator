@@ -26,6 +26,57 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### WP7b — Deep decoupling, native trends, Vercel Analytics (COMPLETE, 2026-04-23)
+
+Continuation of WP7. Removed the remaining Emergent couplings in both Next.js and FastAPI, ported the Trends feature to Vercel-native, and wired up Vercel Analytics.
+
+**Shipped**:
+
+1. **Stripe routes deleted from FastAPI** (`/app/backend/server.py` lines 77–270 removed, ~196 lines). Traffic now falls through the FastAPI catch-all proxy to Next.js Stripe routes. Single source of truth.
+2. **FastAPI LLM calls decoupled from Emergent**:
+   - `growth_analyze` (server.py:~820) → direct `openai.AsyncOpenAI` with `OPENAI_API_KEY` + `OPENAI_MODEL_CHAT`.
+   - `growth_generate_drafts` (server.py:~1048) → same.
+   - Both no longer import `emergentintegrations.llm.openai`.
+3. **Trends ported to Vercel-native**:
+   - New `/app/lib/growth/trends-native.js` (115 lines) — `fetchTrends()` + `listTrends()` using native `fetch` + `cheerio` for XML parsing.
+   - `/app/lib/api/routes/growth.js` — `/trends/fetch` and `/trends` GET endpoints now call the native lib directly (no backend proxy).
+   - Works on Vercel serverless out of the box.
+4. **Configurable backend URL**:
+   - `lib/api/routes/growth.js` — 8 hardcoded `http://localhost:8001` replaced with `${BACKEND_URL}` (env var, defaults to local supervisor).
+   - Graceful 503 with `vercel_compatible: false` + remediation hint when `BACKEND_URL` unreachable.
+   - Lets user deploy Vercel-only (no growth crawler), or Vercel + Railway (full growth crawler).
+5. **Gemini API key** (`AIzaSyAQXxrj...`) added to `/app/.env.local`. Enables Nano Banana image generation.
+6. **Vercel Analytics + Speed Insights**:
+   - `@vercel/analytics` + `@vercel/speed-insights` installed.
+   - `/app/app/layout.js` — `<Analytics />` + `<SpeedInsights />` components added to root layout. No-op outside Vercel.
+7. **`DEPLOY.md` rewrite**:
+   - Two deployment paths documented: (A) Vercel-only, (B) Vercel + Railway.
+   - ASCII architecture diagram.
+   - Updated status checklist with actual completion state.
+   - Endpoint table showing which routes still need Python.
+
+**Verified** (live preview env):
+- `/api/health` → 200
+- `/api/stripe/checkout` → 401 with fake auth (Next.js handler hit via FastAPI catch-all proxy)
+- FastAPI starts clean after Stripe route deletion (no import errors, no dead references).
+- Full test suite: **840 passing / 24 failed** (baseline — all 24 pre-existing flaky).
+
+**What `/app/backend/server.py` now owns** (post-cleanup):
+- `/api/internal/growth/*` — crawler, analyzer, draft generator (Playwright-based, not Vercel-compatible)
+- `/api/internal/trends/*` — dead code, Next.js now handles directly (safe to delete later)
+- `/api/preview/*` — legacy iframe preview, WebContainers replaces it (safe to delete)
+- `/api/proxy/*` (catch-all) — forwards unknown `/api/*` to Next.js (this is what makes the whole split work)
+
+**What can still be done** (documented in `/app/DEPLOY.md`):
+- Port `growth/analyze` + `generate-drafts` to Next.js (would eliminate Python's OpenAI deps too, making backend optional rather than required for that feature).
+- Delete legacy `preview/*` routes.
+- Push to GitHub + Vercel deploy (user action).
+- Stripe webhook config on deployment (user action).
+
+---
+
+
+
 ### WP7 — Emergent decoupling, Stripe port to Next.js, direct-only AI routing (IN PROGRESS, 2026-04-23)
 
 Removed the Emergent Universal Key spending-cap dependency and started the move to Vercel-only hosting.

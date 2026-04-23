@@ -6,32 +6,69 @@ Complete step-by-step for taking Emanator **100% off Emergent** and self-hosting
 
 ## ✅ What's already done (this session)
 
-1. **Stripe routes ported to Next.js**. `/app/lib/api/routes/stripe.js` handles checkout / status / confirm-credits; `/app/app/api/webhook/stripe/route.js` handles signed webhook events. Uses the official `stripe` npm SDK (no `emergentintegrations`).
+1. **Stripe routes fully ported to Next.js**. `/app/lib/api/routes/stripe.js` handles checkout / status / confirm-credits; `/app/app/api/webhook/stripe/route.js` handles signed webhook events. Uses the official `stripe@22` npm SDK (no `emergentintegrations`). **The corresponding Stripe routes in `server.py` have been deleted** — all Stripe traffic now flows through Next.js.
 2. **Emergent proxy code paths removed** from `lib/ai/service.js`, `lib/ai/image-service.js`, `lib/ai/transcribe-service.js`, `lib/api/routes/chats.js`. Direct provider keys only.
-3. **Env file cleaned** — `EMERGENT_LLM_KEY` / `EMERGENT_PROXY_URL` / `PREFER_EMERGENT_PROXY` removed from `/app/.env.local`.
-4. **Shared MongoDB helper** `/app/lib/mongodb.js` so new routes don't need to re-import Mongo logic.
-5. **Tests** updated — suite at **841 passing / 23 failed** (all 23 are pre-existing flaky tests unrelated to migration).
+3. **Env files cleaned** — `EMERGENT_LLM_KEY` / `EMERGENT_PROXY_URL` / `PREFER_EMERGENT_PROXY` removed from `/app/.env.local`. `GEMINI_API_KEY` added (user-provided). `STRIPE_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `MONGO_URL` added.
+4. **Backend LLM calls decoupled** — both `growth_analyze` and `growth_generate_drafts` in `server.py` now use the official `openai` Python SDK with `OPENAI_API_KEY` directly (no `emergentintegrations.llm`).
+5. **Trends endpoints ported to Vercel-native** — `/app/lib/growth/trends-native.js` implements `fetchTrends()` + `listTrends()` using `cheerio` + native `fetch`. No Python backend required for the Trends feature.
+6. **Growth endpoints use configurable backend URL** — `BACKEND_URL` env var (defaults to `http://localhost:8001`) lets you point the remaining Playwright-dependent growth/crawl endpoints at a Railway-hosted FastAPI instance. Graceful 503 with a hint when unavailable.
+7. **Vercel Analytics + Speed Insights** wired into `app/layout.js`. No-ops outside Vercel (safe on any host).
+8. **Shared MongoDB helper** `/app/lib/mongodb.js`.
+9. **Tests** updated + passing at **840/24** baseline.
+
+## 🏗️ Final architecture (target)
+
+```
+┌─────────────────────────┐   ┌─────────────────────────┐
+│      VERCEL             │   │      RAILWAY (optional) │
+│  (Next.js 14 App)       │   │  FastAPI growth service │
+│                         │   │                         │
+│  • Pages + all API      │─→ │  • /api/internal/       │
+│  • Stripe               │   │    growth/crawl (Playwright)
+│  • Billing              │   │  • /api/internal/       │
+│  • Growth/Trends native │   │    growth/analyze       │
+│  • LLM streaming        │   │  • /api/internal/       │
+│  • WebContainers        │   │    growth/generate-drafts│
+│                         │   │                         │
+└─────────────────────────┘   └─────────────────────────┘
+          │                              │
+          ▼                              ▼
+    ┌──────────┐                   ┌──────────┐
+    │ MongoDB  │                   │ OpenAI/  │
+    │ Atlas    │                   │ Claude/  │
+    │ (free M0)│                   │ Gemini   │
+    └──────────┘                   └──────────┘
+          │
+          ▼
+    ┌──────────┐
+    │ Supabase │ (auth + metadata)
+    └──────────┘
+```
+
+**If you don't need the Growth tool's web scraper**, skip Railway entirely and use Vercel alone.
 
 ---
 
-## ⏭️ What's left BEFORE you can turn off the FastAPI backend
+## ⏭️ What's left (shipping checklist)
 
-The FastAPI backend (`/app/backend/server.py`) still owns these endpoints. Three choices for each:
+### Option A — Vercel-only (no Growth crawler)
 
-| Endpoint | Used for | Next step |
+Simplest path. Works if you don't need the web-scraping part of Emanator's Growth tool. Everything else (Stripe, AI chat, image gen, Whisper, trends, pricing, auth) runs natively on Vercel.
+
+### Option B — Vercel + Railway (with Growth crawler)
+
+Keep a slim FastAPI instance on Railway for the Playwright-based `/api/internal/growth/*` endpoints. Set `BACKEND_URL` in Vercel env to the Railway URL. Everything else routes through Vercel.
+
+### Endpoints that STILL require the Python backend
+
+| Endpoint | What it does | Vercel-native? |
 |---|---|---|
-| `/api/internal/growth/crawl` + `/crawl/progress` | Growth tool — web scraping | Port to Next.js (Playwright on Vercel has [cold-start caveats](https://vercel.com/docs/functions/serverless-functions/runtimes#edge-runtime), consider [Browserless.io](https://www.browserless.io/) instead) |
-| `/api/internal/growth/analyze` + `/generate_drafts` | Growth tool — LLM-powered audience research | Port to Next.js (just LLM calls, trivial move) |
-| `/api/internal/trends/fetch` + `/trends/list` | Growth tool — RSS/HN scraping | Port to Next.js (fetch + XML parse, trivial) |
-| `/api/preview/start` + `/status` + `/stop` + proxy | Legacy iframe preview | **Kill it** — replaced by WebContainers in the browser |
-| `/api/proxy/*` | Legacy LLM proxy | Kill it — direct keys only now |
-
-### Recommended kill-or-port decision
-
-- **Growth tool** (crawl / analyze / trends): port all 5 endpoints to Next.js. Total work ~2–3 hrs. Most of it is already just a passthrough.
-- **Preview & proxy**: delete entirely. These are from before the WebContainers migration and no longer needed.
-
-Once those are done, you can **delete `/app/backend/` entirely** and Emanator is a pure Next.js app.
+| `/api/internal/growth/crawl` | Playwright page crawl | ❌ Needs Railway (or Browserless.io) |
+| `/api/internal/growth/crawl/progress` | Crawl progress polling | ❌ Needs Railway |
+| `/api/internal/growth/analyze` | SEO analysis (LLM) | ⚠️ Could be ported — currently in backend |
+| `/api/internal/growth/generate-drafts` | Social/ad draft gen (LLM) | ⚠️ Could be ported — currently in backend |
+| `/api/preview/start` + `stop` + `status` | Legacy iframe preview | ❌ Delete it — replaced by WebContainers |
+| `/api/proxy/*` | Legacy Next.js passthrough | ❌ Delete it — no longer needed |
 
 ---
 
@@ -207,16 +244,22 @@ Check the build log for the specific error. Most common: missing env var or typo
 
 ## 📋 Migration status checklist
 
-- [x] Stripe ported to Next.js
-- [x] Emergent proxy removed from AI services
-- [x] Env files cleaned
+- [x] Stripe ported to Next.js + removed from FastAPI
+- [x] Emergent proxy removed from AI services (JS)
+- [x] Emergent LLM calls removed from FastAPI (`openai` SDK direct)
+- [x] Env files cleaned (no `EMERGENT_*` vars)
+- [x] Trends endpoints ported native (Vercel-compatible)
+- [x] `BACKEND_URL` env support for growth endpoints
+- [x] Gemini API key added
+- [x] Vercel Analytics + Speed Insights wired
 - [x] Tests updated + passing at baseline
-- [ ] Growth tool endpoints ported to Next.js
-- [ ] Preview endpoints deleted
-- [ ] Python backend deleted
+- [ ] (Optional) Port `growth/analyze` + `generate-drafts` to Next.js (would kill the Python backend's last LLM calls)
+- [ ] Delete legacy `/api/preview/*` + `/api/proxy/*` from server.py
 - [ ] MongoDB data migrated to Atlas
 - [ ] Repo pushed to GitHub
+- [ ] Railway deployment (if keeping Growth crawler) — deploy `/app/backend/` via Dockerfile or Procfile
 - [ ] Vercel deployment live
-- [ ] Stripe webhook configured
+- [ ] `BACKEND_URL` set in Vercel env (if using Railway)
+- [ ] Stripe webhook configured (endpoint URL + `STRIPE_WEBHOOK_SECRET`)
 - [ ] First successful production purchase
 - [ ] Custom domain set up (optional)
