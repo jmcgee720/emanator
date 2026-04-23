@@ -203,24 +203,12 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
                 await authFetch(`/api/stripe/confirm-credits/${sessionId}`, { method: 'POST' })
               } catch {}
             }
-            const loyaltyBonus = grantResult?.loyaltyBonus || 0
-            const firstPurchaseBonus = grantResult?.firstPurchaseBonus || 0
+            const bonus = grantResult?.bonusCredits || 0
             const total = grantResult?.totalGranted || data.credits
             const tierLabel = grantResult?.loyalty_tier?.label
-            let description
-            if (loyaltyBonus > 0 && firstPurchaseBonus > 0) {
-              // Both bonuses present
-              description = `+${total} credits added (${data.credits} base + ${loyaltyBonus} ${tierLabel || ''} loyalty + ${firstPurchaseBonus} first-purchase bonus)`
-            } else if (firstPurchaseBonus > 0) {
-              // Only first-purchase bonus
-              description = `+${total} credits added (${data.credits} base + ${firstPurchaseBonus} first-purchase bonus)`
-            } else if (loyaltyBonus > 0) {
-              // Only loyalty bonus
-              description = `+${total} credits added (${data.credits} base + ${loyaltyBonus} ${tierLabel || ''} loyalty bonus)`
-            } else {
-              // No bonus
-              description = `+${total} credits added to your account`
-            }
+            const description = bonus > 0
+              ? `+${total} credits added (${data.credits} base + ${bonus} ${tierLabel || ''} loyalty bonus)`
+              : `+${total} credits added to your account`
             toast({ title: 'Payment Successful', description })
             loadCredits()
             return
