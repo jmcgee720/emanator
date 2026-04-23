@@ -9,6 +9,7 @@ import * as authRoutes from '@/lib/api/routes/auth'
 import * as adminRoutes from '@/lib/api/routes/admin'
 import * as exportsRoutes from '@/lib/api/routes/exports'
 import * as creditsRoutes from '@/lib/api/routes/credits'
+import * as stripeRoutes from '@/lib/api/routes/stripe'
 import * as searchRoutes from '@/lib/api/routes/search'
 import * as growthRoutes from '@/lib/api/routes/growth'
 import * as personasRoutes from '@/lib/api/routes/personas'
@@ -50,6 +51,7 @@ const phase1Modules = [
   adminRoutes,
   exportsRoutes,       // MUST run before projectsRoutes (handles /projects/import)
   creditsRoutes,
+  stripeRoutes,
   searchRoutes,
   growthRoutes,
   personasRoutes,
