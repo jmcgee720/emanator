@@ -187,18 +187,29 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           const data = await res.json()
           if (data.payment_status === 'paid') {
             // Grant credits via the correct auth path (uses proper dbUser.id)
+            let grantResult = null
             if (data.needs_credit_grant) {
               try {
-                await authFetch('/api/credits/add', {
+                const grantRes = await authFetch('/api/credits/add', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ amount: data.credits }),
+                  body: JSON.stringify({
+                    amount: data.credits,
+                    price_paid_usd: (data.amount_total || 0) / 100,
+                  }),
                 })
+                if (grantRes?.ok) grantResult = await grantRes.json().catch(() => null)
                 // Mark as granted so it's idempotent on retry
                 await authFetch(`/api/stripe/confirm-credits/${sessionId}`, { method: 'POST' })
               } catch {}
             }
-            toast({ title: 'Payment Successful', description: `+${data.credits} credits added to your account` })
+            const bonus = grantResult?.bonusCredits || 0
+            const total = grantResult?.totalGranted || data.credits
+            const tierLabel = grantResult?.loyalty_tier?.label
+            const description = bonus > 0
+              ? `+${total} credits added (${data.credits} base + ${bonus} ${tierLabel || ''} loyalty bonus)`
+              : `+${total} credits added to your account`
+            toast({ title: 'Payment Successful', description })
             loadCredits()
             return
           }
