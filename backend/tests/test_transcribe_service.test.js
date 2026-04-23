@@ -41,33 +41,41 @@ beforeEach(() => {
   mockState.lastArgs = null
   mockState.toFileArgs = null
   mockState.opts = null
-  process.env.EMERGENT_LLM_KEY = 'sk-emergent-test'
-  process.env.EMERGENT_PROXY_URL = 'https://proxy.example.test/v1'
   delete process.env.OPENAI_API_KEY
+  delete process.env.EMERGENT_LLM_KEY
+  delete process.env.EMERGENT_PROXY_URL
 })
 
+// Config-independent tests need a key available so the constructor doesn't throw.
+function withKey() {
+  process.env.OPENAI_API_KEY = 'sk-real'
+}
+
 describe('TranscribeService — configuration', () => {
-  it('uses OPENAI_API_KEY without proxy when set', () => {
+  it('uses OPENAI_API_KEY when set', () => {
     process.env.OPENAI_API_KEY = 'sk-real'
     new TranscribeService()
     expect(mockState.opts).toEqual({ apiKey: 'sk-real' })
   })
 
-  it('uses EMERGENT_LLM_KEY with proxy URL when no direct key', () => {
+  it('ignores EMERGENT_LLM_KEY (direct-only mode)', () => {
+    process.env.OPENAI_API_KEY = 'sk-real'
+    process.env.EMERGENT_LLM_KEY = 'sk-emergent-test'
+    process.env.EMERGENT_PROXY_URL = 'https://proxy.example.test/v1'
     new TranscribeService()
-    expect(mockState.opts).toEqual({ apiKey: 'sk-emergent-test', baseURL: 'https://proxy.example.test/v1' })
+    // Must NOT route through a proxy baseURL.
+    expect(mockState.opts).toEqual({ apiKey: 'sk-real' })
+    expect(mockState.opts.baseURL).toBeUndefined()
   })
 
-  it('throws when no key configured', () => {
-    delete process.env.OPENAI_API_KEY
-    delete process.env.EMERGENT_LLM_KEY
-    expect(() => new TranscribeService()).toThrow(/No platform API key/)
+  it('throws when OPENAI_API_KEY is missing', () => {
+    expect(() => new TranscribeService()).toThrow(/OPENAI_API_KEY not configured/)
   })
 
   it('singleton getter returns same instance', () => {
     // reset module-level singleton by requiring fresh
     jest.resetModules()
-    process.env.EMERGENT_LLM_KEY = 'sk-emergent-test'
+    process.env.OPENAI_API_KEY = 'sk-real'
     const mod = require('../../lib/ai/transcribe-service.js')
     const a = mod.getTranscribeService()
     const b = mod.getTranscribeService()
@@ -76,6 +84,8 @@ describe('TranscribeService — configuration', () => {
 })
 
 describe('TranscribeService — transcribe()', () => {
+  beforeEach(withKey)
+
   it('returns {text} from a JSON-shaped response', async () => {
     const svc = new TranscribeService()
     const buf = Buffer.from('fake-audio')
@@ -136,6 +146,8 @@ describe('TranscribeService — transcribe()', () => {
 })
 
 describe('TranscribeService — error handling', () => {
+  beforeEach(withKey)
+
   it('classifies provider errors', async () => {
     mockState.reject = Object.assign(new Error('rate limit'), { status: 429 })
     const svc = new TranscribeService()

@@ -26,6 +26,53 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### WP7 — Emergent decoupling, Stripe port to Next.js, direct-only AI routing (IN PROGRESS, 2026-04-23)
+
+Removed the Emergent Universal Key spending-cap dependency and started the move to Vercel-only hosting.
+
+**Shipped**:
+
+1. **Stripe → Next.js API**:
+   - `/app/lib/api/routes/stripe.js` — 3 route handlers (checkout, status, confirm-credits) using the official `stripe@22` npm SDK. Server-authoritative `STRIPE_PACKAGES` catalogue (starter $10/100, pro $45/500, ultra $80/1000). Uses native `stripe.checkout.sessions.create` — no `emergentintegrations` wrapper.
+   - `/app/app/api/webhook/stripe/route.js` — dedicated route outside the catch-all because Stripe signature verification requires raw request bytes. Graceful dev-mode fallback when `STRIPE_WEBHOOK_SECRET` is absent. Idempotent payment-confirmed update on `checkout.session.completed`.
+   - Wired into dispatcher at `/app/app/api/[[...path]]/route.js`.
+
+2. **Emergent proxy code paths removed**:
+   - `lib/ai/service.js` — `_apiKey()` now returns the direct provider key unconditionally; `_proxyOptions()` returns `{}`; `_buildProvider()` no longer falls back to `EMERGENT_LLM_KEY`. Removed the last-resort "try proxy on direct-key failure" block from the stream retry loop (~20 lines gone).
+   - `lib/ai/image-service.js` — `ImageService` + `_getGeminiProvider()` now require direct `OPENAI_API_KEY` / `GEMINI_API_KEY` respectively. No proxy `baseURL` injection.
+   - `lib/ai/transcribe-service.js` — Whisper service requires direct `OPENAI_API_KEY`. No proxy path.
+   - `lib/api/routes/chats.js` — chat-fork title generation uses direct `OPENAI_API_KEY`.
+   - `lib/mongodb.js` (new) — shared MongoDB client helper for the new Stripe routes.
+
+3. **Env file cleaned**:
+   - `/app/.env.local` — removed `EMERGENT_LLM_KEY`, `EMERGENT_PROXY_URL`. Added `GEMINI_API_KEY=` placeholder, `STRIPE_API_KEY=sk_test_emergent`, `STRIPE_WEBHOOK_SECRET=`, `MONGO_URL=mongodb://localhost:27017`.
+
+4. **Tests updated**:
+   - `backend/tests/test_transcribe_service.test.js` — rewrote config tests to assert direct-only behaviour, added `withKey()` helper for non-config tests. All 13 tests pass.
+   - Full suite: **841 passing / 23 failed** (back to pre-migration baseline — all 23 failures pre-existing and flaky).
+
+5. **`/app/DEPLOY.md` runbook**:
+   - Full step-by-step for Vercel deploy: MongoDB Atlas migration, GitHub push, Vercel env vars list, Stripe webhook wiring, smoke test, custom domain.
+   - Cost estimate table (~$50–150/mo baseline + LLM usage).
+   - Troubleshooting section.
+   - Cleanup checklist for what to delete after Vercel goes green.
+
+**Verified** (live preview env):
+- `/api/health` → 200
+- `/pricing` → 200
+- `/api/stripe/checkout` (unauth) → 401 (route wired, rejects bad auth correctly)
+
+**What's NOT done yet** (all documented in `DEPLOY.md`):
+- Growth tool endpoints (`/api/internal/growth/*`, `/api/internal/trends/*`) — still live in `/app/backend/server.py`, need porting to Next.js before FastAPI can be deleted.
+- Legacy preview + LLM proxy endpoints in server.py — safe to delete, replaced by WebContainers + direct keys.
+- Python backend deletion — wait until growth tool is ported.
+- MongoDB Atlas migration — user needs to run `mongodump` / `mongorestore`.
+- Vercel deploy — user's action.
+
+---
+
+
+
 ### WP3 + WP4 + WP6 close-out + first-purchase bonus (COMPLETE, 2026-04-22)
 
 Closed out the three remaining production-readiness Work Packages. Two of them (WP4 Vercel deploy, WP6 project import) turned out to be **already fully built** — I just verified coverage. The rest of this pass shipped open-signup, a full `/pricing` page, and first-purchase bonus logic.
