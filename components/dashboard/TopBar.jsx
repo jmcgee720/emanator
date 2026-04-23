@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity } from 'lucide-react'
+import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import CollaboratorsModal from './CollaboratorsModal'
@@ -212,6 +212,12 @@ export default function TopBar({
               <Link href="/analytics" className="cursor-pointer">
                 <Activity className="mr-2 h-4 w-4" />
                 Build analytics
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild data-testid="pricing-menu-item">
+              <Link href="/pricing" className="cursor-pointer">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Buy credits
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
