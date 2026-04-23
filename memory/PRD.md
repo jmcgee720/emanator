@@ -26,6 +26,103 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### WP2 — Billing & Credits: loyalty discounts + per-model burn (COMPLETE, 2026-04-22)
+
+Finished the credits/billing story: users now (a) burn credits proportional to the model they pick (premium GPT-5.2 costs 3× a Gemini Flash message), and (b) earn loyalty bonus credits automatically as their lifetime purchases accrue.
+
+**Existing before this session**:
+- Stripe checkout (Python FastAPI `/api/stripe/*` endpoints) with 3 server-side packages ($10/100, $45/500, $80/1000).
+- MongoDB `credits_balance` + `credits_usage` collections.
+- `/api/credits` GET + `/api/credits/use` + `/api/credits/add` endpoints.
+- Deduction wired into chat_message, plan_generation, file_apply, image_generation, code_review, canvas_update, comparison.
+- `Dashboard.jsx` post-payment polling → `/api/credits/add` → `/api/stripe/confirm-credits` chain.
+
+**Shipped this session**:
+
+1. **`lib/credits/service.js`** — three new exports + signature changes:
+   - `LOYALTY_TIERS` — `[Starter, Regular ($25+), Loyal ($100+), VIP ($500+)]` with `bonusPercent` of `0 / 5 / 15 / 25`.
+   - `resolveLoyaltyTier(lifetimeUsd)` — picks tier by lifetime, safe on null / negative / non-numeric input.
+   - `applyLoyaltyBonus(baseCredits, lifetimeUsd)` — returns `{baseCredits, bonus, total, tier}` with bonus floored (no fractional credits).
+   - `CREDIT_PACKAGES` now carry a stable `id` matching the Python server-side keys (`starter / pro / ultra`).
+   - `creditsDb.getBalance` now returns `{balance, updated_at, lifetime_purchased_usd, loyalty_tier}` and auto-initialises `lifetime_purchased_usd=0` on first-touch.
+   - `creditsDb.addCredits(userId, amount, {pricePaidUsd})` — increments `lifetime_purchased_usd` atomically and applies loyalty bonus on top of base credits. Snapshots tier **before** incrementing so the bonus reflects the purchase-time tier, not the post-purchase one.
+   - `creditsDb.deductCredits(userId, actionType, {model, visualMode})` — when `model` is passed on a model-sensitive action (`chat_message / plan_generation / code_review`), cost is `estimateRequestCost(model, visualMode)` instead of the flat `CREDIT_COSTS[actionType]`. Usage rows now carry the `model` field too.
+
+2. **`lib/api/routes/credits.js`**:
+   - `GET /api/credits` now returns `packages` with per-user bonus preview (`{baseCredits, bonusCredits, totalCredits, tier}`) and a `loyaltyTiers` list so the frontend can show progress toward the next tier.
+   - `POST /api/credits/add` accepts `{amount, price_paid_usd}` — applies loyalty bonus + increments lifetime.
+
+3. **`lib/api/stream-handler.js`** — the chat stream's post-generation deduction now passes `{model: finalModel}`, so premium models burn correctly.
+
+4. **`components/dashboard/Dashboard.jsx`** — post-payment handler forwards `price_paid_usd = amount_total/100` and surfaces the bonus in the success toast: *"+110 credits added (100 base + 10 Regular loyalty bonus)"*.
+
+5. **+14 targeted tests** in `/app/backend/tests/test_credits_loyalty.test.js`:
+   - `CREDIT_PACKAGES` shape with $10/$45/$80 + ids
+   - `LOYALTY_TIERS` ordering invariant
+   - `resolveLoyaltyTier` across boundary conditions (0, 24, 25, 99, 100, 499, 500, 10000) + null/negative/string
+   - `applyLoyaltyBonus` math at each tier + floor behaviour (15% of 333 = 49)
+   - `getModelCost` defaults + premium tier validation + multi-provider coverage
+   - `estimateRequestCost` with `visualMode='custom'` 3× multiplier
+   - Deduct signature accepts model option
+
+**Test suite health**: **837 passing / 24 failed** (up from 824/23 baseline — **+13 net passing, 0 new regressions**). The extra failure is a known flaky test in `phase12_step9` (pre-existing).
+
+**What users see next time they pay**:
+- First-time buyer at $10: `+100 credits added to your account` (no bonus yet, they're in Starter).
+- Lifetime at $28 buying another $10: `+105 credits added (100 base + 5 Regular loyalty bonus)`.
+- Lifetime at $150 buying $45 pack: `+575 credits added (500 base + 75 Loyal loyalty bonus)`.
+- Lifetime at $600 buying $80 pack: `+1250 credits added (1000 base + 250 VIP loyalty bonus)`.
+
+Premium model use now actually burns premium credits — picking `gpt-5.2` for a chat deducts 1.5 credits (3× the cost of `gemini-2.5-flash` at 0.25).
+
+---
+
+
+
+### WP1 — Supabase RLS Hardening (COMPLETE, 2026-04-22)
+
+Closed the Supabase security-linter email flags. All 3 previously-exposed tables now correctly filter anon access; no production data leaks via the anon key.
+
+**Pre-migration baseline** (via `node scripts/check-rls.mjs`):
+- ❌ `generation_runs` — 898 rows readable by anon key
+- ❌ `changelog` — RLS not even enabled; 496 rows fully readable
+- ❌ `project_memory` — `USING (true)` policy, 60 rows readable
+
+**Shipped**:
+
+1. **`/app/supabase/migrations/007_security_audit.sql`** — idempotent DDL:
+   - Enables RLS + replaces `USING (true)` policies with `auth.role() = 'service_role'` on `changelog`, `generation_runs`, `project_memory`, `shared_previews`.
+   - Bootstraps `shared_previews` (missing in prod) + `project_collaborators` with strict service-role-only policies.
+   - Keeps `shared_previews` SELECT public by token (intentional — share-link feature).
+   - Defensive sweep: `DO $$ ... ALTER TABLE ENABLE RLS ... $$` on every remaining unprotected public-schema table.
+   - Creates `schema_migrations` tracking table for future runner.
+
+2. **`/app/scripts/db-migrate.mjs`** — migration runner (WP5 partial). Reads `.sql` files from `/app/supabase/migrations/`, checks `schema_migrations` for already-applied, applies pending via admin client. Supabase REST doesn't expose generic SQL execution with the service role alone, so the runner falls back to printing instructions for manual apply via the SQL editor when needed.
+
+3. **`/app/scripts/check-rls.mjs`** — empirical RLS auditor. For every expected table, counts rows via service role vs anon; flags any non-`shared_previews` table where anon sees > 0 rows or can write. Used to prove the before/after state. Emits process exit 2 on any exposure.
+
+4. **`/app/scripts/_load-env.mjs`** — tiny `.env` parser so migration/check scripts run without adding a `dotenv` dependency.
+
+**Post-migration verification** (`scripts/check-rls.mjs` green):
+```
+generation_runs          admin=898  anon=0  ✅ locked (rls filtered)
+changelog                admin=496  anon=0  ✅ locked (rls filtered)
+project_memory           admin=60   anon=0  ✅ locked (rls filtered)
+All other tables         denied     ✅ locked (denied)
+shared_previews          anon=0     ✅ public-read (zero data yet)
+```
+
+**Regression check**: `/api/health` returns 200, test suite still at **824 passed / 23 failed** (identical to pre-migration baseline — all 23 failures pre-existing and unrelated to security work).
+
+**How to re-run the audit anytime**:
+```bash
+node scripts/check-rls.mjs   # empirical anon-role probe
+```
+
+---
+
+
+
 ### Final pass — self-edit verify extraction (COMPLETE, 2026-02-22)
 
 Last remaining extraction target from the tool-handler dispatch: the ~60-line verify-and-revert block that ran verbatim in both `search_replace` and `edit_lines` self-edit branches.

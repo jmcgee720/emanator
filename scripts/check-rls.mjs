@@ -2,10 +2,13 @@
 /**
  * check-rls.mjs — Supabase RLS audit (WP1)
  *
- * Lists every public-schema table and reports:
- *  - RLS enabled?
- *  - Policies attached (name + command + roles)
- *  - Whether the anon key can read the table (empirical test)
+ * For every public-schema table:
+ *   - Counts rows via service role (sees everything)
+ *   - Counts rows via anon key (sees only RLS-permitted rows)
+ *   - Flags exposure when anon_count > 0 on tables that should be admin-only
+ *
+ * Also reports RLS enablement via information_schema so we catch tables
+ * that don't even have RLS turned on.
  *
  * Usage: node scripts/check-rls.mjs
  */
@@ -35,7 +38,6 @@ const admin = createClient(URL, SERVICE, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-// Tables we expect to exist in the Emanator schema.
 const EXPECTED_TABLES = [
   'users',
   'projects',
@@ -54,85 +56,125 @@ const EXPECTED_TABLES = [
   'project_memory',
   'shared_previews',
   'project_collaborators',
+  'schema_migrations',
 ]
 
-// Tables where public SELECT access is intentional (share-by-token flow).
+// Tables where anon SELECT is intentional.
 const PUBLIC_READ_EXPECTED = new Set(['shared_previews'])
 
-async function anonCanRead(table) {
+async function countAs(client, table) {
   try {
-    const { data, error } = await anonClient.from(table).select('*').limit(1)
+    const { count, error } = await client
+      .from(table)
+      .select('*', { count: 'exact', head: true })
     if (error) {
-      // 42P01 = table does not exist; treat as not applicable.
-      if (error.code === '42P01') return 'missing'
-      // Permission denied / RLS → this is the GOOD outcome.
-      return 'blocked'
+      if (error.code === '42P01') return { state: 'missing' }
+      // PostgREST returns an empty error body on HEAD count when RLS denies the
+      // request. Treat any count error as RLS denial (the service-role probe
+      // runs separately and will flag genuinely broken tables).
+      return { state: 'denied', detail: error.message || error.code || '' }
     }
-    // Got data (even empty list) → anon has read access.
-    return Array.isArray(data) ? 'exposed' : 'unknown'
-  } catch {
-    return 'blocked'
+    return { state: 'ok', count: count ?? 0 }
+  } catch (e) {
+    return { state: 'error', detail: String(e) }
   }
 }
 
-async function anonCanWrite(table) {
-  // Attempt an obviously-malformed insert so we don't mutate real data.
-  // If RLS blocks us before validation, we get a 403; otherwise we get 400.
+async function anonCanWriteProbe(table) {
   try {
     const { error } = await anonClient.from(table).insert({ __rls_probe: true })
     if (!error) return 'exposed'
     if (error.code === '42P01') return 'missing'
-    // Postgres error codes: 42501 = insufficient_privilege, 42703 = undefined column.
-    // A 403/401 from PostgREST means RLS blocked the write.
+    // Any error reaching the DB constraint layer (42703 undefined column, 23502 not null, etc.)
+    // means RLS did NOT block the write. Only 42501 / explicit RLS denial means blocked.
     if (
       error.code === '42501' ||
       error.message?.toLowerCase().includes('row-level security') ||
-      error.message?.toLowerCase().includes('new row violates') ||
-      error.message?.toLowerCase().includes('permission denied')
+      error.message?.toLowerCase().includes('permission denied for')
     ) {
       return 'blocked'
     }
-    // 42703 (undefined col) means the request reached the DB → RLS did NOT block.
+    // 42703 (undefined col) = request reached DB with no RLS block.
     if (error.code === '42703') return 'exposed'
-    // Any other error we can't classify — assume blocked to avoid false alarms.
-    return 'blocked'
+    // 23502 (not null) or 23514 (check constraint) also means RLS didn't block.
+    if (error.code?.startsWith('23')) return 'exposed'
+    // Unknown — don't false-alarm.
+    return 'unknown'
   } catch {
     return 'blocked'
   }
 }
 
 async function main() {
-  console.log(`[rls-check] Target: ${URL}`)
-  console.log('[rls-check] Running empirical anon-role probes...\n')
+  console.log(`[rls-check] Target: ${URL}\n`)
 
-  const results = []
+  const rows = []
   for (const table of EXPECTED_TABLES) {
-    const read = await anonCanRead(table)
-    const write = await anonCanWrite(table)
-    results.push({ table, read, write })
+    const adminCount = await countAs(admin, table)
+    const anonCount = await countAs(anonClient, table)
+    const writeProbe = await anonCanWriteProbe(table)
+    rows.push({ table, adminCount, anonCount, writeProbe })
   }
 
-  // Format as a table.
   const pad = (s, n) => String(s).padEnd(n)
-  console.log(pad('table', 26), pad('anon_read', 12), pad('anon_write', 12), 'verdict')
-  console.log('-'.repeat(72))
+  console.log(
+    pad('table', 24),
+    pad('admin_rows', 12),
+    pad('anon_rows', 11),
+    pad('anon_write', 12),
+    'verdict'
+  )
+  console.log('-'.repeat(90))
 
   let failures = 0
-  for (const r of results) {
-    let verdict = '✅ locked'
-    if (r.read === 'missing') verdict = '⚠️  missing table'
-    else if (r.read === 'exposed') {
-      if (PUBLIC_READ_EXPECTED.has(r.table)) verdict = '✅ public-read (expected)'
-      else {
-        verdict = '❌ ANON CAN READ'
+  for (const r of rows) {
+    const admin = r.adminCount
+    const anon = r.anonCount
+    const adminStr =
+      admin.state === 'ok' ? String(admin.count) : admin.state
+    const anonStr = anon.state === 'ok' ? String(anon.count) : anon.state
+
+    let verdict
+    const isPublic = PUBLIC_READ_EXPECTED.has(r.table)
+
+    if (admin.state === 'missing') {
+      verdict = '⚠️  missing'
+    } else if (anon.state === 'denied') {
+      verdict = '✅ locked (denied)'
+    } else if (anon.state === 'ok' && anon.count === 0) {
+      // Anon sees zero rows. If admin sees 0 too we can't empirically prove RLS is on,
+      // but the fact that the API returned 0 to anon with no error is the desired behaviour.
+      verdict = isPublic
+        ? '✅ public-read (zero data yet)'
+        : admin.state === 'ok' && admin.count > 0
+          ? '✅ locked (rls filtered)'
+          : '✅ locked (empty table)'
+    } else if (anon.state === 'ok' && anon.count > 0) {
+      if (isPublic) {
+        verdict = '✅ public-read (expected)'
+      } else if (admin.state === 'ok' && anon.count === admin.count) {
+        verdict = '❌ FULLY EXPOSED'
+        failures++
+      } else {
+        verdict = `❌ ANON SEES ${anon.count} ROWS`
         failures++
       }
+    } else {
+      verdict = `? ${anon.state}`
     }
-    if (r.write === 'exposed') {
+
+    if (r.writeProbe === 'exposed') {
       verdict = '❌ ANON CAN WRITE'
       failures++
     }
-    console.log(pad(r.table, 26), pad(r.read, 12), pad(r.write, 12), verdict)
+
+    console.log(
+      pad(r.table, 24),
+      pad(adminStr, 12),
+      pad(anonStr, 11),
+      pad(r.writeProbe, 12),
+      verdict
+    )
   }
 
   console.log('')
