@@ -29,6 +29,37 @@ export default function PricingPage() {
       }
       setUser(session.user)
 
+      // Auto-apply referral code if ?ref=<user_id> in the URL.
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const ref = params.get('ref')
+        if (ref) {
+          // Fire-and-forget — response handled by toast below.
+          const res = await fetch('/api/credits/apply-referral', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ referral_code: ref }),
+          })
+          if (res.ok) {
+            const json = await res.json().catch(() => ({}))
+            if (json.recorded) {
+              toast({
+                title: 'Referral applied',
+                description: "You and your friend will both get 25 credits on your first purchase.",
+              })
+            }
+          }
+          // Clean up the URL so a refresh doesn't re-apply.
+          params.delete('ref')
+          const qs = params.toString()
+          const newUrl = window.location.pathname + (qs ? `?${qs}` : '')
+          window.history.replaceState({}, '', newUrl)
+        }
+      } catch { /* non-fatal */ }
+
       try {
         const res = await fetch('/api/credits', {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -41,7 +72,7 @@ export default function PricingPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [toast])
 
   const handleCheckout = async (pkg) => {
     if (!user) {
