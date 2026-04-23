@@ -13,6 +13,7 @@ import {
   CREDIT_PACKAGES,
   MODEL_COSTS,
   LOYALTY_TIERS,
+  FIRST_PURCHASE_BONUS_PERCENT,
   resolveLoyaltyTier,
   applyLoyaltyBonus,
   getModelCost,
@@ -74,6 +75,31 @@ describe('WP2 — Credit packages & loyalty tiers', () => {
     const result = applyLoyaltyBonus(333, 100)
     expect(result.bonus).toBe(49)
     expect(result.total).toBe(382)
+  })
+
+  test('applyLoyaltyBonus adds first-purchase bonus when isFirstPurchase=true', () => {
+    const res = applyLoyaltyBonus(100, 0, { isFirstPurchase: true })
+    expect(res.firstPurchaseBonus).toBe(50) // 50% of 100
+    expect(res.loyaltyBonus).toBe(0)        // Starter tier → 0%
+    expect(res.bonus).toBe(50)
+    expect(res.total).toBe(150)
+  })
+
+  test('first-purchase bonus stacks with loyalty bonus', () => {
+    // User at $100 lifetime (Loyal = 15%) making first purchase (+50%)
+    const res = applyLoyaltyBonus(200, 100, { isFirstPurchase: true })
+    expect(res.loyaltyBonus).toBe(30)       // 15% of 200
+    expect(res.firstPurchaseBonus).toBe(100) // 50% of 200
+    expect(res.bonus).toBe(130)
+    expect(res.total).toBe(330)
+    expect(res.tier.label).toBe('Loyal')
+  })
+
+  test('first-purchase bonus skipped when isFirstPurchase is falsy', () => {
+    const res = applyLoyaltyBonus(100, 0)
+    expect(res.firstPurchaseBonus).toBe(0)
+    const res2 = applyLoyaltyBonus(100, 0, { isFirstPurchase: false })
+    expect(res2.firstPurchaseBonus).toBe(0)
   })
 })
 

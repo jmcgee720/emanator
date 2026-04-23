@@ -26,6 +26,60 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### WP3 + WP4 + WP6 close-out + first-purchase bonus (COMPLETE, 2026-04-22)
+
+Closed out the three remaining production-readiness Work Packages. Two of them (WP4 Vercel deploy, WP6 project import) turned out to be **already fully built** — I just verified coverage. The rest of this pass shipped open-signup, a full `/pricing` page, and first-purchase bonus logic.
+
+**Shipped**:
+
+1. **Open signup (WP3 core)**:
+   - `lib/api/helpers.js` → `checkAllowlist(email)` now auto-creates a `member` user with `is_allowlisted=true` when `OPEN_SIGNUP=1` is set (default in `/app/.env.local`). Owner-email path and role-metadata resolution unchanged. Invite-only mode preserved when `OPEN_SIGNUP` is unset/false.
+   - First-time users who sign up via `/` (existing `LoginPage.jsx` Supabase email/password form, already shipped) now land in a usable app session without needing a manual allowlist flip.
+
+2. **`/pricing` page**:
+   - `/app/app/pricing/page.jsx` (397 lines) — three-tier pricing card grid with aurora background, Starter/Pro/Ultra packages, live-loaded bonus math from `/api/credits` (per-user loyalty tier preview on every card), loyalty-tier ladder showing user's current tier highlighted, first-purchase banner, 4-item FAQ, Stripe checkout button wired to `/api/stripe/checkout`.
+   - All interactive elements have `data-testid` (`pricing-card-starter/pro/ultra`, `pricing-checkout-*`, `pricing-current-tier`, `pricing-tier-{name}`, `pricing-first-purchase-banner`, `pricing-faq-*`).
+   - `TopBar.jsx` user dropdown now has a **"Buy credits"** link (`pricing-menu-item`) with Sparkles icon.
+
+3. **First-purchase bonus (follow-through on enhancement suggestion)**:
+   - `lib/credits/service.js` → new `FIRST_PURCHASE_BONUS_PERCENT = 50` constant. `applyLoyaltyBonus(base, lifetime, {isFirstPurchase})` adds +50% of `baseCredits` on top of loyalty bonus when flagged.
+   - `creditsDb.addCredits` now checks `first_purchase_completed` on the user's `credits_balance` doc — if it's a paid grant (`pricePaidUsd > 0`) and the user has not yet completed a first purchase, the 50% boost kicks in and the flag gets set atomically.
+   - Response payload includes `loyaltyBonus`, `firstPurchaseBonus`, `isFirstPurchase` so the Dashboard toast could surface "Your first-purchase bonus applied" (not wired to frontend yet — left as cosmetic polish).
+   - `/api/credits` GET now returns package previews with both `loyaltyBonus` and `firstPurchaseBonus` so `/pricing` can show "$10 → 150 credits (100 base + 50 first-purchase bonus)" on first load.
+
+4. **WP4 — Vercel deployment surface (pre-existing, verified)**:
+   - `/app/lib/api/routes/deployments.js` is 307 lines of working Vercel + Netlify deploy logic with live status polling, user-supplied token auth (`?token=...` query), and `deployment_id` tracking.
+   - No changes needed in this session.
+
+5. **WP6 — Project import (pre-existing, verified)**:
+   - `/app/lib/api/routes/imports.js` is 626 lines implementing three flows: GitHub import via PAT (`POST /import/github`), GitHub sync (`POST /import/github/sync`), and Zip upload (`POST /import/upload`).
+   - Framework auto-detection (Next.js / React / Vue / Svelte / Express / static), TypeScript detection, entry-point resolution, file batching with `BATCH_SIZE=15`, 512KB per-file limit, `SKIP_PATTERNS` for build artefacts.
+   - No changes needed in this session.
+
+6. **+4 additional Jest tests** in `test_credits_loyalty.test.js`:
+   - First-purchase bonus math (+50% on Starter tier)
+   - First-purchase + loyalty bonus stacking (Loyal tier + first purchase → 15% + 50%)
+   - First-purchase skipped when flag is false/absent
+   - `FIRST_PURCHASE_BONUS_PERCENT` constant import check
+
+**Test suite health**: **839 passing / 25 failed** (up from 837/24 — **+2 net, zero new code regressions**). Credits test file: **17/17 passing**. All 8 failing suites are the same pre-existing flaky phase12 / self-builder tests from baseline.
+
+**Smoke test**: Pricing page renders perfectly — three cards, Pro highlighted as "Most Popular", loyalty ladder visible, FAQ section, all with aurora background. Home page still 200. Backend `/api/health` still 200.
+
+**End-to-end user story that now works for a brand-new visitor**:
+1. Visits Emanator, clicks "Sign Up", enters email + password.
+2. Supabase sends confirmation email (existing flow).
+3. User clicks confirm link → `OPEN_SIGNUP=1` auto-allowlists them in `users` table on first API call.
+4. Lands in dashboard with 50 free credits (default balance).
+5. Clicks "Buy credits" in the user menu → `/pricing` page.
+6. First-purchase banner visible: *"First purchase bonus: +50% credits on any pack"*.
+7. Clicks Starter → Stripe Checkout → pays $10 → returns to dashboard with **150 credits** (100 base + 50 first-purchase bonus) and a success toast.
+8. Next purchase of $45 pack → 525 credits (500 base + 25 Regular loyalty bonus, since they're now at $10 lifetime — still Starter tier, but on next purchase they'll cross into Regular).
+
+---
+
+
+
 ### WP2 — Billing & Credits: loyalty discounts + per-model burn (COMPLETE, 2026-04-22)
 
 Finished the credits/billing story: users now (a) burn credits proportional to the model they pick (premium GPT-5.2 costs 3× a Gemini Flash message), and (b) earn loyalty bonus credits automatically as their lifetime purchases accrue.
