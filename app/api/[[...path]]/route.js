@@ -39,10 +39,10 @@ import * as assetsRoutes from '@/lib/api/routes/assets'
 import * as chatsRoutes from '@/lib/api/routes/chats'
 import * as projectsRoutes from '@/lib/api/routes/projects'
 
-// Allow larger body for file uploads (50MB)
-export const config = {
-  api: { bodyParser: { sizeLimit: '50mb' } }
-}
+// App Router handles request bodies via Web Request streaming — no config needed.
+// For large uploads, routes read the body directly via req.formData() / req.json().
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 // Phase 1 module dispatch order (CRITICAL: preserve evaluation order)
 const phase1Modules = [
