@@ -1,5 +1,7 @@
 # MyMergent - Private AI Builder Platform
 
+trigger deploy
+
 A private, internal AI builder platform for creating websites, web apps, app product specs, UI screens, images/assets, code files, and exportable app packages.
 
 ## Features
