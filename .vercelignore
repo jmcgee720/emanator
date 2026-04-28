@@ -1,0 +1,49 @@
+# Old CRA frontend (replaced by Next.js App Router in /app)
+frontend/
+
+# Backups & dev artifacts
+.emanator-backups/
+.emergent/
+
+# Stray Python test files at repo root
+*_test.py
+*_tests.py
+*test_*.py
+auth_system_test.py
+auth_test_results.json
+backend_*.py
+child_monitored_test.py
+comprehensive_*.py
+core_*.py
+design_intelligence_test.py
+file_generation_test.py
+filesystem_streaming_test.py
+rollback_backend_test.py
+sandbox_backend_test.py
+simplified_backend_test.py
+
+# JSON test reports
+test_reports/
+*test_results.json
+auth_test_results.json
+
+# Python artifacts (in case any sneak back in)
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Memory/PRD docs (not needed at runtime)
+memory/
+docs/
+
+# Test infra (not used at runtime — Vercel doesn't run tests)
+tests/
+jest.config.js
+*.test.js
+*.test.ts
+
+# Misc dev files
+DEPLOY.md
+design_guidelines.json
+backend_test_phase12_step7.py
