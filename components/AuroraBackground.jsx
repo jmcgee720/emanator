@@ -80,10 +80,11 @@ const AuroraBackground = ({
     return () => { if (demoRef.current) cancelAnimationFrame(demoRef.current); };
   }, [demoMode]);
 
-  // Push activity level to engine
+  // Push activity level to engine — FORCED to 0 so aurora stays calm and doesn't escalate with usage.
+  // Demo mode still works via Shift+D for testing.
   useEffect(() => {
     if (engineRef.current) {
-      const level = demoMode ? demoLevel : activityLevel;
+      const level = demoMode ? demoLevel : 0;
       engineRef.current.updateActivityLevel(level);
     }
   }, [activityLevel, demoLevel, demoMode]);
