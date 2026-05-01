@@ -5,9 +5,11 @@ import { Eye, EyeOff, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 const API_URL = '';
 
 const defaultLayers = {
-  topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: -188, scale: 0.83 } },
-  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: 136, scale: 0.91 } },
-  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -87, y: 125, scale: 1 } },
+  // Defaults tuned so TOP + BL + BR visually connect into one continuous aurora.
+  // Positive Y pushes the layer DOWN (CSS translateY).
+  topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: 100, scale: 1.2 } },
+  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: -20, scale: 1.05 } },
+  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -87, y: -30, scale: 1.1 } },
 };
 
 const defaultEffects = {
