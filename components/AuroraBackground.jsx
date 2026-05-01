@@ -5,9 +5,9 @@ import { Eye, EyeOff, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 const API_URL = '';
 
 const defaultLayers = {
-  topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: -188, scale: 0.83 } },
-  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 15, y: 241, scale: 0.91 } },
-  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -57, y: 205, scale: 1 } },
+  topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: 0, scale: 1 } },
+  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 200, y: 200, scale: 1 } },
+  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -80, y: 200, scale: 1 } },
 };
 
 const defaultEffects = {
