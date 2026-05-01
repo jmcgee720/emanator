@@ -127,7 +127,7 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center mb-14 em-panel-enter">
           <a href="/" className="inline-block mb-8" data-testid="pricing-back-home">
-            <img src="/emanator-logo.png" alt="Emanator" style={{ width: '180px', height: 'auto' }} draggable={false} />
+            <img src="/auroraly-logo.png" alt="Auroraly" style={{ width: '180px', height: 'auto' }} draggable={false} />
           </a>
           <h1 className="text-5xl sm:text-6xl font-semibold mb-4" style={{ color: '#FFFFFF' }}>
             Pay for what you build
@@ -396,7 +396,7 @@ export default function PricingPage() {
         </div>
 
         <p className="text-center text-[11px] mt-16" style={{ color: '#6E7290' }}>
-          Emanator — AI Builder Platform · Secure checkout by Stripe
+          Auroraly — AI Builder Platform · An Aetherly Studio product · Secure checkout by Stripe
         </p>
       </div>
     </div>

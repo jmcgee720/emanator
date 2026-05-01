@@ -176,8 +176,8 @@ export default function LoginPage({ onAuthSuccess }) {
 
         {/* Logo wordmark — clean, large, no container */}
         <img
-          src="/emanator-logo.png"
-          alt="Emanator"
+          src="/auroraly-logo.png"
+          alt="Auroraly"
           className="relative mx-auto mb-5 drop-shadow-[0_0_20px_rgba(0,229,255,0.15)]"
           style={{ width: '260px', height: 'auto' }}
           draggable={false}
@@ -408,7 +408,7 @@ export default function LoginPage({ onAuthSuccess }) {
 
       {/* Footer */}
       <p className="relative z-10 text-center text-[11px] mt-10 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
-        Emanator — AI Builder Platform
+        Auroraly — AI Builder Platform · <span style={{ color: '#4B5178' }}>An Aetherly Studio product</span>
       </p>
     </div>
   )

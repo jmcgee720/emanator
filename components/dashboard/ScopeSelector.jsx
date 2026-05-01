@@ -21,7 +21,7 @@ const SCOPES = [
   {
     id: 'platform',
     name: 'Platform',
-    description: 'Emanator architecture & internals',
+    description: 'Auroraly architecture & internals',
     icon: Cpu,
     color: 'text-amber-400 border-amber-400/30 bg-amber-400/10',
   },

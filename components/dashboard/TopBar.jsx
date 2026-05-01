@@ -15,11 +15,11 @@ import { useState } from 'react'
 import CollaboratorsModal from './CollaboratorsModal'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
-function EmanatorLogo({ className }) {
+function AuroralyLogo({ className }) {
   return (
     <img
-      src="/emanator-logo.png"
-      alt="Emanator"
+      src="/auroraly-logo.png"
+      alt="Auroraly"
       className={className}
       draggable={false}
     />
@@ -56,7 +56,7 @@ export default function TopBar({
     <div className="h-12 em-glass-topbar flex items-center justify-between px-5" data-testid="top-bar">
       {/* Brand */}
       <div className="flex items-center">
-        <EmanatorLogo className="h-7 w-auto object-contain" />
+        <AuroralyLogo className="h-7 w-auto object-contain" />
       </div>
 
       {/* Actions */}

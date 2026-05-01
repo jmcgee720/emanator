@@ -1,8 +1,8 @@
-# MyMergent - Private AI Builder Platform
+# Auroraly — AI Builder Platform
 
-trigger deploy
+Auroraly is an AI-powered builder platform for creating websites, web apps, product specs, UI screens, images/assets, and exportable app packages.
 
-A private, internal AI builder platform for creating websites, web apps, app product specs, UI screens, images/assets, code files, and exportable app packages.
+An [Aetherly Studio](https://aetherly.co) product.
 
 ## Features
 
@@ -29,7 +29,7 @@ A private, internal AI builder platform for creating websites, web apps, app pro
 ### Import/Export System
 - **ZIP Source Export**: Download complete project with all files
 - **Project Manifest Export**: JSON format for re-importing projects
-- **Project Import**: Import previously exported MyMergent projects
+- **Project Import**: Import previously exported Auroraly projects
 - **Cross-Platform Ready**: Architecture prepared for Web, PWA, iOS, Android exports
 
 ### Global Search

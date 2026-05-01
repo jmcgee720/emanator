@@ -421,7 +421,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
-    { type: 'info', message: 'Welcome to Emanator', timestamp: new Date().toISOString() },
+    { type: 'info', message: 'Welcome to Auroraly', timestamp: new Date().toISOString() },
     { type: 'info', message: 'AI generation engine ready', timestamp: new Date().toISOString() }
   ])
   const [buildMilestones, setBuildMilestones] = useState([])
