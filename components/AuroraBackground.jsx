@@ -5,9 +5,10 @@ import { Eye, EyeOff, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 const API_URL = '';
 
 const defaultLayers = {
+  // Locked to the user's saved layout — produces the connected aurora look across all three columns.
   topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: -188, scale: 0.83 } },
-  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: 136, scale: 0.91 } },
-  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -87, y: 125, scale: 1 } },
+  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 40, y: 336, scale: 0.91 } },
+  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -207, y: 325, scale: 1 } },
 };
 
 const defaultEffects = {
