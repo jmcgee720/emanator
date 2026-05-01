@@ -174,12 +174,12 @@ export default function LoginPage({ onAuthSuccess }) {
           filter: 'blur(30px)',
         }} />
 
-        {/* Logo wordmark — clean SVG, no PNG artifacts */}
+        {/* Logo wordmark — Auroraly locked logo (transparent PNG, no blend tricks) */}
         <img
-          src="/auroraly-logo.svg"
+          src="/auroraly-logo.png"
           alt="Auroraly"
           className="relative mx-auto mb-6 drop-shadow-[0_0_24px_rgba(0,229,255,0.18)]"
-          style={{ width: '340px', height: 'auto' }}
+          style={{ width: '380px', height: 'auto' }}
           draggable={false}
         />
 
