@@ -184,3 +184,5 @@ Features planned for next phase:
 Private internal tool - not for public distribution.
 
 <!-- deploy: 2026-05-01 -->
+
+<!-- redeploy: 2026-05-01-2 -->
