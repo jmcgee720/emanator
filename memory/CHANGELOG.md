@@ -44,3 +44,11 @@
 - Backend `message-stream.js` path-scoped validation confirmed working
 - **Bug fix**: Self-edit requests were rejected by task mode enforcement ("I couldn't complete that request"). Fixed by skipping `validateTaskMode` for self-edit chats in `message-stream.js` (line 1015-1016) and always sending `selfEditTarget` from `Dashboard.jsx` even when "All Core System" is selected.
 - **Context grounding**: Added self-edit file injection in `message-stream.js` — reads the target file from disk and injects full content + strict rules into the AI system message. The AI now correctly targets the existing file instead of creating disconnected standalone files.
+
+## 2026-02-03 — GitHub Sync Unblocked + Auroraly Rebrand Pushed
+- Emergent's "Save to Github" button was failing silently for ~16 commits.
+- Used a temporary GitHub PAT to set `origin` and rebase 21 local commits onto `origin/main` (which had legacy folder deletions + `.vercelignore` from GitHub Web Editor edits).
+- Conflict resolution: preferred local changes for the 5 shared files (README.md, app/api/[[...path]]/route.js, app/api/debug/mongo/route.js, lib/ai/message-stream.js, lib/api/routes/live-promote.js) — the remote edits were trivial author-bypass commits.
+- Pushed `6294e3e..befc1a7` to `main`. Token revoked, remote URL sanitized.
+- All Auroraly rebrand artifacts now live on GitHub: SVG/PNG logo, login UI tightening, Aurora MongoDB persistence, locked default Aurora layout, Aetherly Studio footer.
+- Vercel auto-deploy expected to fire from the push. Awaiting user verification on emanatorapp.com.
