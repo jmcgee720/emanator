@@ -160,34 +160,34 @@ export default function LoginPage({ onAuthSuccess }) {
   const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#7A7E98] autofill:shadow-[inset_0_0_0_1000px_rgba(5,5,26,0.9)] autofill:[-webkit-text-fill-color:#FFFFFF]"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" data-testid="login-page">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-6" data-testid="login-page">
 
       {/* ── CANVAS AURORA BACKGROUND ── */}
       <AuroraBackground activityLevel={1} />
 
 
       {/* ── BRAND LOCKUP ── */}
-      <div className="relative z-10 text-center mb-16 em-panel-enter" style={{ animationDelay: '0ms' }}>
+      <div className="relative z-10 text-center mb-6 em-panel-enter" style={{ animationDelay: '0ms' }}>
         {/* Logo glow halo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[120px] pointer-events-none" style={{
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[100px] pointer-events-none" style={{
           background: 'radial-gradient(ellipse at center, rgba(0, 229, 255, 0.1) 0%, rgba(124, 58, 237, 0.05) 40%, transparent 70%)',
           filter: 'blur(30px)',
         }} />
 
-        {/* Logo wordmark — Auroraly locked logo (transparent PNG, no blend tricks) */}
+        {/* Logo wordmark — Auroraly locked logo */}
         <img
           src="/auroraly-logo.png"
           alt="Auroraly"
-          className="relative mx-auto mb-6 drop-shadow-[0_0_24px_rgba(0,229,255,0.18)]"
-          style={{ width: '380px', height: 'auto' }}
+          className="relative mx-auto mb-1 drop-shadow-[0_0_24px_rgba(0,229,255,0.18)]"
+          style={{ width: '300px', height: 'auto' }}
           draggable={false}
         />
 
-        <p className="text-sm font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
+        <p className="text-[11px] font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
           AI Builder Platform
         </p>
 
-        <p className="mt-3 text-xs" style={{ color: '#6B7094' }} data-testid="landing-time-metric">
+        <p className="mt-1.5 text-xs" style={{ color: '#6B7094' }} data-testid="landing-time-metric">
           From blank page to working app in{' '}
           {buildStats?.p50_seconds ? (
             <>
@@ -255,20 +255,20 @@ export default function LoginPage({ onAuthSuccess }) {
             borderRadius: 'inherit',
           }} />
 
-          <div className="relative p-8">
+          <div className="relative p-6">
             {/* Card header */}
-            <div className="mb-7">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
                 <Lock className="w-3.5 h-3.5" style={{ color: '#00E5FF', opacity: 0.5 }} />
                 <span className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: '#00E5FF', opacity: 0.5 }}>
                   Secure Login
                 </span>
               </div>
               <h2 className="text-xl font-semibold" style={{ color: '#FFFFFF' }}>Welcome</h2>
-              <p className="text-sm mt-1.5" style={{ color: '#B0B4CC' }}>Sign in to your account</p>
+              <p className="text-sm mt-1" style={{ color: '#B0B4CC' }}>Sign in to your account</p>
               <a
                 href="/gallery"
-                className="inline-flex items-center gap-1 mt-3 text-[11px] font-medium transition-colors"
+                className="inline-flex items-center gap-1 mt-2 text-[11px] font-medium transition-colors"
                 style={{ color: '#00E5FF' }}
                 data-testid="landing-gallery-link"
               >
@@ -280,7 +280,7 @@ export default function LoginPage({ onAuthSuccess }) {
             <button
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 mb-5"
+              className="w-full flex items-center justify-center gap-3 h-10 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 mb-3"
               style={{
                 background: 'rgba(255, 255, 255, 0.08)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -301,7 +301,7 @@ export default function LoginPage({ onAuthSuccess }) {
               Continue with Google
             </button>
 
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-3 mb-3">
               <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
               <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#8A8EA6' }}>or</span>
               <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
@@ -310,7 +310,7 @@ export default function LoginPage({ onAuthSuccess }) {
             {/* Tabs */}
             <Tabs value={mode} onValueChange={setMode} className="w-full">
               <TabsList
-                className="grid w-full grid-cols-2 mb-7 h-10 rounded-xl p-1"
+                className="grid w-full grid-cols-2 mb-4 h-9 rounded-xl p-1"
                 style={{
                   background: 'rgba(5, 5, 26, 0.5)',
                   border: '1px solid rgba(124, 58, 237, 0.1)',
@@ -336,26 +336,26 @@ export default function LoginPage({ onAuthSuccess }) {
               </TabsList>
 
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-5" data-testid="signin-form">
-                  <div className="space-y-2">
+                <form onSubmit={handleSignIn} className="space-y-3" data-testid="signin-form">
+                  <div className="space-y-1.5">
                     <Label htmlFor="email" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Email</Label>
                     <Input id="email" type="email" placeholder="you@company.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} required
                       data-testid="email-input" className={inputFocusClass} style={inputStyle} />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="password" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Password</Label>
                     <Input id="password" type="password" placeholder="••••••••" value={password}
                       onChange={(e) => setPassword(e.target.value)} required
                       data-testid="password-input" className={inputFocusClass} style={inputStyle} />
                   </div>
-                  <div className="flex items-center space-x-2 pt-1">
+                  <div className="flex items-center space-x-2">
                     <Checkbox id="stay-signed-in" checked={staySignedIn} onCheckedChange={setStaySignedIn}
                       className="border-[rgba(124,58,237,0.3)] data-[state=checked]:bg-[#00E5FF] data-[state=checked]:border-[#00E5FF]" />
                     <Label htmlFor="stay-signed-in" className="text-xs font-normal cursor-pointer" style={{ color: '#8A8EA6' }}>Stay signed in</Label>
                   </div>
                   <button type="submit" disabled={loading} data-testid="signin-btn"
-                    className="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-2"
+                    className="w-full h-11 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-1"
                     style={{
                       background: 'linear-gradient(135deg, #6D28D9 0%, #C026D3 60%, #E040FB 100%)',
                       boxShadow: '0 0 30px rgba(124, 58, 237, 0.3), 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
@@ -363,40 +363,40 @@ export default function LoginPage({ onAuthSuccess }) {
                     {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Signing In...</span> : 'Sign In'}
                   </button>
                   <button type="button" onClick={handlePasswordReset} disabled={loading}
-                    className="w-full text-xs py-2 transition-colors duration-150 hover:opacity-80" style={{ color: '#8A8EA6' }}>
+                    className="w-full text-xs py-1 transition-colors duration-150 hover:opacity-80" style={{ color: '#8A8EA6' }}>
                     Forgot password?
                   </button>
                 </form>
               </TabsContent>
 
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-5" data-testid="signup-form">
-                  <div className="space-y-2">
+                <form onSubmit={handleSignUp} className="space-y-3" data-testid="signup-form">
+                  <div className="space-y-1.5">
                     <Label htmlFor="signup-email" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Email</Label>
                     <Input id="signup-email" type="email" placeholder="you@company.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} required
                       className={inputFocusClass} style={inputStyle} />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="signup-password" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Password</Label>
                     <Input id="signup-password" type="password" placeholder="••••••••" value={password}
                       onChange={(e) => setPassword(e.target.value)} required minLength={6}
                       className={inputFocusClass} style={inputStyle} />
                   </div>
-                  <div className="flex items-center space-x-2 pt-1">
+                  <div className="flex items-center space-x-2">
                     <Checkbox id="stay-signed-in-signup" checked={staySignedIn} onCheckedChange={setStaySignedIn}
                       className="border-[rgba(124,58,237,0.3)] data-[state=checked]:bg-[#00E5FF] data-[state=checked]:border-[#00E5FF]" />
                     <Label htmlFor="stay-signed-in-signup" className="text-xs font-normal cursor-pointer" style={{ color: '#8A8EA6' }}>Stay signed in</Label>
                   </div>
                   <button type="submit" disabled={loading} data-testid="signup-btn"
-                    className="w-full h-12 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-2"
+                    className="w-full h-11 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-1"
                     style={{
                       background: 'linear-gradient(135deg, #6D28D9 0%, #C026D3 60%, #E040FB 100%)',
                       boxShadow: '0 0 30px rgba(124, 58, 237, 0.3), 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
                     }}>
                     {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Creating Account...</span> : 'Create Account'}
                   </button>
-                  <p className="text-[11px] text-center pt-1" style={{ color: '#8A8EA6' }}>
+                  <p className="text-[11px] text-center" style={{ color: '#8A8EA6' }}>
                     By signing up you agree to our terms of service.
                   </p>
                 </form>
@@ -407,7 +407,7 @@ export default function LoginPage({ onAuthSuccess }) {
       </div>
 
       {/* Footer */}
-      <p className="relative z-10 text-center text-[11px] mt-10 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
+      <p className="relative z-10 text-center text-[11px] mt-4 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
         Auroraly — AI Builder Platform · <span style={{ color: '#4B5178' }}>An Aetherly Studio product</span>
       </p>
     </div>
