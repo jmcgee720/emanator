@@ -6,8 +6,8 @@ const API_URL = '';
 
 const defaultLayers = {
   topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: -188, scale: 0.83 } },
-  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: 136, scale: 0.91 } },
-  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -87, y: 125, scale: 1 } },
+  bottomLeftColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 15, y: 241, scale: 0.91 } },
+  bottomRightColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: -57, y: 205, scale: 1 } },
 };
 
 const defaultEffects = {
@@ -93,7 +93,9 @@ const AuroraBackground = ({
   const [effects, setEffects] = useState(defaultEffects);
   const [configLoaded, setConfigLoaded] = useState(false);
 
-  // Fetch persisted config from backend on mount
+  // Fetch persisted config from backend on mount.
+  // NOTE: localStorage fallback disabled — the hardcoded defaults are the
+  // single source of truth for aurora layout across all devices and browsers.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -109,18 +111,14 @@ const AuroraBackground = ({
           setEffects(data.effects);
         }
       } catch {
-        // Fallback: try localStorage
-        try {
-          const stored = localStorage.getItem('aurora_layers');
-          if (stored && !cancelled) {
-            setLayers(restoreLayersFromStored(JSON.parse(stored)));
-          }
-        } catch {}
-        try {
-          const storedFx = localStorage.getItem('aurora_effects_v2') || localStorage.getItem('aurora_effects');
-          if (storedFx && !cancelled) setEffects(JSON.parse(storedFx));
-        } catch {}
+        // Intentionally empty — fall through to hardcoded defaults.
       } finally {
+        // Purge any legacy localStorage values so old saves don't override the locked defaults.
+        try {
+          localStorage.removeItem('aurora_layers');
+          localStorage.removeItem('aurora_effects');
+          localStorage.removeItem('aurora_effects_v2');
+        } catch {}
         if (!cancelled) setConfigLoaded(true);
       }
     })();
