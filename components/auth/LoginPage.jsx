@@ -179,7 +179,7 @@ export default function LoginPage({ onAuthSuccess }) {
           src="/auroraly-logo.png"
           alt="Auroraly"
           className="relative mx-auto mb-5 drop-shadow-[0_0_20px_rgba(0,229,255,0.15)]"
-          style={{ width: '260px', height: 'auto' }}
+          style={{ width: '260px', height: 'auto', mixBlendMode: 'screen' }}
           draggable={false}
         />
 

@@ -21,6 +21,7 @@ function AuroralyLogo({ className }) {
       src="/auroraly-logo.png"
       alt="Auroraly"
       className={className}
+      style={{ mixBlendMode: 'screen' }}
       draggable={false}
     />
   )
