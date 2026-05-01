@@ -26,7 +26,47 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
-### WP7d — Signup rate-limit + Referral bonus system (COMPLETE, 2026-04-23)
+### 🚀 PRODUCTION LAUNCH — Live on www.emanatorapp.com (COMPLETE, 2026-04-29)
+
+**Status**: SHIPPED 🎉 — Emanator is live in production, taking real payments via Stripe Test mode, fully decoupled from Emergent.
+
+**Infrastructure stack (live)**:
+- **Vercel Hobby tier** — Next.js 14 hosting, auto-deploy on git push to `main`
+- **Custom domain** — `www.emanatorapp.com` (apex `emanatorapp.com` 307-redirects to www) via GoDaddy DNS → A `@` → `216.198.79.1`, CNAME `www` → `ac2c21aad839cf36.vercel-dns-017.com.`
+- **MongoDB Atlas M0** (free tier) — replaces local MongoDB; `cluster0.tmrjvug.mongodb.net`
+- **Supabase** — auth (email/password + Google OAuth), RLS-locked tables
+- **Stripe Test mode** — webhook endpoint `https://www.emanatorapp.com/api/webhook/stripe`, `checkout.session.completed` event subscribed; first-purchase bonus + loyalty bonus working end-to-end
+- **Direct LLM keys** (no Emergent proxy) — OpenAI gpt-4o + gpt-image-1, Anthropic claude-sonnet-4-6, Google Gemini
+- **Vercel Web Analytics** — enabled
+- **Google Cloud OAuth** — External user type, unverified consent screen, Authorized redirect URI = Supabase `auth/v1/callback`
+
+**Code changes shipped during launch**:
+1. `/app/app/api/[[...path]]/route.js` — replaced deprecated Pages Router `export const config = { api: { bodyParser: ... } }` with App Router `export const runtime = 'nodejs'` + `maxDuration = 60`.
+2. `/app/lib/ai/message-stream.js` — replaced 2 absolute `import('/app/lib/constants.js')` with relative `import('../constants.js')` (Vercel-compat).
+3. `/app/lib/api/routes/live-promote.js` — replaced absolute `import('/app/lib/ai/filesystem.js')` with relative `import('../../ai/filesystem.js')`.
+4. `/app/.vercelignore` — created to skip 434MB of dead `frontend/` folder + stray Python test scripts on every Vercel build.
+5. **DELETED**: `/app/backend/` (FastAPI vestigial code), `/app/.emanator-backups/`, ~10 stray Python test scripts at repo root.
+
+**Verification (smoke tests passed)**:
+- ✅ `https://www.emanatorapp.com/api/health` returns `{status:"healthy",database:"supabase"}`
+- ✅ `https://www.emanatorapp.com/` loads with aurora background animations
+- ✅ `https://www.emanatorapp.com/pricing` renders all 3 tiers
+- ✅ `https://emanatorapp.com/` 307-redirects to `https://www.emanatorapp.com/`
+- ✅ Email/password signup grants 50 free credits
+- ✅ Google OAuth signup works (with "unverified app" warning users must bypass)
+- ✅ `$10 Starter pack` Stripe Test purchase → +150 credits (100 base + 50 first-purchase bonus)
+- ✅ Stripe webhook delivery returns 200 OK
+
+**Known limitations / next steps**:
+- 🟡 Stripe in **TEST MODE** — needs Stripe account activation + Live `sk_live_...` + new Live webhook for real money
+- 🟡 Google OAuth shows "unverified app" warning — user must click Advanced → continue. Fix later by submitting for Google verification (requires Privacy Policy + Terms pages + 1-6 week review).
+- 🟡 Growth crawl feature broken — Python backend deleted; Playwright-dependent endpoints return 503. Trends + Growth analyze/drafts continue working (ported to Next.js native).
+- 🟡 Repo still contains legacy `frontend/` folder (434MB dead CRA code) — gitignored from Vercel via `.vercelignore` but takes disk space; deleting it from git history is optional cleanup.
+- 🟡 Keys pasted in chat during walkthrough should be rotated again from a clean session for full hygiene.
+
+---
+
+
 
 Closed out the last two UI-polish items from the original self-edit prompt. Both shipped natively with tests.
 
