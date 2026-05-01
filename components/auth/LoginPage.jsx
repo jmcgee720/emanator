@@ -165,27 +165,25 @@ export default function LoginPage({ onAuthSuccess }) {
       {/* ── CANVAS AURORA BACKGROUND ── */}
       <AuroraBackground activityLevel={1} />
 
-      {/* Content wrapper — pulled up 112px from center */}
-      <div className="relative z-10 flex flex-col items-center w-full" style={{ transform: 'translateY(-112px)' }}>
-
-
-      {/* ── BRAND LOCKUP ── */}
-      <div className="relative z-10 text-center mb-6 em-panel-enter" style={{ animationDelay: '0ms' }}>
+      {/* ── LOGO ── */}
+      <div className="relative z-10 text-center em-panel-enter" style={{ animationDelay: '0ms' }}>
         {/* Logo glow halo */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[100px] pointer-events-none" style={{
           background: 'radial-gradient(ellipse at center, rgba(0, 229, 255, 0.1) 0%, rgba(124, 58, 237, 0.05) 40%, transparent 70%)',
           filter: 'blur(30px)',
         }} />
 
-        {/* Logo wordmark — Auroraly locked logo */}
         <img
           src="/auroraly-logo.png"
           alt="Auroraly"
-          className="relative mx-auto mb-1 drop-shadow-[0_0_24px_rgba(0,229,255,0.18)]"
+          className="relative mx-auto drop-shadow-[0_0_24px_rgba(0,229,255,0.18)]"
           style={{ width: '300px', height: 'auto' }}
           draggable={false}
         />
+      </div>
 
+      {/* ── SUBTITLE + TAGLINE ── */}
+      <div className="relative z-10 text-center mb-6 mt-2 em-panel-enter" style={{ animationDelay: '0ms' }}>
         <p className="text-[11px] font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
           AI Builder Platform
         </p>
@@ -413,7 +411,6 @@ export default function LoginPage({ onAuthSuccess }) {
       <p className="relative z-10 text-center text-[11px] mt-4 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
         Auroraly — AI Builder Platform · <span style={{ color: '#4B5178' }}>An Aetherly Studio product</span>
       </p>
-      </div>
     </div>
   )
 }
