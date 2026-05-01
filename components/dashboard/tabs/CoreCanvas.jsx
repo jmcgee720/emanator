@@ -272,7 +272,7 @@ function getDefaultCanvas() {
 Use this canvas to track progress, write notes, and plan improvements. The AI will update this automatically after each self-edit.
 
 ---
-*This canvas is shared between you and Emanator. Both can read and write.*`
+*This canvas is shared between you and Auroraly. Both can read and write.*`
 }
 
 function convertJsonCanvasToMarkdown(json) {

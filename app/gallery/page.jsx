@@ -54,7 +54,7 @@ export default function GalleryPage() {
         <section className="mb-10 text-center">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(138,43,226,0.12)] border border-[rgba(138,43,226,0.30)] text-violet-300 text-[10px] font-semibold mb-4">
             <Sparkles className="w-3 h-3" aria-hidden="true" />
-            <span>Made with Emanator</span>
+            <span>Made with Auroraly</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-bold mb-3">Apps built by the community</h2>
           <p className="text-white/60 text-sm md:text-base max-w-xl mx-auto">
@@ -91,7 +91,7 @@ export default function GalleryPage() {
       </main>
 
       <footer className="border-t border-white/10 mt-20 py-6 text-center text-[10px] text-white/40">
-        <span>Browse, remix, or build your own with Emanator.</span>
+        <span>Browse, remix, or build your own with Auroraly.</span>
       </footer>
     </div>
   )
