@@ -247,7 +247,7 @@ function ShareBuildTime({ brand, archetype, seconds, fileCount }) {
   const [copied, setCopied] = useState(false)
 
   const tweet = `I just built ${brand} — a working ${archetype.toLowerCase()} with ${fileCount} files in ${seconds} seconds. 🚀`
-  const hashtag = '#Emanator'
+  const hashtag = '#Auroraly'
 
   const copy = async () => {
     try {

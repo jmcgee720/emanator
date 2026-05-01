@@ -112,7 +112,7 @@ export default function PublishModal({ project, onClose, onChanged }) {
           ) : (
             <>
               <p className="text-[12px] em-text-secondary leading-relaxed">
-                Add your app to the Emanator public gallery. Anyone can preview it and <strong>remix</strong> it into their own Emanator account.
+                Add your app to the Auroraly public gallery. Anyone can preview it and <strong>remix</strong> it into their own Auroraly account.
               </p>
               <ul className="text-[11px] em-text-muted space-y-1.5 pl-4 list-disc">
                 <li>A permanent share URL is created (if you don't already have one).</li>

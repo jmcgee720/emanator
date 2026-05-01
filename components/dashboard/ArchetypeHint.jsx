@@ -46,7 +46,7 @@ export default function ArchetypeHint({ brief, onOverride }) {
   if (!archetype || (!override && confidence < 0.55)) return null
 
   // Show the "Recommended" surface when classifier is ambiguous AND user hasn't picked an override yet.
-  // Turns "Emanator guessed" into "Emanator showed me the options."
+  // Turns "Auroraly guessed" into "Auroraly showed me the options."
   const showRecommended = !override && ambiguous && (runnersUp?.length || 0) >= 2
 
   const sampleFlows = (archetype.requiredFlows || []).slice(0, 3).map((f) => f.desc)
@@ -169,7 +169,7 @@ export default function ArchetypeHint({ brief, onOverride }) {
       </div>
       {autoRoutes.length > 0 ? (
         <p className="text-[11px] text-white/55 leading-relaxed">
-          Emanator will auto-build{' '}
+          Auroraly will auto-build{' '}
           <span className="text-white/80" data-testid="archetype-hint-auto-routes">
             {autoRoutes.join(' · ')}
           </span>{' '}

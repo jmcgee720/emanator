@@ -11,7 +11,7 @@ const Dashboard = dynamic(() => import('@/components/dashboard/Dashboard'), {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading Emanator...</p>
+        <p className="text-muted-foreground">Loading Auroraly...</p>
       </div>
     </div>
   ),
@@ -81,7 +81,7 @@ export default function App() {
 
     const init = async () => {
       try {
-        // Timeout the session check to avoid hanging on "Loading Emanator..."
+        // Timeout the session check to avoid hanging on "Loading Auroraly..."
         const sessionPromise = supabase.auth.getSession()
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('session_timeout')), 10000))
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise])
@@ -159,7 +159,7 @@ export default function App() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading Emanator...</p>
+          <p className="text-muted-foreground">Loading Auroraly...</p>
         </div>
       </div>
     )

@@ -153,7 +153,7 @@ export default function CollaboratorsModal({ open, onClose, projectId, projectNa
           </div>
           {error && <p className="text-xs text-rose-300" data-testid="collaborators-error">{error}</p>}
           <p className="text-[10px] text-white/35">
-            Your teammate must have an Emanator account already — ask them to sign up first if they haven't.
+            Your teammate must have an Auroraly account already — ask them to sign up first if they haven't.
           </p>
         </form>
 

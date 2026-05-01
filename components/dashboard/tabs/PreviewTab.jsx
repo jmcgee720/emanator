@@ -1405,6 +1405,8 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [onRefreshFiles])
 
   const isCoreSystemProject =
+    project?.name === 'Auroraly Backend' ||
+    project?.name === 'Auroraly' ||
     project?.name === 'Emanator Backend' ||
     project?.name === 'Emanator' ||
     project?.type === 'core'
@@ -1424,7 +1426,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         <div className="text-center">
           <p className="text-sm font-medium">Core System Preview Disabled</p>
           <p className="text-xs mt-1 max-w-xs opacity-70">
-            Emanator cannot preview itself through the isolated Babel component pipeline.
+            Auroraly cannot preview itself through the isolated Babel component pipeline.
           </p>
         </div>
       </div>
