@@ -182,3 +182,5 @@ Features planned for next phase:
 ## License
 
 Private internal tool - not for public distribution.
+
+<!-- deploy: 2026-05-01 -->
