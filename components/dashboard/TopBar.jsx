@@ -18,7 +18,7 @@ import { getUserRole, hasPermission } from '@/lib/constants'
 function AuroralyLogo({ className }) {
   return (
     <img
-      src="/auroraly-logo.png"
+      src="/auroraly-logo.svg"
       alt="Auroraly"
       className={className}
       draggable={false}
