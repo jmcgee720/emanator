@@ -165,6 +165,9 @@ export default function LoginPage({ onAuthSuccess }) {
       {/* ── CANVAS AURORA BACKGROUND ── */}
       <AuroraBackground activityLevel={1} />
 
+      {/* Content wrapper — pulled up 112px from center */}
+      <div className="relative z-10 flex flex-col items-center w-full" style={{ transform: 'translateY(-112px)' }}>
+
 
       {/* ── BRAND LOCKUP ── */}
       <div className="relative z-10 text-center mb-6 em-panel-enter" style={{ animationDelay: '0ms' }}>
@@ -410,6 +413,7 @@ export default function LoginPage({ onAuthSuccess }) {
       <p className="relative z-10 text-center text-[11px] mt-4 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
         Auroraly — AI Builder Platform · <span style={{ color: '#4B5178' }}>An Aetherly Studio product</span>
       </p>
+      </div>
     </div>
   )
 }
