@@ -26,6 +26,39 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### 🎨 REBRAND — Emanator → Auroraly under Aetherly Studio (COMPLETE, 2026-05-01)
+
+**Status**: Code rebrand complete, awaiting GitHub push + production deploy.
+
+**Reason for rebrand**: Discovered USPTO trademark filing for "EMANATOR" by Reactance LLC (Class 009 — software for stage lighting/effects, "Approved for Publication" status). Decision: rebrand pre-launch while brand equity = $0 to avoid future cease-and-desist or rebrand costs.
+
+**Brand decisions**:
+- **Parent LLC**: Aetherly Studio (Hebrew aether = breath/spirit; envisioned as a multi-product studio)
+- **Product**: Auroraly (ties to existing aurora background animation = built-in brand cohesion)
+- **Tagline**: "From thought to reality. By Aetherly Studio."
+- **Domains acquired** (Porkbun, $40 total/yr):
+  - `auroraly.co` — primary product domain
+  - `aetherly.co` — parent company site (parked for now)
+- **Trademark verification**: USPTO search clean for both Auroraly + Aetherly in Class 042 (SaaS).
+
+**Code changes**:
+- Replaced `Emanator` → `Auroraly` across 35+ user-visible files (app name, page titles, AI system prompt, login/pricing footer, Stripe product names, exported project READMEs)
+- New transparent logo at `/public/auroraly-logo.png`
+- Login/Pricing footer: "Auroraly — AI Builder Platform · An Aetherly Studio product"
+- Aurora background: locked beautiful "connected" defaults (TOP + BL + BR merge into one continuous aurora) per user-curated slider values
+- Aurora persistence: ported from broken in-memory storage to MongoDB (`aurora_config` collection, single `singleton` doc) — saves now persist across server restarts
+- Aurora activity-level escalation **DISABLED** (stays calm during app usage; previously got more "active" with chat → user found this distracting)
+
+**Pending**:
+- 🟡 User to click "Save to GitHub" to push 7 commits
+- 🟡 Porkbun DNS not yet wired (still showing `pixie.porkbun.com` parking records)
+- 🟡 Vercel domain swap pending DNS propagation
+- 🟡 Aetherly Studio LLC formation in NY (~$800 yr 1, 1-7 day timeline)
+- 🟡 Stripe Live mode pending LLC EIN
+- 🟡 OAuth verification for Google (eliminates "unverified app" warning) pending Privacy + Terms pages
+
+---
+
 ### 🚀 PRODUCTION LAUNCH — Live on www.emanatorapp.com (COMPLETE, 2026-04-29)
 
 **Status**: SHIPPED 🎉 — Emanator is live in production, taking real payments via Stripe Test mode, fully decoupled from Emergent.
