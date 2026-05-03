@@ -51,4 +51,29 @@
 - Conflict resolution: preferred local changes for the 5 shared files (README.md, app/api/[[...path]]/route.js, app/api/debug/mongo/route.js, lib/ai/message-stream.js, lib/api/routes/live-promote.js) — the remote edits were trivial author-bypass commits.
 - Pushed `6294e3e..befc1a7` to `main`. Token revoked, remote URL sanitized.
 - All Auroraly rebrand artifacts now live on GitHub: SVG/PNG logo, login UI tightening, Aurora MongoDB persistence, locked default Aurora layout, Aetherly Studio footer.
-- Vercel auto-deploy expected to fire from the push. Awaiting user verification on emanatorapp.com.
+
+## 2026-05-03 — auroraly.co LIVE + AI Builder Quality Fixes (9 commits)
+Domain: **auroraly.co is live on Vercel Pro.** DNS + Supabase Site URL + env vars all swapped.
+
+### Commit train pushed today
+- `b5f6d9a` — raise `maxDuration` 60→300s (Vercel Pro unlocks it)
+- `d369c6a` — `imageAttachments is not defined` planner crash fix + guard non-image providers
+- `6ffe650` — scaffold `max_tokens` 8192→16384 + better wave-failure diagnostics
+- `b5fddd0` — OpenAI reasoning models (gpt-5.x, o-series) use `max_completion_tokens`, no `temperature`
+- `8ed5064` — fresh-project routing to new pipeline + brief-driven design + tool-call retry + real error messages
+- `8210acc` — default new projects to Claude Sonnet 4.5 (best tool-caller available)
+- `fc2f8b2` — TDZ fix: removed `effectiveScope` reference before declaration (was breaking every build)
+- `e710453` — regression test guarding against TDZ bugs in message-stream.js
+- `9e6da7f` — derive brandName + projectDesc from short chat messages (no more "My App" defaults)
+- `b8170eb` — stronger visual-excellence prompts (mandatory hero imagery, 2-font pairing, concrete subject imagery, 300-line floor)
+
+### Upgrades / config
+- Vercel plan: **Hobby → Pro** ($20/mo). Lifts function timeout, enables collaborator commits.
+- Supabase Site URL swapped: `emanatorapp.com` → `www.auroraly.co`
+- Creative Brief pipeline confirmed working end-to-end: "Cozy Coffee" produced real coffee copy (8 routes, 16 files, 293s run).
+
+### Known outstanding
+- **Chat-only short prompts** ("landing page for coffee shop" typed directly in chat) need commit `9e6da7f` verified after user retests. Fix derives brand from "for a ___" clause.
+- **Visual quality** still to be validated post `b8170eb` — next user test will tell us if the stronger prompt produces designer-quality output.
+- Old zombie projects ("Nexsara", "Koffee Krazy", etc.) still hold stale error messages — expected, they were built under bugged code.
+
