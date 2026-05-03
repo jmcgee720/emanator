@@ -42,7 +42,7 @@ import * as projectsRoutes from '@/lib/api/routes/projects'
 // App Router handles request bodies via Web Request streaming — no config needed.
 // For large uploads, routes read the body directly via req.formData() / req.json().
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 300
 
 // Phase 1 module dispatch order (CRITICAL: preserve evaluation order)
 const phase1Modules = [
