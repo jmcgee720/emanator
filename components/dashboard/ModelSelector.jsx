@@ -71,6 +71,22 @@ const MODEL_COST_TIERS = {
   'gemini-2.5-flash':                 { credits: 0.25, label: 'Standard' },
 }
 
+const SMALL_MODELS_FOR_BUILD = new Set([
+  'gpt-4o-mini',
+  'claude-haiku-4-5-20251001',
+  'gemini-2.5-flash',
+])
+
+const MODEL_NOTES = {
+  'gpt-4o-mini': 'Best for quick edits — may struggle with initial app builds.',
+  'claude-haiku-4-5-20251001': 'Best for quick edits — may struggle with initial app builds.',
+  'gemini-2.5-flash': 'Best for quick edits — may struggle with initial app builds.',
+}
+
+// Silence unused-var lint while keeping the constant available for future
+// runtime guards in the dashboard (initial-build check).
+void SMALL_MODELS_FOR_BUILD
+
 const COST_COLORS = {
   Standard: 'text-emerald-400/70',
   High:     'text-amber-400/70',
@@ -139,6 +155,7 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
               <DropdownMenuGroup>
                 {prov.models.map((m) => {
                   const isDisabled = statusKey !== 'ready' && statusKey !== 'unknown' && statusKey !== 'billing_issue'
+                  const note = MODEL_NOTES[m.id]
                   return (
                     <DropdownMenuItem
                       key={m.id}
@@ -146,21 +163,28 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
                       className={`cursor-pointer ${isDisabled ? 'opacity-50' : ''}`}
                       data-testid={`model-option-${m.id}`}
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          {provider === prov.id && model === m.id && (
-                            <Check className="w-3 h-3 text-primary" />
+                      <div className="flex flex-col w-full gap-0.5">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            {provider === prov.id && model === m.id && (
+                              <Check className="w-3 h-3 text-primary" />
+                            )}
+                            <span className={provider === prov.id && model === m.id ? 'font-medium' : ''}>
+                              {m.name}
+                            </span>
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] ${m.badgeColor}`}>
+                            {m.badge}
+                          </Badge>
+                          {MODEL_COST_TIERS[m.id] && (
+                            <span className={`text-[9px] font-normal ml-1 ${COST_COLORS[MODEL_COST_TIERS[m.id].label] || 'text-zinc-500'}`} data-testid={`model-cost-${m.id}`}>
+                              {MODEL_COST_TIERS[m.id].credits} cr
+                            </span>
                           )}
-                          <span className={provider === prov.id && model === m.id ? 'font-medium' : ''}>
-                            {m.name}
-                          </span>
                         </div>
-                        <Badge variant="outline" className={`text-[10px] ${m.badgeColor}`}>
-                          {m.badge}
-                        </Badge>
-                        {MODEL_COST_TIERS[m.id] && (
-                          <span className={`text-[9px] font-normal ml-1 ${COST_COLORS[MODEL_COST_TIERS[m.id].label] || 'text-zinc-500'}`} data-testid={`model-cost-${m.id}`}>
-                            {MODEL_COST_TIERS[m.id].credits} cr
+                        {note && (
+                          <span className="text-[9px] text-amber-400/70 italic pl-5" data-testid={`model-note-${m.id}`}>
+                            {note}
                           </span>
                         )}
                       </div>
