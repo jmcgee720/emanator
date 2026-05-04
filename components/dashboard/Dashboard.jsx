@@ -590,14 +590,18 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const isFreshProject = !files || files.length === 0
       if (pending.fullInstruction && isFreshProject) {
         console.log('[HeroPromptEffect] Routing brief build → BuildWizard (fresh project)')
+        // Prefer the model selected in the Creative Brief form; fall back to
+        // the chat-footer dropdown's provider/model if user didn't pick one.
+        const modelProvider = pending.modelChoice?.provider || aiProvider
+        const modelId = pending.modelChoice?.model || aiModel
         setBuildWizardConfig({
           projectId: selectedProject.id,
           chatId: selectedChat.id,
           message: pending.fullInstruction,
           displayMessage: pending.displayMessage,
           attachments: pending.attachments || [],
-          provider: aiProvider,
-          model: aiModel,
+          provider: modelProvider,
+          model: modelId,
         })
         return
       }

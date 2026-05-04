@@ -120,10 +120,10 @@ export default function ProjectGrid({
               </button>
               <InlineBrief
                 isOwner={isOwner}
-                onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments) => {
+                onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments, modelChoice) => {
                   setHeroSubmitting(true)
                   try {
-                    pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments }
+                    pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments, modelChoice }
                     const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
                     const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build'
                     importChatTitleRef.current = chatTitle
