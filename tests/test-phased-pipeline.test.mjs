@@ -50,9 +50,10 @@ const fakeLLMProvider = {
     if (sys.includes('senior product designer. Given a brand mood')) return JSON.stringify(fakeTokens)
     return '{}'
   },
-  async chatWithTools(messages, tools, options) {
-    // Simulate compose: return 2 files
-    return {
+  async *chatWithToolsStream(messages, tools, options) {
+    // Emit minimal stream: one final tool_calls bundle
+    yield {
+      type: 'tool_calls',
       tool_calls: [{
         function: {
           name: 'create_files',
@@ -65,6 +66,7 @@ const fakeLLMProvider = {
         },
       }],
     }
+    yield { type: 'done' }
   },
 }
 
