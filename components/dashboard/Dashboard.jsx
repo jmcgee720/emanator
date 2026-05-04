@@ -13,6 +13,7 @@ import AdminPanel from './AdminPanel'
 import SearchPanel from './SearchPanel'
 import CanvasPanel from './CanvasPanel'
 import InlineBrief from './InlineBrief'
+import BuildWizard from './BuildWizard'
 import ProjectGrid from './ProjectGrid'
 import DesignPanel from './DesignPanel'
 import VariationStudio from './VariationStudio'
@@ -418,6 +419,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const tabChatStateRef = useRef({})
   const pendingRestoreChatRef = useRef(null)
   const coreProjectIdRef = useRef(null)
+  const [buildWizardConfig, setBuildWizardConfig] = useState(null)
   const { toast } = useToast()
 
   const [logs, setLogs] = useState([
@@ -581,7 +583,26 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       const pending = pendingHeroPromptRef.current
       pendingHeroPromptRef.current = null
       briefBuildActiveRef.current = true
-      // If it's a brief build with split messages, send display + instruction separately
+
+      // If it's a brief build on a fresh project (no files yet), route to the
+      // stepped BuildWizard — avoids the Vercel 300s streaming timeout by
+      // breaking the build into 5 discrete API calls the user advances through.
+      const isFreshProject = !files || files.length === 0
+      if (pending.fullInstruction && isFreshProject) {
+        console.log('[HeroPromptEffect] Routing brief build → BuildWizard (fresh project)')
+        setBuildWizardConfig({
+          projectId: selectedProject.id,
+          chatId: selectedChat.id,
+          message: pending.fullInstruction,
+          displayMessage: pending.displayMessage,
+          attachments: pending.attachments || [],
+          provider: aiProvider,
+          model: aiModel,
+        })
+        return
+      }
+
+      // Legacy path for edits / non-brief builds / projects with existing files
       if (pending.fullInstruction) {
         console.log('[HeroPromptEffect] SENDING brief build, display:', pending.displayMessage?.length, 'instruction:', pending.fullInstruction?.length)
         sendMessage(pending.displayMessage, pending.attachments || null, { hiddenInstruction: pending.fullInstruction })
@@ -1483,6 +1504,35 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
           onUpdate={setDesignPrefs}
           onClose={() => setShowDesign(false)}
         />
+      )}
+
+      {buildWizardConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" data-testid="build-wizard-overlay">
+          <div className="w-full max-w-xl">
+            <BuildWizard
+              projectId={buildWizardConfig.projectId}
+              chatId={buildWizardConfig.chatId}
+              message={buildWizardConfig.message}
+              attachments={buildWizardConfig.attachments}
+              provider={buildWizardConfig.provider}
+              model={buildWizardConfig.model}
+              onComplete={async (resp) => {
+                console.log('[Dashboard] BuildWizard complete:', resp)
+                toast({ title: 'Build complete', description: `${resp.fileCount || 0} files created. Refreshing preview...` })
+                briefBuildActiveRef.current = false
+                setTimeout(() => {
+                  setBuildWizardConfig(null)
+                  if (loadProjectData && selectedProject) loadProjectData(selectedProject.id)
+                  setAssetsRefreshKey((k) => k + 1)
+                }, 1500)
+              }}
+              onCancel={() => {
+                setBuildWizardConfig(null)
+                briefBuildActiveRef.current = false
+              }}
+            />
+          </div>
+        </div>
       )}
 
       <VariationStudio

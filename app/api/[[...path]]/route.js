@@ -26,6 +26,7 @@ import * as auroraRoutes from '@/lib/api/routes/aurora'
 import * as shareRoutes from '@/lib/api/routes/share'
 import * as galleryRoutes from '@/lib/api/routes/gallery'
 import * as marketplaceRoutes from '@/lib/api/routes/marketplace'
+import * as buildStepsRoutes from '@/lib/api/routes/build-steps'
 
 // Phase 2 route modules
 import * as adminUsersRoutes from '@/lib/api/routes/admin-users'
@@ -68,6 +69,7 @@ const phase1Modules = [
   shareRoutes,
   galleryRoutes,
   marketplaceRoutes,
+  buildStepsRoutes,
 ]
 
 // Phase 2 module dispatch order (CRITICAL: projectsRoutes MUST be last — its regex swallows /projects/:id)
