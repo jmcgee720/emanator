@@ -307,10 +307,19 @@ function saveDraft(brief) {
   } catch {}
 }
 
+const BRIEF_MODEL_OPTIONS = [
+  { provider: 'anthropic', model: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5', hint: 'Best for app builds (recommended)' },
+  { provider: 'anthropic', model: 'claude-opus-4-5-20251101',   label: 'Claude Opus 4.5',   hint: 'Most powerful, slower, premium' },
+  { provider: 'gemini',    model: 'gemini-2.5-pro',             label: 'Gemini 2.5 Pro',    hint: 'Google — strong reasoning' },
+  { provider: 'openai',    model: 'gpt-5.2',                    label: 'GPT-5.2',           hint: 'OpenAI — may require tier-1 access' },
+  { provider: 'openai',    model: 'gpt-4o',                     label: 'GPT-4o',            hint: 'OpenAI — older, may require access' },
+]
+
 export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem, onNewProject, saving: externalSaving }) {
   const [brief, setBrief] = useState(() => loadDraft())
   const [starting, setStarting] = useState(false)
   const [openSections, setOpenSections] = useState({ big_picture: true })
+  const [selectedModelIdx, setSelectedModelIdx] = useState(0) // defaults to Claude Sonnet 4.5
   const [showDraftNotice, setShowDraftNotice] = useState(() => {
     try { return !!localStorage.getItem(STORAGE_KEY) } catch { return false }
   })
@@ -335,7 +344,8 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
     if (!result) return
     setStarting(true)
     try {
-      await onStartBuilding(result.displayMessage, result.fullInstruction, brief, result.attachments)
+      const modelChoice = BRIEF_MODEL_OPTIONS[selectedModelIdx]
+      await onStartBuilding(result.displayMessage, result.fullInstruction, brief, result.attachments, modelChoice)
     } finally {
       setStarting(false)
     }
@@ -442,6 +452,26 @@ export default function InlineBrief({ onStartBuilding, isOwner, onOpenCoreSystem
         </div>
 
         <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="mb-3">
+            <label className="block text-[11px] uppercase tracking-wider text-white/50 mb-1.5" htmlFor="brief-model-picker">AI model</label>
+            <div className="relative">
+              <select
+                id="brief-model-picker"
+                value={selectedModelIdx}
+                onChange={(e) => setSelectedModelIdx(Number(e.target.value))}
+                className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 pr-10 text-sm text-white/90 focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-white/[0.05] transition"
+                data-testid="brief-model-picker"
+              >
+                {BRIEF_MODEL_OPTIONS.map((m, i) => (
+                  <option key={`${m.provider}-${m.model}`} value={i} style={{ color: '#111' }}>
+                    {m.label} — {m.hint}
+                  </option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+
           <button
             onClick={handleStart}
             disabled={!hasContent || starting}
