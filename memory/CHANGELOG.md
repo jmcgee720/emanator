@@ -1,5 +1,17 @@
 # Changelog
 
+
+## 2026-02-XX - Phase 4 Image Fallback Chain (Current Fork)
+### Image generation no longer depends on Gemini billing tier
+- **Phase 4 fallback chain**: Gemini Nano Banana → OpenAI gpt-image-1 → subject-aware stock
+- When Gemini fails (Free tier, quota, outage), OpenAI gpt-image-1 takes over using existing OPENAI_API_KEY — no user action needed
+- Subject-aware stock picker scores candidates against per-image manifest subject keywords; coffee-shop briefs no longer return pizza/salad photos
+- Expanded food stock library with 8 coffee/cafe/bar/bistro photos
+- BuildWizard UI shows breakdown: "Gemini N · OpenAI fallback M · Stock K"
+- /api/build/ping-nano-banana now probes BOTH providers and returns unified status
+- Tests: tests/test-phase4-fallback.test.mjs (4/4 passing — verifies all fallback paths)
+- Local commits ready to push: `3db628b`, `d62242e` (awaiting GitHub PAT)
+
 ## 2026-02 (Previous Sessions)
 - Dashboard UI anomalies fixed, service.js Phase 2 refactoring
 - Site Monitor, Deploy Tab, Share Preview, Project Templates, OOM fix
