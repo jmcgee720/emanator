@@ -216,7 +216,7 @@ function PhasePreview({ phaseId, result }) {
     return (
       <div className="rounded-xl bg-white/[0.03] border border-white/5 p-3 space-y-2">
         <div className="text-xs text-white/70">
-          Generated {result.generatedCount} · Stock fallback {result.stockCount}
+          Gemini {result.generatedCount} · OpenAI fallback {result.openaiCount || 0} · Stock {result.stockCount}
         </div>
         <div className="grid grid-cols-6 gap-1">
           {result.thumbnails.slice(0, 12).map((t, i) => (
