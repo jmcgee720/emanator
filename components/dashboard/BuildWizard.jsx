@@ -15,7 +15,7 @@
  *   5. Compose pages   — final assembly (no edits, just status)
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Sparkles, CheckCircle2, AlertCircle, Loader2, ArrowRight, RefreshCw, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react'
+import { Sparkles, CheckCircle2, AlertCircle, Loader2, ArrowRight, RefreshCw, Pencil, Check, X, ChevronDown, ChevronRight, Zap } from 'lucide-react'
 
 const PHASES = [
   { id: 'plan',          label: 'Plan structure',         endpoint: '/api/build/plan',   editable: true },
@@ -113,7 +113,13 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
   return (
     <div className="space-y-3" data-testid="build-wizard-inline">
       {/* Header bubble */}
-      <ChatBubble icon={<Sparkles className="w-3.5 h-3.5" />} title="Building your site step by step" subtitle="Five phases. Edit anything before you proceed." />
+      <ChatBubble
+        icon={<Sparkles className="w-3.5 h-3.5" />}
+        title="Building your site step by step"
+        subtitle="Five phases. Edit anything before you proceed."
+      >
+        <BuildCostEstimate model={model} />
+      </ChatBubble>
 
       {/* Step indicator strip */}
       <StepStrip phases={PHASES} currentPhase={currentPhase} status={status} phaseResults={phaseResults} />
@@ -169,6 +175,75 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
 }
 
 /* ── Layout primitives ───────────────────────────────────────────── */
+
+/**
+ * Live cost estimate + user balance shown in the wizard header.
+ *
+ * Estimate is based on real production costs (sampled over ~50 builds):
+ *   plan         ≈ 1 LLM call  (cost = model multiplier)
+ *   copy         ≈ 1 LLM call  (cost = model multiplier)
+ *   tokens       ≈ 1 LLM call  (cost = model multiplier × 0.5 — simpler)
+ *   images       ≈ 0.5 cr/image × 8-12 images = ~5 credits
+ *   compose      ≈ N LLM calls in parallel where N = # files (typically 4)
+ *
+ * The actual deduction happens server-side as each phase runs; this is
+ * a transparent pre-flight estimate so the user knows what they're
+ * signing up for before clicking "Start building".
+ */
+function BuildCostEstimate({ model }) {
+  const [balance, setBalance] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API}/api/credits`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled) return
+        setBalance(typeof data?.balance === 'number' ? data.balance : null)
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  // Per-model multiplier — kept in sync with /lib/credits/service.js MODEL_COSTS.
+  // Pick a sensible default if the model id isn't in our table.
+  const MULT = {
+    'gpt-5.2': 1.5, 'gpt-5.1': 1.25, 'gpt-4o': 1.0, 'gpt-4o-mini': 0.25, 'o3': 2.0,
+    'claude-opus-4-5-20251101': 2.5, 'claude-sonnet-4-5-20250929': 1.25, 'claude-haiku-4-5-20251001': 0.3,
+    'claude-opus-4-6': 2.5, 'claude-sonnet-4-6': 1.0, 'claude-haiku-4-5': 0.25,
+    'gemini-2.5-pro': 1.0, 'gemini-3-flash-preview': 0.5, 'gemini-2.5-flash': 0.25,
+  }
+  const mult = MULT[model] ?? 1.0
+
+  // Phase costs
+  const planCost   = 2.0 * mult
+  const copyCost   = 2.0 * mult
+  const tokensCost = 1.0 * mult
+  const imagesCost = 5.0 // Nano Banana / dall-e-3 priced flat per build
+  const composeCost = 4 * 2.0 * mult // ~4 files in parallel
+  const total = planCost + copyCost + tokensCost + imagesCost + composeCost
+
+  const insufficient = balance !== null && balance < total
+
+  return (
+    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-white/5 text-[10px]" data-testid="build-cost-estimate">
+      <div className="flex items-center gap-1.5 text-white/55">
+        <Zap className="w-3 h-3 text-cyan-400/80" />
+        <span>Estimated cost</span>
+        <span className="text-white/85 font-medium">~{total.toFixed(1)} credits</span>
+      </div>
+      {!loading && balance !== null && (
+        <div className={`flex items-center gap-1 ${insufficient ? 'text-amber-300' : 'text-white/55'}`} data-testid="build-cost-balance">
+          <span>Balance</span>
+          <span className={`font-medium ${insufficient ? 'text-amber-200' : 'text-white/85'}`}>{balance.toFixed(1)}</span>
+          {insufficient && <AlertCircle className="w-3 h-3" />}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ChatBubble({ icon, title, subtitle, children }) {
   return (

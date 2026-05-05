@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Trash2, LayoutGrid, CreditCard, X, Archive, ArchiveRestore } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
 import InlineBrief from './InlineBrief'
@@ -21,12 +21,68 @@ function ProjectThumbnail({ projectId, projectName }) {
     .slice(0, 2)
     .map(w => w[0]?.toUpperCase() || '')
     .join('')
+
+  // Fetch the latest preview snapshot HTML for this project. The snapshot
+  // is written by PreviewTab whenever the user actually views the live
+  // preview, so an unbuilt project simply has no snapshot and shows the
+  // gradient + initials placeholder.
+  const [snapshot, setSnapshot] = useState(null)
+  const [snapshotLoaded, setSnapshotLoaded] = useState(false)
+  useEffect(() => {
+    if (!projectId) return
+    let cancelled = false
+    authFetch(`/api/projects/${projectId}/preview-snapshot`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled) return
+        const html = data?.snapshot?.html
+        setSnapshot(typeof html === 'string' && html.length > 100 ? html : null)
+        setSnapshotLoaded(true)
+      })
+      .catch(() => { if (!cancelled) setSnapshotLoaded(true) })
+    return () => { cancelled = true }
+  }, [projectId])
+
+  if (snapshot) {
+    return (
+      <div
+        className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] relative overflow-hidden bg-white"
+        data-testid={`project-thumbnail-${projectId}`}
+      >
+        <iframe
+          srcDoc={snapshot}
+          title={`${projectName} preview`}
+          loading="lazy"
+          aria-hidden="true"
+          tabIndex={-1}
+          className="absolute top-0 left-0 origin-top-left"
+          // Render the iframe at 1280×960 then scale down. pointer-events:none
+          // means clicks pass through to the parent project card.
+          style={{
+            width: '1280px',
+            height: '960px',
+            transform: 'scale(0.234)',
+            pointerEvents: 'none',
+            border: 'none',
+          }}
+          sandbox="allow-same-origin"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+      </div>
+    )
+  }
+
+  // Loading or no snapshot — gradient + initials placeholder
   return (
     <div
       className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center"
       style={{ background: `linear-gradient(135deg, ${bg1}, ${bg2})` }}
     >
-      <span className="text-lg font-semibold text-white/30 select-none">{initials || 'P'}</span>
+      <span className="text-lg font-semibold text-white/30 select-none">
+        {snapshotLoaded ? (initials || 'P') : (
+          <span className="opacity-50 text-xs">Loading…</span>
+        )}
+      </span>
     </div>
   )
 }
