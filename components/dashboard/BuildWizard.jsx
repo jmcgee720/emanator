@@ -138,11 +138,7 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
             errorMessage={isErrored ? error?.message : null}
             onSaveEdits={(edits) => handleSaveEdits(phase.id, edits)}
             footer={
-              isRunning ? (
-                <div className="flex items-center gap-2 text-xs text-white/50 px-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Working on this — usually under a minute…
-                </div>
-              ) : isErrored ? (
+              isRunning ? null : isErrored ? (
                 <button onClick={handleRetry} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-medium px-3 py-1.5 transition" data-testid="build-wizard-retry">
                   <RefreshCw className="w-3 h-3" /> Retry this step
                 </button>
@@ -218,12 +214,80 @@ function PhaseCard({ phase, result, running, errored, errorMessage, onSaveEdits,
       {errored ? (
         <div className="text-[11px] text-red-200/85 break-words mb-2">{errorMessage}</div>
       ) : running ? (
-        <div className="text-[11px] text-white/45">Generating with the AI…</div>
+        <PhaseProgress phaseId={phase.id} />
       ) : result ? (
         <PhaseBody phaseId={phase.id} result={result} onSaveEdits={onSaveEdits} />
       ) : null}
 
       {footer && <div className="mt-3">{footer}</div>}
+    </div>
+  )
+}
+
+/**
+ * Smooth time-based progress bar shown during a running phase.
+ *
+ * Each phase has a known typical duration (measured from real runs).
+ * The bar fills using `1 - exp(-t/τ)` where τ ≈ duration, so it grows
+ * fast early then asymptotes near 95% — giving the user honest "still
+ * working" signal without ever hitting 100% before the response lands.
+ * When the phase actually completes, the parent unmounts this component
+ * and the result body replaces it (which is its own visible signal).
+ */
+const PHASE_DURATIONS_S = {
+  plan:          25,
+  copy:          30,
+  design_tokens: 15,
+  images:        45,
+  compose:       70,
+}
+const PHASE_LABELS = {
+  plan:          'Mapping out structure & sections',
+  copy:          'Writing every headline, subhead and CTA',
+  design_tokens: 'Picking palette and pairing fonts',
+  images:        'Generating custom images with Nano Banana',
+  compose:       'Stitching JSX together for every page',
+}
+
+function PhaseProgress({ phaseId }) {
+  const [pct, setPct] = useState(2)
+  const [elapsed, setElapsed] = useState(0)
+  const startRef = useRef(Date.now())
+  const target = PHASE_DURATIONS_S[phaseId] || 30
+
+  useEffect(() => {
+    startRef.current = Date.now()
+    setPct(2)
+    setElapsed(0)
+    const id = setInterval(() => {
+      const t = (Date.now() - startRef.current) / 1000 // seconds
+      // Asymptote toward 95% — never claim 100% until the phase resolves
+      const next = Math.min(95, 100 * (1 - Math.exp(-t / (target * 0.7))))
+      setPct(next)
+      setElapsed(Math.floor(t))
+    }, 250)
+    return () => clearInterval(id)
+  }, [phaseId, target])
+
+  const remaining = Math.max(0, target - elapsed)
+
+  return (
+    <div className="space-y-1.5" data-testid={`phase-progress-${phaseId}`}>
+      <div className="text-[11px] text-white/55">
+        {PHASE_LABELS[phaseId] || 'Working on this…'}
+      </div>
+      <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-[width] duration-300 ease-out"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-white/40">
+        <span>{Math.floor(pct)}%</span>
+        <span>
+          {elapsed < target ? `~${remaining}s remaining` : 'Almost there…'}
+        </span>
+      </div>
     </div>
   )
 }
