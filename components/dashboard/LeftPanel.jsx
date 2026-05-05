@@ -273,6 +273,7 @@ export default function LeftPanel({
   buildMilestones,
   buildLog,
   buildWizardConfig,
+  projectLoading,
   onBuildWizardComplete,
   onBuildWizardCancel
 }) {
@@ -484,6 +485,27 @@ export default function LeftPanel({
         data-testid="messages-area"
       >
         <div className="p-3 space-y-3 w-full min-w-0">
+          {/* Loading skeleton — shown while project data is fetching so
+              the user sees activity instead of an empty void (which made
+              users think the project was deleted). */}
+          {projectLoading && messages.length === 0 && !isStreaming && !buildWizardConfig && (
+            <div className="space-y-3 py-2" data-testid="chat-loading-skeleton">
+              <div className="flex items-center gap-2 text-[11px] text-white/45 animate-pulse">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Loading your conversation…</span>
+              </div>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className={`flex gap-2.5 ${i === 2 ? 'flex-row-reverse' : ''}`}>
+                  <div className="w-7 h-7 rounded-full bg-white/[0.04] flex-shrink-0 animate-pulse" />
+                  <div className={`flex-1 max-w-[82%] space-y-1.5 ${i === 2 ? 'items-end' : ''}`}>
+                    <div className="h-3 rounded bg-white/[0.04] animate-pulse" style={{ width: `${65 + i * 8}%` }} />
+                    <div className="h-3 rounded bg-white/[0.03] animate-pulse" style={{ width: `${40 + i * 5}%`, animationDelay: '120ms' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Persistent Build Log — phrases stay visible as a build timeline */}
           {buildLog?.length > 0 && (
             <div className="space-y-0.5 py-2" data-testid="build-log">

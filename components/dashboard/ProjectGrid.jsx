@@ -72,17 +72,31 @@ function ProjectThumbnail({ projectId, projectName }) {
     )
   }
 
-  // Loading or no snapshot — gradient + initials placeholder
+  // Loading or no snapshot — gradient + initials placeholder.
+  // The "view to generate preview" caption is a subtle hint so users
+  // understand the missing thumbnail isn't a bug — it just means they
+  // haven't opened this project recently. Once they do, PreviewTab
+  // saves a snapshot and the next time they hit Project Bin the live
+  // thumbnail appears.
   return (
     <div
-      className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] flex items-center justify-center"
+      className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] flex flex-col items-center justify-center relative"
       style={{ background: `linear-gradient(135deg, ${bg1}, ${bg2})` }}
+      data-testid={`project-thumbnail-${projectId}-placeholder`}
     >
-      <span className="text-lg font-semibold text-white/30 select-none">
-        {snapshotLoaded ? (initials || 'P') : (
-          <span className="opacity-50 text-xs">Loading…</span>
-        )}
-      </span>
+      {snapshotLoaded ? (
+        <>
+          <span className="text-2xl font-semibold text-white/35 select-none">{initials || 'P'}</span>
+          <span className="text-[9px] text-white/30 mt-1.5 px-3 text-center">
+            Open to generate preview
+          </span>
+        </>
+      ) : (
+        <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
+          <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
+          <span>Loading…</span>
+        </div>
+      )}
     </div>
   )
 }
