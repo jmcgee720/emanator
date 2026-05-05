@@ -14,7 +14,7 @@
  *   4. Generate imagery — thumbnail grid with regenerate-on-edit
  *   5. Compose pages   — final assembly (no edits, just status)
  */
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, ArrowRight, RefreshCw, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react'
 
 const PHASES = [
@@ -327,7 +327,38 @@ function CopyBody({ copy, onSave }) {
 
 /* ── Phase 3: Tokens (palette + fonts) ───────────────────────────── */
 
+// Google Fonts available in the typography picker. Listed once here so
+// useGoogleFontsLoader can preload them all and FontPicker shows previews
+// in their native typeface.
+const FONT_OPTS = [
+  'Inter', 'Manrope', 'DM Sans', 'Plus Jakarta Sans', 'Space Grotesk',
+  'Bricolage Grotesque', 'Playfair Display', 'Fraunces',
+  'Cormorant Garamond', 'JetBrains Mono', 'Archivo', 'Outfit',
+  'Lora', 'EB Garamond', 'Crimson Pro', 'Merriweather',
+  'Oswald', 'Raleway', 'Poppins', 'Work Sans',
+]
+
+/**
+ * Inject a single Google Fonts <link> tag with all FONT_OPTS preloaded
+ * so each option in the FontPicker dropdown renders in its actual
+ * typeface. Idempotent — re-runs on prop changes are no-ops.
+ */
+function useGoogleFontsLoader(fontList) {
+  useEffect(() => {
+    const id = 'auroraly-wizard-google-fonts'
+    if (document.getElementById(id)) return
+    // Build family= param: "Inter|Manrope|DM+Sans|..."
+    const families = fontList.map((f) => `${f.replace(/\s+/g, '+')}:wght@400;600`).join('&family=')
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`
+    document.head.appendChild(link)
+  }, [fontList])
+}
+
 function TokensBody({ tokens, onSave }) {
+  useGoogleFontsLoader(FONT_OPTS)
   const palette = tokens.palette?.hex || {}
   const [draft, setDraft] = useState(palette)
   const [displayFont, setDisplayFont] = useState(tokens.typography?.displayFamily || '')
@@ -350,7 +381,6 @@ function TokensBody({ tokens, onSave }) {
   }
 
   const swatches = Object.entries(draft).slice(0, 8)
-  const FONT_OPTS = ['Inter', 'Manrope', 'DM Sans', 'Plus Jakarta Sans', 'Playfair Display', 'Fraunces', 'Cormorant Garamond', 'Space Grotesk', 'JetBrains Mono', 'Bricolage Grotesque']
   const TREATMENT_OPTS = [
     { id: 'photographic_warm', label: 'Warm photographic' },
     { id: 'photographic_editorial', label: 'Editorial b&w' },
@@ -402,13 +432,51 @@ function TokensBody({ tokens, onSave }) {
 }
 
 function FontPicker({ label, value, options, onChange, testid }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
+  const fullList = options.includes(value) || !value ? options : [value, ...options]
+
   return (
-    <div>
+    <div ref={wrapRef} className="relative">
       <div className="text-[10px] font-medium text-white/55 uppercase tracking-wider mb-1">{label}</div>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/85 focus:outline-none focus:border-white/25" data-testid={testid}>
-        {!options.includes(value) && value && <option value={value} className="bg-zinc-900">{value}</option>}
-        {options.map((f) => <option key={f} value={f} className="bg-zinc-900">{f}</option>)}
-      </select>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-white/90 hover:border-white/20 focus:outline-none focus:border-white/30 flex items-center justify-between"
+        data-testid={testid}
+        style={{ fontFamily: value ? `"${value}", system-ui, sans-serif` : undefined }}
+      >
+        <span className="truncate">{value || 'Select a font'}</span>
+        <ChevronDown className={`w-3 h-3 flex-shrink-0 ml-1 text-white/45 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 z-50 mt-1 max-h-64 overflow-auto rounded-lg border border-white/15 bg-zinc-950/95 backdrop-blur-md shadow-2xl py-1" data-testid={`${testid}-menu`}>
+          {fullList.map((font) => (
+            <button
+              key={font}
+              type="button"
+              onClick={() => { onChange(font); setOpen(false) }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition flex items-center justify-between gap-2 ${value === font ? 'bg-white/[0.04] text-white' : 'text-white/85'}`}
+              style={{ fontFamily: `"${font}", system-ui, sans-serif` }}
+              data-testid={`${testid}-option-${font.replace(/\s+/g, '-')}`}
+            >
+              <span className="truncate">{font}</span>
+              {value === font && <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
