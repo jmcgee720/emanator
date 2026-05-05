@@ -13,7 +13,7 @@ import AdminPanel from './AdminPanel'
 import SearchPanel from './SearchPanel'
 import CanvasPanel from './CanvasPanel'
 import InlineBrief from './InlineBrief'
-import BuildWizard from './BuildWizard'
+// BuildWizard import removed — rendering moved into LeftPanel where the chat thread lives.
 import ProjectGrid from './ProjectGrid'
 import DesignPanel from './DesignPanel'
 import VariationStudio from './VariationStudio'
@@ -1432,6 +1432,21 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   onVisualModeChange={setVisualMode}
                   buildMilestones={buildMilestones}
                   buildLog={buildLog}
+                  buildWizardConfig={buildWizardConfig}
+                  onBuildWizardComplete={async (resp) => {
+                    console.log('[Dashboard] BuildWizard complete:', resp)
+                    toast({ title: 'Build complete', description: `${resp.fileCount || 0} files created. Refreshing preview...` })
+                    briefBuildActiveRef.current = false
+                    setTimeout(() => {
+                      setBuildWizardConfig(null)
+                      if (loadProjectData && selectedProject) loadProjectData(selectedProject.id)
+                      setAssetsRefreshKey((k) => k + 1)
+                    }, 1500)
+                  }}
+                  onBuildWizardCancel={() => {
+                    setBuildWizardConfig(null)
+                    briefBuildActiveRef.current = false
+                  }}
                 />
                 </div>
               </ResizablePanel>
@@ -1510,34 +1525,9 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         />
       )}
 
-      {buildWizardConfig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" data-testid="build-wizard-overlay">
-          <div className="w-full max-w-xl">
-            <BuildWizard
-              projectId={buildWizardConfig.projectId}
-              chatId={buildWizardConfig.chatId}
-              message={buildWizardConfig.message}
-              attachments={buildWizardConfig.attachments}
-              provider={buildWizardConfig.provider}
-              model={buildWizardConfig.model}
-              onComplete={async (resp) => {
-                console.log('[Dashboard] BuildWizard complete:', resp)
-                toast({ title: 'Build complete', description: `${resp.fileCount || 0} files created. Refreshing preview...` })
-                briefBuildActiveRef.current = false
-                setTimeout(() => {
-                  setBuildWizardConfig(null)
-                  if (loadProjectData && selectedProject) loadProjectData(selectedProject.id)
-                  setAssetsRefreshKey((k) => k + 1)
-                }, 1500)
-              }}
-              onCancel={() => {
-                setBuildWizardConfig(null)
-                briefBuildActiveRef.current = false
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* BuildWizard now renders inline inside the chat thread (LeftPanel)
+          rather than as a fullscreen modal overlay. State is still held
+          in `buildWizardConfig` and passed down through props. */}
 
       <VariationStudio
         key={`vs-${variationStudio.sourceImage?.id || 'new'}`}

@@ -59,6 +59,7 @@ import GeneratedImageCard from './GeneratedImageCard'
 import ImageGenerationProgress from './ImageGenerationProgress'
 import { AttachmentChips } from './AttachmentPreview'
 import SuggestionChips, { parseSuggestions } from './SuggestionChips'
+import BuildWizard from './BuildWizard'
 
 
 const WHIMSICAL_MAP = {
@@ -270,7 +271,10 @@ export default function LeftPanel({
   visualMode,
   onVisualModeChange,
   buildMilestones,
-  buildLog
+  buildLog,
+  buildWizardConfig,
+  onBuildWizardComplete,
+  onBuildWizardCancel
 }) {
   const [sending, setSending] = useState(false)
   const [forkingChat, setForkingChat] = useState(false)
@@ -763,6 +767,27 @@ export default function LeftPanel({
                   <span className="text-[11px] text-muted-foreground/50">{m.label}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Inline Build Wizard — appears as a chat-bubble-styled card
+              at the bottom of the conversation when a fresh project is
+              kicked off via the Creative Brief. Mounts with a unique
+              key per runner-projectId+chatId so changing project tears
+              down the wizard cleanly. */}
+          {buildWizardConfig && (
+            <div className="px-1 pt-2" data-testid="build-wizard-inline-host">
+              <BuildWizard
+                key={`bw-${buildWizardConfig.projectId}-${buildWizardConfig.chatId || 'no-chat'}`}
+                projectId={buildWizardConfig.projectId}
+                chatId={buildWizardConfig.chatId}
+                message={buildWizardConfig.message}
+                attachments={buildWizardConfig.attachments}
+                provider={buildWizardConfig.provider}
+                model={buildWizardConfig.model}
+                onComplete={onBuildWizardComplete}
+                onCancel={onBuildWizardCancel}
+              />
             </div>
           )}
 
