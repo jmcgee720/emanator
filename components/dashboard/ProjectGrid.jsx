@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { classifyProject, buildReactPreview, buildHtmlPreview } from './tabs/PreviewTab'
 import { Trash2, LayoutGrid, CreditCard, X, Archive, ArchiveRestore } from 'lucide-react'
 import { authFetch } from '@/lib/auth-fetch'
 import InlineBrief from './InlineBrief'
@@ -24,20 +25,62 @@ function ProjectThumbnail({ projectId, projectName }) {
 
   // Fetch the latest preview snapshot HTML for this project. The snapshot
   // is written by PreviewTab whenever the user actually views the live
-  // preview, so an unbuilt project simply has no snapshot and shows the
-  // gradient + initials placeholder.
+  // preview. If no snapshot exists, we lazily build one client-side from
+  // the project's files using the same buildReactPreview pipeline that
+  // PreviewTab uses — so users always get a real visual thumbnail
+  // instead of a generic placeholder, even on the very first load.
   const [snapshot, setSnapshot] = useState(null)
   const [snapshotLoaded, setSnapshotLoaded] = useState(false)
+  const [buildingFromFiles, setBuildingFromFiles] = useState(false)
+
   useEffect(() => {
     if (!projectId) return
     let cancelled = false
+
+    const lazyBuildFromFiles = async () => {
+      // No snapshot yet — fetch the project files, build a real preview
+      // HTML in-browser, and persist it as a snapshot so subsequent loads
+      // are instant.
+      setBuildingFromFiles(true)
+      try {
+        const filesRes = await authFetch(`/api/projects/${projectId}/files`)
+        if (!filesRes.ok) return
+        const files = await filesRes.json()
+        if (!Array.isArray(files) || files.length === 0) return
+        const info = classifyProject(files)
+        let html = null
+        if (info.type === 'react') html = buildReactPreview({ ...info, imageAssets: [] })
+        else if (info.type === 'html') html = buildHtmlPreview(info)
+        if (cancelled || !html) return
+        setSnapshot(html)
+        // Save snapshot to server so next visit is instant. Best-effort —
+        // don't fail the thumbnail render if the save errors.
+        const filesHash = files.map(f => `${f.path}:${f.content?.length || 0}`).join('|')
+        authFetch(`/api/projects/${projectId}/preview-snapshot`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html, files_hash: filesHash }),
+        }).catch(() => {})
+      } catch (err) {
+        console.warn(`[ProjectThumbnail:${projectId}] lazy build failed:`, err.message)
+      } finally {
+        if (!cancelled) setBuildingFromFiles(false)
+      }
+    }
+
     authFetch(`/api/projects/${projectId}/preview-snapshot`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (cancelled) return
         const html = data?.snapshot?.html
-        setSnapshot(typeof html === 'string' && html.length > 100 ? html : null)
-        setSnapshotLoaded(true)
+        if (typeof html === 'string' && html.length > 100) {
+          setSnapshot(html)
+          setSnapshotLoaded(true)
+        } else {
+          // No saved snapshot — try building one from files
+          setSnapshotLoaded(true)
+          lazyBuildFromFiles()
+        }
       })
       .catch(() => { if (!cancelled) setSnapshotLoaded(true) })
     return () => { cancelled = true }
@@ -65,30 +108,42 @@ function ProjectThumbnail({ projectId, projectName }) {
             pointerEvents: 'none',
             border: 'none',
           }}
-          sandbox="allow-same-origin"
+          // The buildReactPreview output uses Babel standalone to compile
+          // JSX in-browser, so the sandbox MUST allow scripts. allow-same-
+          // origin is also required for the inline <script>s to work.
+          // pointer-events:none on the <iframe> itself blocks clicks from
+          // reaching the iframe even though scripts run inside it.
+          sandbox="allow-scripts allow-same-origin"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
       </div>
     )
   }
 
-  // Loading or no snapshot — gradient + initials placeholder.
-  // The "view to generate preview" caption is a subtle hint so users
-  // understand the missing thumbnail isn't a bug — it just means they
-  // haven't opened this project recently. Once they do, PreviewTab
-  // saves a snapshot and the next time they hit Project Bin the live
-  // thumbnail appears.
+  // Loading or no snapshot — show building state OR gradient+initials.
+  // While we're lazy-building from files, show a "Building preview…"
+  // hint so the user knows something is happening.
   return (
     <div
       className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] flex flex-col items-center justify-center relative"
       style={{ background: `linear-gradient(135deg, ${bg1}, ${bg2})` }}
       data-testid={`project-thumbnail-${projectId}-placeholder`}
     >
-      {snapshotLoaded ? (
+      {buildingFromFiles ? (
+        <>
+          <div className="relative">
+            <div className="w-8 h-8 rounded-full border-2 border-white/15" />
+            <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
+          </div>
+          <span className="text-[9px] text-white/45 mt-2 px-3 text-center">
+            Building preview…
+          </span>
+        </>
+      ) : snapshotLoaded ? (
         <>
           <span className="text-2xl font-semibold text-white/35 select-none">{initials || 'P'}</span>
           <span className="text-[9px] text-white/30 mt-1.5 px-3 text-center">
-            Open to generate preview
+            No files yet
           </span>
         </>
       ) : (
