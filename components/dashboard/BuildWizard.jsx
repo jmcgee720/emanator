@@ -34,8 +34,21 @@ async function apiCall(endpoint, body) {
     credentials: 'include',
     body: JSON.stringify(body),
   })
-  const data = await res.json().catch(() => ({ error: 'bad_response' }))
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  // Read the response body once as text so we can both parse JSON AND
+  // show meaningful errors when the server returns HTML/empty (Vercel
+  // 504 timeout pages, function crashes, etc.) instead of JSON.
+  const rawText = await res.text()
+  let data = null
+  try {
+    data = JSON.parse(rawText)
+  } catch {
+    // Non-JSON response — surface the real HTTP status + body snippet
+    const snippet = rawText.slice(0, 200).replace(/\s+/g, ' ').trim()
+    throw new Error(`HTTP ${res.status} — non-JSON response${snippet ? `: "${snippet}"` : ''}`)
+  }
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`)
+  }
   return data
 }
 
