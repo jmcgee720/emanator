@@ -71,6 +71,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
   const [newProjectType, setNewProjectType] = useState('app')
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [selectedProject, setSelectedProject] = useState(null)
+  const [projectLoading, setProjectLoading] = useState(false)
   const [openProjectTabs, setOpenProjectTabs] = useState([])
 
   const [chats, setChats] = useState([])
@@ -558,8 +559,17 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       importChatTitleRef.current = null
       const restoreChatId = pendingRestoreChatRef.current
       pendingRestoreChatRef.current = null
+      // Track loading state so the chat thread + preview can show a
+      // skeleton instead of looking blank-and-broken while data fetches.
+      // Cleared as soon as loadProjectData resolves (chats + files + canvas
+      // all settled — messages still load via a separate useEffect below
+      // but they're cheap and the chat-row skeleton handles that gracefully).
+      setProjectLoading(true)
       loadProjectData(selectedProject.id, isHubEntry, chatTitle, restoreChatId)
+        .finally(() => setProjectLoading(false))
       setSandboxTestResult(selectedProject.settings?.last_test_result || null)
+    } else {
+      setProjectLoading(false)
     }
   }, [selectedProject?.id])
 
@@ -1433,6 +1443,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   buildMilestones={buildMilestones}
                   buildLog={buildLog}
                   buildWizardConfig={buildWizardConfig}
+                  projectLoading={projectLoading}
                   onBuildWizardComplete={async (resp) => {
                     console.log('[Dashboard] BuildWizard complete:', resp)
                     toast({ title: 'Build complete', description: `${resp.fileCount || 0} files created. Refreshing preview...` })
@@ -1491,6 +1502,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   runtimeTestScript={runtimeTestScript}
                   generatedImageMap={generatedImageMap}
                   onApplySuccess={null}
+                  projectLoading={projectLoading}
                 />
                 </div>
               </ResizablePanel>

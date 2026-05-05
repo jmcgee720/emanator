@@ -38,6 +38,7 @@ export default function RightPanel({
   runtimeTestScript,
   generatedImageMap,
   onApplySuccess,
+  projectLoading,
 }) {
 
   const handleRefreshFiles = async () => {
@@ -198,7 +199,26 @@ export default function RightPanel({
             {selectedProject?.settings?.is_core ? (
               <CoreCanvas project={selectedProject} onLog={addLog} />
             ) : (
-              <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} />
+              <>
+                <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} />
+                {/* Loading overlay shown while project files are still
+                    fetching from the server. PreviewTab itself handles
+                    the in-browser compile, but the brief gap before
+                    files arrive used to look like a blank/broken page —
+                    this overlay reassures the user something is loading. */}
+                {projectLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-950/60 backdrop-blur-sm pointer-events-none" data-testid="preview-loading-overlay">
+                    <div className="flex flex-col items-center gap-3 px-6 py-5 rounded-2xl bg-zinc-900/80 border border-white/8 shadow-xl">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full border-2 border-cyan-400/20" />
+                        <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                      </div>
+                      <div className="text-[12px] text-white/85 font-medium">Loading preview…</div>
+                      <div className="text-[10px] text-white/45">{selectedProject?.name || 'Project'}</div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
           
