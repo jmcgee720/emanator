@@ -37,7 +37,10 @@ function parseBrandVfsFromAssetsModule(source) {
 }
 
 // ─── Project classifier ────────────────────────────────────────────
-function classifyProject(files) {
+// EXPORTED so other components (ProjectThumbnail) can build the same
+// preview HTML for purposes like Project Bin thumbnails without
+// duplicating the 540-line build pipeline.
+export function classifyProject(files) {
   if (!files?.length) return { type: 'empty', files: [] }
 
   const codeFiles = files.filter(f => {
@@ -111,7 +114,8 @@ function escapeRegex(str) {
 // ─── Build: React/JSX preview uses AST-based transforms (see buildReactPreview) ──
 
 // ─── Build: HTML/CSS/JS ────────────────────────────────────────────
-function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
+// Exported alongside buildReactPreview for ProjectThumbnail use.
+export function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
   let html = htmlFiles[0].content
 
   if (usesTailwind && !html.includes('tailwindcss')) {
@@ -140,7 +144,10 @@ function buildHtmlPreview({ htmlFiles, cssFiles, jsFiles, usesTailwind }) {
 }
 
 // ─── Build: React/JSX (AST-based module transform — no regex hacks) ──
-function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind, imageAssets }) {
+// EXPORTED so ProjectThumbnail can build a real preview iframe srcDoc
+// for projects that don't yet have a saved snapshot. Pure function
+// (no React state, no side effects) — safe to call from any component.
+export function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTailwind, imageAssets }) {
   // Strip @tailwind directives from CSS — the CDN handles these automatically
   const allCss = (cssFiles?.map(f => f.content).join('\n') || '')
     .replace(/@tailwind\s+(base|components|utilities)\s*;?\s*/g, '')
