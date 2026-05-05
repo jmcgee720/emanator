@@ -1437,6 +1437,25 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                     console.log('[Dashboard] BuildWizard complete:', resp)
                     toast({ title: 'Build complete', description: `${resp.fileCount || 0} files created. Refreshing preview...` })
                     briefBuildActiveRef.current = false
+
+                    // Drop a friendly assistant message into the chat so
+                    // the conversation can continue naturally — asking
+                    // the user what they want to tweak or add next. The
+                    // message is purely client-side (not persisted via
+                    // sendMessage) so it doesn't burn credits or trigger
+                    // an LLM call. It's a UX nudge, not a real LLM
+                    // response. The user's reply via the composer goes
+                    // through the normal sendMessage flow which DOES
+                    // persist to the chat thread.
+                    const handoffMessage = {
+                      id: `handoff-${Date.now()}`,
+                      role: 'assistant',
+                      content: `Boom — your site is live in the preview! 🎉\n\nI generated ${resp.fileCount || 0} files using your edits to the brand, copy, palette, and imagery. Take a look at the preview on the right.\n\nWhat do you want to do next?\n\n• Add a new section or page (testimonials, pricing, FAQ…)\n• Change the hero copy or any other text\n• Try a different color palette or font pairing\n• Regenerate any of the images\n• Wire up a real form, payment, or signup\n\nJust tell me what you'd like to tweak — I'll edit the code directly.`,
+                      created_at: new Date().toISOString(),
+                      metadata: { intent: 'build_handoff' },
+                    }
+                    setMessages((prev) => [...prev, handoffMessage])
+
                     setTimeout(() => {
                       setBuildWizardConfig(null)
                       if (loadProjectData && selectedProject) loadProjectData(selectedProject.id)
