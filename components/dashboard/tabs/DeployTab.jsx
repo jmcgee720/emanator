@@ -15,6 +15,7 @@ import {
   Key,
   Globe,
   ArrowUpRight,
+  Github,
 } from 'lucide-react'
 
 export default function DeployTab({ project, addLog }) {
@@ -32,6 +33,16 @@ export default function DeployTab({ project, addLog }) {
   const [pollingIds, setPollingIds] = useState({}) // { dbId: intervalRef }
   const [saveVercelToken, setSaveVercelToken] = useState(false)
 
+  // GitHub push state — separate from Vercel/Netlify since pushing
+  // source code is conceptually distinct from "deploy a built site".
+  const [githubToken, setGithubToken] = useState('')
+  const [showGithubSetup, setShowGithubSetup] = useState(false)
+  const [githubRepoName, setGithubRepoName] = useState('')
+  const [githubPrivate, setGithubPrivate] = useState(true)
+  const [saveGithubToken, setSaveGithubToken] = useState(false)
+  const [pushingGithub, setPushingGithub] = useState(false)
+  const [githubResult, setGithubResult] = useState(null)
+
   // Prefill Vercel token from saved project settings so the user doesn't
   // need to re-paste it on every deploy.
   useEffect(() => {
@@ -39,6 +50,24 @@ export default function DeployTab({ project, addLog }) {
     if (saved && !vercelToken) {
       setVercelToken(saved)
       setSaveVercelToken(true)
+    }
+    // GitHub: hydrate token + repo name from prior pushes so re-pushing
+    // is one click. Repo name defaults to a slugified project name.
+    const savedGithub = project?.settings?.github
+    if (savedGithub?.token && !githubToken) {
+      setGithubToken(savedGithub.token)
+      setSaveGithubToken(true)
+    }
+    const defaultRepo = savedGithub?.repo_name || `auroraly-${(project?.name || 'project').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')}`
+    setGithubRepoName(defaultRepo)
+    if (savedGithub?.repo_url) {
+      setGithubResult({
+        repo_url: savedGithub.repo_url,
+        html_url: savedGithub.html_url || savedGithub.repo_url,
+        last_push_at: savedGithub.last_push_at,
+        was_new_repo: false,
+        commit_url: null,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
@@ -178,6 +207,44 @@ export default function DeployTab({ project, addLog }) {
       addLog?.('error', `Deploy error: ${err.message}`)
     } finally {
       setDeployingNetlify(false)
+    }
+  }
+
+  /**
+   * Push the project's source code to a GitHub repo. On first push,
+   * creates the repo (private by default). Subsequent pushes commit to
+   * the same repo. The PAT can be saved to project.settings so future
+   * pushes are one-click.
+   */
+  const handleGithubPush = async () => {
+    if (!githubToken.trim()) return
+    if (!githubRepoName.trim()) return
+    setPushingGithub(true)
+    setGithubResult(null)
+    try {
+      const res = await authFetch(`/api/projects/${project.id}/github/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: githubToken.trim(),
+          repo_name: githubRepoName.trim(),
+          private: githubPrivate,
+          save_token: saveGithubToken,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setGithubResult({ error: data.error || 'Push failed' })
+        addLog?.('error', `GitHub push failed: ${data.error || 'Unknown'}`)
+        return
+      }
+      setGithubResult(data)
+      addLog?.('success', `Pushed ${data.file_count} files to ${data.repo_url}`)
+    } catch (err) {
+      setGithubResult({ error: err.message })
+      addLog?.('error', `GitHub push error: ${err.message}`)
+    } finally {
+      setPushingGithub(false)
     }
   }
 
@@ -422,6 +489,126 @@ export default function DeployTab({ project, addLog }) {
                   <a href={netlifyResult.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 font-medium">
                     <Globe className="w-3 h-3" />{netlifyResult.url}<ArrowUpRight className="w-3 h-3 ml-auto" />
                   </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* GitHub Push — distinct from Vercel/Netlify because it
+              pushes SOURCE CODE rather than deploying a built site.
+              Useful for backups, version control, and handing the
+              codebase to engineers / freelancers / yourself later. */}
+          <div
+            className="group rounded-2xl p-5 transition-all duration-300"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
+            data-testid="deploy-github-card"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                <Github className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold" style={{ color: 'var(--em-text-primary)' }}>GitHub</h3>
+                <p className="text-[10px]" style={{ color: 'var(--em-text-muted)' }}>Push source code to a repo</p>
+              </div>
+              {githubResult?.repo_url && !githubResult.error && (
+                <a href={githubResult.repo_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-white/55 hover:text-white transition flex items-center gap-1" data-testid="deploy-github-repo-link">
+                  <ExternalLink className="w-3 h-3" /> repo
+                </a>
+              )}
+            </div>
+
+            {!showGithubSetup ? (
+              <button
+                onClick={() => setShowGithubSetup(true)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--em-text-secondary)' }}
+                data-testid="deploy-github-setup-btn"
+              >
+                <Github className="w-3.5 h-3.5" /> {project?.settings?.github?.repo_url ? 'Push update' : 'Connect GitHub'}
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Repo name (e.g. auroraly-coffee-shop)"
+                  value={githubRepoName}
+                  onChange={(e) => setGithubRepoName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--em-text-primary)' }}
+                  data-testid="deploy-github-repo-input"
+                />
+                <input
+                  type="password"
+                  placeholder="GitHub Personal Access Token (repo scope)"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--em-text-primary)' }}
+                  data-testid="deploy-github-token-input"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-[10px] cursor-pointer select-none" style={{ color: 'var(--em-text-muted)' }}>
+                    <input type="checkbox" checked={githubPrivate} onChange={(e) => setGithubPrivate(e.target.checked)} className="accent-[var(--em-cyan)]" data-testid="deploy-github-private" />
+                    <span>Private repo</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-[10px] cursor-pointer select-none" style={{ color: 'var(--em-text-muted)' }}>
+                    <input type="checkbox" checked={saveGithubToken} onChange={(e) => setSaveGithubToken(e.target.checked)} className="accent-[var(--em-cyan)]" data-testid="deploy-github-save-token" />
+                    <span>Remember token</span>
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleGithubPush}
+                    disabled={pushingGithub || !githubToken.trim() || !githubRepoName.trim()}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 disabled:opacity-30"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'white' }}
+                    data-testid="deploy-github-push-btn"
+                  >
+                    {pushingGithub ? <><Loader2 className="w-3 h-3 animate-spin" /> Pushing...</> : <><Github className="w-3 h-3" /> Push to GitHub</>}
+                  </button>
+                  <button
+                    onClick={() => { setShowGithubSetup(false); setGithubResult(null) }}
+                    className="px-3 py-2 rounded-xl text-xs transition-all duration-200"
+                    style={{ color: 'var(--em-text-muted)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p className="text-[9px] leading-relaxed" style={{ color: 'var(--em-text-muted)', opacity: 0.6 }}>
+                  Generate a Classic PAT with <span className="font-mono">repo</span> scope at <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">github.com/settings/tokens</a>
+                </p>
+              </div>
+            )}
+
+            {githubResult && (
+              <div
+                className="mt-3 p-2.5 rounded-lg text-[11px]"
+                style={{
+                  background: githubResult.error ? 'rgba(248,113,113,0.06)' : 'rgba(52,211,153,0.06)',
+                  border: githubResult.error ? '1px solid rgba(248,113,113,0.15)' : '1px solid rgba(52,211,153,0.15)',
+                  color: githubResult.error ? '#F87171' : '#34D399',
+                }}
+                data-testid="github-push-result"
+              >
+                {githubResult.error ? (
+                  <span>{githubResult.error}</span>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <a href={githubResult.html_url || githubResult.repo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 font-medium">
+                      <Github className="w-3 h-3" />
+                      <span className="truncate flex-1">{githubResult.repo_url}</span>
+                      <span className="ml-auto px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider opacity-80" style={{ background: 'rgba(0,0,0,0.20)' }}>
+                        {githubResult.was_new_repo ? 'Created' : 'Updated'}
+                      </span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </a>
+                    {githubResult.commit_url && (
+                      <a href={githubResult.commit_url} target="_blank" rel="noopener noreferrer" className="text-[10px] opacity-70 hover:opacity-100 truncate">
+                        Commit {githubResult.commit_sha?.slice(0, 7)} · {githubResult.file_count} files
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             )}
