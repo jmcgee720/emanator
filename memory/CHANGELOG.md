@@ -3,14 +3,34 @@
 
 ## 2026-02-XX - Phase 4 Image Fallback Chain (Current Fork)
 ### Image generation no longer depends on Gemini billing tier
-- **Phase 4 fallback chain**: Gemini Nano Banana → OpenAI gpt-image-1 → subject-aware stock
-- When Gemini fails (Free tier, quota, outage), OpenAI gpt-image-1 takes over using existing OPENAI_API_KEY — no user action needed
-- Subject-aware stock picker scores candidates against per-image manifest subject keywords; coffee-shop briefs no longer return pizza/salad photos
+- **Phase 4 fallback chain**: Gemini Nano Banana → OpenAI gpt-image-1 → dall-e-3 → subject-aware stock
+- When Gemini fails (Free tier, quota, outage), OpenAI takes over using existing OPENAI_API_KEY
+- gpt-image-1 → dall-e-3 retry handles unverified OpenAI organizations transparently
+- Subject-aware stock picker: coffee-shop briefs no longer return pizza/salad photos
 - Expanded food stock library with 8 coffee/cafe/bar/bistro photos
-- BuildWizard UI shows breakdown: "Gemini N · OpenAI fallback M · Stock K"
-- /api/build/ping-nano-banana now probes BOTH providers and returns unified status
-- Tests: tests/test-phase4-fallback.test.mjs (4/4 passing — verifies all fallback paths)
-- Local commits ready to push: `3db628b`, `d62242e` (awaiting GitHub PAT)
+- /api/build/ping-nano-banana probes both providers, returns unified status
+
+### Phase-state storage refactor
+- Image dataUrls now stored in dedicated `phase_images` collection (one doc per image)
+- Fixes "offset out of range, must be <= 17825792" Mongo BSON 16 MB doc cap error
+- `phaseStates.hydrateImages(state, runId)` rehydrates dataUrls before compose
+
+### BuildWizard chat-inline redesign
+- Wizard moved from fullscreen modal overlay → rendered inline in chat thread (LeftPanel)
+- Each completed phase shown as a chat-bubble-styled card with rich human-friendly output
+- No JSON visible to users — all fields shown in plain English (Brand name, Tagline, Vibe, etc)
+- **Inline pencil edits per phase**:
+  - Plan: brand name, tagline, mood, audience
+  - Copy: every headline/subhead/CTA across every section, organized in collapsible per-section panels
+  - Tokens: HTML5 color picker swatches for the palette, dropdown font pickers (heading + body), imagery treatment dropdown
+  - Images: thumbnail grid with role labels on hover
+- New backend endpoint `POST /api/build/edit` shallow-merges user edits into phase state before Proceed
+- Auto-starts Phase 1 on mount (no more "Start building" button — it just starts)
+
+### Tests
+- tests/test-phase4-fallback.test.mjs (4/4 passing)
+- Production Next.js build succeeds clean
+
 
 ## 2026-02 (Previous Sessions)
 - Dashboard UI anomalies fixed, service.js Phase 2 refactoring
