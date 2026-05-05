@@ -44,14 +44,26 @@ function ProjectThumbnail({ projectId, projectName }) {
       setBuildingFromFiles(true)
       try {
         const filesRes = await authFetch(`/api/projects/${projectId}/files`)
-        if (!filesRes.ok) return
+        if (!filesRes.ok) {
+          console.warn(`[ProjectThumbnail:${projectId}] files fetch failed:`, filesRes.status)
+          return
+        }
         const files = await filesRes.json()
-        if (!Array.isArray(files) || files.length === 0) return
+        if (!Array.isArray(files) || files.length === 0) {
+          console.log(`[ProjectThumbnail:${projectId}] no files — placeholder will show 'No files yet'`)
+          return
+        }
         const info = classifyProject(files)
+        console.log(`[ProjectThumbnail:${projectId}] classified as ${info.type}, building...`)
         let html = null
         if (info.type === 'react') html = buildReactPreview({ ...info, imageAssets: [] })
         else if (info.type === 'html') html = buildHtmlPreview(info)
+        else {
+          console.warn(`[ProjectThumbnail:${projectId}] unsupported project type for lazy build:`, info.type)
+          return
+        }
         if (cancelled || !html) return
+        console.log(`[ProjectThumbnail:${projectId}] built ${html.length} bytes of HTML`)
         setSnapshot(html)
         // Save snapshot to server so next visit is instant. Best-effort —
         // don't fail the thumbnail render if the save errors.
@@ -60,7 +72,7 @@ function ProjectThumbnail({ projectId, projectName }) {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ html, files_hash: filesHash }),
-        }).catch(() => {})
+        }).catch((err) => console.warn(`[ProjectThumbnail:${projectId}] snapshot save failed:`, err.message))
       } catch (err) {
         console.warn(`[ProjectThumbnail:${projectId}] lazy build failed:`, err.message)
       } finally {
@@ -359,6 +371,17 @@ export default function ProjectGrid({
                 <button onClick={() => setShowArchived(false)} className="mt-2 text-xs text-[var(--em-cyan)] hover:underline">Back to Projects</button>
               </div>
             )}
+            {/* "New Project" tile pinned to first grid slot (top-left) so
+                creating a new project is always one click away regardless
+                of how many existing projects the user has scrolled past. */}
+            {!selectMode && !showArchived && (
+              <button onClick={() => setShowNewProjectModal(true)} className="rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] backdrop-blur-sm transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group" data-testid="add-project-card">
+                <div className="w-10 h-10 rounded-lg border border-[rgba(255,255,255,0.10)] group-hover:border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center mb-2 transition-all">
+                  <span className="text-xl text-[var(--em-text-secondary)] group-hover:text-white transition-colors">+</span>
+                </div>
+                <span className="text-xs text-[var(--em-text-secondary)] group-hover:text-white transition-colors">New Project</span>
+              </button>
+            )}
             {cards.map((item) => (
               <div
                 key={item.id}
@@ -384,14 +407,6 @@ export default function ProjectGrid({
                 </div>
               </div>
             ))}
-            {!selectMode && (
-              <button onClick={() => setShowNewProjectModal(true)} className="rounded-xl border border-dashed border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-[rgba(255,255,255,0.06)] backdrop-blur-sm transition-all duration-200 flex flex-col items-center justify-center min-h-[180px] group" data-testid="add-project-card">
-                <div className="w-10 h-10 rounded-lg border border-[rgba(255,255,255,0.10)] group-hover:border-[rgba(255,255,255,0.22)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center mb-2 transition-all">
-                  <span className="text-xl text-[var(--em-text-secondary)] group-hover:text-white transition-colors">+</span>
-                </div>
-                <span className="text-xs text-[var(--em-text-secondary)] group-hover:text-white transition-colors">New Project</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
