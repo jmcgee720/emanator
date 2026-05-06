@@ -1230,10 +1230,36 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     // pair and re-map it to its canonical VFS path.
     const assetsModule = (files || []).find(f => f.path === 'components/assets.js')
     const brandVfsFromModule = assetsModule?.content ? parseBrandVfsFromAssetsModule(assetsModule.content) : []
+
+    // Imported projects (Mangia Mama, Spyrals, etc.) carry their static
+    // images as files with file_type === 'image' and data: URL content.
+    // Map each one to the VFS shape buildReactPreview expects so
+    // <img src="/icons/foo.png"> in the imported JSX resolves to the
+    // actual binary at preview time.
+    const importedImageAssets = (files || [])
+      .filter(f => (f.file_type === 'image' || f.file_type === 'font') && typeof f.content === 'string' && f.content.startsWith('data:'))
+      .flatMap(f => {
+        const dataUrl = f.content
+        const path = f.path
+        // Map the canonical /path/to/image.png plus the most common
+        // "public/" stripped variant — the VFS normalizer handles the
+        // ./ and public/ cases at runtime, so we just need the leading-
+        // slash form here. We register both with and without the public/
+        // prefix so {{IMAGE_X}}-style placeholders also resolve.
+        const stripped = path.replace(/^public\//, '').replace(/^\.\//, '')
+        const placeholders = Array.from(new Set([
+          '/' + stripped,
+          '/' + path,
+          stripped,
+          path,
+        ]))
+        return placeholders.map(p => ({ placeholder: p, dataUrl }))
+      })
+
     // Merge: SSE mapping (live build) takes priority, then persisted _assets/ files (reload)
     // Brand VFS is ADDITIVE — it never conflicts with stock/generated image URLs
     const liveOrReload = generatedImageMap.length > 0 ? generatedImageMap : assetImageMap
-    const mergedImageAssets = [...liveOrReload, ...brandVfsFromModule]
+    const mergedImageAssets = [...liveOrReload, ...brandVfsFromModule, ...importedImageAssets]
 
     switch (info.type) {
       case 'html': html = buildHtmlPreview(info); break
