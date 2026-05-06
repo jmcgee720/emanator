@@ -26,6 +26,30 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### 🛠 Aurora Background — uniformity across all pages (2026-05-06)
+- User reported: Aurora "gets manic" on some pages but should look the
+  same as the Dashboard/project view ("correct.png").
+- Root cause: `AuroraBackground` accepted an `activityLevel` prop that
+  could spike non-zero. Login + Pricing passed `1` (constant), Dashboard
+  passed a *dynamic* `activityLevel` state (escalated during builds via
+  `setActivityLevel(1)` + decay timer). On mount, the engine seeded
+  itself with whatever the caller passed (line 258), which made the
+  aurora visibly brighter / streakier on the Dashboard than on login.
+- Fix:
+  1. `components/AuroraBackground.jsx` — engine now boots at
+     `updateActivityLevel(0)` regardless of the prop. Demo mode (Shift+D)
+     is the only sanctioned path to escalate activity for testing.
+  2. All three call sites now pass `activityLevel={0}` (Dashboard,
+     LoginPage, pricing). Fully uniform aurora across every route.
+  3. Bumped `LAYOUT_VERSION` from 4 → 5 to invalidate any stale
+     localStorage snapshots from the previous activity-spike era.
+- Verified visually: login page now renders the calm
+  cyan/teal/purple defaults exactly matching the user's "correct.png"
+  reference. No saved overrides exist in `/api/aurora/config`
+  (`{layers:null, effects:null}`), so hardcoded defaults are the source
+  of truth and are rendering correctly.
+
+
 ### 🛠 WebContainer CRA→Vite — ESM/CJS config rename fix (2026-05-06)
 - Root cause: our CRA→Vite converter sets `"type": "module"` in the
   transformed `package.json`, but CRA projects ship with
