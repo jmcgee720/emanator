@@ -98,7 +98,7 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   // / hang at boot. We use `disabled: 'dev'` rather than `disabled: true`
   // because it preserves prod-build pre-bundling.
   assert.ok(cfg.includes('optimizeDeps'), 'optimizeDeps block present')
-  assert.ok(/disabled:\s*['"]dev['"]/m.test(cfg) || /disabled:\s*true/m.test(cfg), 'optimizeDeps.disabled set for dev (esbuild WASM crash workaround)')
+  assert.ok(/disabled:\s*['"]dev['"]/m.test(cfg) || /disabled:\s*true/m.test(cfg) || /noDiscovery:\s*true/m.test(cfg), 'optimizeDeps disables pre-bundling for WebContainer (esbuild WASM crash workaround)')
   assert.ok(/host:\s*true/.test(cfg), 'server.host=true so WebContainer port-forwarder sees ready signal')
   assert.ok(/usePolling:\s*true/.test(cfg), 'WebContainer-friendly polling watcher')
   console.log('✓ buildViteConfig has the right shape (incl. WebContainer + esbuild + JSX-in-.js workarounds)')
@@ -216,6 +216,35 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   assert.ok(frontend['prettier.config.js']?.file, 'ESM prettier config left alone')
   assert.equal(frontend['prettier.config.cjs'], undefined, 'ESM configs not renamed')
   console.log('✓ CommonJS configs (postcss/tailwind) renamed to .cjs; ESM configs untouched')
+}
+
+// 9) Re-import regression: a project that was ALREADY converted in a
+//    previous session (no react-scripts, type:module set) but still has
+//    a leftover postcss.config.js using module.exports — the ensureScaffolding
+//    safety net must rename it even though convertCraToVite is skipped.
+{
+  const tree = toWebContainerTree([
+    { path: 'frontend/package.json', content: JSON.stringify({
+      name: 'frontend',
+      type: 'module',
+      scripts: { dev: 'vite --port 3000 --host 0.0.0.0 --logLevel info' },
+      dependencies: { react: '18.3.1', 'react-dom': '18.3.1' },
+      devDependencies: { vite: '^5.4.0', '@vitejs/plugin-react': '^4.3.0' },
+    }) },
+    { path: 'frontend/index.html', content: '<html><body><div id="root"></div><script type="module" src="/src/index.js"></script></body></html>' },
+    { path: 'frontend/vite.config.js', content: `export default { plugins: [] }\n` },
+    { path: 'frontend/src/index.js', content: '' },
+    { path: 'frontend/postcss.config.js', content: `module.exports = {\n  plugins: { tailwindcss: {}, autoprefixer: {} },\n}\n` },
+  ])
+
+  const scaffolded = ensureScaffolding(tree)
+  const frontend = scaffolded.frontend.directory
+
+  // CRA conversion does NOT run (no react-scripts), but the safety net
+  // must still rename postcss.config.js because type:module is set.
+  assert.equal(frontend['postcss.config.js'], undefined, 'safety net renames postcss.config.js even on already-converted projects')
+  assert.ok(frontend['postcss.config.cjs']?.file, 'postcss.config.cjs created by safety net')
+  console.log('✓ already-converted projects (Mangia-Mama re-import) get the postcss safety-net rename')
 }
 
 console.log('\nAll CRA → Vite converter tests passed ✓')
