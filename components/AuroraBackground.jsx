@@ -1,25 +1,41 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { AuroraEngine } from '@/lib/auroraEngine';
 
 // ──────────────────────────────────────────────────────────────────────
 // LOCKED AURORA BASELINE
 // ──────────────────────────────────────────────────────────────────────
-// These coordinates were locked at the user's request on 2026-05-06 by
-// applying the slider deltas they showed in their "correct.png"
-// screenshot onto the prior saved baseline:
-//   BL:  x = 40 + 0    = 40,    y = 336 + (-130) = 206,    scale = 0.91 * 1.00 = 0.91
-//   BR:  x = -207 + 40 = -167,  y = 325 + (-150) = 175,    scale = 1.00 * 1.12 = 1.12
+// Positions are stored as FRACTIONS of the viewport, calibrated against
+// a 1920×1080 reference screen (the size of the user's "correct.png"
+// reference). At render time the engine still wants pixel offsets, so
+// we multiply by the current viewport dims and re-push to the engine
+// on every resize. This keeps the BL/BR/TOP columns visually grouped in
+// the same relative position whether the browser is 800px wide or 2560.
 //
-// The toolbar UI, fetch-from-API logic, layout-version invalidation, and
-// demo mode have all been removed — the layout is fully static. Saving
-// no longer kills these values on a version bump because version-bump
-// logic no longer exists.
+// Engine math reminder (lib/auroraEngine.js around line 1030):
+//   ctx.translate(-W/2 + layer.x, -H/2 + layer.y)
+// so layer.x/y are absolute pixels — that's why the previous static
+// values (x=40, y=206) drifted on narrow windows.
 // ──────────────────────────────────────────────────────────────────────
 
-const LOCKED_LAYERS = {
-  topColumns:        { visible: true, opacity: 1, x: 0, y: -188, scale: 0.83 },
-  bottomLeftColumns: { visible: true, opacity: 1, x: 40, y: 206, scale: 0.91 },
-  bottomRightColumns:{ visible: true, opacity: 1, x: -167, y: 175, scale: 1.12 },
+const REF_W = 1920;
+const REF_H = 1080;
+
+const LOCKED_LAYERS_FRAC = {
+  topColumns: {
+    visible: true, opacity: 1, scale: 0.83,
+    xFrac: 0   / REF_W,    // 0
+    yFrac: -188 / REF_H,   // ≈ -0.174
+  },
+  bottomLeftColumns: {
+    visible: true, opacity: 1, scale: 0.91,
+    xFrac:  40 / REF_W,    // ≈  0.0208
+    yFrac: 206 / REF_H,    // ≈  0.1907
+  },
+  bottomRightColumns: {
+    visible: true, opacity: 1, scale: 1.12,
+    xFrac: -167 / REF_W,   // ≈ -0.0870
+    yFrac:  175 / REF_H,   // ≈  0.1620
+  },
 };
 
 const LOCKED_EFFECTS = {
@@ -31,6 +47,21 @@ const LOCKED_EFFECTS = {
   verticalDrift:    { enabled: true, intensity: 0.16 },
 };
 
+// Resolve viewport-fraction offsets → pixel offsets the engine expects.
+function resolveLayers(w, h) {
+  const out = {};
+  for (const [id, def] of Object.entries(LOCKED_LAYERS_FRAC)) {
+    out[id] = {
+      visible: def.visible,
+      opacity: def.opacity,
+      scale: def.scale,
+      x: def.xFrac * w,
+      y: def.yFrac * h,
+    };
+  }
+  return out;
+}
+
 const AuroraBackground = ({
   conversationState = 'idle',
   intensity = 1.0,
@@ -41,29 +72,33 @@ const AuroraBackground = ({
 }) => {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
+  const [viewport, setViewport] = useState(() => ({
+    w: typeof window !== 'undefined' ? window.innerWidth  : REF_W,
+    h: typeof window !== 'undefined' ? window.innerHeight : REF_H,
+  }));
 
   const handleResize = useCallback(() => {
-    if (canvasRef.current && engineRef.current) {
-      const dpr = window.devicePixelRatio || 1;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      canvasRef.current.width = width * dpr;
-      canvasRef.current.height = height * dpr;
-      canvasRef.current.style.width = `${width}px`;
-      canvasRef.current.style.height = `${height}px`;
-      engineRef.current.resize(width * dpr, height * dpr);
-    }
+    if (!canvasRef.current || !engineRef.current) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width  = window.innerWidth;
+    const height = window.innerHeight;
+    canvasRef.current.width  = width  * dpr;
+    canvasRef.current.height = height * dpr;
+    canvasRef.current.style.width  = `${width}px`;
+    canvasRef.current.style.height = `${height}px`;
+    engineRef.current.resize(width * dpr, height * dpr);
+    setViewport({ w: width, h: height });
   }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const width = window.innerWidth;
+    const width  = window.innerWidth;
     const height = window.innerHeight;
-    canvasRef.current.width = width * dpr;
+    canvasRef.current.width  = width  * dpr;
     canvasRef.current.height = height * dpr;
-    canvasRef.current.style.width = `${width}px`;
+    canvasRef.current.style.width  = `${width}px`;
     canvasRef.current.style.height = `${height}px`;
 
     engineRef.current = new AuroraEngine(canvasRef.current, {
@@ -74,12 +109,12 @@ const AuroraBackground = ({
       streakDensity,
       glowStrength,
     });
-    // Activity is permanently locked at 0 — the aurora is calm and identical
-    // on every page. No demo mode, no escalation.
+    // Activity is permanently locked at 0 — calm and identical on every page.
     engineRef.current.updateActivityLevel(0);
-    engineRef.current.updateLayerConfig(LOCKED_LAYERS);
+    engineRef.current.updateLayerConfig(resolveLayers(width, height));
     engineRef.current.updateEffects(LOCKED_EFFECTS);
     engineRef.current.start();
+    setViewport({ w: width, h: height });
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -90,6 +125,14 @@ const AuroraBackground = ({
       }
     };
   }, [handleResize]);
+
+  // Re-push the resolved layer pixel offsets whenever the viewport changes,
+  // so the aurora stays grouped in the same RELATIVE spot on every screen.
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.updateLayerConfig(resolveLayers(viewport.w, viewport.h));
+    }
+  }, [viewport.w, viewport.h]);
 
   useEffect(() => {
     if (engineRef.current) {

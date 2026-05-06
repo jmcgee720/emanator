@@ -26,6 +26,25 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### 🛠 Aurora — viewport-responsive locking (2026-05-06, third pass)
+- User reported the aurora "shifts depending on window width" — the
+  locked baseline looked right on a wide window but drifted out of
+  place on a narrow one.
+- Root cause: `lib/auroraEngine.js` line ~1030 applies `layer.x`/`layer.y`
+  as absolute pixel offsets via `ctx.translate(...)`. A 40px offset is
+  40px whether the window is 800px or 2560px wide, so the BL/BR columns
+  visibly drifted on resize.
+- Fix in `/app/components/AuroraBackground.jsx`:
+  * Stored the locked layout as VIEWPORT FRACTIONS calibrated against
+    a 1920×1080 reference (the user's "correct.png" capture size).
+    e.g., bottomLeftColumns: xFrac = 40/1920 ≈ 0.0208, yFrac = 206/1080.
+  * Tracks `viewport` state and re-resolves fractions → pixel offsets
+    on every `resize` event, then re-pushes via `updateLayerConfig`.
+  * Scale stays unitless (engine already draws columns proportional to
+    W/H, so they scale with the viewport naturally).
+- Verified visually at 1920×800 and 900×800: columns stay grouped in
+  the same relative position. ESLint clean.
+
 ### 🛠 Aurora — locked baseline + toolbar removed (2026-05-06, second pass)
 - Iteration after the user clarified the previous fix was still wrong:
   the toolbar values in their "correct.png" reference were unsaved
