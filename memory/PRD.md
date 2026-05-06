@@ -26,6 +26,39 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### 🛠 Aurora — locked baseline + toolbar removed (2026-05-06, second pass)
+- Iteration after the user clarified the previous fix was still wrong:
+  the toolbar values in their "correct.png" reference were unsaved
+  *deltas*, not absolute coordinates, and bumping `LAYOUT_VERSION` was
+  silently discarding their saves.
+- Decision: hardcode the user's intended baseline and rip the toolbar
+  out entirely. New locked positions in `/app/components/AuroraBackground.jsx`:
+    - topColumns:        x=0,    y=-188, scale=0.83  (unchanged)
+    - bottomLeftColumns: x=40,   y=206,  scale=0.91
+    - bottomRightColumns:x=-167, y=175,  scale=1.12
+- The component is now a thin wrapper around `<canvas>` + the engine.
+  Removed: layer toolbar, save button, demo mode, Shift+L / Shift+D
+  hotkeys, fetch from `/api/aurora/config`, localStorage cache,
+  `LAYOUT_VERSION` invalidation, and the entire `restoreLayersFromStored`
+  helper. Activity is permanently locked at 0.
+- File shrank from 631 lines → ~130 lines. ESLint clean.
+- `/api/aurora/config` endpoint still exists but nothing reads from it
+  anymore — leaving it for now to avoid breaking the route handler.
+
+### 🛠 WebContainer Vite — esbuild WASM crash workaround (2026-05-06)
+- After the postcss fix, Mangia Mama booted into Vite but crashed
+  silently with a Go runtime panic from esbuild's WASM build
+  (`runtime.gopark` → `runtime/asm_wasm.s:399`). Root cause: Vite's
+  dependency pre-bundler runs esbuild on the full dep graph at startup,
+  and the WASM port of esbuild can't survive ~500 packages.
+- Fix in `/app/lib/webcontainer/cra-to-vite.js#buildViteConfig`: added
+  `optimizeDeps: { disabled: true }` to the auto-generated `vite.config.js`.
+  Vite now serves modules natively (slower cold-start, stable inside
+  WebContainers).
+- Test added (case 4 in `test-cra-to-vite.test.mjs`) asserting the
+  generated config contains `optimizeDeps.disabled=true`. All 8 tests pass.
+
+
 ### 🛠 Aurora Background — uniformity across all pages (2026-05-06)
 - User reported: Aurora "gets manic" on some pages but should look the
   same as the Dashboard/project view ("correct.png").
