@@ -1,6 +1,20 @@
 # Changelog
 
 
+## 2026-02-XX — WebContainer reliability (blank-iframe fix)
+### Imported projects (Mangia Mama, Spyrals, etc.) now boot inside WebContainers
+- **Smart conditional scaffolding** (`lib/webcontainer/file-tree.js`):
+  Imported projects with their own `package.json` + (`pages/` or `app/layout.*` or `vite.config.*` or `index.html`) are now treated as self-contained. We no longer overwrite or pollute them with Auroraly's Next.js 14 shell, which was breaking Pages-router and Vite imports.
+- **`detectDevCommand` helper**: respects the imported `package.json`'s `dev` (or fallback `start`) script. Auroraly's hardcoded `npm run dev -p 3000` no longer clobbers Vite/Phaser/custom toolchains.
+- **Dev-exit error surfacing** (`lib/webcontainer/sandbox.js`): when `npm run dev` exits before any port binds, the UI now shows a clear error instead of a silent blank iframe.
+- **ANSI escape stripping**: install/dev logs no longer leak `\x1b[1G\x1b[0K` cursor noise — clean readable output.
+- **Iframe auto-reload after first ready** (`WebContainerPreview.jsx`): Next.js dev binds the port before the first compile finishes; the iframe used to load empty. We now soft-reload the iframe ~4.5s after `server-ready` so the first render always paints.
+- **Persistent terminal log drawer**: click the Terminal icon in the WebContainer header to see live install/dev output (stripped of ANSI codes, auto-scrolling, with a Clear button).
+- **"Open in new tab" link** + manual reload button on the WC URL — lets users debug the dev server independently of the embedded iframe.
+- **5 new scaffolding unit tests** at `tests/test-webcontainer-scaffolding.test.mjs` (covers Auroraly default, Pages-router, App-router, Vite, and `detectDevCommand` matrix).
+
+
+
 ## 2026-02-XX - Phase 4 Image Fallback Chain (Current Fork)
 ### Image generation no longer depends on Gemini billing tier
 - **Phase 4 fallback chain**: Gemini Nano Banana → OpenAI gpt-image-1 → dall-e-3 → subject-aware stock
