@@ -6,6 +6,7 @@ import {
   toWebContainerTree,
   ensureScaffolding,
   detectDevCommand,
+  detectProjectLayout,
 } from '../lib/webcontainer/file-tree.js'
 
 const has = (tree, path) => {
@@ -81,17 +82,17 @@ const has = (tree, path) => {
   const treeWithDev = toWebContainerTree([
     { path: 'package.json', content: JSON.stringify({ scripts: { dev: 'next dev' } }) },
   ])
-  assert.deepEqual(detectDevCommand(treeWithDev), { cmd: 'npm', args: ['run', 'dev'] })
+  assert.deepEqual(detectDevCommand(treeWithDev), { cmd: 'npm', args: ['run', 'dev'], cwd: '' })
 
   const treeWithStartOnly = toWebContainerTree([
     { path: 'package.json', content: JSON.stringify({ scripts: { start: 'http-server' } }) },
   ])
-  assert.deepEqual(detectDevCommand(treeWithStartOnly), { cmd: 'npm', args: ['start'] })
+  assert.deepEqual(detectDevCommand(treeWithStartOnly), { cmd: 'npm', args: ['start'], cwd: '' })
 
   const treeWithoutPkg = toWebContainerTree([
     { path: 'app/page.jsx', content: '' },
   ])
-  assert.deepEqual(detectDevCommand(treeWithoutPkg), { cmd: 'npm', args: ['run', 'dev'] })
+  assert.deepEqual(detectDevCommand(treeWithoutPkg), { cmd: 'npm', args: ['run', 'dev'], cwd: '' })
   console.log('✓ detectDevCommand picks the right script')
 }
 
@@ -163,6 +164,67 @@ const has = (tree, path) => {
   ]))
   assert.ok(tree['.babelrc']?.file, 'auroraly: .babelrc injected')
   console.log('✓ auroraly default also gets .babelrc')
+}
+
+// 11) Mangia Mama style — backend/ + frontend/ workspace, no root package.json.
+//     This is the bug we hit: previously the code injected a Next.js shell at
+//     root and ran `next dev` against an empty project. The actual React app
+//     lived in frontend/ with craco. Detection should now point cwd → 'frontend'.
+{
+  const tree = toWebContainerTree([
+    { path: 'README.md', content: '# Mangia Mama' },
+    { path: 'backend/server.py', content: '' },
+    { path: 'backend/requirements.txt', content: '' },
+    { path: 'frontend/package.json', content: JSON.stringify({
+      scripts: { start: 'craco start', build: 'craco build' },
+      dependencies: { react: '18.3.1', '@craco/craco': '^7.0.0' },
+    }) },
+    { path: 'frontend/craco.config.js', content: 'module.exports = {}' },
+    { path: 'frontend/public/index.html', content: '<html></html>' },
+    { path: 'frontend/src/App.js', content: 'export default () => null' },
+  ])
+  const layout = detectProjectLayout(tree)
+  assert.equal(layout.cwd, 'frontend', 'cwd resolves to frontend')
+  assert.equal(layout.framework, 'cra', 'framework detected as CRA')
+  assert.ok(layout.packageJson, 'packageJson resolved from frontend/')
+
+  const dev = detectDevCommand(tree)
+  assert.deepEqual(dev, { cmd: 'npm', args: ['start'], cwd: 'frontend' })
+
+  // ensureScaffolding must NOT inject Next.js scaffolding at root.
+  const scaffolded = ensureScaffolding(tree)
+  assert.equal(scaffolded['package.json'], undefined, 'no root package.json injected')
+  assert.equal(scaffolded['next.config.js'], undefined, 'no root next.config injected')
+  assert.equal(scaffolded['.babelrc'], undefined, 'no root .babelrc injected')
+  console.log('✓ Mangia Mama nested workspace detected — cwd=frontend, no fake scaffolding')
+}
+
+// 12) Monorepo apps/web layout.
+{
+  const tree = toWebContainerTree([
+    { path: 'apps/web/package.json', content: JSON.stringify({
+      scripts: { dev: 'next dev' },
+      dependencies: { next: '14.2.3' },
+    }) },
+    { path: 'apps/web/app/layout.tsx', content: '' },
+  ])
+  const layout = detectProjectLayout(tree)
+  assert.equal(layout.cwd, 'apps/web', 'cwd resolves to apps/web')
+  assert.equal(layout.framework, 'next')
+  console.log('✓ monorepo apps/web layout detected')
+}
+
+// 13) Auroraly-only content (no package.json anywhere) still falls through.
+{
+  const tree = toWebContainerTree([
+    { path: 'app/page.jsx', content: '' },
+    { path: 'components/hero.jsx', content: '' },
+  ])
+  const layout = detectProjectLayout(tree)
+  assert.equal(layout.cwd, '', 'cwd is root for auroraly')
+  assert.equal(layout.framework, 'auroraly')
+  assert.equal(layout.packageJson, null)
+  console.log('✓ auroraly content falls through to default scaffolding path')
 }
 
 console.log('\nAll WebContainer scaffolding tests passed ✓')
