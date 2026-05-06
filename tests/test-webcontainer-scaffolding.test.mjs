@@ -95,4 +95,46 @@ const has = (tree, path) => {
   console.log('✓ detectDevCommand picks the right script')
 }
 
+// 6) Imported Next.js project gets @next/swc-wasm-nodejs patched in.
+{
+  const tree = ensureScaffolding(toWebContainerTree([
+    { path: 'package.json', content: JSON.stringify({
+      scripts: { dev: 'next dev' },
+      dependencies: { next: '14.2.3', react: '18.3.1' },
+    }) },
+    { path: 'pages/index.js', content: '' },
+  ]))
+  const pkg = JSON.parse(tree['package.json'].file.contents)
+  assert.equal(pkg.dependencies['@next/swc-wasm-nodejs'], '14.2.3', 'wasm SWC pinned')
+  console.log('✓ imported Next.js gets @next/swc-wasm-nodejs injected')
+}
+
+// 7) Non-Next imports (Vite) do NOT get @next/swc-wasm-nodejs.
+{
+  const tree = ensureScaffolding(toWebContainerTree([
+    { path: 'package.json', content: JSON.stringify({
+      scripts: { dev: 'vite' },
+      dependencies: { vite: '^5.0.0' },
+    }) },
+    { path: 'index.html', content: '<!doctype html>' },
+  ]))
+  const pkg = JSON.parse(tree['package.json'].file.contents)
+  assert.equal(pkg.dependencies['@next/swc-wasm-nodejs'], undefined, 'no wasm SWC for vite')
+  console.log('✓ non-Next imports left alone')
+}
+
+// 8) Caret/tilde version specifiers are normalized to exact pins.
+{
+  const tree = ensureScaffolding(toWebContainerTree([
+    { path: 'package.json', content: JSON.stringify({
+      scripts: { dev: 'next dev' },
+      dependencies: { next: '^14.1.0' },
+    }) },
+    { path: 'pages/index.js', content: '' },
+  ]))
+  const pkg = JSON.parse(tree['package.json'].file.contents)
+  assert.equal(pkg.dependencies['@next/swc-wasm-nodejs'], '14.1.0', 'caret stripped to exact')
+  console.log('✓ caret version strips to exact pin')
+}
+
 console.log('\nAll WebContainer scaffolding tests passed ✓')
