@@ -172,4 +172,36 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   console.log('✓ non-CRA imports passed through unchanged')
 }
 
+// 8) Mangia Mama regression: postcss.config.js + tailwind.config.js using
+//    module.exports must be renamed to .cjs when we flip package.json to
+//    "type": "module". Otherwise WebContainer crashes with
+//    "module is not defined in ES module scope" at dev server boot.
+{
+  const tree = toWebContainerTree([
+    { path: 'frontend/package.json', content: JSON.stringify({
+      scripts: { start: 'react-scripts start' },
+      dependencies: { react: '18.3.1', 'react-scripts': '5.0.1' },
+    }) },
+    { path: 'frontend/public/index.html', content: '<html><body><div id="root"></div></body></html>' },
+    { path: 'frontend/src/index.js', content: '' },
+    { path: 'frontend/postcss.config.js', content: `module.exports = {\n  plugins: { tailwindcss: {}, autoprefixer: {} },\n}\n` },
+    { path: 'frontend/tailwind.config.js', content: `module.exports = { content: ['./src/**/*.{js,jsx}'] }\n` },
+    // An ESM-style config must NOT be renamed.
+    { path: 'frontend/prettier.config.js', content: `export default { semi: false }\n` },
+  ])
+
+  const scaffolded = ensureScaffolding(tree)
+  const frontend = scaffolded.frontend.directory
+
+  assert.equal(frontend['postcss.config.js'], undefined, 'postcss.config.js renamed away')
+  assert.ok(frontend['postcss.config.cjs']?.file, 'postcss.config.cjs created')
+  assert.equal(frontend['tailwind.config.js'], undefined, 'tailwind.config.js renamed away')
+  assert.ok(frontend['tailwind.config.cjs']?.file, 'tailwind.config.cjs created')
+
+  // ESM config stays as-is.
+  assert.ok(frontend['prettier.config.js']?.file, 'ESM prettier config left alone')
+  assert.equal(frontend['prettier.config.cjs'], undefined, 'ESM configs not renamed')
+  console.log('✓ CommonJS configs (postcss/tailwind) renamed to .cjs; ESM configs untouched')
+}
+
 console.log('\nAll CRA → Vite converter tests passed ✓')

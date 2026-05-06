@@ -26,6 +26,27 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### 🛠 WebContainer CRA→Vite — ESM/CJS config rename fix (2026-05-06)
+- Root cause: our CRA→Vite converter sets `"type": "module"` in the
+  transformed `package.json`, but CRA projects ship with
+  `postcss.config.js` / `tailwind.config.js` written in CommonJS
+  (`module.exports = {...}`). Node therefore crashed at dev server boot
+  with `module is not defined in ES module scope`, leaving the
+  WebContainer preview showing "Dev server exited (code 1)". (User
+  reproduction: importing Mangia Mama.)
+- Fix: added `renameCjsConfigsToCjs(scope)` inside
+  `/app/lib/webcontainer/cra-to-vite.js` which detects common config
+  filenames and inspects their content. Any file that uses CommonJS
+  syntax (`module.exports`, `exports.x =`, `require(...)`) without ESM
+  `import`/`export` is renamed from `*.config.js` → `*.config.cjs` so
+  Node continues to load it as CommonJS. Files that are already ESM are
+  left untouched. This runs automatically during `convertCraToVite`.
+- Tests: `/app/tests/test-cra-to-vite.test.mjs` now includes a
+  regression test (case 8) that asserts postcss/tailwind `.js` configs
+  get renamed to `.cjs` and that an ESM `prettier.config.js` stays put.
+  All 8 CRA tests + 13 scaffolding tests pass (`node tests/*.test.mjs`).
+
+
 ### 🎨 REBRAND — Emanator → Auroraly under Aetherly Studio (COMPLETE, 2026-05-01)
 
 **Status**: Code rebrand complete, awaiting GitHub push + production deploy.
