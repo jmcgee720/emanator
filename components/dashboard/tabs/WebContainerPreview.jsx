@@ -223,8 +223,8 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
             <p className="text-xs">
               {stage === 'boot' && 'Booting WebContainer…'}
               {stage === 'mount' && 'Mounting project files…'}
-              {stage === 'install' && 'Running npm install…'}
-              {stage === 'dev' && 'Starting Next.js dev server…'}
+              {stage === 'install' && (stageDetail || 'Running npm install…')}
+              {stage === 'dev' && (stageDetail || 'Starting dev server…')}
               {stage === 'ready' && 'Waiting for first render…'}
               {stage === 'idle' && 'Preparing…'}
             </p>
