@@ -8,6 +8,8 @@ import {
   rewriteIndexHtml,
   buildViteConfig,
   convertCraToVite,
+  bubbleCssImports,
+  bubbleCssImportsInTree,
 } from '../lib/webcontainer/cra-to-vite.js'
 import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectLayout } from '../lib/webcontainer/file-tree.js'
 
@@ -246,5 +248,56 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   assert.ok(frontend['postcss.config.cjs']?.file, 'postcss.config.cjs created by safety net')
   console.log('✓ already-converted projects (Mangia-Mama re-import) get the postcss safety-net rename')
 }
+
+// 10) CSS @import bubbling — Mangia-Mama white-screen regression.
+//     Vite drops `@import url(...)` if it comes after `@tailwind` etc.,
+//     causing the whole stylesheet to fail and the page to render white.
+{
+  const before = `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Fredoka for playful arcade feel */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500&display=swap');
+
+body { margin: 0; }
+`
+  const after = bubbleCssImports(before)
+  assert.match(after, /^@import url\(/, '@import bubbles to the very top')
+  assert.ok(after.indexOf('@tailwind base') > after.indexOf('@import'),
+    '@tailwind directives now come AFTER the @import')
+  assert.ok(after.includes('body { margin: 0; }'), 'body rule preserved')
+  // Idempotent.
+  assert.equal(bubbleCssImports(after), after, 'bubbleCssImports is idempotent')
+  // No-op for files without @import.
+  const noImport = '.foo { color: red; }\n'
+  assert.equal(bubbleCssImports(noImport), noImport, 'no @import = no change')
+  // @charset stays first.
+  const charsetCase = `@charset "utf-8";
+.x { color: blue; }
+@import url("a.css");
+`
+  const charsetOut = bubbleCssImports(charsetCase)
+  assert.match(charsetOut, /^@charset "utf-8";\s*\n@import url\("a\.css"\);/, '@charset stays first, then @import, then rules')
+  console.log('✓ bubbleCssImports moves @import to top, idempotent, respects @charset')
+}
+
+// 11) bubbleCssImportsInTree walks nested directories and rewrites every .css.
+{
+  const tree = toWebContainerTree([
+    { path: 'src/index.css', content: '@tailwind base;\n@import url("a.css");\n.x{}' },
+    { path: 'src/components/Foo.css', content: '@tailwind components;\n@import url("b.css");\n.y{}' },
+    { path: 'src/Foo.jsx', content: '' },
+    { path: 'package.json', content: '{}' },
+  ])
+  bubbleCssImportsInTree(tree)
+  const idx = tree.src.directory['index.css'].file.contents
+  const foo = tree.src.directory.components.directory['Foo.css'].file.contents
+  assert.match(idx, /^@import/, 'nested src/index.css rewritten')
+  assert.match(foo, /^@import/, 'deeper src/components/Foo.css rewritten')
+  assert.equal(tree.src.directory['Foo.jsx'].file.contents, '', '.jsx files untouched')
+  console.log('✓ bubbleCssImportsInTree rewrites every .css, leaves non-css alone')
+}
+
 
 console.log('\nAll CRA → Vite converter tests passed ✓')
