@@ -95,7 +95,7 @@ const has = (tree, path) => {
   console.log('✓ detectDevCommand picks the right script')
 }
 
-// 6) Imported Next.js project gets @next/swc-wasm-nodejs patched in.
+// 6) Imported Next.js project gets @next/swc-wasm-nodejs + .babelrc patched in.
 {
   const tree = ensureScaffolding(toWebContainerTree([
     { path: 'package.json', content: JSON.stringify({
@@ -106,10 +106,13 @@ const has = (tree, path) => {
   ]))
   const pkg = JSON.parse(tree['package.json'].file.contents)
   assert.equal(pkg.dependencies['@next/swc-wasm-nodejs'], '14.2.3', 'wasm SWC pinned')
-  console.log('✓ imported Next.js gets @next/swc-wasm-nodejs injected')
+  assert.ok(tree['.babelrc']?.file, '.babelrc injected for Next.js imports')
+  const babelConfig = JSON.parse(tree['.babelrc'].file.contents)
+  assert.deepEqual(babelConfig.presets, ['next/babel'], '.babelrc has next/babel preset')
+  console.log('✓ imported Next.js gets wasm SWC + .babelrc')
 }
 
-// 7) Non-Next imports (Vite) do NOT get @next/swc-wasm-nodejs.
+// 7) Non-Next imports (Vite) do NOT get @next/swc-wasm-nodejs or .babelrc.
 {
   const tree = ensureScaffolding(toWebContainerTree([
     { path: 'package.json', content: JSON.stringify({
@@ -120,6 +123,7 @@ const has = (tree, path) => {
   ]))
   const pkg = JSON.parse(tree['package.json'].file.contents)
   assert.equal(pkg.dependencies['@next/swc-wasm-nodejs'], undefined, 'no wasm SWC for vite')
+  assert.equal(tree['.babelrc'], undefined, 'no .babelrc for vite')
   console.log('✓ non-Next imports left alone')
 }
 
@@ -135,6 +139,30 @@ const has = (tree, path) => {
   const pkg = JSON.parse(tree['package.json'].file.contents)
   assert.equal(pkg.dependencies['@next/swc-wasm-nodejs'], '14.1.0', 'caret stripped to exact')
   console.log('✓ caret version strips to exact pin')
+}
+
+// 9) Existing .babelrc is preserved (we never overwrite project's babel config).
+{
+  const tree = ensureScaffolding(toWebContainerTree([
+    { path: 'package.json', content: JSON.stringify({
+      scripts: { dev: 'next dev' },
+      dependencies: { next: '14.2.3' },
+    }) },
+    { path: '.babelrc', content: '{"presets": ["custom-preset"]}' },
+    { path: 'pages/index.js', content: '' },
+  ]))
+  const babel = JSON.parse(tree['.babelrc'].file.contents)
+  assert.deepEqual(babel.presets, ['custom-preset'], 'existing .babelrc preserved')
+  console.log('✓ existing .babelrc preserved')
+}
+
+// 10) Auroraly-generated projects get .babelrc too.
+{
+  const tree = ensureScaffolding(toWebContainerTree([
+    { path: 'app/page.jsx', content: 'export default () => null' },
+  ]))
+  assert.ok(tree['.babelrc']?.file, 'auroraly: .babelrc injected')
+  console.log('✓ auroraly default also gets .babelrc')
 }
 
 console.log('\nAll WebContainer scaffolding tests passed ✓')
