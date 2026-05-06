@@ -1710,7 +1710,15 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
               key={refreshKey}
               srcDoc={effectivePreviewHtml}
               title="Preview"
-              sandbox="allow-scripts allow-forms allow-modals allow-popups"
+              // allow-same-origin is required so previews can use
+              // localStorage / sessionStorage / cookies — many imported
+              // projects (auth flows, carts, user prefs) crash without
+              // it: "SecurityError: localStorage Forbidden in a
+              // sandboxed document without allow-same-origin flag."
+              // Auroraly-built sites typically don't touch storage so
+              // we never hit this — but Mangia Mama and similar
+              // imported apps do.
+              sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
               className="absolute inset-0 w-full h-full border-0"
               style={{ maxWidth: viewports[viewportSize].width === '100%' ? '100%' : viewports[viewportSize].width, margin: viewports[viewportSize].width === '100%' ? undefined : '0 auto' }}
               onLoad={() => { setIframeLoaded(true); handleLiveIframeLoad() }}
