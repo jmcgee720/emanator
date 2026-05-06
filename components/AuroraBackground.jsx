@@ -4,17 +4,22 @@ import { AuroraEngine } from '@/lib/auroraEngine';
 // ──────────────────────────────────────────────────────────────────────
 // LOCKED AURORA BASELINE
 // ──────────────────────────────────────────────────────────────────────
-// Positions are stored as FRACTIONS of the viewport, calibrated against
-// a 1920×1080 reference screen (the size of the user's "correct.png"
-// reference). At render time the engine still wants pixel offsets, so
-// we multiply by the current viewport dims and re-push to the engine
-// on every resize. This keeps the BL/BR/TOP columns visually grouped in
-// the same relative position whether the browser is 800px wide or 2560.
+// These coordinates were locked on 2026-05-06 after the user saved the
+// position they wanted via the toolbar on auroraly.co. The exact values
+// were read straight from MongoDB via GET /api/aurora/config:
+//   topColumns        : x=0,    y=-188, scale=0.83
+//   bottomLeftColumns : x=40,   y=186,  scale=0.91
+//   bottomRightColumns: x=-207, y=165,  scale=1.00
+//
+// They are stored here as FRACTIONS of a 1920×1080 reference viewport so
+// the same relative composition holds on narrow / wide / portrait windows.
+// At render time the engine still wants pixel offsets, so we multiply by
+// the current viewport dims and re-push to the engine on every resize.
 //
 // Engine math reminder (lib/auroraEngine.js around line 1030):
 //   ctx.translate(-W/2 + layer.x, -H/2 + layer.y)
-// so layer.x/y are absolute pixels — that's why the previous static
-// values (x=40, y=206) drifted on narrow windows.
+// so layer.x/y are absolute pixels — that's why pre-fix static values
+// drifted on narrow windows.
 // ──────────────────────────────────────────────────────────────────────
 
 const REF_W = 1920;
@@ -23,18 +28,18 @@ const REF_H = 1080;
 const LOCKED_LAYERS_FRAC = {
   topColumns: {
     visible: true, opacity: 1, scale: 0.83,
-    xFrac: 0   / REF_W,    // 0
-    yFrac: -188 / REF_H,   // ≈ -0.174
+    xFrac:    0 / REF_W,   // 0
+    yFrac: -188 / REF_H,   // ≈ -0.1741
   },
   bottomLeftColumns: {
     visible: true, opacity: 1, scale: 0.91,
     xFrac:  40 / REF_W,    // ≈  0.0208
-    yFrac: 206 / REF_H,    // ≈  0.1907
+    yFrac: 186 / REF_H,    // ≈  0.1722
   },
   bottomRightColumns: {
-    visible: true, opacity: 1, scale: 1.12,
-    xFrac: -167 / REF_W,   // ≈ -0.0870
-    yFrac:  175 / REF_H,   // ≈  0.1620
+    visible: true, opacity: 1, scale: 1.00,
+    xFrac: -207 / REF_W,   // ≈ -0.1078
+    yFrac:  165 / REF_H,   // ≈  0.1528
   },
 };
 
