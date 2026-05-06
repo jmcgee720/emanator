@@ -4,6 +4,12 @@ import { Eye, EyeOff, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 
 const API_URL = '';
 
+// Bump this whenever defaultLayers `saved` positions change. Anything
+// persisted to the API/localStorage with a lower version is treated as
+// stale and we fall back to the hardcoded baseline. Keeps user toggles
+// (visible) but ignores stale saved x/y/scale/opacity.
+const LAYOUT_VERSION = 4;
+
 const defaultLayers = {
   // Locked to the user's saved layout — produces the connected aurora look across all three columns.
   topColumns: { visible: true, opacity: 1, x: 0, y: 0, scale: 1, saved: { opacity: 1, x: 0, y: -188, scale: 0.83 } },
@@ -20,13 +26,23 @@ const defaultEffects = {
   verticalDrift: { enabled: true, intensity: 0.16 },
 };
 
-function restoreLayersFromStored(parsed) {
+function restoreLayersFromStored(parsed, storedVersion) {
+  const useStoredSaved = storedVersion === LAYOUT_VERSION;
   const restored = {};
   for (const [id, def] of Object.entries(defaultLayers)) {
-    const s = parsed[id];
-    restored[id] = s
-      ? { ...def, visible: s.visible, saved: s.saved }
-      : def;
+    const s = parsed?.[id];
+    if (!s) {
+      restored[id] = def;
+      continue;
+    }
+    restored[id] = {
+      ...def,
+      visible: typeof s.visible === 'boolean' ? s.visible : def.visible,
+      // Honor stored saved positions ONLY if the persisted layout matches
+      // the current code's LAYOUT_VERSION. Otherwise the hardcoded baseline
+      // wins so a code-side lock can't be silently overridden by old DB rows.
+      saved: useStoredSaved && s.saved ? s.saved : def.saved,
+    };
   }
   return restored;
 }
@@ -106,7 +122,7 @@ const AuroraBackground = ({
         const data = await res.json();
         if (cancelled) return;
         if (data.layers) {
-          setLayers(restoreLayersFromStored(data.layers));
+          setLayers(restoreLayersFromStored(data.layers, data.version));
         }
         if (data.effects) {
           setEffects(data.effects);
@@ -115,8 +131,9 @@ const AuroraBackground = ({
         // Fallback: try localStorage
         try {
           const stored = localStorage.getItem('aurora_layers');
+          const storedVer = parseInt(localStorage.getItem('aurora_layout_version') || '0', 10);
           if (stored && !cancelled) {
-            setLayers(restoreLayersFromStored(JSON.parse(stored)));
+            setLayers(restoreLayersFromStored(JSON.parse(stored), storedVer));
           }
         } catch {}
         try {
@@ -164,14 +181,17 @@ const AuroraBackground = ({
         };
       }
       // Persist to localStorage as local cache
-      try { localStorage.setItem('aurora_layers', JSON.stringify(next)); } catch {}
+      try {
+        localStorage.setItem('aurora_layers', JSON.stringify(next));
+        localStorage.setItem('aurora_layout_version', String(LAYOUT_VERSION));
+      } catch {}
 
       // Persist to backend (MongoDB) — the permanent save
       setSaveStatus('saving');
       fetch(`${API_URL}/api/aurora/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ layers: next, effects }),
+        body: JSON.stringify({ layers: next, effects, version: LAYOUT_VERSION }),
       })
         .then(r => r.ok ? setSaveStatus('saved') : setSaveStatus('error'))
         .catch(() => setSaveStatus('error'))
