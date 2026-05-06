@@ -8,7 +8,7 @@ const API_URL = '';
 // persisted to the API/localStorage with a lower version is treated as
 // stale and we fall back to the hardcoded baseline. Keeps user toggles
 // (visible) but ignores stale saved x/y/scale/opacity.
-const LAYOUT_VERSION = 4;
+const LAYOUT_VERSION = 5;
 
 const defaultLayers = {
   // Locked to the user's saved layout — produces the connected aurora look across all three columns.
@@ -255,7 +255,11 @@ const AuroraBackground = ({
       streakDensity,
       glowStrength
     });
-    engineRef.current.updateActivityLevel(activityLevel);
+    // Always boot at activityLevel 0 — a non-zero initial prop (e.g. the
+    // Dashboard passes `1` when no project is selected) would otherwise make
+    // the aurora start "manic" and look different from every other page.
+    // Demo mode (Shift+D) is the only sanctioned way to raise activity.
+    engineRef.current.updateActivityLevel(0);
     engineRef.current.start();
     window.addEventListener('resize', handleResize);
 

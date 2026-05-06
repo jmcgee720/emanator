@@ -163,7 +163,7 @@ export default function LoginPage({ onAuthSuccess }) {
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-6" data-testid="login-page">
 
       {/* ── CANVAS AURORA BACKGROUND ── */}
-      <AuroraBackground activityLevel={1} />
+      <AuroraBackground activityLevel={0} />
 
       {/* ── LOGO ── */}
       <div className="relative z-10 text-center em-panel-enter" style={{ animationDelay: '0ms' }}>

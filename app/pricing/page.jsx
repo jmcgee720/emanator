@@ -121,7 +121,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden" data-testid="pricing-page">
-      <AuroraBackground activityLevel={1} />
+      <AuroraBackground activityLevel={0} />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-16">
         {/* Header */}
