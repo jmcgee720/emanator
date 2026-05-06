@@ -39,9 +39,11 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   }
   const after = rewritePackageJson(before)
 
-  // Scripts swapped to Vite.
-  assert.equal(after.scripts.dev, 'vite --port 3000', 'dev script set')
-  assert.equal(after.scripts.start, 'vite --port 3000', 'start script set (CRA compatibility)')
+  // Scripts swapped to Vite (with --host 0.0.0.0 + --logLevel info so the
+  // WebContainer port-forwarder sees the ready signal).
+  assert.match(after.scripts.dev,   /^vite --port 3000\b/, 'dev script uses vite on 3000')
+  assert.match(after.scripts.start, /^vite --port 3000\b/, 'start script (CRA compat) uses vite on 3000')
+  assert.match(after.scripts.dev,   /--host 0\.0\.0\.0/,   'dev script binds 0.0.0.0 for WebContainer port detection')
   assert.equal(after.scripts.build, 'vite build', 'build script set')
 
   // CRA deps removed.
@@ -88,10 +90,14 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   assert.ok(cfg.includes('port: 3000'), 'port matches CRA default')
   assert.ok(cfg.includes("outDir: 'build'"), 'CRA build dir preserved')
   // WebContainers crash esbuild WASM on large dep graphs — pre-bundling MUST
-  // be disabled or Mangia-Mama (~500 deps) will gopark-panic at boot.
+  // be disabled at dev time or Mangia-Mama (~500 deps) will gopark-panic
+  // / hang at boot. We use `disabled: 'dev'` rather than `disabled: true`
+  // because it preserves prod-build pre-bundling.
   assert.ok(cfg.includes('optimizeDeps'), 'optimizeDeps block present')
-  assert.ok(/optimizeDeps:\s*\{[^}]*disabled:\s*true/m.test(cfg), 'optimizeDeps.disabled=true (esbuild WASM crash workaround)')
-  console.log('✓ buildViteConfig has the right shape (incl. esbuild WASM workaround)')
+  assert.ok(/disabled:\s*['"]dev['"]/m.test(cfg) || /disabled:\s*true/m.test(cfg), 'optimizeDeps.disabled set for dev (esbuild WASM crash workaround)')
+  assert.ok(/host:\s*true/.test(cfg), 'server.host=true so WebContainer port-forwarder sees ready signal')
+  assert.ok(/usePolling:\s*true/.test(cfg), 'WebContainer-friendly polling watcher')
+  console.log('✓ buildViteConfig has the right shape (incl. WebContainer + esbuild workarounds)')
 }
 
 // 5) convertCraToVite end-to-end on a CRA scope.
