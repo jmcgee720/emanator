@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Base URL from environment
-BASE_URL = "https://syntax-error-patch.preview.emergentagent.com/api"
+BASE_URL = "https://webcontainer-preview.preview.emergentagent.com/api"
 
 # Test configuration
 HEADERS = {

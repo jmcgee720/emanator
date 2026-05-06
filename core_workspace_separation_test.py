@@ -23,7 +23,7 @@ import os
 import uuid
 
 # Configuration
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://syntax-error-patch.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://webcontainer-preview.preview.emergentagent.com')
 OWNER_EMAIL = 'REDACTED_LEAKED_USER'
 OWNER_PASSWORD = 'REDACTED_LEAKED_PASSWORD'
 SELF_EDIT_PREFIX = '⚙ Self-Edit: '  # Unicode U+2699
