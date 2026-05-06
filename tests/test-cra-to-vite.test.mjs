@@ -89,6 +89,10 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   assert.ok(cfg.includes("envPrefix: 'REACT_APP_'"), 'CRA env prefix preserved')
   assert.ok(cfg.includes('port: 3000'), 'port matches CRA default')
   assert.ok(cfg.includes("outDir: 'build'"), 'CRA build dir preserved')
+  // CRA puts JSX in `.js` — plugin-react MUST be told to include `.js` or
+  // import-analysis crashes with "Unexpected token '<'".
+  assert.ok(/react\(\s*\{\s*include:[^}]*\\\.\(mjs\|cjs\|js\|jsx\|ts\|tsx\)/.test(cfg),
+    'plugin-react include covers .js/.mjs/.cjs (CRA JSX-in-.js compat)')
   // WebContainers crash esbuild WASM on large dep graphs — pre-bundling MUST
   // be disabled at dev time or Mangia-Mama (~500 deps) will gopark-panic
   // / hang at boot. We use `disabled: 'dev'` rather than `disabled: true`
@@ -97,7 +101,7 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   assert.ok(/disabled:\s*['"]dev['"]/m.test(cfg) || /disabled:\s*true/m.test(cfg), 'optimizeDeps.disabled set for dev (esbuild WASM crash workaround)')
   assert.ok(/host:\s*true/.test(cfg), 'server.host=true so WebContainer port-forwarder sees ready signal')
   assert.ok(/usePolling:\s*true/.test(cfg), 'WebContainer-friendly polling watcher')
-  console.log('✓ buildViteConfig has the right shape (incl. WebContainer + esbuild workarounds)')
+  console.log('✓ buildViteConfig has the right shape (incl. WebContainer + esbuild + JSX-in-.js workarounds)')
 }
 
 // 5) convertCraToVite end-to-end on a CRA scope.
