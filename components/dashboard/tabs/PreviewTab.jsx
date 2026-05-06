@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import WebContainerPreview from './WebContainerPreview'
 import { isWebContainerEnabled } from '../../../lib/webcontainer/sandbox.js'
+import { detectProjectLayout, toWebContainerTree } from '../../../lib/webcontainer/file-tree.js'
 
 // ─── Parse VFS entries out of a components/assets.js module ────────
 // Used on project reload (no live SSE map available) so path-form
@@ -1248,6 +1249,35 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     desktop: { width: '100%', label: 'Desktop' }
   }
 
+  // Detect the imported project's framework (cra/next/vite/auroraly) so we
+  // can auto-pick the right preview engine. Memoized on the file list so
+  // we don't re-scan on every render.
+  const detectedFramework = useMemo(() => {
+    if (!isWebContainerEnabled()) return 'auroraly'
+    if (!Array.isArray(files) || files.length === 0) return 'auroraly'
+    try {
+      const layout = detectProjectLayout(toWebContainerTree(files))
+      return layout.framework
+    } catch {
+      return 'auroraly'
+    }
+  }, [files])
+
+  // Auto-engine: when the project is a real framework that needs a dev
+  // server (CRA, Next.js, Vite), default the preview engine to
+  // 'webcontainer' on first detection. The user can still flip to Babel
+  // manually. We only auto-select once per project so we don't override
+  // their explicit choice on subsequent re-renders.
+  const autoEngineRef = useRef(null)
+  useEffect(() => {
+    if (!isWebContainerEnabled()) return
+    if (autoEngineRef.current === project?.id) return
+    if (['cra', 'next', 'vite'].includes(detectedFramework)) {
+      setPreviewEngine('webcontainer')
+      autoEngineRef.current = project?.id
+    }
+  }, [detectedFramework, project?.id])
+
   useEffect(() => {
     const prevHash = prevFilesRef.current
     const currentHash = files?.map(f => `${f.path}:${f.version || 0}:${f.updated_at || ''}:${typeof f.content === 'string' ? f.content.length : 0}`).join('|') || ''
@@ -1791,6 +1821,17 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
                 <Zap className="w-3 h-3" /> WebContainer
               </button>
             </div>
+          )}
+          {isWebContainerEnabled() && ['cra', 'next', 'vite'].includes(detectedFramework) && (
+            <span
+              className="ml-1 text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20"
+              title={detectedFramework === 'cra'
+                ? 'Detected Create React App — auto-converted to Vite for WebContainer execution'
+                : `Detected ${detectedFramework.toUpperCase()} — running in WebContainer`}
+              data-testid="preview-framework-badge"
+            >
+              {detectedFramework === 'cra' ? 'CRA → Vite' : detectedFramework}
+            </span>
           )}
         </div>
 
