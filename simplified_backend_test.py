@@ -8,7 +8,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "https://syntax-error-patch.preview.emergentagent.com"
+BASE_URL = "https://webcontainer-preview.preview.emergentagent.com"
 AUTH_EMAIL = "testprov@test.com"
 AUTH_PASSWORD = "password123"
 

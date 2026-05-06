@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "https://syntax-error-patch.preview.emergentagent.com"
+BASE_URL = "https://webcontainer-preview.preview.emergentagent.com"
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 TEST_PROJECT_ID = "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd"
