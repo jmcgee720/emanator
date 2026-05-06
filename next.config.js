@@ -33,16 +33,22 @@ const nextConfig = {
           { key: "Access-Control-Allow-Headers", value: "*" },
         ],
       },
-      // ── WebContainer cross-origin isolation (Session 7/7) ──
+      // ── WebContainer cross-origin isolation ──
       // StackBlitz WebContainers need SharedArrayBuffer, which the browser
-      // only exposes to cross-origin-isolated contexts. We scope these to
-      // the project dashboard + API so the public marketing pages still
-      // load any third-party script (fonts, analytics, etc.).
+      // only exposes to cross-origin-isolated contexts.
+      // We use COEP: credentialless so existing third-party resources
+      // (fonts, analytics, embedded iframes from auroraly's preview snapshots)
+      // continue to load without requiring CORP headers on every resource.
+      // Scoped to the entire site since the dashboard lives at "/" and
+      // the route guards via NEXT_PUBLIC_WEBCONTAINERS_ENABLED let us roll
+      // this out behind a flag.
       ...(process.env.NEXT_PUBLIC_WEBCONTAINERS_ENABLED === '1' ? [{
-        source: "/project/(.*)",
+        source: "/(.*)",
         headers: [
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-          { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+          // Resource policy for our own assets so cross-isolated pages can use them
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
         ],
       }] : []),
     ];
