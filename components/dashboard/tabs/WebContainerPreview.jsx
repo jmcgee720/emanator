@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react'
-import { Loader2, AlertTriangle, Zap, FileCode } from 'lucide-react'
+import { Loader2, AlertTriangle, Zap, FileCode, ExternalLink, Terminal, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   isWebContainerEnabled,
   isWebContainerSupported,
@@ -22,11 +22,14 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
   const [stageDetail, setStageDetail] = useState('')
   const [logs, setLogs] = useState([])
   const [url, setUrl] = useState(null)
+  const [iframeKey, setIframeKey] = useState(0) // bump to force-reload iframe
+  const [showLogs, setShowLogs] = useState(false)
   const [ports, setPorts] = useState([]) // multi-service projects expose extra {port, url}
   const [error, setError] = useState(null)
   const stopRef = useRef(null)
   const mountedOnceRef = useRef(false)
   const lastHashRef = useRef('')
+  const logScrollRef = useRef(null)
 
   const enabled = isWebContainerEnabled()
   const supported = isWebContainerSupported()
@@ -62,6 +65,11 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
       onReady: (readyUrl) => {
         setUrl(readyUrl)
         setStage('ready')
+        // Next.js dev binds the port BEFORE first compile finishes — the
+        // initial iframe load can hit a not-yet-compiled page and stay blank.
+        // Soft-reload the iframe once after a short delay so the user always
+        // sees the first render without manually clicking Refresh.
+        setTimeout(() => setIframeKey((k) => k + 1), 4500)
       },
       onPort: (port, portUrl) => {
         setPorts((prev) => prev.some((p) => p.port === port) ? prev : [...prev, { port, url: portUrl }])
@@ -117,6 +125,13 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
     )
   }
 
+  // Auto-scroll the log drawer to the bottom on each new line.
+  useEffect(() => {
+    if (showLogs && logScrollRef.current) {
+      logScrollRef.current.scrollTop = logScrollRef.current.scrollHeight
+    }
+  }, [logs, showLogs])
+
   return (
     <div className="h-full flex flex-col bg-background min-h-0" data-testid="wc-preview">
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border/40 text-[11px]">
@@ -124,7 +139,39 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
         <span className="font-medium">WebContainer</span>
         <span className="text-muted-foreground">·</span>
         <StageBadge stage={stage} detail={stageDetail} />
-        {url && <span className="ml-auto font-mono text-[10px] text-muted-foreground/80 truncate max-w-[280px]" title={url}>{url}</span>}
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="ml-auto flex items-center gap-1 font-mono text-[10px] text-muted-foreground/80 hover:text-emerald-300 truncate max-w-[320px]"
+            title={`Open in new tab: ${url}`}
+            data-testid="wc-open-external"
+          >
+            <span className="truncate">{url.replace(/^https?:\/\//, '')}</span>
+            <ExternalLink className="w-3 h-3 shrink-0" />
+          </a>
+        )}
+        <button
+          onClick={() => setShowLogs((v) => !v)}
+          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${showLogs ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/40'} ${url ? '' : 'ml-auto'}`}
+          title="Toggle terminal log"
+          data-testid="wc-toggle-logs"
+        >
+          <Terminal className="w-3 h-3" />
+          {showLogs ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+          <span>{logs.length > 0 ? `${logs.length}` : 'logs'}</span>
+        </button>
+        {url && (
+          <button
+            onClick={() => setIframeKey((k) => k + 1)}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-muted-foreground hover:bg-muted/40"
+            title="Reload preview iframe"
+            data-testid="wc-reload-iframe"
+          >
+            ↻
+          </button>
+        )}
       </div>
 
       {ports.length > 1 && (
@@ -161,6 +208,7 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
         ) : url ? (
           <div className="flex-1 min-h-0 bg-white flex justify-center">
             <iframe
+              key={iframeKey}
               src={url}
               title="WebContainer preview"
               className="w-full h-full border-0"
@@ -188,6 +236,29 @@ export default function WebContainerPreview({ files, viewport = '100%', projectI
           </div>
         )}
       </div>
+
+      {showLogs && (
+        <div className="border-t border-border/40 bg-black/60 max-h-56 overflow-hidden flex flex-col" data-testid="wc-logs-drawer">
+          <div className="flex items-center gap-2 px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/30">
+            <Terminal className="w-3 h-3" />
+            <span>Terminal</span>
+            <span className="opacity-60">· {logs.length} lines</span>
+            <button
+              onClick={() => setLogs([])}
+              className="ml-auto opacity-60 hover:opacity-100"
+              data-testid="wc-clear-logs"
+            >
+              Clear
+            </button>
+          </div>
+          <pre
+            ref={logScrollRef}
+            className="flex-1 overflow-auto px-3 py-1.5 font-mono text-[10px] leading-snug text-emerald-200/80 whitespace-pre-wrap"
+          >
+            {logs.length === 0 ? <span className="text-muted-foreground/50">(no output yet)</span> : logs.join('')}
+          </pre>
+        </div>
+      )}
     </div>
   )
 }
