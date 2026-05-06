@@ -87,7 +87,11 @@ import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectL
   assert.ok(cfg.includes("envPrefix: 'REACT_APP_'"), 'CRA env prefix preserved')
   assert.ok(cfg.includes('port: 3000'), 'port matches CRA default')
   assert.ok(cfg.includes("outDir: 'build'"), 'CRA build dir preserved')
-  console.log('✓ buildViteConfig has the right shape')
+  // WebContainers crash esbuild WASM on large dep graphs — pre-bundling MUST
+  // be disabled or Mangia-Mama (~500 deps) will gopark-panic at boot.
+  assert.ok(cfg.includes('optimizeDeps'), 'optimizeDeps block present')
+  assert.ok(/optimizeDeps:\s*\{[^}]*disabled:\s*true/m.test(cfg), 'optimizeDeps.disabled=true (esbuild WASM crash workaround)')
+  console.log('✓ buildViteConfig has the right shape (incl. esbuild WASM workaround)')
 }
 
 // 5) convertCraToVite end-to-end on a CRA scope.
