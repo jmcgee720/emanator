@@ -40,10 +40,9 @@ primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
     hard_limit = 200
     soft_limit = 100
 
-  [[services.tcp_checks]]
-    interval = "15s"
-    timeout = "2s"
-    grace_period = "60s"
+  # No tcp_check on :3000 — the user's dev server only binds this port
+  # AFTER the orchestrator hits POST /start. A baseline machine is in
+  # "no project loaded" state and would always look unhealthy here.
 
 # Runner control plane — orchestrator-only, on a separate port.
 [[services]]
