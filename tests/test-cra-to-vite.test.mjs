@@ -10,6 +10,7 @@ import {
   convertCraToVite,
   bubbleCssImports,
   bubbleCssImportsInTree,
+  ensureRootIndexHtml,
 } from '../lib/webcontainer/cra-to-vite.js'
 import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectLayout } from '../lib/webcontainer/file-tree.js'
 
@@ -298,6 +299,93 @@ body { margin: 0; }
   assert.equal(tree.src.directory['Foo.jsx'].file.contents, '', '.jsx files untouched')
   console.log('✓ bubbleCssImportsInTree rewrites every .css, leaves non-css alone')
 }
+
+// 12) Emergent-template re-import regression: project was already converted
+//     CRA→Vite in a previous session (no react-scripts), public/index.html
+//     is the original Emergent CRA template with NO entry script tag, and
+//     no root index.html exists. ensureRootIndexHtml must create the root
+//     index.html, inject the entry script, AND delete public/index.html so
+//     Vite's static fallback can't shadow it.
+{
+  const emergentHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Emergent | Fullstack App</title>
+    <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <a id="emergent-badge" href="https://app.emergent.sh">Made with Emergent</a>
+  </body>
+</html>`
+  const tree = toWebContainerTree([
+    { path: 'package.json', content: JSON.stringify({
+      name: 'frontend', type: 'module',
+      scripts: { dev: 'vite' },
+      dependencies: { react: '18.3.1', 'react-dom': '18.3.1' },
+      devDependencies: { vite: '^5.4.0' },
+    }) },
+    { path: 'public/index.html', content: emergentHtml },
+    { path: 'src/index.js', content: '' },
+  ])
+  ensureRootIndexHtml(tree)
+
+  // Root index.html created, entry script injected.
+  assert.ok(tree['index.html']?.file?.contents, 'root index.html created')
+  const rootHtml = tree['index.html'].file.contents
+  assert.match(rootHtml, /<script[^>]+type=["']module["'][^>]+src=["']\/src\/index\.js["']/,
+    'entry script tag injected before </body>')
+  assert.ok(rootHtml.includes('<div id="root"></div>'), 'mount node preserved')
+  assert.ok(rootHtml.includes('Made with Emergent'), 'Emergent badge preserved')
+
+  // public/index.html deleted (so Vite static fallback can't shadow root).
+  assert.equal(tree.public?.directory['index.html'], undefined,
+    'public/index.html removed so Vite root index.html wins')
+
+  // Idempotent: running again leaves it alone.
+  const before = tree['index.html'].file.contents
+  ensureRootIndexHtml(tree)
+  assert.equal(tree['index.html'].file.contents, before,
+    'ensureRootIndexHtml is idempotent on already-correct tree')
+  console.log('✓ ensureRootIndexHtml: Emergent template gets entry script injected + public copy deleted')
+}
+
+// 13) ensureRootIndexHtml falls through to a minimal placeholder when no
+//     HTML exists anywhere (defensive — should never happen for real
+//     imports but guards against malformed trees).
+{
+  const tree = toWebContainerTree([
+    { path: 'package.json', content: '{"type":"module"}' },
+    { path: 'src/index.js', content: '' },
+  ])
+  ensureRootIndexHtml(tree)
+  const html = tree['index.html']?.file?.contents
+  assert.ok(html, 'placeholder index.html created')
+  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']\/src\/index\.js["']/, 'entry script in placeholder')
+  assert.ok(html.includes('<div id="root"></div>'), 'placeholder has mount node')
+  console.log('✓ ensureRootIndexHtml falls back to a minimal Vite shell when no HTML exists')
+}
+
+// 14) ensureRootIndexHtml also fixes a root index.html that exists but is
+//     missing the entry script (e.g. user committed only `<div id="root">`
+//     and forgot the bundle).
+{
+  const partialHtml = `<!doctype html>
+<html><body><div id="root"></div></body></html>`
+  const tree = toWebContainerTree([
+    { path: 'package.json', content: '{"type":"module"}' },
+    { path: 'index.html', content: partialHtml },
+    { path: 'src/index.js', content: '' },
+  ])
+  ensureRootIndexHtml(tree)
+  const html = tree['index.html'].file.contents
+  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']\/src\/index\.js["']/,
+    'partial root index.html gets entry script injected')
+  console.log('✓ ensureRootIndexHtml fixes partial root index.html missing the entry script')
+}
+
 
 
 console.log('\nAll CRA → Vite converter tests passed ✓')

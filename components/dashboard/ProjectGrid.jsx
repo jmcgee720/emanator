@@ -53,6 +53,20 @@ function ProjectThumbnail({ projectId, projectName }) {
           console.log(`[ProjectThumbnail:${projectId}] no files — placeholder will show 'No files yet'`)
           return
         }
+        // Size cap: heavy imported projects (Mangia-Mama: 130 files +
+        // Phaser game; Dopples: 197 files) generate 50MB+ inline-HTML
+        // thumbnails, which choke the browser and bloat backend storage
+        // by ~50MB per dashboard view. Skip the lazy build for anything
+        // above the threshold and fall through to the gradient + initials
+        // placeholder. The full WebContainer preview is still available
+        // when the user clicks into the project.
+        const THUMBNAIL_FILE_LIMIT = 30
+        const THUMBNAIL_BYTE_LIMIT = 2_000_000  // 2 MB of input source
+        const totalBytes = files.reduce((acc, f) => acc + (f.content?.length || 0), 0)
+        if (files.length > THUMBNAIL_FILE_LIMIT || totalBytes > THUMBNAIL_BYTE_LIMIT) {
+          console.log(`[ProjectThumbnail:${projectId}] skipping lazy thumbnail (files=${files.length}, bytes=${totalBytes}) — too large, using placeholder`)
+          return
+        }
         const info = classifyProject(files)
         console.log(`[ProjectThumbnail:${projectId}] classified as ${info.type}, building...`)
         let html = null
@@ -63,6 +77,13 @@ function ProjectThumbnail({ projectId, projectName }) {
           return
         }
         if (cancelled || !html) return
+        // Defensive output cap — even small inputs occasionally fan out
+        // (e.g. base64-inlined images). If the OUTPUT exceeds 3 MB, drop
+        // the snapshot rather than uploading + iframe-rendering it.
+        if (html.length > 3_000_000) {
+          console.log(`[ProjectThumbnail:${projectId}] generated HTML too large (${html.length} bytes) — discarding`)
+          return
+        }
         console.log(`[ProjectThumbnail:${projectId}] built ${html.length} bytes of HTML`)
         setSnapshot(html)
         // Save snapshot to server so next visit is instant. Best-effort —
