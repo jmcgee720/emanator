@@ -97,14 +97,15 @@ function pickDevCommand(pkg) {
  * hosts (defeats Vite v5's host-check that returns 403 for our wildcard
  * preview subdomains). The override re-exports any existing user config.
  */
-async function ensureViteHostOverride(pkg) {
+async function ensureViteHostOverride(pkg, cwd) {
+  const dir = cwd || PROJECT_DIR
   const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
   if (!deps.vite) return false
   const fs = await import('node:fs/promises')
   const candidates = ['vite.config.js', 'vite.config.mjs', 'vite.config.ts', 'vite.config.cjs']
   let userConfigImport = null
   for (const c of candidates) {
-    if (existsSync(join(PROJECT_DIR, c))) { userConfigImport = `./${c}`; break }
+    if (existsSync(join(dir, c))) { userConfigImport = `./${c}`; break }
   }
   // ESM file that imports the user's config (if any) and merges in the
   // server.allowedHosts override. `allowedHosts: true` = allow ALL hosts.
@@ -135,30 +136,100 @@ export default defineConfig({
   },
 })
 `
-  await fs.writeFile(join(PROJECT_DIR, 'vite.config.runner.mjs'), body, 'utf8')
+  await fs.writeFile(join(dir, 'vite.config.runner.mjs'), body, 'utf8')
   appendLog('runner', `[runner] vite host-check override written (allowedHosts: true)`)
   return true
 }
 
-async function runInstallIfNeeded() {
+/**
+ * Find the working directory that contains the project's package.json.
+ *
+ * Mangia-Mama, Dopples, and other Emergent imports often nest the actual
+ * app under `frontend/`, `web/`, `client/`, `apps/web/`, etc. The runner
+ * has to detect that and use it as the cwd for npm install + dev spawn.
+ *
+ * Strategy:
+ *   1. If /project/package.json exists with a usable script → use root.
+ *   2. Otherwise scan up to 3 levels deep for any package.json with a
+ *      `dev`/`start`/`preview` script. Prefer common workspace names
+ *      (frontend, web, client, app, apps/web, packages/web).
+ *   3. Fallback: first package.json with ANY scripts.
+ */
+async function resolveProjectCwd() {
+  const fs = await import('node:fs/promises')
+  const PREFERRED = ['frontend', 'web', 'client', 'app', 'apps/web', 'packages/web']
+  const isUsable = (pkg) => {
+    const s = pkg?.scripts || {}
+    return !!(s.dev || s.start || s.preview)
+  }
+  const readPkg = async (p) => {
+    try { return JSON.parse(await fs.readFile(p, 'utf8')) }
+    catch { return null }
+  }
+  // 1) Root
+  const rootPkg = await readPkg(join(PROJECT_DIR, 'package.json'))
+  if (rootPkg && isUsable(rootPkg)) return { cwd: PROJECT_DIR, pkg: rootPkg, nested: '' }
+
+  // 2) Preferred workspace paths
+  for (const sub of PREFERRED) {
+    const full = join(PROJECT_DIR, sub)
+    const pkg = await readPkg(join(full, 'package.json'))
+    if (pkg && isUsable(pkg)) {
+      appendLog('runner', `[runner] detected nested workspace at ${sub}/`)
+      return { cwd: full, pkg, nested: sub }
+    }
+  }
+
+  // 3) Generic walk up to depth 3
+  const walk = async (dir, depth) => {
+    if (depth > 3) return null
+    let entries = []
+    try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return null }
+    for (const e of entries) {
+      if (!e.isDirectory()) continue
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue
+      const sub = join(dir, e.name)
+      const pkg = await readPkg(join(sub, 'package.json'))
+      if (pkg && isUsable(pkg)) return { cwd: sub, pkg, nested: sub.replace(PROJECT_DIR + '/', '') }
+      const deeper = await walk(sub, depth + 1)
+      if (deeper) return deeper
+    }
+    return null
+  }
+  const found = await walk(PROJECT_DIR, 1)
+  if (found) {
+    appendLog('runner', `[runner] detected nested workspace at ${found.nested}/ (deep scan)`)
+    return found
+  }
+
+  // 4) Last resort: root pkg even if scripts are weak, or nothing.
+  if (rootPkg) return { cwd: PROJECT_DIR, pkg: rootPkg, nested: '' }
+  return null
+}
+
+async function runInstallIfNeeded(workCwd) {
+  const cwd = workCwd || PROJECT_DIR
   // Cheap content hash so we don't reinstall on every /start.
   const lockPaths = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
   let key = ''
   for (const p of lockPaths) {
-    const full = join(PROJECT_DIR, p)
+    const full = join(cwd, p)
     if (existsSync(full)) { key += p + ':' + (await (await import('node:fs/promises')).readFile(full, 'utf8')).slice(0, 4096) }
   }
   // Plus package.json for projects without locks.
-  const pkgPath = join(PROJECT_DIR, 'package.json')
+  const pkgPath = join(cwd, 'package.json')
   if (existsSync(pkgPath)) { key += 'pkg:' + (await (await import('node:fs/promises')).readFile(pkgPath, 'utf8')) }
-  if (key === lastInstallHash && existsSync(join(PROJECT_DIR, 'node_modules'))) {
+  if (key === lastInstallHash && existsSync(join(cwd, 'node_modules'))) {
     appendLog('runner', '[runner] node_modules cache hit — skipping npm install')
     return
   }
-  appendLog('runner', '[runner] running npm install (this may take 1-2 min on cold start)…')
+  appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
   await new Promise((res, rej) => {
-    installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline'], {
-      cwd: PROJECT_DIR,
+    // --legacy-peer-deps bypasses ERESOLVE conflicts on imported CRA apps
+    // (react-scripts@5 + react@18 routinely throws peerDep errors that
+    // npm@10 treats as fatal without this flag).
+    installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline', '--legacy-peer-deps'], {
+      cwd,
       env: { ...process.env, CI: '1' },
     })
     installProc.stdout.on('data', d => appendLog('install', d))
@@ -213,19 +284,25 @@ app.post('/sync', async (req, res) => {
 app.post('/start', async (req, res) => {
   if (devProc) return res.json({ ok: true, alreadyRunning: true, pid: devProc.pid, port: USER_DEV_PORT })
   try {
-    if (!installPromise) installPromise = runInstallIfNeeded().finally(() => { installPromise = null })
+    // Resolve the actual project cwd FIRST — Mangia-Mama and similar
+    // imports nest the app under frontend/, web/, etc. We need the right
+    // dir for both `npm install` AND the dev spawn.
+    const resolved = await resolveProjectCwd()
+    if (!resolved) {
+      return res.status(400).json({ error: 'no package.json with a dev/start script found anywhere in /project' })
+    }
+    const { cwd, pkg, nested } = resolved
+
+    if (!installPromise) installPromise = runInstallIfNeeded(cwd).finally(() => { installPromise = null })
     await installPromise
 
-    const pkgPath = join(PROJECT_DIR, 'package.json')
-    if (!existsSync(pkgPath)) return res.status(400).json({ error: 'no package.json in project' })
-    const pkg = JSON.parse((await (await import('node:fs/promises')).readFile(pkgPath, 'utf8')))
-    await ensureViteHostOverride(pkg)
+    await ensureViteHostOverride(pkg, cwd)
     const cmd = pickDevCommand(pkg)
     if (!cmd) return res.status(400).json({ error: 'no dev/start/preview script in package.json' })
 
-    appendLog('runner', `[runner] spawning: ${cmd[0]} ${cmd[1].join(' ')}`)
+    appendLog('runner', `[runner] spawning ${cmd[0]} ${cmd[1].join(' ')} in ${nested || '/project'}`)
     devProc = spawn(cmd[0], cmd[1], {
-      cwd: PROJECT_DIR,
+      cwd,
       env: {
         ...process.env,
         PORT: String(USER_DEV_PORT),
