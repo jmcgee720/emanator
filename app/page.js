@@ -41,18 +41,67 @@ export default function App() {
       // Detect OAuth provider from Supabase user metadata
       const provider = authUser.app_metadata?.provider || authUser.app_metadata?.providers?.[0] || 'email'
 
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 10000)
+      // Retry 3x on transient errors. We've seen ~30-90s Supabase
+      // Cloudflare 522 outages that recover automatically. Without a
+      // retry, every reload during one of those windows shows
+      // "Access Denied" — misleading and scary for users.
+      const TRANSIENT_STATUS = new Set([502, 503, 504, 520, 521, 522, 523, 524])
+      const ATTEMPTS = 3
+      let lastErr = null
+      let response = null
+      let data = null
+      for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10000)
+        try {
+          response = await fetch('/api/auth/check', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ email: authUser.email, provider }),
+            signal: controller.signal,
+          })
+          clearTimeout(timeout)
+          if (TRANSIENT_STATUS.has(response.status)) {
+            lastErr = { transient: true, status: response.status }
+            if (attempt < ATTEMPTS - 1) {
+              await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
+              continue
+            }
+          }
+          // Defensive parse — Supabase 5xx HTML pages occasionally slip through.
+          const txt = await response.text()
+          try { data = txt ? JSON.parse(txt) : null } catch { data = null }
+          if (!data) {
+            lastErr = { transient: true, status: response.status }
+            if (attempt < ATTEMPTS - 1) {
+              await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
+              continue
+            }
+          }
+          break
+        } catch (err) {
+          clearTimeout(timeout)
+          lastErr = { transient: err?.name === 'AbortError' || /fetch|network|ECONN/i.test(err?.message || ''), error: err }
+          if (attempt < ATTEMPTS - 1) {
+            await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)))
+            continue
+          }
+          throw err
+        }
+      }
 
-      const response = await fetch('/api/auth/check', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ email: authUser.email, provider }),
-        signal: controller.signal
-      })
-      clearTimeout(timeout)
-
-      const data = await response.json()
+      if (!data) {
+        // All retries exhausted on a transient error — say so clearly.
+        // DO NOT call this "Access Denied"; the user's account is fine.
+        setUser(authUser)
+        setAccessDenied(true)
+        setAccessMessage(
+          lastErr?.transient
+            ? `Supabase is temporarily unreachable (status ${lastErr.status || 'network'}). Hit reload in a moment — your account is fine.`
+            : 'Unable to verify access. Please try again.'
+        )
+        return
+      }
 
       if (data.allowed) {
         setUser(authUser)
@@ -69,7 +118,11 @@ export default function App() {
     } catch (error) {
       setUser(authUser)
       setAccessDenied(true)
-      setAccessMessage(error?.name === 'AbortError' ? 'Database is not responding. Check your Supabase dashboard.' : 'Unable to verify access. Please try again.')
+      setAccessMessage(
+        error?.name === 'AbortError'
+          ? 'Supabase timed out. Hit reload in a moment — your account is fine.'
+          : 'Unable to verify access. Please try again.'
+      )
     } finally {
       setLoading(false)
     }
@@ -170,21 +223,36 @@ export default function App() {
   }
 
   if (accessDenied) {
+    // Distinguish "real" access denial from transient infrastructure errors.
+    const isTransient = /temporarily unreachable|timed out|please try again/i.test(accessMessage || '')
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="max-w-md p-8 rounded-xl bg-card border border-border">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
-          <p className="text-muted-foreground mb-6">{accessMessage}</p>
+          <h1 className="text-2xl font-bold text-foreground mb-4" data-testid="access-gate-heading">
+            {isTransient ? 'Hold tight…' : 'Access Denied'}
+          </h1>
+          <p className="text-muted-foreground mb-6" data-testid="access-gate-message">{accessMessage}</p>
           <p className="text-sm text-muted-foreground mb-6">
             Signed in as: <span className="text-foreground">{user.email}</span>
           </p>
-          <button
-            onClick={handleSignOut}
-            className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            data-testid="sign-out-btn"
-          >
-            Sign Out
-          </button>
+          <div className="flex gap-2">
+            {isTransient && (
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                data-testid="access-gate-retry"
+              >
+                Reload
+              </button>
+            )}
+            <button
+              onClick={handleSignOut}
+              className={`${isTransient ? 'flex-1' : 'w-full'} py-2 px-4 ${isTransient ? 'bg-muted text-muted-foreground border border-border' : 'bg-primary text-primary-foreground'} rounded-lg hover:opacity-90 transition-colors`}
+              data-testid="sign-out-btn"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     )
