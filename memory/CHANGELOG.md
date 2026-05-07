@@ -1,6 +1,26 @@
 # Changelog
 
 
+## 2026-05-08 — Storage Migration Complete + Fly OOM Fix Shipped
+### Closed out the Supabase Disk IO budget burn and the Mangia-Mama OOM kill in one push.
+
+**P0 — All 3 items shipped:**
+1. **Fly machine RAM bump 1024MB → 2048MB (2 vCPU)** (`lib/fly/machines.js`). The 1GB shared-cpu-1x guest was getting SIGKILL'd (Exit 137) mid-`npm install` for large CRA imports like Mangia-Mama. Now `shared-cpu-2x:2048MB` with 2 vCPUs gives `npm install` enough headroom.
+2. **`project_files.content` backfill complete.** Ran `node scripts/migrate-files-to-storage.mjs --apply`. Two-pass execution:
+   - Pass 1: 942 rows scanned, ~825 migrated, 118 failed with Supabase Storage `Invalid key` (file paths with spaces / colons / unicode).
+   - Pass 2 (after sanitization fix): all 118 remaining files migrated, 0 failures.
+   - Final dry-run confirms 0 inline files >8 KB remain. Should kill the Disk IO budget burn that was timing out Nexsara chat at 60s and 522'ing previews.
+3. **Storage key sanitization centralized + hardened** (`lib/supabase/file-storage.js`). New `storageKey()` exports a per-segment sanitizer (`[^a-zA-Z0-9._\-]` → `_`). Migration script now imports this same helper so backfill keys exactly match what live writes will produce — no key drift.
+
+**Tests:**
+- `tests/test-file-storage.test.mjs`: updated to mirror new logic, added cases for real-world failures ("Screenshot 2026-04-12 at 4.23.22 PM.png", `a:b/c?d.png`). 15 passing, 0 failing.
+- `tests/test-fly-machines.test.mjs`: 9 passing (no regressions from RAM bump).
+
+**Commits pushed to `main`:**
+- `8fa16b4` — fly: bump preview machines to 2GB/2vCPU
+- `2fcd75f` — storage: sanitize keys (Invalid key fix)
+- `3f6b50c` — test: align storageKey test + add space/special-char cases
+
 ## 2026-05-07 — Fly.io Server-Side Preview Phase 1 LIVE + Spyrals 520 fix
 ### Auroraly preview infrastructure pivoted from WebContainers → Fly Machines for imported projects
 
