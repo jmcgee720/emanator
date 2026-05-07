@@ -28,9 +28,12 @@ const nextConfig = {
         headers: [
           { key: "X-Frame-Options", value: "ALLOWALL" },
           { key: "Content-Security-Policy", value: "frame-ancestors *;" },
-          { key: "Access-Control-Allow-Origin", value: process.env.CORS_ORIGINS || "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "*" },
+          // CORS for /api/* is handled by /app/middleware.js — it picks
+          // exactly ONE allowed origin from CORS_ORIGINS based on the
+          // request's Origin header. Setting a comma-separated value
+          // here would break every fetch (browsers reject multi-origin
+          // ACAO). For non-API routes, we explicitly do NOT set
+          // Access-Control-Allow-Origin since they're not CORS-relevant.
         ],
       },
       // ── WebContainer cross-origin isolation ──
