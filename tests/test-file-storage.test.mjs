@@ -13,7 +13,12 @@ import assert from 'node:assert/strict'
 const INLINE_SIZE_LIMIT = 8 * 1024
 
 function storageKey(projectId, filePath) {
-  const safePath = String(filePath || '').replace(/^\/+/, '').replace(/\.\.+/g, '_')
+  const safePath = String(filePath || '')
+    .replace(/^\/+/, '')
+    .replace(/\.\.+/g, '_')
+    .split('/')
+    .map(seg => seg.replace(/[^a-zA-Z0-9._\-]/g, '_'))
+    .join('/')
   return `${projectId}/${safePath}`
 }
 
@@ -80,8 +85,18 @@ test('storageKey: ../../ traversal sanitized to underscore', () => {
   assert.equal(storageKey('proj-1', '../../../../root/.ssh/id_rsa'), 'proj-1/_/_/_/_/root/.ssh/id_rsa')
 })
 
-test('storageKey: unicode in paths preserved', () => {
-  assert.equal(storageKey('proj-1', 'src/héllo.js'), 'proj-1/src/héllo.js')
+test('storageKey: unicode in paths sanitized to underscores (Supabase rejects)', () => {
+  // Supabase Storage rejects non-ASCII chars with "Invalid key". Sanitize.
+  assert.equal(storageKey('proj-1', 'src/héllo.js'), 'proj-1/src/h_llo.js')
+})
+
+test('storageKey: spaces and special chars sanitized (was breaking real uploads)', () => {
+  // Real-world failures we hit: "Screenshot 2026-04-12 at 4.23.22 PM.png"
+  assert.equal(
+    storageKey('proj-1', '_uploads/Screenshot 2026-04-12 at 4.23.22 PM.png'),
+    'proj-1/_uploads/Screenshot_2026-04-12_at_4.23.22_PM.png',
+  )
+  assert.equal(storageKey('p', 'a:b/c?d.png'), 'p/a_b/c_d.png')
 })
 
 test('storageKey: empty path is safe', () => {
