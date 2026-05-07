@@ -9,6 +9,7 @@ import {
   Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, Zap
 } from 'lucide-react'
 import WebContainerPreview from './WebContainerPreview'
+import ServerPreview from './ServerPreview'
 import { isWebContainerEnabled } from '../../../lib/webcontainer/sandbox.js'
 import { detectProjectLayout, toWebContainerTree } from '../../../lib/webcontainer/file-tree.js'
 
@@ -1263,17 +1264,17 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     }
   }, [files])
 
-  // Auto-engine: when the project is a real framework that needs a dev
-  // server (CRA, Next.js, Vite), default the preview engine to
-  // 'webcontainer' on first detection. The user can still flip to Babel
-  // manually. We only auto-select once per project so we don't override
-  // their explicit choice on subsequent re-renders.
+  // Auto-engine: framework projects (CRA, Next.js, Vite) default to the
+  // server-side preview ('server') because client-side WebContainers can't
+  // reliably run Emergent-imported projects (architectural mismatch — see
+  // PRD note 2026-05-07). The user can still flip to WebContainer or
+  // Babel manually if they want. We only auto-select once per project so
+  // we don't override their explicit choice on subsequent re-renders.
   const autoEngineRef = useRef(null)
   useEffect(() => {
-    if (!isWebContainerEnabled()) return
     if (autoEngineRef.current === project?.id) return
     if (['cra', 'next', 'vite'].includes(detectedFramework)) {
-      setPreviewEngine('webcontainer')
+      setPreviewEngine('server')
       autoEngineRef.current = project?.id
     }
   }, [detectedFramework, project?.id])
@@ -1802,26 +1803,35 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
           <span className="ml-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded" data-testid="preview-mode-label">
             {modeLabel}{projectInfo.usesTailwind ? ' + Tailwind' : ''}
           </span>
-          {isWebContainerEnabled() && (
-            <div className="ml-2 inline-flex rounded border border-border/40 overflow-hidden" data-testid="preview-engine-toggle">
-              <button
-                onClick={() => setPreviewEngine('babel')}
-                className={`px-2 py-0.5 text-[10px] font-medium ${previewEngine === 'babel' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
-                data-testid="preview-engine-babel"
-                title="Fast Babel-transform preview (current default)"
-              >
-                Babel
-              </button>
+          {/* Engine toggle: Babel (always), Server (always — preferred for framework projects), WebContainer (legacy/experimental) */}
+          <div className="ml-2 inline-flex rounded border border-border/40 overflow-hidden" data-testid="preview-engine-toggle">
+            <button
+              onClick={() => setPreviewEngine('babel')}
+              className={`px-2 py-0.5 text-[10px] font-medium ${previewEngine === 'babel' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
+              data-testid="preview-engine-babel"
+              title="Fast Babel-transform preview"
+            >
+              Babel
+            </button>
+            <button
+              onClick={() => setPreviewEngine('server')}
+              className={`px-2 py-0.5 text-[10px] font-medium inline-flex items-center gap-1 ${previewEngine === 'server' ? 'bg-emerald-500/15 text-emerald-300' : 'text-muted-foreground hover:bg-muted/40'}`}
+              data-testid="preview-engine-server"
+              title="Run a real dev server in a Fly Machine container (recommended for imported projects)"
+            >
+              <Zap className="w-3 h-3" /> Server
+            </button>
+            {isWebContainerEnabled() && (
               <button
                 onClick={() => setPreviewEngine('webcontainer')}
-                className={`px-2 py-0.5 text-[10px] font-medium inline-flex items-center gap-1 ${previewEngine === 'webcontainer' ? 'bg-emerald-500/15 text-emerald-300' : 'text-muted-foreground hover:bg-muted/40'}`}
+                className={`px-2 py-0.5 text-[10px] font-medium ${previewEngine === 'webcontainer' ? 'bg-amber-500/15 text-amber-300' : 'text-muted-foreground hover:bg-muted/40'}`}
                 data-testid="preview-engine-webcontainer"
-                title="Real Next.js dev server via WebContainer (experimental)"
+                title="Legacy in-browser WebContainer (kept for greenfield Auroraly-native projects)"
               >
-                <Zap className="w-3 h-3" /> WebContainer
+                WC
               </button>
-            </div>
-          )}
+            )}
+          </div>
           {isWebContainerEnabled() && ['cra', 'next', 'vite'].includes(detectedFramework) && (
             <span
               className="ml-1 text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20"
@@ -1910,7 +1920,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       )}
 
       <div className="flex-1 min-h-0 overflow-hidden bg-white flex justify-center relative">
-        {previewEngine === 'webcontainer' ? (
+        {previewEngine === 'server' ? (
+          <div className="absolute inset-0">
+            <ServerPreview projectId={project?.id} projectName={project?.name} />
+          </div>
+        ) : previewEngine === 'webcontainer' ? (
           <div className="absolute inset-0">
             <WebContainerPreview files={files} viewport={viewports[viewportSize].width} projectId={project?.id} />
           </div>

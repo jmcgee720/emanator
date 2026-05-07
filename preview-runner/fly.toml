@@ -1,0 +1,69 @@
+# Auroraly Preview Runner — Fly Machines config
+#
+# This is the IMAGE we deploy to Fly. Each PREVIEW spawns a fresh machine
+# from this image (via the orchestrator's POST /v1/apps/.../machines call).
+# We set auto_stop_machines so idle previews die after ~10 min.
+#
+# Two services exposed externally:
+#   :3000 → user's dev server (Vite/Next/whatever) — public
+#   :8080 → the runner control plane                — locked down by shared secret
+#
+# Concurrency hard_limit=1 because each machine hosts ONE project at a time.
+
+app = "auroraly-preview-runner"
+primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RUNNER_PORT = "8080"
+  USER_DEV_PORT = "3000"
+  NODE_ENV = "production"
+
+# User dev server — what the iframe actually loads.
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 200
+    soft_limit = 100
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "60s"
+
+# Runner control plane — orchestrator-only, on a separate port.
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 8443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 10
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  # Auto-shutdown when idle. Cuts cost ~80% for the typical dev session.
+  # The orchestrator restarts the machine on the next preview request.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0

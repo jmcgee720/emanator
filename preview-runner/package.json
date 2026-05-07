@@ -1,0 +1,14 @@
+{
+  "name": "auroraly-preview-runner",
+  "version": "1.0.0",
+  "description": "Per-Fly-machine service that hosts a single user project's dev server",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
