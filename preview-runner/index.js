@@ -65,30 +65,78 @@ function appendLog(stream, chunk) {
   }
 }
 
-function pickDevCommand(pkg) {
-  // Prefer dev > start > preview. Fall back to a no-op so we error loudly.
+/**
+ * Pick the actual dev command to spawn. Returns [bin, args].
+ *
+ * Order of preference:
+ *   1. scripts.dev / scripts.start / scripts.preview from package.json
+ *      — but ONLY if the binary they reference actually exists in
+ *      node_modules/.bin (some imported projects, like Mangia-Mama,
+ *      reference `craco start` but never declared `@craco/craco` as a
+ *      dep, so npm install succeeds and `npm run start` then dies with
+ *      `craco: not found`).
+ *   2. Framework-aware fallback based on dependencies:
+ *      vite → npx vite, next → npx next dev, react-scripts → react-scripts start.
+ */
+function pickDevCommand(pkg, cwd) {
   const scripts = pkg?.scripts || {}
   const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
   const isVite = !!deps.vite || /\bvite\b/.test(scripts.dev || '')
-  const isNext = !!deps.next || /\bnext\b/.test(scripts.dev || '')
+  const isNext = !!deps.next
+  const isCRA = !!deps['react-scripts']
+
+  const binDir = cwd ? join(cwd, 'node_modules', '.bin') : null
+  const binExists = (name) => !!binDir && existsSync(join(binDir, name))
+
+  // Helper: does the given npm script reference only binaries that exist?
+  // Pulls the FIRST word of the first command in the script (stripping
+  // env-prefix shenanigans like `BROWSER=none craco start`).
+  const scriptIsRunnable = (script) => {
+    if (!script) return false
+    const stripped = script.replace(/^(\s*[A-Z_][A-Z0-9_]*=\S+\s+)+/, '').trim()
+    const firstWord = stripped.split(/\s+/)[0]
+    if (!firstWord) return false
+    // Built-in shell builtins / common system binaries → always runnable.
+    if (/^(node|npm|npx|yarn|pnpm)$/.test(firstWord)) return true
+    return binExists(firstWord)
+  }
 
   if (scripts.dev) {
     if (isVite) {
-      // Vite v5+ host-check blocks our wildcard `<id>.preview.auroraly.co`.
-      // We write a tiny override config that spreads any existing user
-      // config and forces `server.allowedHosts: true` + bind 0.0.0.0,
-      // then spawn `npx vite --config vite.config.runner.mjs`. We use
-      // `npx --no-install` so it picks up the project-local Vite from
-      // node_modules rather than fetching a different version.
       return ['npx', ['--no-install', 'vite', '--config', 'vite.config.runner.mjs', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
     }
     if (isNext) {
       return ['npx', ['--no-install', 'next', 'dev', '--hostname', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
     }
-    return ['npm', ['run', 'dev', '--', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+    if (scriptIsRunnable(scripts.dev)) {
+      return ['npm', ['run', 'dev', '--', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+    }
   }
-  if (scripts.start) return ['npm', ['run', 'start']]
-  if (scripts.preview) return ['npm', ['run', 'preview']]
+  if (scripts.start) {
+    if (scriptIsRunnable(scripts.start)) {
+      return ['npm', ['run', 'start']]
+    }
+    // Script declared but binary missing — try framework fallback.
+    appendLog('runner', `[runner] scripts.start (${scripts.start}) refers to a missing binary, falling back to framework default`)
+  }
+  if (scripts.preview && scriptIsRunnable(scripts.preview)) {
+    return ['npm', ['run', 'preview']]
+  }
+
+  // ─── framework-aware fallback ──────────────────────────────────────
+  // If the package looks like CRA / Vite / Next.js and the package's
+  // own scripts are broken (missing dep), spawn the canonical binary
+  // directly. This rescues projects with stale "start": "craco start"
+  // scripts where craco was never declared.
+  if (isVite && binExists('vite')) {
+    return ['npx', ['--no-install', 'vite', '--config', 'vite.config.runner.mjs', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+  }
+  if (isNext && binExists('next')) {
+    return ['npx', ['--no-install', 'next', 'dev', '--hostname', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+  }
+  if (isCRA && binExists('react-scripts')) {
+    return ['npx', ['--no-install', 'react-scripts', 'start']]
+  }
   return null
 }
 
@@ -109,6 +157,15 @@ async function ensureViteHostOverride(pkg, cwd) {
   }
   // ESM file that imports the user's config (if any) and merges in the
   // server.allowedHosts override. `allowedHosts: true` = allow ALL hosts.
+  // We also set Cross-Origin-Resource-Policy + Cross-Origin-Embedder-Policy
+  // headers so the auroraly.co dashboard (which sets COEP=credentialless
+  // for WebContainers) can embed this iframe without Firefox's "security
+  // configuration doesn't match" block.
+  const COEP_HEADERS = `      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      // also send a permissive frame-ancestors so we're embeddable.
+      'Content-Security-Policy': "frame-ancestors *",`
   const body = userConfigImport
     ? `import userConfig from '${userConfigImport}'
 import { defineConfig } from 'vite'
@@ -121,6 +178,10 @@ export default defineConfig({
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
+    headers: {
+      ...(cfg?.server?.headers || {}),
+${COEP_HEADERS}
+    },
     hmr: { ...(cfg?.server?.hmr || {}), clientPort: 443, protocol: 'wss' },
   },
 })
@@ -132,6 +193,9 @@ export default defineConfig({
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
+    headers: {
+${COEP_HEADERS}
+    },
     hmr: { clientPort: 443, protocol: 'wss' },
   },
 })
@@ -304,9 +368,9 @@ async function bootDevServerInBackground() {
     await installPromise
 
     await ensureViteHostOverride(pkg, cwd)
-    const cmd = pickDevCommand(pkg)
+    const cmd = pickDevCommand(pkg, cwd)
     if (!cmd) {
-      lastStartError = 'no dev/start/preview script in package.json'
+      lastStartError = 'no usable dev/start/preview script and no recognizable framework (vite/next/react-scripts) in node_modules'
       appendLog('runner', `[runner] start failed: ${lastStartError}`)
       return
     }

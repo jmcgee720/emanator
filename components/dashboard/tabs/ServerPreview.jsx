@@ -185,6 +185,16 @@ export default function ServerPreview({ projectId, projectName }) {
             data-testid="server-preview-iframe"
             // Reasonable sandbox: allow what dev servers need.
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            // ─── COEP fix ─────────────────────────────────────────────
+            // The Auroraly dashboard sets COEP=credentialless globally
+            // (required by WebContainers). Without `credentialless`
+            // here, Firefox blocks the iframe with a "security
+            // configuration doesn't match" page, because the user's
+            // dev server (CRA, Next, etc) doesn't send CORP headers.
+            // The credentialless attribute loads the iframe in a fresh
+            // ephemeral context so it doesn't need to match COEP.
+            credentialless="true"
+            allow="cross-origin-isolated"
           />
         )}
         {status !== 'ready' && (
