@@ -26,6 +26,20 @@ Transition Emanator into a full Agent Platform that behaves exactly like the AI 
 
 ## Implemented (this session — 2026-02)
 
+### 🚀 Fly.io Server-Side Preview Phase 1 LIVE (2026-05-07)
+- `auroraly-preview-runner` Fly app deployed end-to-end. Image in registry, IPs allocated, wildcard `*.preview.auroraly.co` cert verified by Let's Encrypt, Porkbun DNS propagated, Vercel env vars synced (FLY_API_TOKEN/FLY_PREVIEW_APP_NAME/FLY_ORG_SLUG/FLY_REGION/PREVIEW_BASE_DOMAIN/RUNNER_SECRET_SEED), auto-deploy passed, production endpoint verified (`/api/previews/[projectId]/start` returns 401 unauth — protected correctly).
+- Fixed two real Fly client bugs found during live smoke testing:
+  1. orchestrator hardcoded `registry.fly.io/<app>:latest` tag (Fly tags as `deployment-<ULID>` only) → now reads live image from existing machine config via new `resolveDeployedImage()` helper
+  2. `/wait?timeout=` clamped to 60s by Fly → now loops with ≤60s per-call windows
+- 8 regression tests at `/app/tests/test-fly-machines.test.mjs`.
+- Architectural decision: WebContainers are now strictly fast-path for native Auroraly projects; imported legacy apps go through Fly via `ServerPreview.jsx`.
+
+### 🛠 Spyrals 520 import bug fixed (2026-05-07)
+- `lib/supabase/error-utils.js` (new): `cleanSupabaseError()` strips Cloudflare 5xx HTML and classifies transient errors; `withRetry()` does exponential backoff (400/800/1600ms) on transient errors only.
+- `imports.js` (3 entry points): wrapped GitHub-import / GitHub-sync / zip-upload Supabase writes in `withRetry`; cleaned every error response so users see "Supabase is temporarily unreachable (Cloudflare 520). Please retry in a moment." instead of raw HTML.
+- 13 regression tests at `/app/tests/test-supabase-error-utils.test.mjs`.
+
+
 ### 🛠 Aurora — viewport-responsive locking (2026-05-06, third pass)
 - User reported the aurora "shifts depending on window width" — the
   locked baseline looked right on a wide window but drifted out of

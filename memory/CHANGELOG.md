@@ -1,6 +1,45 @@
 # Changelog
 
 
+## 2026-05-07 — Fly.io Server-Side Preview Phase 1 LIVE + Spyrals 520 fix
+### Auroraly preview infrastructure pivoted from WebContainers → Fly Machines for imported projects
+
+**Phase 1 deployment complete:**
+- `auroraly-preview-runner` Fly app deployed (image `deployment-01KR1CDK6H44QF18GX981TTX43`, 179MB)
+- Public IPs allocated: v4 `66.241.125.106` (shared) + v6 `2a09:8280:1::112:5818:0` (dedicated)
+- Wildcard cert `*.preview.auroraly.co` issued by Let's Encrypt (verified + active)
+- Porkbun DNS wired: `*.preview` A/AAAA → Fly IPs, `_acme-challenge.preview` CNAME → flydns
+- Vercel env vars set (production + preview + development): `FLY_API_TOKEN`, `FLY_PREVIEW_APP_NAME`, `FLY_ORG_SLUG`, `FLY_REGION`, `PREVIEW_BASE_DOMAIN`, `RUNNER_SECRET_SEED`
+- Vercel auto-deployed commit 871f90c → state=READY, production endpoint verified
+
+**Two real Fly client bugs fixed during smoke testing:**
+1. **`registry.fly.io/<app>:latest` doesn't exist after `fly deploy`** — Fly tags every release as `deployment-<ULID>`. The orchestrator `createMachineForProject()` was hardcoding `:latest` and getting `manifest unknown` 404. Fix: new `resolveDeployedImage()` reads the live image tag from any existing machine (template machine left over from `fly deploy`), with releases-API fallback.
+2. **`/wait?timeout=X` rejects X > 60** with `value must be inside range [1s, 1m0s]`. Fix: `waitForMachineState()` now clamps per-call timeout to ≤60s and loops until total budget consumed.
+
+**Plus minor polish:**
+- `fly.toml`: removed the tcp_check on internal_port 3000 (only binds when a project starts; baseline machine was always "unhealthy")
+- Verified the `Fly-Force-Instance-Id` header routing works: orchestrator can hit `/health`, `/sync`, `/start`, `/stop`, `/logs` on any per-project machine over `https://auroraly-preview-runner.fly.dev:8443`
+
+**Spyrals 520 import bug fixed (P1):**
+The "Spyrals" import was dumping raw Cloudflare 520 HTML into the import UI. Root cause: Supabase-js error messages can contain raw HTML when PostgREST is fronted by Cloudflare and Cloudflare returns a 5xx; `imports.js` was inlining `err.message` directly into JSON error responses.
+- New `/app/lib/supabase/error-utils.js`:
+  - `cleanSupabaseError(err)` → friendly message + `{transient, retryable, status}` flags. Detects Cloudflare 5xx HTML (520/521/522/523/524 + 504), strips HTML signatures, classifies network errors (ECONNRESET, fetch failed), caps long messages at 500 chars.
+  - `withRetry(fn, opts)` → exponential backoff (400/800/1600ms) for transient errors only; throws clean `Error` after exhausting retries.
+- `imports.js` (3 entry points): GitHub-import bulkInsert, GitHub-sync upsert, zip-upload bulkInsert all wrapped in `withRetry(...)`. Every catch-block error response now goes through `cleanSupabaseError()`. Transient errors return `503` + `{transient: true}` instead of `500` with raw HTML.
+
+**Tests added:**
+- `/app/tests/test-fly-machines.test.mjs` — 8 tests for the Fly client (resolveDeployedImage fallback chain, waitForMachineState clamp+loop, createMachineForProject image regression, publicDevUrl assembly, machineControlUrl Force-Instance-Id header)
+- `/app/tests/test-supabase-error-utils.test.mjs` — 13 tests for HTML stripping, status detection (520/521/522/504), retry semantics, message capping, null safety
+
+**Architecture decision recorded:**
+WebContainers are now strictly the fast-path for Auroraly-native (greenfield) projects. Imported legacy apps (CRA + Phaser like Mangia-Mama, Next.js exports like Spyrals/Dopples) route through Fly Machines via `ServerPreview.jsx`. The `cra-to-vite.js` translation shim is kept for native projects only and slated for removal in Phase 3.
+
+**Known follow-ups (Phase 2):**
+- Idle auto-shutdown after 15m via heartbeat ping from iframe
+- Live terminal log streaming wired into `ServerPreview.jsx` (`/logs` SSE endpoint already exists)
+- Per-user budget cap (max N concurrent machines + monthly $ ceiling)
+
+
 ## 2026-02-XX — WebContainer reliability (blank-iframe fix)
 ### Imported projects (Mangia Mama, Spyrals, etc.) now boot inside WebContainers
 - **Smart conditional scaffolding** (`lib/webcontainer/file-tree.js`):
