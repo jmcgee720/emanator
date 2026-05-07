@@ -36,7 +36,7 @@ const BATCH = parseInt((args.find(a => a.startsWith('--batch=')) || '').split('=
 const LIMIT = parseInt((args.find(a => a.startsWith('--limit=')) || '').split('=')[1] || '0', 10)
 
 const { createAdminClient } = await import('../lib/supabase/admin.js')
-const { STORAGE_BUCKET, INLINE_SIZE_LIMIT, ensureBucket } = await import('../lib/supabase/file-storage.js')
+const { STORAGE_BUCKET, INLINE_SIZE_LIMIT, ensureBucket, storageKey } = await import('../lib/supabase/file-storage.js')
 
 const sb = createAdminClient()
 
@@ -83,7 +83,7 @@ async function main() {
 
       if (!APPLY) { migrated++; continue }
 
-      const key = `${row.project_id}/${row.path.replace(/^\/+/, '').replace(/\.\.+/g, '_')}`
+      const key = storageKey(row.project_id, row.path)
       const { error: upErr } = await sb.storage
         .from(STORAGE_BUCKET)
         .upload(key, text, {
