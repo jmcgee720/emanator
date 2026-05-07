@@ -34,40 +34,67 @@ function err(body, status) {
 const tests = []
 function test(name, fn) { tests.push({ name, fn }) }
 
-// ─── 1) resolveDeployedImage prefers an existing machine's image ─────
-test('resolveDeployedImage: returns image from existing machine', async () => {
+// ─── 1) resolveDeployedImage prefers releases API, then template machine ─
+test('resolveDeployedImage: returns image from releases API (preferred)', async () => {
   const fly = await import('../lib/fly/machines.js')
   const calls = []
   await withFetchMock(async (url) => {
-    calls.push(url)
-    if (String(url).endsWith('/machines')) {
-      return ok([{ id: 'abc', config: { image: 'registry.fly.io/auroraly-preview-runner:deployment-XYZ' } }])
+    calls.push(String(url))
+    if (String(url).endsWith('/releases')) {
+      return ok([
+        { version: 5, image_ref: { registry: 'registry.fly.io', repository: 'auroraly-preview-runner', tag: 'deployment-NEW' } },
+        { version: 4, image_ref: { registry: 'registry.fly.io', repository: 'auroraly-preview-runner', tag: 'deployment-OLD' } },
+      ])
     }
+    if (String(url).endsWith('/machines')) return ok([])
     throw new Error('unexpected fetch ' + url)
   }, async () => {
     const img = await fly.resolveDeployedImage()
-    assert.equal(img, 'registry.fly.io/auroraly-preview-runner:deployment-XYZ')
+    assert.equal(img, 'registry.fly.io/auroraly-preview-runner:deployment-NEW')
   })
-  assert.match(calls[0], /\/machines$/)
+  assert.ok(calls.some(u => u.endsWith('/releases')), 'releases API must be checked first')
 })
 
-test('resolveDeployedImage: falls back to releases when no machines', async () => {
+test('resolveDeployedImage: falls back to template machine when releases unavailable', async () => {
   const fly = await import('../lib/fly/machines.js')
   await withFetchMock(async (url) => {
-    if (String(url).endsWith('/machines')) return ok([])
-    if (String(url).endsWith('/releases')) {
-      return ok([{ image_ref: { registry: 'registry.fly.io', repository: 'auroraly-preview-runner', tag: 'deployment-AAA' } }])
+    if (String(url).endsWith('/releases')) return err({ error: 'unavailable' }, 500)
+    if (String(url).endsWith('/machines')) {
+      return ok([
+        // Project machine (stale — should be skipped).
+        { id: 'proj1', config: { image: 'registry.fly.io/x:STALE', metadata: { auroraly_project_id: 'p1' } } },
+        // Template machine (no project tag — preferred fallback).
+        { id: 'tmpl', config: { image: 'registry.fly.io/x:LIVE' } },
+      ])
     }
-    throw new Error('unexpected fetch ' + url)
+    throw new Error('unexpected ' + url)
   }, async () => {
     const img = await fly.resolveDeployedImage()
-    assert.equal(img, 'registry.fly.io/auroraly-preview-runner:deployment-AAA')
+    assert.equal(img, 'registry.fly.io/x:LIVE', 'must prefer template (no project tag) over stale project machine')
+  })
+})
+
+test('resolveDeployedImage: falls back to any machine image as last resort', async () => {
+  const fly = await import('../lib/fly/machines.js')
+  await withFetchMock(async (url) => {
+    if (String(url).endsWith('/releases')) return err({ error: 'fail' }, 500)
+    if (String(url).endsWith('/machines')) {
+      return ok([{ id: 'any', config: { image: 'registry.fly.io/x:any', metadata: { auroraly_project_id: 'p1' } } }])
+    }
+    throw new Error('unexpected ' + url)
+  }, async () => {
+    const img = await fly.resolveDeployedImage()
+    assert.equal(img, 'registry.fly.io/x:any')
   })
 })
 
 test('resolveDeployedImage: throws clearly when nothing deployed', async () => {
   const fly = await import('../lib/fly/machines.js')
-  await withFetchMock(async () => ok([]), async () => {
+  await withFetchMock(async (url) => {
+    if (String(url).endsWith('/releases')) return err({ error: 'fail' }, 500)
+    if (String(url).endsWith('/machines')) return ok([])
+    throw new Error('unexpected ' + url)
+  }, async () => {
     await assert.rejects(() => fly.resolveDeployedImage(), /no deployed image found/i)
   })
 })
@@ -113,8 +140,11 @@ test('createMachineForProject: uses resolved image (regression for :latest)', as
       postBody = JSON.parse(init.body)
       return ok({ id: 'new-machine', state: 'created' })
     }
+    if (String(url).endsWith('/releases')) {
+      return ok([{ version: 1, image_ref: { registry: 'registry.fly.io', repository: 'auroraly-preview-runner', tag: 'deployment-LIVE' } }])
+    }
     if (String(url).endsWith('/machines')) {
-      return ok([{ id: 'tmpl', config: { image: 'registry.fly.io/auroraly-preview-runner:deployment-LIVE' } }])
+      return ok([{ id: 'tmpl', config: { image: 'registry.fly.io/auroraly-preview-runner:deployment-OLD' } }])
     }
     throw new Error('unexpected ' + url)
   }, async () => {

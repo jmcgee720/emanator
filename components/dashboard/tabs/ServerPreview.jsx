@@ -37,18 +37,63 @@ export default function ServerPreview({ projectId, projectName }) {
     setLogs([])
     try {
       const res = await authFetch(`/api/previews/${projectId}/start`, { method: 'POST' })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body?.error || `start failed (${res.status})`)
+      // Defensive parse — if Vercel timed out / returned an HTML error page,
+      // res.json() throws "JSON.parse: unexpected character" and the UI
+      // shows a useless raw error. Read text first, parse if possible.
+      const raw = await res.text()
+      let body = null
+      try { body = raw ? JSON.parse(raw) : null } catch { body = null }
+      if (!res.ok || !body) {
+        const snippet = raw?.slice(0, 200)?.replace(/<[^>]+>/g, '').trim() || `(empty body)`
+        throw new Error(
+          `start request failed (HTTP ${res.status})${
+            res.status === 504 ? ' — Vercel timed out. Retrying…' : ''
+          }${snippet ? ` · ${snippet}` : ''}`
+        )
+      }
       if (cancelledRef.current) return
-      setMachineId(body.machineId)
-      setPreviewUrl(body.previewUrl)
+      setMachineId(body.machineId || null)
+      setPreviewUrl(body.previewUrl || null)
+      // Orchestrator now returns IMMEDIATELY after kicking the runner.
+      // We poll GET /start until runner.running === true (or error).
+      await pollUntilReady()
+      if (cancelledRef.current) return
       setStatus('ready')
-      setIframeKey(k => k + 1) // force iframe reload
+      setIframeKey(k => k + 1)
     } catch (err) {
       if (cancelledRef.current) return
       setError(err.message)
       setStatus('error')
     }
+  }, [projectId])
+
+  // Poll the orchestrator's GET endpoint every 3s for up to 8 minutes.
+  // CRA cold-starts on a 1GB Fly machine routinely take 3-5 minutes
+  // (npm install + react-scripts initial compile), so the budget needs
+  // to be generous. Vite + Next.js are usually <90s.
+  const pollUntilReady = useCallback(async () => {
+    const POLL_INTERVAL = 3000
+    const MAX_POLLS = 160 // 8 minutes
+    for (let i = 0; i < MAX_POLLS; i++) {
+      if (cancelledRef.current) return
+      await new Promise(r => setTimeout(r, POLL_INTERVAL))
+      try {
+        const r = await authFetch(`/api/previews/${projectId}/start`, { method: 'GET' })
+        const txt = await r.text()
+        let j = null
+        try { j = txt ? JSON.parse(txt) : null } catch {}
+        if (!j) continue // transient — keep polling
+        if (j.runner?.error) throw new Error(j.runner.error)
+        if (j.previewUrl) setPreviewUrl(j.previewUrl)
+        if (j.machineId) setMachineId(j.machineId)
+        if (j.runner?.running) return // ready
+      } catch (err) {
+        // Hard error from runner → bubble up
+        if (/exited|spawn error|no package\.json/i.test(err.message)) throw err
+        // Transient (network blip, runner not yet reachable) → keep polling
+      }
+    }
+    throw new Error('preview never became ready (8 min timeout). Check the terminal drawer for clues.')
   }, [projectId])
 
   const stop = useCallback(async () => {

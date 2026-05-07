@@ -252,6 +252,8 @@ app.get('/status', (_req, res) => {
     pid: devProc?.pid || null,
     port: USER_DEV_PORT,
     installing: !!installProc,
+    starting: startInFlight,
+    error: lastStartError,
     logCount: logs.length,
   })
 })
@@ -281,15 +283,20 @@ app.post('/sync', async (req, res) => {
   res.json({ ok: true, written })
 })
 
-app.post('/start', async (req, res) => {
-  if (devProc) return res.json({ ok: true, alreadyRunning: true, pid: devProc.pid, port: USER_DEV_PORT })
+// Track the last error from a background install/spawn so /status can surface it.
+let lastStartError = null
+let startInFlight = false
+
+async function bootDevServerInBackground() {
+  if (startInFlight || devProc) return
+  startInFlight = true
+  lastStartError = null
   try {
-    // Resolve the actual project cwd FIRST — Mangia-Mama and similar
-    // imports nest the app under frontend/, web/, etc. We need the right
-    // dir for both `npm install` AND the dev spawn.
     const resolved = await resolveProjectCwd()
     if (!resolved) {
-      return res.status(400).json({ error: 'no package.json with a dev/start script found anywhere in /project' })
+      lastStartError = 'no package.json with a dev/start script found anywhere in /project'
+      appendLog('runner', `[runner] start failed: ${lastStartError}`)
+      return
     }
     const { cwd, pkg, nested } = resolved
 
@@ -298,7 +305,11 @@ app.post('/start', async (req, res) => {
 
     await ensureViteHostOverride(pkg, cwd)
     const cmd = pickDevCommand(pkg)
-    if (!cmd) return res.status(400).json({ error: 'no dev/start/preview script in package.json' })
+    if (!cmd) {
+      lastStartError = 'no dev/start/preview script in package.json'
+      appendLog('runner', `[runner] start failed: ${lastStartError}`)
+      return
+    }
 
     appendLog('runner', `[runner] spawning ${cmd[0]} ${cmd[1].join(' ')} in ${nested || '/project'}`)
     devProc = spawn(cmd[0], cmd[1], {
@@ -319,14 +330,32 @@ app.post('/start', async (req, res) => {
     devProc.stderr.on('data', d => appendLog('dev', d))
     devProc.on('exit', (code, signal) => {
       appendLog('runner', `[runner] dev server exited code=${code} signal=${signal}`)
+      if (code !== 0 && code !== null) lastStartError = `dev server exited ${code}`
       devProc = null
     })
-    devProc.on('error', err => appendLog('runner', `[runner] dev spawn error: ${err.message}`))
-    res.json({ ok: true, pid: devProc.pid, port: USER_DEV_PORT })
+    devProc.on('error', err => {
+      lastStartError = `dev spawn error: ${err.message}`
+      appendLog('runner', `[runner] ${lastStartError}`)
+    })
   } catch (err) {
-    appendLog('runner', `[runner] start failed: ${err.message}`)
-    res.status(500).json({ error: err.message })
+    lastStartError = err.message || String(err)
+    appendLog('runner', `[runner] start failed: ${lastStartError}`)
+  } finally {
+    startInFlight = false
   }
+}
+
+// /start returns IMMEDIATELY with state=installing. The actual install
+// + dev-server spawn runs in the background (npm install for CRA can
+// take 3+ minutes, and Vercel's serverless functions cap at 60s — so
+// we never want the orchestrator's HTTP call to wait synchronously).
+// The orchestrator + frontend poll /status to know when it's ready.
+app.post('/start', (req, res) => {
+  if (devProc) return res.json({ ok: true, alreadyRunning: true, pid: devProc.pid, port: USER_DEV_PORT })
+  if (startInFlight) return res.json({ ok: true, state: 'installing', port: USER_DEV_PORT })
+  // Fire-and-forget — but don't crash the runner on unhandled rejection.
+  bootDevServerInBackground().catch(err => appendLog('runner', `[runner] background boot crashed: ${err.message}`))
+  res.json({ ok: true, state: 'installing', port: USER_DEV_PORT })
 })
 
 app.post('/stop', async (_req, res) => {

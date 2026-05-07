@@ -75,26 +75,52 @@ export async function POST(request, { params }) {
     // 1) Find or create the machine for this project.
     const secret = projectRunnerSecret(projectId)
     let machine = await findMachineForProject(projectId)
+    let createdNew = false
     if (!machine) {
       machine = await createMachineForProject(projectId, secret)
+      createdNew = true
     } else if (machine.state !== 'started') {
       await startMachine(machine.id)
     }
 
-    // 2) Wait until the runner is reachable. Fly's wait endpoint is the
-    //    cheapest signal; we still poll /health to confirm Express is up.
-    await waitForMachineState(machine.id, 'started', 60_000).catch(() => {})
+    // 2) Wait briefly for the machine to be `started` (cold-start ~5-10s).
+    //    Bound the wait at 30s so we're well clear of Vercel's 60s function
+    //    cap. If the machine isn't ready in 30s, the frontend will keep
+    //    polling GET /start until it is.
+    const waitRes = await waitForMachineState(machine.id, 'started', 30_000).catch(() => null)
+    const machineStarted = waitRes?.ok || (machine.state === 'started' && !createdNew)
+
+    if (!machineStarted) {
+      // Machine still booting — frontend polls GET /start until ready.
+      return handleCORS(NextResponse.json({
+        ok: true,
+        machineId: machine.id,
+        state: 'booting-machine',
+        previewUrl: publicDevUrl(projectId),
+      }))
+    }
+
+    // 3) Quick health-check — give the runner up to 15s to bind :8080.
     let healthy = false
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 15; i++) {
       try {
         await callRunner(machine.id, '/health', { method: 'GET', secret })
         healthy = true
         break
       } catch { await new Promise(r => setTimeout(r, 1000)) }
     }
-    if (!healthy) throw new Error('runner failed to become healthy within 30s')
 
-    // 3) Sync the project files.
+    if (!healthy) {
+      // Runner not up yet — frontend polls.
+      return handleCORS(NextResponse.json({
+        ok: true,
+        machineId: machine.id,
+        state: 'booting-runner',
+        previewUrl: publicDevUrl(projectId),
+      }))
+    }
+
+    // 4) Sync project files (usually <10s for typical projects).
     const files = await db.projectFiles.findByProjectId(projectId)
     const payload = {
       files: files.map(f => ({ path: f.path, content: f.content || '' })),
@@ -105,7 +131,10 @@ export async function POST(request, { params }) {
       secret,
     })
 
-    // 4) Spawn the dev server (idempotent: returns immediately if running).
+    // 5) Kick the runner's /start. The runner returns IMMEDIATELY now —
+    //    it spawns npm install + dev server in its own background task,
+    //    so this call never blocks. Frontend polls GET /start (which hits
+    //    runner /status) until runner.running === true.
     await callRunner(machine.id, '/start', {
       method: 'POST',
       body: '{}',
@@ -115,7 +144,7 @@ export async function POST(request, { params }) {
     return handleCORS(NextResponse.json({
       ok: true,
       machineId: machine.id,
-      state: 'starting',
+      state: 'installing',
       previewUrl: publicDevUrl(projectId),
     }))
   } catch (err) {
@@ -136,15 +165,45 @@ export async function GET(request, { params }) {
     if (!machine) {
       return handleCORS(NextResponse.json({ ok: true, exists: false, state: 'idle' }))
     }
-    let runnerStatus = null
-    if (machine.state === 'started') {
-      try {
-        runnerStatus = await callRunner(machine.id, '/status', {
-          method: 'GET',
-          secret: projectRunnerSecret(projectId),
-        })
-      } catch { /* runner not ready yet */ }
+    if (machine.state !== 'started') {
+      // Still booting (or stopped) — frontend keeps polling.
+      return handleCORS(NextResponse.json({
+        ok: true,
+        exists: true,
+        machineId: machine.id,
+        state: machine.state,
+        runner: null,
+        previewUrl: publicDevUrl(projectId),
+      }))
     }
+
+    const secret = projectRunnerSecret(projectId)
+    let runnerStatus = null
+    try {
+      runnerStatus = await callRunner(machine.id, '/status', { method: 'GET', secret })
+    } catch { /* runner not bound yet */ }
+
+    // If the runner is reachable but nothing is in progress, drive the
+    // state machine forward: sync files + kick /start. This makes GET
+    // idempotent — any poll can heal a stalled boot. Without this, a
+    // POST that returned early (Vercel timeout) would leave the runner
+    // forever idle on a 'started' machine.
+    if (runnerStatus && !runnerStatus.running && !runnerStatus.installing && !runnerStatus.starting) {
+      try {
+        const files = await db.projectFiles.findByProjectId(projectId)
+        await callRunner(machine.id, '/sync', {
+          method: 'POST',
+          body: JSON.stringify({ files: files.map(f => ({ path: f.path, content: f.content || '' })) }),
+          secret,
+        })
+        await callRunner(machine.id, '/start', { method: 'POST', body: '{}', secret })
+        // Re-poll status so the response reflects the freshly-kicked state.
+        try { runnerStatus = await callRunner(machine.id, '/status', { method: 'GET', secret }) } catch {}
+      } catch (err) {
+        runnerStatus = { ...(runnerStatus || {}), error: err.message }
+      }
+    }
+
     return handleCORS(NextResponse.json({
       ok: true,
       exists: true,
