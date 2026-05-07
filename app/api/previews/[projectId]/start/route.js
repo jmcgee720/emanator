@@ -95,7 +95,7 @@ export async function POST(request, { params }) {
     if (!healthy) throw new Error('runner failed to become healthy within 30s')
 
     // 3) Sync the project files.
-    const files = await db.projectFiles.list(projectId)
+    const files = await db.projectFiles.findByProjectId(projectId)
     const payload = {
       files: files.map(f => ({ path: f.path, content: f.content || '' })),
     }
