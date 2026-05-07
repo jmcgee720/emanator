@@ -68,10 +68,76 @@ function appendLog(stream, chunk) {
 function pickDevCommand(pkg) {
   // Prefer dev > start > preview. Fall back to a no-op so we error loudly.
   const scripts = pkg?.scripts || {}
-  if (scripts.dev) return ['npm', ['run', 'dev', '--', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+  const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
+  const isVite = !!deps.vite || /\bvite\b/.test(scripts.dev || '')
+  const isNext = !!deps.next || /\bnext\b/.test(scripts.dev || '')
+
+  if (scripts.dev) {
+    if (isVite) {
+      // Vite v5+ host-check blocks our wildcard `<id>.preview.auroraly.co`.
+      // We write a tiny override config that spreads any existing user
+      // config and forces `server.allowedHosts: true` + bind 0.0.0.0,
+      // then spawn `npx vite --config vite.config.runner.mjs`. We use
+      // `npx --no-install` so it picks up the project-local Vite from
+      // node_modules rather than fetching a different version.
+      return ['npx', ['--no-install', 'vite', '--config', 'vite.config.runner.mjs', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+    }
+    if (isNext) {
+      return ['npx', ['--no-install', 'next', 'dev', '--hostname', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+    }
+    return ['npm', ['run', 'dev', '--', '--host', '0.0.0.0', '--port', String(USER_DEV_PORT)]]
+  }
   if (scripts.start) return ['npm', ['run', 'start']]
   if (scripts.preview) return ['npm', ['run', 'preview']]
   return null
+}
+
+/**
+ * Detect Vite and write a runner-level config override that allows all
+ * hosts (defeats Vite v5's host-check that returns 403 for our wildcard
+ * preview subdomains). The override re-exports any existing user config.
+ */
+async function ensureViteHostOverride(pkg) {
+  const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
+  if (!deps.vite) return false
+  const fs = await import('node:fs/promises')
+  const candidates = ['vite.config.js', 'vite.config.mjs', 'vite.config.ts', 'vite.config.cjs']
+  let userConfigImport = null
+  for (const c of candidates) {
+    if (existsSync(join(PROJECT_DIR, c))) { userConfigImport = `./${c}`; break }
+  }
+  // ESM file that imports the user's config (if any) and merges in the
+  // server.allowedHosts override. `allowedHosts: true` = allow ALL hosts.
+  const body = userConfigImport
+    ? `import userConfig from '${userConfigImport}'
+import { defineConfig } from 'vite'
+const cfg = typeof userConfig === 'function' ? await userConfig({ command: 'serve', mode: 'development' }) : userConfig
+export default defineConfig({
+  ...cfg,
+  server: {
+    ...(cfg?.server || {}),
+    host: '0.0.0.0',
+    port: ${USER_DEV_PORT},
+    strictPort: false,
+    allowedHosts: true,
+    hmr: { ...(cfg?.server?.hmr || {}), clientPort: 443, protocol: 'wss' },
+  },
+})
+`
+    : `import { defineConfig } from 'vite'
+export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    port: ${USER_DEV_PORT},
+    strictPort: false,
+    allowedHosts: true,
+    hmr: { clientPort: 443, protocol: 'wss' },
+  },
+})
+`
+  await fs.writeFile(join(PROJECT_DIR, 'vite.config.runner.mjs'), body, 'utf8')
+  appendLog('runner', `[runner] vite host-check override written (allowedHosts: true)`)
+  return true
 }
 
 async function runInstallIfNeeded() {
@@ -153,6 +219,7 @@ app.post('/start', async (req, res) => {
     const pkgPath = join(PROJECT_DIR, 'package.json')
     if (!existsSync(pkgPath)) return res.status(400).json({ error: 'no package.json in project' })
     const pkg = JSON.parse((await (await import('node:fs/promises')).readFile(pkgPath, 'utf8')))
+    await ensureViteHostOverride(pkg)
     const cmd = pickDevCommand(pkg)
     if (!cmd) return res.status(400).json({ error: 'no dev/start/preview script in package.json' })
 
@@ -165,7 +232,10 @@ app.post('/start', async (req, res) => {
         HOST: '0.0.0.0',
         BROWSER: 'none',
         FORCE_COLOR: '0',
-        // CRA tries to open a browser by default — kill that.
+        // CRA tries to open a browser by default — kill that. The host
+        // check defeats our wildcard subdomain → disable it.
+        DANGEROUSLY_DISABLE_HOST_CHECK: 'true',
+        WDS_SOCKET_PORT: '443',
       },
     })
     devProc.stdout.on('data', d => appendLog('dev', d))
