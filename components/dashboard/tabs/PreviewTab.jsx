@@ -12,6 +12,7 @@ import WebContainerPreview from './WebContainerPreview'
 import ServerPreview from './ServerPreview'
 import { isWebContainerEnabled } from '../../../lib/webcontainer/sandbox.js'
 import { detectProjectLayout, toWebContainerTree } from '../../../lib/webcontainer/file-tree.js'
+import { ImageryDeferredBanner, ImageryGeneratedPill } from '../ImageryDeferredBanner.jsx'
 
 // ─── Parse VFS entries out of a components/assets.js module ────────
 // Used on project reload (no live SSE map available) so path-form
@@ -1843,6 +1844,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
               {detectedFramework === 'cra' ? 'CRA → Vite' : detectedFramework}
             </span>
           )}
+          <span className="ml-1"><ImageryGeneratedPill project={project} /></span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -1892,6 +1894,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
           </Button>
         </div>
       </div>
+
+      <ImageryDeferredBanner
+        project={project}
+        onDone={() => { if (typeof onRefreshFiles === 'function') onRefreshFiles() }}
+      />
 
       {iframeErrors.length > 0 && (
         <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/40 text-red-300 text-[11px] font-mono max-h-24 overflow-auto" data-testid="preview-error-banner">

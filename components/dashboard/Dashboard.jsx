@@ -1458,12 +1458,22 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                     // response. The user's reply via the composer goes
                     // through the normal sendMessage flow which DOES
                     // persist to the chat thread.
+                    //
+                    // Lever 2: the first build defers imagery (Phase 4
+                    // skipped — pages use SVG placeholders to keep the
+                    // preview load <1s). Surface a clear "Generate brand
+                    // imagery" CTA so the user knows it's an explicit
+                    // next step, not a generation failure.
+                    const imageryDeferred = resp?.imagery_deferred === true
+                    const handoffContent = imageryDeferred
+                      ? `Your site is ready to preview! 🎉\n\nI generated ${resp.fileCount || 0} files (structure, copy, palette, layout) — preview's loading on the right with placeholders for imagery.\n\n**Want me to generate brand imagery now?** Just say *"generate the imagery"* and I'll run Nano Banana on every image slot.\n\nOr keep iterating on the structure first:\n\n• Add a new section or page (testimonials, pricing, FAQ…)\n• Change the hero copy or any other text\n• Try a different color palette or font pairing\n• Wire up a real form, payment, or signup\n\nJust tell me what you'd like to tweak — I'll edit the code directly.`
+                      : `Boom — your site is live in the preview! 🎉\n\nI generated ${resp.fileCount || 0} files using your edits to the brand, copy, palette, and imagery. Take a look at the preview on the right.\n\nWhat do you want to do next?\n\n• Add a new section or page (testimonials, pricing, FAQ…)\n• Change the hero copy or any other text\n• Try a different color palette or font pairing\n• Regenerate any of the images\n• Wire up a real form, payment, or signup\n\nJust tell me what you'd like to tweak — I'll edit the code directly.`
                     const handoffMessage = {
                       id: `handoff-${Date.now()}`,
                       role: 'assistant',
-                      content: `Boom — your site is live in the preview! 🎉\n\nI generated ${resp.fileCount || 0} files using your edits to the brand, copy, palette, and imagery. Take a look at the preview on the right.\n\nWhat do you want to do next?\n\n• Add a new section or page (testimonials, pricing, FAQ…)\n• Change the hero copy or any other text\n• Try a different color palette or font pairing\n• Regenerate any of the images\n• Wire up a real form, payment, or signup\n\nJust tell me what you'd like to tweak — I'll edit the code directly.`,
+                      content: handoffContent,
                       created_at: new Date().toISOString(),
-                      metadata: { intent: 'build_handoff' },
+                      metadata: { intent: 'build_handoff', imagery_deferred: imageryDeferred },
                     }
                     setMessages((prev) => [...prev, handoffMessage])
 
