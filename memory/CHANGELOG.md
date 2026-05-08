@@ -1,50 +1,67 @@
 # Changelog
 
 
-## 2026-05-08 — Wizard Skip-Imagery + fullstack_app Archetype + Preview Timeout Bump
+## 2026-05-08 — Mangia-Mama Imports Render + Real-LLM Verified Nexsara
 
-**Wizard skip-imagery** (the actual Lever 2 bug surfaced by the user):
-the chat-stream pipeline already deferred Phase 4, but the BuildWizard
-path was auto-advancing into image generation regardless. Fixed by:
-- `/api/build/images` now accepts `{ skipImagery: true }` and returns
-  the same `{ deferred: true }` sentinel + stamps
-  `project.settings.imagery_status='deferred'`.
-- BuildWizard renders a "Skip imagery for now →" secondary button on
-  the design_tokens "ready" state. Click → skips Phase 4, runs Phase 5,
-  lands user on the preview with the existing ImageryDeferredBanner CTA.
+After the user reported a fresh Nexsara still generated images and Mangia-Mama
+showed no progress, did a full code-level audit of both flows and found
+multiple unshipped failures.
 
-**fullstack_app archetype** — Auroraly can now generate Next.js apps
-with real API routes + database wiring (closer to Emergent parity for
-greenfield projects):
-- Phase 1 plan: new archetype option with detection rules (signals:
-  "users sign up", "save/track", "dashboard", "API", "Supabase").
-  Output now includes a `dataModel` field with entities, endpoints,
-  auth, storage.
-- Phase 5 compose: adds DATA MODEL + FULLSTACK FILE RULES blocks when
-  archetype = `fullstack_app`. Per-file hints for API routes
-  (`app/api/<entity>/route.js` → NextResponse.json + named GET/POST)
-  and lib helpers (`lib/db.js` → defensive Supabase client). Min-line
-  expectations tuned per file type (300+ for pages, 30 for API routes,
-  20 for lib).
-- Orchestrator stamps `project.settings.preview_engine_hint='server'`
-  on fullstack builds; PreviewTab auto-selects the Server engine so
-  `/api/*` actually executes (Babel mode would 404).
-- **Note**: imported FastAPI+React projects (Emergent format) still
-  need a multi-service Fly bootstrap — that's a follow-up task. This
-  ships green-field fullstack via Next.js unified runtime, which works
-  in the existing preview infra without any infra changes.
+**Mangia-Mama (3 issues, 3 fixed):**
+1. `frontend/package.json` ships `scripts.start = "craco start"` but never
+   declares `@craco/craco` as a dependency. Runner had a fallback to spawn
+   `react-scripts start` directly, but vanilla react-scripts ignores the
+   `craco.config.js` webpack alias config — every `import "@/components/..."`
+   would fail with "Module not found". **Fixed** in `preview-runner/index.js`:
+   detects (craco.config.js + craco scripted + craco binary missing) AND
+   installs `@craco/craco --no-save` as a sidecar after main npm install.
+2. **Auroraly stores binary assets as `data:image/png;base64,...` strings.**
+   Runner's /sync handler used to write the literal data-URI TEXT to disk
+   for /assets/sprites/foo.png — Phaser then tried to load text and failed
+   to parse as image → every sprite broken. **Fixed**: runner detects the
+   data: prefix and decodes back to Buffer bytes before writing. Mangia-Mama
+   has 31 image + 1 binary rows that needed this.
+3. Preview boot timeout 8min → 15min for big CRA installs (already in prior
+   commit). Drawer auto-opens during install with pulse indicator + last
+   activity hint.
 
-**Preview boot timeout 8min → 15min**:
-- Heavy CRA imports (Mangia-Mama: 130 files, 50+ deps) legitimately
-  take 6-10 min cold-boot. The 8-min ceiling was killing legit
-  progress and showing "preview never became ready".
-- Loader copy updated: "1-2 minutes for landing pages, 5-10 minutes
-  for large imported projects". Pointer to terminal drawer.
+**Nexsara — verified end-to-end with REAL LLM call:**
+- Brief mentioning users/save/login/dashboard → archetype: `fullstack_app`,
+  17 files including `app/api/campaigns/route.js`, `app/api/analytics/route.js`,
+  `lib/db.js`, `lib/auth.js`, `app/dashboard/page.jsx`. dataModel: Campaign +
+  Analytics entities, auth=supabase, storage=supabase.
+- Coffee-shop brief (no fullstack signals) → archetype: `hospitality`,
+  0 API routes, no dataModel.
+- Token budget bumped 3000 → 8000. New tolerant JSON parser
+  (lib/ai/safe-json.js) handles 5+ failure modes via 5-pass repair pipeline:
+  strict → fenced → cleaned → trailing-commas → auto-close → salvage prefix.
+- Phase 1 has a fixer-retry as last-ditch insurance; Phases 2 + 3 use the
+  same parser.
 
-**Tests**: +5 fullstack archetype + 3 wizard skip-imagery cases. All
-50 project tests passing. Lint clean.
+**BuildWizard skip-imagery (the actual user-facing Lever 2 bug):**
+- /api/build/images accepts { skipImagery: true } and returns deferred sentinel.
+- "Skip imagery for now →" secondary button on design_tokens "ready" state.
+- Skips Phase 4 + auto-runs compose + lands user on preview with banner CTA.
 
-**Commit**: `7c5c6f9` → `jmcgee720/emanator:main`
+**fullstack_app archetype:**
+- Phase 1 plan prompt detects fullstack signals; output includes `dataModel`
+  with entities/endpoints/auth/storage.
+- Phase 5 compose has fullstack-aware file-type hints (API routes use
+  NextResponse.json shape, lib files have defensive env handling).
+- Orchestrator stamps preview_engine_hint='server' so PreviewTab auto-selects
+  the Server engine (Babel mode would 404 on /api/*).
+
+**Pre-existing bug fixed during audit:**
+- lib/e2b/memory-service.js was importing `db` as default but db.js only
+  has named export. Was producing 4× compile warnings on every reload.
+- Phase 5 now emits per-file `file_saved` / `file_failed` events for
+  real-time progress UI (test-phased-pipeline stub updated).
+
+**Tests**: 114 passing across 24 suites. New: test-safe-json (16),
+test-runner-binary-sync (9), test-e2e-user-flows (18), test-fullstack-archetype
+(5), test-wizard-skip-imagery (3), test-deferred-imagery (4).
+
+**Commits**: `7c5c6f9` → `bb687bd` → `0b093a4` on `jmcgee720/emanator:main`
 
 
 ## 2026-05-08 — Image-Extraction Pipeline + Deferred Imagery (Levers 1-4)
