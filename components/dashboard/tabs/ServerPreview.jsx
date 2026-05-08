@@ -27,8 +27,35 @@ export default function ServerPreview({ projectId, projectName }) {
   const [error, setError] = useState(null)
   const [logs, setLogs] = useState([])
   const [iframeKey, setIframeKey] = useState(0)
+  const [drawerOpenOverride, setDrawerOpenOverride] = useState(false)
   const eventSourceRef = useRef(null)
   const cancelledRef = useRef(false)
+  const logsScrollRef = useRef(null)
+
+  // Pull a friendly "currently installing X" hint out of the npm install
+  // log stream so the collapsed drawer summary still reflects activity.
+  // Real npm output looks like `npm install [50/312] something`. We grab
+  // the most recent line that contains a useful verb.
+  const lastInstallActivity = (() => {
+    if (!Array.isArray(logs) || logs.length === 0) return null
+    for (let i = logs.length - 1; i >= 0 && i >= logs.length - 30; i--) {
+      const line = (logs[i]?.line || '').trim()
+      if (!line) continue
+      // Common npm/yarn progress markers we want to surface.
+      const m = line.match(/(?:added|installing|fetching|extracting|building|compiling|webpack|babel|esbuild|vite|ready|listening|local:|server)/i)
+      if (m) return line.slice(0, 60)
+    }
+    return null
+  })()
+
+  // Auto-scroll the open drawer to the bottom on each new log line so
+  // the user always sees the most recent install activity. No-op when
+  // collapsed.
+  useEffect(() => {
+    const el = logsScrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [logs.length])
 
   const start = useCallback(async () => {
     cancelledRef.current = false
@@ -236,14 +263,37 @@ export default function ServerPreview({ projectId, projectName }) {
         )}
       </div>
 
-      {/* log drawer (always-visible bottom strip) */}
-      <details className="border-t border-white/5 bg-black/40 text-xs" data-testid="server-preview-logs-drawer">
-        <summary className="cursor-pointer select-none px-3 py-1.5 text-white/50 hover:text-white/80">
-          Terminal &middot; {logs.length} lines
+      {/* log drawer
+          • Auto-open while the preview is `starting` so users can SEE
+            npm install progressing instead of staring at a spinner.
+          • Pulsing amber dot + line counter when active so the panel
+            collapse state still draws the eye.
+          • After first `ready` we let the user collapse it — toggle is
+            controlled below, but the autoOpen ref locks the open state
+            during the install grind. */}
+      <details
+        className="border-t border-white/5 bg-black/40 text-xs"
+        data-testid="server-preview-logs-drawer"
+        open={status === 'starting' || drawerOpenOverride}
+        onToggle={(e) => setDrawerOpenOverride(e.target.open)}
+      >
+        <summary className="cursor-pointer select-none px-3 py-1.5 flex items-center gap-2 text-white/60 hover:text-white/90">
+          {status === 'starting' && (
+            <span
+              className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse"
+              aria-label="install in progress"
+            />
+          )}
+          <span>Terminal &middot; {logs.length} lines</span>
+          {status === 'starting' && logs.length > 0 && (
+            <span className="text-amber-300/70 text-[10px] tabular-nums">
+              ({lastInstallActivity || 'installing...'})
+            </span>
+          )}
         </summary>
-        <pre className="max-h-64 overflow-auto bg-black/70 p-3 font-mono text-[11px] leading-snug text-white/70" data-testid="server-preview-logs">
+        <pre className="max-h-64 overflow-auto bg-black/70 p-3 font-mono text-[11px] leading-snug text-white/70" data-testid="server-preview-logs" ref={logsScrollRef}>
           {logs.length === 0
-            ? '(no output yet)'
+            ? '(no output yet — npm install will appear here once Fly machine is up)'
             : logs.map((l, i) => (
                 <div key={i} className={l.stream === 'dev' ? 'text-emerald-300/80' : l.stream === 'install' ? 'text-amber-300/70' : 'text-white/50'}>
                   {l.line}
