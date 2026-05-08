@@ -1,6 +1,52 @@
 # Changelog
 
 
+## 2026-05-08 — Wizard Skip-Imagery + fullstack_app Archetype + Preview Timeout Bump
+
+**Wizard skip-imagery** (the actual Lever 2 bug surfaced by the user):
+the chat-stream pipeline already deferred Phase 4, but the BuildWizard
+path was auto-advancing into image generation regardless. Fixed by:
+- `/api/build/images` now accepts `{ skipImagery: true }` and returns
+  the same `{ deferred: true }` sentinel + stamps
+  `project.settings.imagery_status='deferred'`.
+- BuildWizard renders a "Skip imagery for now →" secondary button on
+  the design_tokens "ready" state. Click → skips Phase 4, runs Phase 5,
+  lands user on the preview with the existing ImageryDeferredBanner CTA.
+
+**fullstack_app archetype** — Auroraly can now generate Next.js apps
+with real API routes + database wiring (closer to Emergent parity for
+greenfield projects):
+- Phase 1 plan: new archetype option with detection rules (signals:
+  "users sign up", "save/track", "dashboard", "API", "Supabase").
+  Output now includes a `dataModel` field with entities, endpoints,
+  auth, storage.
+- Phase 5 compose: adds DATA MODEL + FULLSTACK FILE RULES blocks when
+  archetype = `fullstack_app`. Per-file hints for API routes
+  (`app/api/<entity>/route.js` → NextResponse.json + named GET/POST)
+  and lib helpers (`lib/db.js` → defensive Supabase client). Min-line
+  expectations tuned per file type (300+ for pages, 30 for API routes,
+  20 for lib).
+- Orchestrator stamps `project.settings.preview_engine_hint='server'`
+  on fullstack builds; PreviewTab auto-selects the Server engine so
+  `/api/*` actually executes (Babel mode would 404).
+- **Note**: imported FastAPI+React projects (Emergent format) still
+  need a multi-service Fly bootstrap — that's a follow-up task. This
+  ships green-field fullstack via Next.js unified runtime, which works
+  in the existing preview infra without any infra changes.
+
+**Preview boot timeout 8min → 15min**:
+- Heavy CRA imports (Mangia-Mama: 130 files, 50+ deps) legitimately
+  take 6-10 min cold-boot. The 8-min ceiling was killing legit
+  progress and showing "preview never became ready".
+- Loader copy updated: "1-2 minutes for landing pages, 5-10 minutes
+  for large imported projects". Pointer to terminal drawer.
+
+**Tests**: +5 fullstack archetype + 3 wizard skip-imagery cases. All
+50 project tests passing. Lint clean.
+
+**Commit**: `7c5c6f9` → `jmcgee720/emanator:main`
+
+
 ## 2026-05-08 — Image-Extraction Pipeline + Deferred Imagery (Levers 1-4)
 ### Stopped the AI from poisoning projects with 240MB of inline base64 PNGs
 
