@@ -305,6 +305,44 @@ async function runInstallIfNeeded(workCwd) {
     })
     installProc.on('error', rej)
   })
+
+  // Patch missing craco — Emergent-shaped imports (Mangia-Mama et al)
+  // ship `craco.config.js` + `scripts.start = "craco start"` but never
+  // declare `@craco/craco` as a dependency. Detect that pattern and
+  // install craco as a sidecar so the project's webpack alias config
+  // (`@/` → `src/`) actually applies and JSX imports compile.
+  //
+  // Without this fix the runner's own framework-fallback would spawn
+  // `react-scripts start` directly — which compiles but FAILS on every
+  // `import "@/components/..."` because vanilla CRA doesn't honor the
+  // jsconfig.json paths for webpack resolution.
+  try {
+    const fs = await import('node:fs/promises')
+    const cracoCfg = join(cwd, 'craco.config.js')
+    const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
+    if (pkgRaw && existsSync(cracoCfg)) {
+      const pkg = JSON.parse(pkgRaw)
+      const usesCraco = /\bcraco\b/.test(pkg.scripts?.start || '') || /\bcraco\b/.test(pkg.scripts?.dev || '')
+      const cracoBin = join(cwd, 'node_modules', '.bin', 'craco')
+      if (usesCraco && !existsSync(cracoBin)) {
+        appendLog('runner', '[runner] craco.config.js present + craco scripted but @craco/craco not installed — adding sidecar dep so @/-aliases resolve')
+        await new Promise((res, rej) => {
+          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', '@craco/craco'], { cwd, env: { ...process.env, CI: '1' } })
+          p.stdout.on('data', d => appendLog('install', d))
+          p.stderr.on('data', d => appendLog('install', d))
+          p.on('exit', code => code === 0 ? res() : rej(new Error('craco sidecar install exited ' + code)))
+          p.on('error', rej)
+        }).catch((err) => {
+          // Best-effort — if it fails, the runner's react-scripts fallback
+          // still kicks in. The user gets a worse rendering (alias errors)
+          // but not a hard "preview won't start" failure.
+          appendLog('runner', `[runner] craco sidecar install failed: ${err.message} — falling back to vanilla react-scripts`)
+        })
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] craco-detection skipped: ${err.message}`)
+  }
 }
 
 // ─── routes ──────────────────────────────────────────────────────────
