@@ -343,6 +343,46 @@ async function runInstallIfNeeded(workCwd) {
   } catch (err) {
     appendLog('runner', `[runner] craco-detection skipped: ${err.message}`)
   }
+
+  // Patch missing ajv@^8 — CRA / react-scripts ships a tangled dependency
+  // tree where `schema-utils` (used by webpack loaders) pulls `ajv-keywords@^5`
+  // which `import`s from `ajv/dist/compile/codegen`. That path only exists in
+  // ajv@>=8, but `react-scripts` itself transitively pins ajv@^6, so npm's
+  // hoisting can leave us with ONLY ajv@6 at the top of node_modules.
+  //
+  // Result: `react-scripts start` crashes immediately with
+  //   "Cannot find module 'ajv/dist/compile/codegen'"
+  // before the dev server ever boots. Reproduces on Mangia-Mama and most
+  // other imported CRA apps.
+  //
+  // Fix: install ajv@^8 + ajv-keywords@^5 as no-save sidecars so npm hoists
+  // the right version to node_modules/ajv. Idempotent — skipped if a
+  // codegen.js already exists in the resolved ajv tree.
+  try {
+    const fs = await import('node:fs/promises')
+    const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
+    if (pkgRaw) {
+      const pkg = JSON.parse(pkgRaw)
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
+      const isCRA = !!deps['react-scripts']
+      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen.js')
+      if (isCRA && !existsSync(ajvCodegen)) {
+        appendLog('runner', '[runner] react-scripts detected but ajv@>=8 missing (codegen.js absent) — installing ajv@^8 + ajv-keywords@^5 sidecars to prevent "Cannot find module ajv/dist/compile/codegen" crash on dev-server boot')
+        await new Promise((res, rej) => {
+          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8', 'ajv-keywords@^5'], { cwd, env: { ...process.env, CI: '1' } })
+          p.stdout.on('data', d => appendLog('install', d))
+          p.stderr.on('data', d => appendLog('install', d))
+          p.on('exit', code => code === 0 ? res() : rej(new Error('ajv sidecar install exited ' + code)))
+          p.on('error', rej)
+        }).catch((err) => {
+          // Best-effort — log loudly so the user sees it in the terminal drawer.
+          appendLog('runner', `[runner] ajv sidecar install failed: ${err.message} — react-scripts start will likely crash with codegen module-not-found`)
+        })
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] ajv-detection skipped: ${err.message}`)
+  }
 }
 
 // ─── routes ──────────────────────────────────────────────────────────
