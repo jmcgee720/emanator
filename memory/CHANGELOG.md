@@ -1,6 +1,78 @@
 # Changelog
 
 
+## 2026-05-08 — Image-Extraction Pipeline + Deferred Imagery (Levers 1-4)
+### Stopped the AI from poisoning projects with 240MB of inline base64 PNGs
+
+**Root cause discovered during a Nexsara repro**: Phase 5 compose was inlining
+generated images as `data:image/png;base64,…` URIs directly into JSX source.
+A single `app/page.jsx` file ballooned to 24 MB; whole project hit 240 MB.
+The `/files` API response then hit Vercel's 4.5 MB body limit and previews
+went blank with no error.
+
+**Lever 1 — auto-extract base64 at write time** (`lib/supabase/image-extractor.js`)
+- New `extractInlineImages()` runs inside `persistContent()` before any size
+  accounting. Catches `data:image/(png|jpe?g|webp|gif|svg+xml);base64,…`
+  payloads >1 KB, hashes them with sha1, deduplicates across calls, saves
+  one row per unique image at `_assets/__gen_img_<hash>.<ext>`, and rewrites
+  the source to the placeholder URL `https://emanator-generated.img/<filename>`
+  the existing PreviewTab substitution layer already handles. Zero PreviewTab
+  changes needed.
+- Skip list: `_assets/`, `_generated/`, `_uploads/` prefixes, `*.png/jpg/svg/...`
+  paths, and `components/assets.js` brand-VFS module — extracting from those
+  would destroy legitimate binary files.
+
+**Lever 2 — defer Phase 4 on the first build** (`lib/ai/phased-pipeline/`)
+- New `imageMode: 'defer'` ctx parameter. The chat-stream first-build path
+  (`message-stream.js`) passes `'defer'` so Phase 4 short-circuits to
+  `{ images: [], deferred: true }`. Phase 5 already falls back to gradient/SVG
+  placeholders when there are no image dataUrls — no compose change needed.
+- Orchestrator stamps `project.settings.imagery_status = 'deferred' | 'generated'`.
+- Dashboard's BuildWizard handoff message branches on the flag with copy that
+  coaches the user toward the explicit "Generate brand imagery" CTA.
+- New `<ImageryDeferredBanner>` component shows above the preview iframe with
+  a `Generate brand imagery` button when `imagery_status === 'deferred'`.
+  `<ImageryGeneratedPill>` in the toolbar shows status afterward.
+
+**Lever 3 — hard size cap safety net** (`lib/supabase/file-storage.js`)
+- `MAX_FILE_BYTES = 500 KB` for source files, `MAX_ASSET_BYTES = 8 MB` for
+  `_assets/` rows. `persistContent()` throws `FILE_TOO_LARGE` on violation
+  so the failure is visible in change-event logs / chat instead of silently
+  poisoning a project.
+- `bulkInsert()` is now per-row tolerant via `Promise.allSettled` — a
+  single malformed file no longer aborts the whole batch.
+
+**Lever 4 — explicit imagery refresh endpoint** (`lib/api/routes/build-steps.js`)
+- New `POST /api/build/imagery/generate { projectId, roleFilter? }` loads
+  the latest `phase_states` doc, runs Phase 4 in full mode, recomposes
+  Phase 5 so the JSX picks up the new image refs, flips
+  `imagery_status='generated'`. `roleFilter` narrows to specific image
+  roles (e.g. `['hero']`) for per-image regenerate without redoing the
+  whole imagery batch.
+
+**One-shot rescue script** (`scripts/rescue-bloated-projects.mjs`)
+- Walks every project_files row whose resolved content has inline base64
+  data URIs over 200 KB and runs them through the extractor in place.
+  Idempotent, dry-run by default, scoped via `--project=<uuid>`.
+- First production run on Nexsara `823bd1cf...`: **243 MB → 520 KB
+  (99.8% reduction across 22 files)**. Project now previews instantly.
+- Hardened skip rules ensure binary asset files (`assets/logo.png`),
+  brand VFS modules (`components/assets.js`), and `_generated/`/`_uploads/`
+  prefixes are never targeted.
+
+**Tests added (11 + 8 + 4 = 23):**
+- `tests/test-image-extractor.test.mjs` — regex coverage, dedup, placeholder
+  shape match with PreviewTab, post-extraction size, skip rules
+- `tests/test-file-size-cap.test.mjs` — source vs asset cap boundaries
+- `tests/test-deferred-imagery.test.mjs` — imageMode short-circuit,
+  fallthrough for full mode, backward-compat for legacy callers
+
+**Commits pushed to `main`:**
+- `a36d764` — files: auto-extract inline base64 + size cap (Lever 1+3)
+- `a823e12` — imagery: defer Phase 4 on first build + Generate Imagery CTA
+- `1dc637f` — extractor: harden skip rules (binary + brand VFS)
+
+
 ## 2026-05-08 — Storage Migration Complete + Fly OOM Fix Shipped
 ### Closed out the Supabase Disk IO budget burn and the Mangia-Mama OOM kill in one push.
 
