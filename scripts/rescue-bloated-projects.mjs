@@ -44,6 +44,32 @@ const { resolveContent, persistContent } = await import('../lib/supabase/file-st
 
 const sb = createAdminClient()
 
+// Paths whose content is ALWAYS a binary asset stored as a data URI:
+// imported game/CRA projects keep PNGs/JPGs in their actual filenames
+// (e.g. `assets/logo.png`). Extracting from them would destroy the file.
+const BINARY_ASSET_EXT = /\.(png|jpe?g|gif|webp|svg|ico|bmp|avif|tiff?|heic|heif)$/i
+
+// The brand VFS module inlines `data:` URIs as exported constants;
+// PreviewTab parses them back to image paths. If the rescue rewrites
+// the data URIs the brand assets break for every project. Keep skip
+// list minimal & easily extensible.
+const SKIP_FILE_PATHS = new Set([
+  'components/assets.js',
+])
+
+function isRescueSafe(row) {
+  if (!row?.path) return false
+  // Already-handled by the SQL filter, but defense-in-depth.
+  if (row.path.startsWith('_assets/')) return false
+  if (row.path.startsWith('_generated/')) return false
+  if (row.path.startsWith('_uploads/')) return false
+  // Binary asset files keep their bytes inline by design.
+  if (BINARY_ASSET_EXT.test(row.path)) return false
+  // Brand VFS modules.
+  if (SKIP_FILE_PATHS.has(row.path)) return false
+  return true
+}
+
 async function main() {
   console.log(`mode: ${APPLY ? '🟢 APPLY' : '🟡 DRY RUN (use --apply to commit)'}`)
   console.log(`threshold: ${THRESHOLD} bytes (${(THRESHOLD/1024).toFixed(0)} KB)`)
@@ -51,11 +77,15 @@ async function main() {
   console.log()
 
   // Pull candidates: rows whose content_size (inline) OR storage size is
-  // big enough AND whose path is NOT already an `_assets/` row.
+  // big enough AND whose path is NOT one of the asset directories. The
+  // extractor itself also gates on these prefixes (defense in depth) but
+  // narrowing the query saves one Storage download per skipped row.
   let q = sb
     .from('project_files')
     .select('id, project_id, path, content, storage_path')
     .not('path', 'like', '_assets/%')
+    .not('path', 'like', '_generated/%')
+    .not('path', 'like', '_uploads/%')
   if (ONLY_PROJECT) q = q.eq('project_id', ONLY_PROJECT)
 
   const { data: rows, error } = await q
@@ -66,6 +96,7 @@ async function main() {
 
   for (const row of rows) {
     scanned++
+    if (!isRescueSafe(row)) continue
     let body
     if (typeof row.content === 'string' && row.content.length > 0) {
       body = row.content

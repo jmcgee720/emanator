@@ -152,6 +152,53 @@ test('module exports the documented surface', async () => {
   assert.equal(typeof mod.extractInlineImages, 'function')
 })
 
+test('extractor SKIPS _assets/, _generated/, _uploads/ paths (regression for asset-row destruction)', async () => {
+  // Critical safety: these directories ARE the binary stores. Their content
+  // IS a single data URI by design — extracting from them would replace
+  // a 2MB image with a 60-char placeholder URL, destroying the file.
+  process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role'
+  const { extractInlineImages } = await import('../lib/supabase/image-extractor.js')
+  const big = fakePng(50 * 1024)
+  const dataUri = `data:image/png;base64,${big}`
+  for (const path of ['_assets/foo.png', '_generated/bar.png', '_uploads/baz.png']) {
+    const r = await extractInlineImages('test-project', path, dataUri)
+    assert.equal(r.extractedCount, 0, `should skip ${path}`)
+    assert.equal(r.content, dataUri, `content for ${path} must be untouched`)
+  }
+})
+
+test('extractor SKIPS binary-extension paths (assets/logo.png, public/icons/foo.svg)', async () => {
+  // Imported CRA/Next.js projects keep PNG/JPG/SVG bytes as project_files
+  // rows with data-URI content. Their path matches *.png|jpg|svg etc.
+  process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role'
+  const { extractInlineImages } = await import('../lib/supabase/image-extractor.js')
+  const big = fakePng(50 * 1024)
+  const dataUri = `data:image/png;base64,${big}`
+  for (const path of [
+    'assets/Logo.png',
+    'public/icons/favicon.ico',
+    'src/images/hero.jpg',
+    'frontend/public/sprite.webp',
+    'src/foo.svg',
+  ]) {
+    const r = await extractInlineImages('test-project', path, dataUri)
+    assert.equal(r.extractedCount, 0, `should skip ${path}`)
+  }
+})
+
+test('extractor SKIPS components/assets.js (brand VFS module)', async () => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role'
+  const { extractInlineImages } = await import('../lib/supabase/image-extractor.js')
+  const big = fakePng(50 * 1024)
+  const src = `export const LOGO = \`data:image/png;base64,${big}\`\nexport const VIRTUAL_FS = { '/logo.png': 'LOGO' }`
+  const r = await extractInlineImages('test-project', 'components/assets.js', src)
+  assert.equal(r.extractedCount, 0, 'brand VFS module is left intact')
+  assert.equal(r.content, src)
+})
+
 let pass = 0, fail = 0
 for (const t of tests) {
   try { await t.fn(); console.log(`  ✓ ${t.name}`); pass++ }
