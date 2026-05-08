@@ -67,13 +67,16 @@ export default function ServerPreview({ projectId, projectName }) {
     }
   }, [projectId])
 
-  // Poll the orchestrator's GET endpoint every 3s for up to 8 minutes.
-  // CRA cold-starts on a 1GB Fly machine routinely take 3-5 minutes
-  // (npm install + react-scripts initial compile), so the budget needs
-  // to be generous. Vite + Next.js are usually <90s.
+  // Poll the orchestrator's GET endpoint every 3s for up to 15 minutes.
+  // Heavy CRA imports (Mangia-Mama, 130 files, 50+ deps) routinely take
+  // 6-10 minutes on cold boot: npm install --legacy-peer-deps grinding
+  // plus react-scripts' initial compile. Vite + Next.js usually <90s.
+  // 15 min budget keeps users from getting "failed to start" while a
+  // legit install is still progressing — they can also watch the
+  // terminal drawer if curious.
   const pollUntilReady = useCallback(async () => {
     const POLL_INTERVAL = 3000
-    const MAX_POLLS = 160 // 8 minutes
+    const MAX_POLLS = 300 // 15 minutes
     for (let i = 0; i < MAX_POLLS; i++) {
       if (cancelledRef.current) return
       await new Promise(r => setTimeout(r, POLL_INTERVAL))
@@ -93,7 +96,7 @@ export default function ServerPreview({ projectId, projectName }) {
         // Transient (network blip, runner not yet reachable) → keep polling
       }
     }
-    throw new Error('preview never became ready (8 min timeout). Check the terminal drawer for clues.')
+    throw new Error('preview never became ready (15 min timeout). Open the terminal drawer to see what npm install is doing.')
   }, [projectId])
 
   const stop = useCallback(async () => {
@@ -203,8 +206,9 @@ export default function ServerPreview({ projectId, projectName }) {
               <div data-testid="server-preview-spinner">
                 <div className="mb-2 text-base text-white/80">Starting your preview…</div>
                 <div className="text-xs text-white/40">
-                  First boot installs dependencies — this can take 1–2 minutes.<br />
-                  Subsequent starts are usually under 10 seconds.
+                  First boot installs dependencies — usually 1–2 minutes for landing pages,<br />
+                  but <strong>5–10 minutes for large imported projects</strong> (CRA, Next.js).<br />
+                  Subsequent starts are usually under 10 seconds. Open the terminal drawer to watch progress.
                 </div>
               </div>
             )}

@@ -59,7 +59,7 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
   const [phaseResults, setPhaseResults] = useState({})
   const [error, setError] = useState(null)
 
-  const runPhase = useCallback(async (phaseIdx, currentRunId) => {
+  const runPhase = useCallback(async (phaseIdx, currentRunId, extraBody = {}) => {
     const phase = PHASES[phaseIdx]
     setStatus('running')
     setCurrentPhase(phaseIdx)
@@ -67,7 +67,7 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
     try {
       const body = phaseIdx === 0
         ? { projectId, chatId, message, attachments, provider, model }
-        : { runId: currentRunId }
+        : { runId: currentRunId, ...extraBody }
       const resp = await apiCall(phase.endpoint, body)
       const newRunId = resp.runId || currentRunId
       setRunId(newRunId)
@@ -94,6 +94,31 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
 
   const handleProceed = () => runPhase(currentPhase + 1, runId)
   const handleRetry = () => runPhase(currentPhase, runId)
+
+  // Lever 2: skip imagery from the design_tokens "ready" state. Jumps
+  // directly from tokens → images (with skipImagery=true sentinel) →
+  // auto-advances to compose. The user gets placeholder imagery + the
+  // "Generate brand imagery" CTA on the preview banner afterward.
+  const handleSkipImagery = useCallback(async () => {
+    // 1. Run phase 4 with skipImagery flag — it returns immediately.
+    setStatus('running')
+    setCurrentPhase(3) // jump UI to images
+    setError(null)
+    try {
+      const imgResp = await apiCall('/api/build/images', { runId, skipImagery: true })
+      setPhaseResults((prev) => ({ ...prev, images: imgResp }))
+      // 2. Then auto-run compose so the user lands on the final state.
+      setCurrentPhase(4)
+      const composeResp = await apiCall('/api/build/compose', { runId: imgResp.runId || runId })
+      setPhaseResults((prev) => ({ ...prev, compose: composeResp }))
+      setStatus('complete')
+      if (onComplete) onComplete({ ...composeResp, imagery_deferred: true })
+    } catch (err) {
+      console.error('[BuildWizard] skip-imagery failed:', err.message)
+      setError({ phase: 'images', message: err.message })
+      setStatus('error')
+    }
+  }, [runId, onComplete])
 
   const handleSaveEdits = async (phaseId, edits) => {
     if (!runId) return
@@ -149,9 +174,24 @@ export default function BuildWizard({ projectId, chatId, message, attachments, p
                   <RefreshCw className="w-3 h-3" /> Retry this step
                 </button>
               ) : isReadyToProceed ? (
-                <button onClick={handleProceed} className="inline-flex items-center gap-1.5 rounded-full bg-blue-500 hover:bg-blue-400 text-white text-xs font-medium px-3 py-1.5 transition" data-testid={`build-wizard-proceed-${phase.id}`}>
-                  Proceed to {PHASES[idx + 1].label} <ArrowRight className="w-3 h-3" />
-                </button>
+                <div className="inline-flex items-center gap-2">
+                  <button onClick={handleProceed} className="inline-flex items-center gap-1.5 rounded-full bg-blue-500 hover:bg-blue-400 text-white text-xs font-medium px-3 py-1.5 transition" data-testid={`build-wizard-proceed-${phase.id}`}>
+                    Proceed to {PHASES[idx + 1].label} <ArrowRight className="w-3 h-3" />
+                  </button>
+                  {/* Lever 2: only show "Skip imagery" on the design_tokens
+                      ready state — the next click would otherwise burn
+                      Nano Banana credits and balloon the project. */}
+                  {phase.id === 'design_tokens' && (
+                    <button
+                      onClick={handleSkipImagery}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-medium px-3 py-1.5 transition border border-white/10"
+                      data-testid="build-wizard-skip-imagery"
+                      title="Compose pages with placeholder imagery — you can generate real images later from the preview banner"
+                    >
+                      Skip imagery for now →
+                    </button>
+                  )}
+                </div>
               ) : isCompleteFinal ? (
                 <div className="inline-flex items-center gap-1.5 text-emerald-300 text-xs font-medium" data-testid="build-wizard-complete">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Build complete — preview refreshing…

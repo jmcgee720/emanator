@@ -1274,11 +1274,21 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   const autoEngineRef = useRef(null)
   useEffect(() => {
     if (autoEngineRef.current === project?.id) return
+    // Lever 5 (fullstack archetype): respect the project's saved hint
+    // BEFORE the framework heuristic. fullstack_app projects need real
+    // Next.js runtime to execute their API routes — Babel mode would
+    // 404 on /api/* and the dashboard would render with mock data only.
+    const hint = project?.settings?.preview_engine_hint
+    if (hint === 'server') {
+      setPreviewEngine('server')
+      autoEngineRef.current = project?.id
+      return
+    }
     if (['cra', 'next', 'vite'].includes(detectedFramework)) {
       setPreviewEngine('server')
       autoEngineRef.current = project?.id
     }
-  }, [detectedFramework, project?.id])
+  }, [detectedFramework, project?.id, project?.settings?.preview_engine_hint])
 
   useEffect(() => {
     const prevHash = prevFilesRef.current
