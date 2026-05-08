@@ -274,33 +274,13 @@ async function resolveProjectCwd() {
 async function runInstallIfNeeded(workCwd) {
   const cwd = workCwd || PROJECT_DIR
   const fs = await import('node:fs/promises')
-  // Cheap content hash so we don't reinstall on every /start.
-  const lockPaths = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
-  let key = ''
-  for (const p of lockPaths) {
-    const full = join(cwd, p)
-    if (existsSync(full)) { key += p + ':' + (await fs.readFile(full, 'utf8')).slice(0, 4096) }
-  }
-  // Plus package.json for projects without locks.
   const pkgPath = join(cwd, 'package.json')
-  if (existsSync(pkgPath)) { key += 'pkg:' + (await fs.readFile(pkgPath, 'utf8')) }
-  if (key === lastInstallHash && existsSync(join(cwd, 'node_modules'))) {
-    appendLog('runner', '[runner] node_modules cache hit — skipping npm install')
-    return
-  }
 
-  // ── Pre-install: patch package.json with `overrides.ajv = ^8` for CRA ──
-  // CRA / react-scripts pulls a tangled ajv tree where `schema-utils` →
-  // `ajv-keywords@^5` requires `ajv/dist/compile/codegen` (only present
-  // in ajv@>=8), but react-scripts pins ajv@^6 transitively, leaving npm
-  // to hoist ajv@6 at the root → `react-scripts start` crashes with
-  // "Cannot find module 'ajv/dist/compile/codegen'".
-  //
-  // Canonical fix: npm `overrides` field forces every transitive ajv
-  // resolution to ^8. This is the same fix every CRA dev uses (see
-  // facebook/create-react-app#13080). We mutate the user's package.json
-  // in /project (ephemeral container) before npm install so the lockfile
-  // we generate already has ajv@8 hoisted.
+  // ── PRE-CACHE-CHECK: patch package.json with overrides for CRA ──
+  // This MUST run BEFORE the cache-hit early return so it always applies,
+  // even on warm restarts where node_modules persists. The patch is
+  // idempotent (writes only if not already correct).
+  let craOverridesApplied = false
   try {
     if (existsSync(pkgPath)) {
       const pkgRaw = await fs.readFile(pkgPath, 'utf8')
@@ -317,19 +297,54 @@ async function runInstallIfNeeded(workCwd) {
         if (changed) {
           pkg.overrides = overrides
           await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2), 'utf8')
-          appendLog('runner', '[runner] CRA detected — patched package.json with overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4} to fix react-scripts ajv/codegen + formatMinimum crashes (verified e2e against react-scripts 5.0.1)')
-          // Invalidate any existing lockfile so npm regenerates with the override.
+          appendLog('runner', '[runner v3] CRA detected — patched package.json with overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4}')
+          // Invalidate any existing lockfile + node_modules so the next install
+          // picks up the overrides. WARM CACHE on CRA must be wiped because
+          // the existing tree was installed without overrides.
           for (const lf of ['package-lock.json', 'yarn.lock']) {
             const p = join(cwd, lf)
             if (existsSync(p)) { try { await rm(p) } catch {} }
           }
+          const nm = join(cwd, 'node_modules')
+          if (existsSync(nm)) {
+            appendLog('runner', '[runner v3] wiping stale node_modules so overrides take effect on reinstall')
+            try { await rm(nm, { recursive: true, force: true }) } catch (e) { appendLog('runner', `[runner v3] wipe failed: ${e.message}`) }
+          }
+          lastInstallHash = null
+          craOverridesApplied = true
         } else {
-          appendLog('runner', '[runner] CRA detected — overrides already pinned (ajv@8, ajv-keywords@5, schema-utils@4)')
+          appendLog('runner', '[runner v3] CRA detected — overrides already pinned')
         }
       }
     }
   } catch (err) {
-    appendLog('runner', `[runner] ajv-overrides patch skipped: ${err.message}`)
+    appendLog('runner', `[runner v3] ajv-overrides patch skipped: ${err.message}`)
+  }
+
+  // Drop in .npmrc with legacy-peer-deps=true to avoid ERESOLVE crashes
+  // on every nested install (npx, sidecar installs, etc.) — CRA + React 18
+  // routinely break npm@10's strict peer resolution.
+  try {
+    const npmrcPath = join(cwd, '.npmrc')
+    const desired = 'legacy-peer-deps=true\nfund=false\naudit=false\n'
+    const existing = existsSync(npmrcPath) ? await fs.readFile(npmrcPath, 'utf8') : ''
+    if (!/legacy-peer-deps\s*=\s*true/.test(existing)) {
+      await fs.writeFile(npmrcPath, existing + (existing && !existing.endsWith('\n') ? '\n' : '') + desired, 'utf8')
+      appendLog('runner', '[runner v3] wrote .npmrc with legacy-peer-deps=true')
+    }
+  } catch {}
+
+  // Cheap content hash so we don't reinstall on every /start.
+  const lockPaths = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
+  let key = ''
+  for (const p of lockPaths) {
+    const full = join(cwd, p)
+    if (existsSync(full)) { key += p + ':' + (await fs.readFile(full, 'utf8')).slice(0, 4096) }
+  }
+  if (existsSync(pkgPath)) { key += 'pkg:' + (await fs.readFile(pkgPath, 'utf8')) }
+  if (key === lastInstallHash && existsSync(join(cwd, 'node_modules'))) {
+    appendLog('runner', '[runner] node_modules cache hit — skipping npm install')
+    return
   }
 
   appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
@@ -389,12 +404,12 @@ async function runInstallIfNeeded(workCwd) {
     appendLog('runner', `[runner] craco-detection skipped: ${err.message}`)
   }
 
-  // Patch missing ajv@^8 — fallback safety net AFTER the canonical
-  // package.json `overrides` patch above. If for any reason the
-  // overrides path didn't take effect (corrupted package.json, weird
-  // npm version, user pre-pinned ajv@6, etc.), explicitly install
-  // ajv@^8 + ajv-keywords@^5 as no-save sidecars whenever react-scripts
-  // is present. Idempotent.
+  // Patch missing ajv@^8 — UNCONDITIONAL belt-and-suspenders for CRA.
+  // Don't gate on existsSync — even if codegen/index.js exists, force
+  // a clean install of ajv@^8 + ajv-keywords@^5 + schema-utils@^4 so
+  // that ANY transitive copy at the resolution path that ajv-keywords
+  // walks ends up at the right version. This is defensive insurance
+  // against the package.json overrides not taking effect on first install.
   try {
     const fs = await import('node:fs/promises')
     const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
@@ -404,25 +419,29 @@ async function runInstallIfNeeded(workCwd) {
       const isCRA = !!deps['react-scripts']
       const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen', 'index.js')
       const codegenExists = existsSync(ajvCodegen)
-      appendLog('runner', `[runner] post-install ajv check: isCRA=${isCRA}, ajv@8 codegen/index.js exists=${codegenExists}`)
-      if (isCRA && !codegenExists) {
-        appendLog('runner', '[runner] react-scripts detected but ajv@>=8 missing — installing ajv@^8 + ajv-keywords@^5 sidecars')
+      let ajvVer = 'unknown'
+      try { ajvVer = JSON.parse(await fs.readFile(join(cwd, 'node_modules', 'ajv', 'package.json'), 'utf8')).version } catch {}
+      appendLog('runner', `[runner v3] post-install ajv check: isCRA=${isCRA}, ajv version=${ajvVer}, codegen/index.js exists=${codegenExists}`)
+      if (isCRA) {
+        appendLog('runner', '[runner v3] CRA fallback: force-installing ajv@^8 ajv-keywords@^5 schema-utils@^4 (no-save) as belt-and-suspenders')
         await new Promise((res, rej) => {
-          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8', 'ajv-keywords@^5'], { cwd, env: { ...process.env, CI: '1' } })
+          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8', 'ajv-keywords@^5', 'schema-utils@^4'], { cwd, env: { ...process.env, CI: '1' } })
           p.stdout.on('data', d => appendLog('install', d))
           p.stderr.on('data', d => appendLog('install', d))
-          p.on('exit', code => code === 0 ? res() : rej(new Error('ajv sidecar install exited ' + code)))
+          p.on('exit', code => code === 0 ? res() : rej(new Error('ajv-trio sidecar install exited ' + code)))
           p.on('error', rej)
         }).catch((err) => {
-          appendLog('runner', `[runner] ajv sidecar install failed: ${err.message} — react-scripts start will likely crash with codegen module-not-found`)
+          appendLog('runner', `[runner v3] ajv-trio sidecar install failed: ${err.message}`)
         })
-        // Re-check after install
+        // Re-check after install + verify resolvability via require
         const after = existsSync(ajvCodegen)
-        appendLog('runner', `[runner] post-sidecar ajv@8 codegen.js exists=${after}`)
+        let ajvVerAfter = 'unknown'
+        try { ajvVerAfter = JSON.parse(await fs.readFile(join(cwd, 'node_modules', 'ajv', 'package.json'), 'utf8')).version } catch {}
+        appendLog('runner', `[runner v3] post-sidecar: ajv version=${ajvVerAfter}, codegen/index.js exists=${after}`)
       }
     }
   } catch (err) {
-    appendLog('runner', `[runner] ajv-detection skipped: ${err.message}`)
+    appendLog('runner', `[runner v3] ajv-detection skipped: ${err.message}`)
   }
 }
 
@@ -670,7 +689,8 @@ app.get('/logs', (req, res) => {
 })
 
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
-  appendLog('runner', `[runner] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
+  appendLog('runner', `[runner v3.cra-overrides] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
+  appendLog('runner', `[runner v3.cra-overrides] CRA fix active: package.json overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4} + post-install force-install fallback`)
 })
 
 // Graceful shutdown so Fly's machine-stop doesn't leave zombies.
