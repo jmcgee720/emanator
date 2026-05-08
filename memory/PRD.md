@@ -1,5 +1,17 @@
 # Emanator — Agent Platform PRD
 
+## 🛑 Deploy Chain Awareness (rule for the agent — pin this)
+Every infra-side change MUST start with a "what deploys where + what credentials are needed?" audit BEFORE touching code:
+- **Vercel**: orchestrator (Next.js app, AI pipeline, BuildWizard, PreviewTab) — auto-deploys on `git push origin main` ✅ no manual step.
+- **Fly.io app `auroraly-preview-runner`**: per-project preview machines (craco sidecar, binary asset decoding, npm install, log streaming) — **deploys ONLY via `flyctl deploy --remote-only` from `preview-runner/`**. Requires a valid `FLY_API_TOKEN` in shell env (NOT `.env.local`).
+- **Supabase**: migrations are SQL the user runs via dashboard. Storage bucket / indexes / RLS — manual.
+- **MongoDB**: schema-less; index changes are scripts.
+- **GitHub**: PAT with `repo` scope. Classic PATs only (fine-grained don't work for our Auroraly repo).
+
+When the agent modifies code in **any** of these targets it MUST tell the user up-front exactly which deploy steps are needed. Failing to do this wasted 30+ min on the Mangia-Mama runner deploy in May 2026 — the user had to discover the second deploy target themselves. Don't let that happen again.
+
+Common Fly token gotcha: SSO-locked personal accounts cannot create personal tokens via the UI. Use `flyctl tokens create org <orgname>` from terminal instead.
+
 ## Original Problem Statement
 Transition Emanator into a full Agent Platform that behaves exactly like the AI Engineer (E1). Emanator must autonomously build beautiful, highly polished, fully functional applications from a Creative Brief — including flows the user didn't explicitly ask for (Sign Up, Onboarding, Settings, etc.).
 
