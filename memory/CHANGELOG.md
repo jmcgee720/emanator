@@ -1,27 +1,46 @@
 # Changelog
 
 
-## 2026-02 — Mangia-Mama `react-scripts start` ajv crash fixed
+## 2026-02 — Mangia-Mama `react-scripts start` ajv crash fixed (E2E VERIFIED)
 
 **Issue:** After successful `npm install`, CRA fallback spawn of
 `react-scripts start` crashed immediately with
-`Cannot find module 'ajv/dist/compile/codegen'`. Root cause: webpack's
-`schema-utils` pulls `ajv-keywords@^5` (which imports from `ajv@>=8`),
-but `react-scripts` itself transitively pins `ajv@^6`, leaving npm's
-hoisting with only `ajv@6` at the project root.
+`Cannot find module 'ajv/dist/compile/codegen'`. Initial fix attempt
+(post-install ajv@8 sidecar with `existsSync` gate) silently never
+fired because the gate was checking for a file `codegen.js` when in
+ajv@8 it's a directory `codegen/index.js` — bug in detection logic.
 
-**Fix:** `preview-runner/index.js` now detects CRA projects (via
-`react-scripts` in deps) where `node_modules/ajv/dist/compile/codegen.js`
-is missing, and installs `ajv@^8 ajv-keywords@^5` as no-save sidecars
-before spawning the dev server. Idempotent + best-effort (logs and
-continues on install failure).
+**Final fix (E2E VERIFIED against real react-scripts@5.0.1):**
+`preview-runner/index.js` now mutates `package.json` BEFORE `npm install`
+to inject:
 
-**Tests:** `/app/tests/test-runner-ajv-sidecar.test.mjs` — 7 cases
-covering CRA detection, Vite/Next skips, devDeps placement, edge cases.
+```json
+"overrides": {
+  "ajv": "^8",
+  "ajv-keywords": "^5",
+  "schema-utils": "^4"
+}
+```
 
-**Deployment:** Pushed to `main` (commit `1a7e917`). Requires user to
-run `cd ~/emanator && git pull && cd preview-runner && flyctl deploy --remote-only`
-to ship to the Fly machine.
+This is the canonical npm fix every CRA dev uses. Three deps, not one,
+because nested issues cascade:
+1. `ajv@^8` fixes `Cannot find module 'ajv/dist/compile/codegen'`
+2. `ajv-keywords@^5` fixes `TypeError: Cannot read properties of undefined (reading 'date')`
+   from `fork-ts-checker-webpack-plugin/node_modules/ajv-keywords@3`
+3. `schema-utils@^4` fixes `Error: Unknown keyword formatMinimum`
+   from old schema-utils@2 trying to use deprecated keywords
+
+**Verified:** Locally booted `react-scripts start` against a real
+CRA fixture — `compiled successfully: true`, no ajv-related crashes.
+Lockfile is invalidated so the next install picks up overrides cleanly.
+
+**Tests:**
+- `/app/tests/test-runner-ajv-overrides.test.mjs` — 6 unit tests for patch logic
+- `/app/tests/test-runner-ajv-sidecar.test.mjs` — 7 unit tests for fallback
+- `/tmp/cra-fixture/run-e2e.mjs` + `test-boot.mjs` — full E2E with real npm install
+
+**Commit:** `62e2af5` on `main`. Requires user to deploy via
+`cd ~/emanator && git pull && cd preview-runner && flyctl deploy --remote-only`.
 
 
 
