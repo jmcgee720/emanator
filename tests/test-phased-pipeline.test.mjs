@@ -51,18 +51,22 @@ const fakeLLMProvider = {
     return '{}'
   },
   async *chatWithToolsStream(messages, tools, options) {
-    // Emit minimal stream: one final tool_calls bundle
+    // Phase 5 now does PER-FILE compose loops (Promise.allSettled) calling
+    // chatWithToolsStream once per file with the `write_file` tool. The
+    // user message contains the target file path — extract it and emit a
+    // matching tool call so the test exercises the real contract.
+    const userMsg = messages.find((m) => m.role === 'user')?.content || ''
+    const pathMatch = userMsg.match(/Write THIS one file:\s*`([^`]+)`/)
+    const filePath = pathMatch ? pathMatch[1] : 'app/page.jsx'
+    const stub = filePath.endsWith('.jsx') || filePath.endsWith('.tsx')
+      ? `${'/* '.padEnd(500, 'x')} */\nexport default function C() { return <main>Cozy Coffee</main> }`
+      : `${'/* '.padEnd(500, 'x')} */\nexport function ok() { return true }`
     yield {
       type: 'tool_calls',
       tool_calls: [{
         function: {
-          name: 'create_files',
-          arguments: JSON.stringify({
-            files: [
-              { path: 'app/page.jsx', content: '/* '.padEnd(500, 'x') + ' */\nexport default function Page() { return <main>Cozy Coffee</main> }' },
-              { path: 'components/Nav.jsx', content: '/* '.padEnd(500, 'x') + ' */\nexport default function Nav() { return <nav>nav</nav> }' },
-            ],
-          }),
+          name: 'write_file',
+          arguments: JSON.stringify({ path: filePath, content: stub }),
         },
       }],
     }
