@@ -360,6 +360,95 @@ app.get('/status', (_req, res) => {
   })
 })
 
+app.post('/sync-from-supabase', async (req, res) => {
+  // Direct Supabase pull — bypasses Vercel's 60s function timeout.
+  // Vercel just calls us with { projectId, runnerSecret }; we fetch all
+  // files (table rows + storage_path bodies) in parallel using our own
+  // env-injected service-role key. Replaces the body-heavy /sync flow
+  // for projects > ~50 files or with binary assets.
+  const projectId = req.body?.projectId || process.env.AURORALY_PROJECT_ID
+  if (!projectId) return res.status(400).json({ error: 'projectId required' })
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const bucket = process.env.SUPABASE_BUCKET || 'project-files'
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({ error: 'Supabase env vars not set on this Fly machine' })
+  }
+  const t0 = Date.now()
+
+  // 1) List rows. Page through to handle projects >1000 files.
+  const headers = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+  const allRows = []
+  for (let offset = 0; ; offset += 1000) {
+    const url = `${supabaseUrl}/rest/v1/project_files?project_id=eq.${projectId}&select=path,content,storage_path&order=path.asc&offset=${offset}&limit=1000`
+    const r = await fetch(url, { headers })
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '')
+      return res.status(502).json({ error: `Supabase REST returned ${r.status}: ${txt.slice(0, 200)}` })
+    }
+    const batch = await r.json()
+    allRows.push(...batch)
+    if (batch.length < 1000) break
+  }
+  appendLog('runner', `[sync-from-supabase] listed ${allRows.length} rows in ${Date.now() - t0}ms`)
+
+  // 2) Wipe existing project tree (keep node_modules for warm restarts).
+  if (existsSync(PROJECT_DIR)) {
+    const fs = await import('node:fs/promises')
+    for (const entry of await fs.readdir(PROJECT_DIR)) {
+      if (entry === 'node_modules') continue
+      await rm(join(PROJECT_DIR, entry), { recursive: true, force: true })
+    }
+  }
+  await mkdir(PROJECT_DIR, { recursive: true })
+
+  // 3) Resolve content (parallel storage downloads) and write to disk.
+  let written = 0
+  let decodedAssets = 0
+  let storageDownloads = 0
+  const limit = 12 // parallel storage downloads
+  let cursor = 0
+  async function workOne() {
+    while (cursor < allRows.length) {
+      const idx = cursor++
+      const row = allRows[idx]
+      if (!row.path) continue
+      let body = row.content || ''
+      if (!body && row.storage_path) {
+        const dl = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${encodeURI(row.storage_path)}`, { headers })
+        if (!dl.ok) {
+          appendLog('runner', `[sync-from-supabase] download failed for ${row.path}: ${dl.status}`)
+          continue
+        }
+        body = await dl.text()
+        storageDownloads++
+      }
+      const target = resolve(PROJECT_DIR, row.path)
+      if (!target.startsWith(PROJECT_DIR + '/') && target !== PROJECT_DIR) continue
+      await mkdir(dirname(target), { recursive: true })
+
+      // Decode data: URIs back to binary (same logic as /sync).
+      let content = body
+      let encoding = 'utf8'
+      const m = typeof content === 'string'
+        ? content.match(/^data:[a-zA-Z0-9+\-./]+;base64,(.+)$/s)
+        : null
+      if (m) {
+        content = Buffer.from(m[1], 'base64')
+        encoding = undefined
+        decodedAssets++
+      }
+      await writeFile(target, content, encoding)
+      written++
+    }
+  }
+  await Promise.all(Array.from({ length: limit }, workOne))
+
+  const ms = Date.now() - t0
+  appendLog('runner', `[sync-from-supabase] wrote ${written} files (${decodedAssets} binary, ${storageDownloads} storage downloads) in ${ms}ms`)
+  res.json({ ok: true, written, decodedAssets, storageDownloads, ms })
+})
+
 app.post('/sync', async (req, res) => {
   const files = req.body?.files
   if (!Array.isArray(files)) return res.status(400).json({ error: 'files[] required' })

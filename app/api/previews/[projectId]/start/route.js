@@ -14,6 +14,8 @@ import {
   waitForMachineState,
   publicDevUrl,
   machineControlUrl,
+  isMachineConfigStale,
+  destroyMachine,
 } from '@/lib/fly/machines'
 
 export const dynamic = 'force-dynamic'
@@ -76,6 +78,19 @@ export async function POST(request, { params }) {
     const secret = projectRunnerSecret(projectId)
     let machine = await findMachineForProject(projectId)
     let createdNew = false
+    // A machine spawned with an OLDER orchestrator config (e.g. before
+    // SUPABASE_URL was injected for the /sync-from-supabase fast path)
+    // can't serve our current API surface. Destroy + recreate instead
+    // of failing every sync forever.
+    if (machine && isMachineConfigStale(machine)) {
+      console.log(`[start] machine ${machine.id} for project ${projectId} is stale — recreating with fresh env`)
+      await destroyMachine(machine.id).catch((err) => {
+        // Best-effort: if destroy fails, the new machine creation below
+        // will surface a "machine name conflict" we can't recover from.
+        console.warn(`[start] destroy failed: ${err.message}`)
+      })
+      machine = null
+    }
     if (!machine) {
       machine = await createMachineForProject(projectId, secret)
       createdNew = true
@@ -120,16 +135,31 @@ export async function POST(request, { params }) {
       }))
     }
 
-    // 4) Sync project files (usually <10s for typical projects).
-    const files = await db.projectFiles.findByProjectId(projectId)
-    const payload = {
-      files: files.map(f => ({ path: f.path, content: f.content || '' })),
+    // 4) Sync project files. Use the runner's /sync-from-supabase fast
+    //    path: Vercel sends only { projectId } and the runner pulls
+    //    everything in parallel from Supabase using its own creds. The
+    //    old /sync (body-heavy) path was timing out Vercel's 60s
+    //    function ceiling on big projects (Mangia-Mama: 130 files,
+    //    ~13MB JSON payload after binary asset resolution).
+    try {
+      await callRunner(machine.id, '/sync-from-supabase', {
+        method: 'POST',
+        body: JSON.stringify({ projectId }),
+        secret,
+      })
+    } catch (err) {
+      // Older runner image without the new endpoint — fall back to the
+      // legacy /sync path so we don't hard-fail during the rolling
+      // deploy window.
+      console.warn(`[start] /sync-from-supabase unavailable, falling back to /sync: ${err.message}`)
+      const files = await db.projectFiles.findByProjectId(projectId)
+      const payload = { files: files.map(f => ({ path: f.path, content: f.content || '' })) }
+      await callRunner(machine.id, '/sync', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        secret,
+      })
     }
-    await callRunner(machine.id, '/sync', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      secret,
-    })
 
     // 5) Kick the runner's /start. The runner returns IMMEDIATELY now —
     //    it spawns npm install + dev server in its own background task,
