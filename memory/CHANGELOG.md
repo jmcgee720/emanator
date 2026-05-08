@@ -1,6 +1,30 @@
 # Changelog
 
 
+## 2026-02 — Mangia-Mama `react-scripts start` ajv crash fixed
+
+**Issue:** After successful `npm install`, CRA fallback spawn of
+`react-scripts start` crashed immediately with
+`Cannot find module 'ajv/dist/compile/codegen'`. Root cause: webpack's
+`schema-utils` pulls `ajv-keywords@^5` (which imports from `ajv@>=8`),
+but `react-scripts` itself transitively pins `ajv@^6`, leaving npm's
+hoisting with only `ajv@6` at the project root.
+
+**Fix:** `preview-runner/index.js` now detects CRA projects (via
+`react-scripts` in deps) where `node_modules/ajv/dist/compile/codegen.js`
+is missing, and installs `ajv@^8 ajv-keywords@^5` as no-save sidecars
+before spawning the dev server. Idempotent + best-effort (logs and
+continues on install failure).
+
+**Tests:** `/app/tests/test-runner-ajv-sidecar.test.mjs` — 7 cases
+covering CRA detection, Vite/Next skips, devDeps placement, edge cases.
+
+**Deployment:** Pushed to `main` (commit `1a7e917`). Requires user to
+run `cd ~/emanator && git pull && cd preview-runner && flyctl deploy --remote-only`
+to ship to the Fly machine.
+
+
+
 ## 2026-05-08 — Mangia-Mama Imports Render + Real-LLM Verified Nexsara
 
 After the user reported a fresh Nexsara still generated images and Mangia-Mama
