@@ -273,20 +273,65 @@ async function resolveProjectCwd() {
 
 async function runInstallIfNeeded(workCwd) {
   const cwd = workCwd || PROJECT_DIR
+  const fs = await import('node:fs/promises')
   // Cheap content hash so we don't reinstall on every /start.
   const lockPaths = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
   let key = ''
   for (const p of lockPaths) {
     const full = join(cwd, p)
-    if (existsSync(full)) { key += p + ':' + (await (await import('node:fs/promises')).readFile(full, 'utf8')).slice(0, 4096) }
+    if (existsSync(full)) { key += p + ':' + (await fs.readFile(full, 'utf8')).slice(0, 4096) }
   }
   // Plus package.json for projects without locks.
   const pkgPath = join(cwd, 'package.json')
-  if (existsSync(pkgPath)) { key += 'pkg:' + (await (await import('node:fs/promises')).readFile(pkgPath, 'utf8')) }
+  if (existsSync(pkgPath)) { key += 'pkg:' + (await fs.readFile(pkgPath, 'utf8')) }
   if (key === lastInstallHash && existsSync(join(cwd, 'node_modules'))) {
     appendLog('runner', '[runner] node_modules cache hit — skipping npm install')
     return
   }
+
+  // ── Pre-install: patch package.json with `overrides.ajv = ^8` for CRA ──
+  // CRA / react-scripts pulls a tangled ajv tree where `schema-utils` →
+  // `ajv-keywords@^5` requires `ajv/dist/compile/codegen` (only present
+  // in ajv@>=8), but react-scripts pins ajv@^6 transitively, leaving npm
+  // to hoist ajv@6 at the root → `react-scripts start` crashes with
+  // "Cannot find module 'ajv/dist/compile/codegen'".
+  //
+  // Canonical fix: npm `overrides` field forces every transitive ajv
+  // resolution to ^8. This is the same fix every CRA dev uses (see
+  // facebook/create-react-app#13080). We mutate the user's package.json
+  // in /project (ephemeral container) before npm install so the lockfile
+  // we generate already has ajv@8 hoisted.
+  try {
+    if (existsSync(pkgPath)) {
+      const pkgRaw = await fs.readFile(pkgPath, 'utf8')
+      const pkg = JSON.parse(pkgRaw)
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
+      const isCRA = !!deps['react-scripts']
+      if (isCRA) {
+        const overrides = pkg.overrides || {}
+        const desired = { ajv: '^8', 'ajv-keywords': '^5', 'schema-utils': '^4' }
+        let changed = false
+        for (const [k, v] of Object.entries(desired)) {
+          if (overrides[k] !== v) { overrides[k] = v; changed = true }
+        }
+        if (changed) {
+          pkg.overrides = overrides
+          await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2), 'utf8')
+          appendLog('runner', '[runner] CRA detected — patched package.json with overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4} to fix react-scripts ajv/codegen + formatMinimum crashes (verified e2e against react-scripts 5.0.1)')
+          // Invalidate any existing lockfile so npm regenerates with the override.
+          for (const lf of ['package-lock.json', 'yarn.lock']) {
+            const p = join(cwd, lf)
+            if (existsSync(p)) { try { await rm(p) } catch {} }
+          }
+        } else {
+          appendLog('runner', '[runner] CRA detected — overrides already pinned (ajv@8, ajv-keywords@5, schema-utils@4)')
+        }
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] ajv-overrides patch skipped: ${err.message}`)
+  }
+
   appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
   await new Promise((res, rej) => {
     // --legacy-peer-deps bypasses ERESOLVE conflicts on imported CRA apps
@@ -344,20 +389,12 @@ async function runInstallIfNeeded(workCwd) {
     appendLog('runner', `[runner] craco-detection skipped: ${err.message}`)
   }
 
-  // Patch missing ajv@^8 — CRA / react-scripts ships a tangled dependency
-  // tree where `schema-utils` (used by webpack loaders) pulls `ajv-keywords@^5`
-  // which `import`s from `ajv/dist/compile/codegen`. That path only exists in
-  // ajv@>=8, but `react-scripts` itself transitively pins ajv@^6, so npm's
-  // hoisting can leave us with ONLY ajv@6 at the top of node_modules.
-  //
-  // Result: `react-scripts start` crashes immediately with
-  //   "Cannot find module 'ajv/dist/compile/codegen'"
-  // before the dev server ever boots. Reproduces on Mangia-Mama and most
-  // other imported CRA apps.
-  //
-  // Fix: install ajv@^8 + ajv-keywords@^5 as no-save sidecars so npm hoists
-  // the right version to node_modules/ajv. Idempotent — skipped if a
-  // codegen.js already exists in the resolved ajv tree.
+  // Patch missing ajv@^8 — fallback safety net AFTER the canonical
+  // package.json `overrides` patch above. If for any reason the
+  // overrides path didn't take effect (corrupted package.json, weird
+  // npm version, user pre-pinned ajv@6, etc.), explicitly install
+  // ajv@^8 + ajv-keywords@^5 as no-save sidecars whenever react-scripts
+  // is present. Idempotent.
   try {
     const fs = await import('node:fs/promises')
     const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
@@ -365,9 +402,11 @@ async function runInstallIfNeeded(workCwd) {
       const pkg = JSON.parse(pkgRaw)
       const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
       const isCRA = !!deps['react-scripts']
-      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen.js')
-      if (isCRA && !existsSync(ajvCodegen)) {
-        appendLog('runner', '[runner] react-scripts detected but ajv@>=8 missing (codegen.js absent) — installing ajv@^8 + ajv-keywords@^5 sidecars to prevent "Cannot find module ajv/dist/compile/codegen" crash on dev-server boot')
+      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen', 'index.js')
+      const codegenExists = existsSync(ajvCodegen)
+      appendLog('runner', `[runner] post-install ajv check: isCRA=${isCRA}, ajv@8 codegen/index.js exists=${codegenExists}`)
+      if (isCRA && !codegenExists) {
+        appendLog('runner', '[runner] react-scripts detected but ajv@>=8 missing — installing ajv@^8 + ajv-keywords@^5 sidecars')
         await new Promise((res, rej) => {
           const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8', 'ajv-keywords@^5'], { cwd, env: { ...process.env, CI: '1' } })
           p.stdout.on('data', d => appendLog('install', d))
@@ -375,9 +414,11 @@ async function runInstallIfNeeded(workCwd) {
           p.on('exit', code => code === 0 ? res() : rej(new Error('ajv sidecar install exited ' + code)))
           p.on('error', rej)
         }).catch((err) => {
-          // Best-effort — log loudly so the user sees it in the terminal drawer.
           appendLog('runner', `[runner] ajv sidecar install failed: ${err.message} — react-scripts start will likely crash with codegen module-not-found`)
         })
+        // Re-check after install
+        const after = existsSync(ajvCodegen)
+        appendLog('runner', `[runner] post-sidecar ajv@8 codegen.js exists=${after}`)
       }
     }
   } catch (err) {
