@@ -373,16 +373,34 @@ app.post('/sync', async (req, res) => {
   }
   await mkdir(PROJECT_DIR, { recursive: true })
   let written = 0
+  let decodedAssets = 0
   for (const f of files) {
     if (!f.path) continue
     const target = resolve(PROJECT_DIR, f.path)
     if (!target.startsWith(PROJECT_DIR + '/') && target !== PROJECT_DIR) continue
     await mkdir(dirname(target), { recursive: true })
-    await writeFile(target, f.content ?? '', typeof f.content === 'string' ? 'utf8' : undefined)
+
+    // Files whose content is a `data:image/...;base64,...` URI need to
+    // be decoded back to BINARY before writing. Auroraly stores binary
+    // assets (PNG/JPG/SVG/GIF/etc) as data URIs in project_files.content
+    // — when imported projects ship sprites/audio files this way, Phaser
+    // (or any browser request) would otherwise download the literal
+    // text 'data:image/png;base64,iVBOR...' and fail to parse as image.
+    let content = f.content ?? ''
+    let encoding = typeof content === 'string' ? 'utf8' : undefined
+    if (typeof content === 'string') {
+      const m = content.match(/^data:[a-zA-Z0-9+\-./]+;base64,(.+)$/s)
+      if (m) {
+        content = Buffer.from(m[1], 'base64')
+        encoding = undefined
+        decodedAssets++
+      }
+    }
+    await writeFile(target, content, encoding)
     written++
   }
-  appendLog('runner', `[runner] synced ${written} files`)
-  res.json({ ok: true, written })
+  appendLog('runner', `[runner] synced ${written} files (${decodedAssets} binary assets decoded from data URIs)`)
+  res.json({ ok: true, written, decodedAssets })
 })
 
 // Track the last error from a background install/spawn so /status can surface it.
