@@ -1,6 +1,52 @@
 # Changelog
 
 
+## 2026-02 — Strategic CRA → Vite import-time converter (E2E VERIFIED)
+
+**Why:** After three rounds of patching CRA's broken dep tree at runtime
+(ajv, ajv-keywords, schema-utils overrides → babel-loader breaks →
+eslint breaks → webpack-dev-server breaks), it became clear CRA cannot
+be reliably booted in any modern Node environment. Pivoted to the
+canonical industry approach: convert CRA → Vite at import time.
+
+**Implementation:** `/app/lib/import/cra-to-vite.js`. Pure-function
+transform invoked by both GitHub-import and ZIP-import paths in
+`/app/lib/api/routes/imports.js` AFTER framework detection but BEFORE
+the Supabase `bulkInsert`. Effects:
+- `package.json`: drops `react-scripts`, `@craco/craco`, `craco`,
+  `eslint-config-react-app`, `fork-ts-checker-webpack-plugin`,
+  `workbox-*`, `@pmmmwh/react-refresh-webpack-plugin`. Adds
+  `vite@^5.4.0` + `@vitejs/plugin-react@^4.3.0`. Rewrites scripts:
+  `dev`/`start` → `vite`, `build` → `vite build`. Strips
+  `eslintConfig` and default browserslist + any prior `overrides`.
+- `craco.config.js`: parsed for `webpack.alias` and removed.
+- `public/index.html` → root `index.html`: `%PUBLIC_URL%` and
+  `%REACT_APP_*%` template tags stripped, module script tag injected.
+- `vite.config.js`: generated fresh with carried-over aliases,
+  React plugin (with `.js` JSX support so CRA-style JSX-in-.js still
+  works), `optimizeDeps.esbuildOptions.loader: { '.js': 'jsx' }`,
+  COEP/CORP/COOP headers + `frame-ancestors *` for iframe embedding.
+- `src/index.{js,jsx,ts,tsx}`: `reportWebVitals` and `serviceWorker`
+  imports + call sites stripped, `process.env.REACT_APP_*` →
+  `import.meta.env.VITE_*` rewriting.
+- `.env*`: `REACT_APP_` → `VITE_` prefix rename.
+
+**Verification:**
+- 17 unit tests in `/app/tests/test-cra-to-vite.test.mjs` (transform
+  correctness)
+- 1 full E2E test in `/app/tests/test-cra-to-vite-e2e.test.mjs` that
+  builds a Mangia-Mama-shaped CRA fixture (CRA + craco + Phaser),
+  runs the converter, runs real `npm install`, boots `vite`, and
+  fetches the served HTML to confirm 200 OK + `<div id="root">` +
+  module script tag. Vite boots in 122ms.
+
+**User action required:** re-import Mangia-Mama (and any other
+CRA-shaped projects) from local folder/GitHub repo. The new import
+flow will auto-convert. Old imported CRA project files in Supabase
+remain unconverted; deletion or re-import is required for them.
+
+**Commit:** `4275ba5` on `main`.
+
 ## 2026-02 — Mangia-Mama `react-scripts start` ajv crash fixed (E2E VERIFIED)
 
 **Issue:** After successful `npm install`, CRA fallback spawn of
