@@ -1,391 +1,153 @@
-// CRA → Vite converter tests
-// Run: node tests/test-cra-to-vite.test.mjs
+// Quick unit test of the converter's pure-function correctness.
+// (E2E test is in test-cra-to-vite-e2e.test.mjs.)
 
 import assert from 'node:assert/strict'
 import {
-  isCraPackage,
-  rewritePackageJson,
-  rewriteIndexHtml,
-  buildViteConfig,
-  convertCraToVite,
-  bubbleCssImports,
-  bubbleCssImportsInTree,
-  ensureRootIndexHtml,
-} from '../lib/webcontainer/cra-to-vite.js'
-import { toWebContainerTree, ensureScaffolding, detectDevCommand, detectProjectLayout } from '../lib/webcontainer/file-tree.js'
+  isCRAProject,
+  findCRARoot,
+  findEntryFile,
+  parseCRACoAliases,
+  generateRootIndexHtml,
+  transformPackageJson,
+  cleanEntryImports,
+  convertCRAtoVite,
+} from '/app/lib/import/cra-to-vite.js'
 
-// 1) isCraPackage detection.
-{
-  assert.equal(isCraPackage(null), false)
-  assert.equal(isCraPackage({}), false)
-  assert.equal(isCraPackage({ dependencies: { react: '18' } }), false)
-  assert.equal(isCraPackage({ dependencies: { 'react-scripts': '5.0.1' } }), true)
-  assert.equal(isCraPackage({ devDependencies: { '@craco/craco': '^7' } }), true)
-  console.log('✓ isCraPackage detects CRA + craco')
-}
+const tests = []
+const test = (name, fn) => tests.push({ name, fn })
 
-// 2) rewritePackageJson swaps scripts + deps.
-{
-  const before = {
-    name: 'mangia-mama',
-    scripts: { start: 'craco start', build: 'craco build', test: 'craco test' },
-    dependencies: {
-      react: '18.3.1',
-      'react-dom': '18.3.1',
-      'react-scripts': '5.0.1',
-      '@craco/craco': '^7.1.0',
-      'react-router-dom': '6.28.0',
-    },
-    devDependencies: {
-      'eslint-config-react-app': '^7.0.1',
-    },
-  }
-  const after = rewritePackageJson(before)
+// ── isCRAProject / findCRARoot ──
+test('isCRAProject: detects react-scripts at root', () => {
+  const files = [{ path: 'package.json', content: JSON.stringify({ dependencies: { 'react-scripts': '5.0.1' } }) }]
+  assert.equal(isCRAProject(files), true)
+  assert.equal(findCRARoot(files), '')
+})
 
-  // Scripts swapped to Vite (with --host 0.0.0.0 + --logLevel info so the
-  // WebContainer port-forwarder sees the ready signal).
-  assert.match(after.scripts.dev,   /^vite --port 3000\b/, 'dev script uses vite on 3000')
-  assert.match(after.scripts.start, /^vite --port 3000\b/, 'start script (CRA compat) uses vite on 3000')
-  assert.match(after.scripts.dev,   /--host 0\.0\.0\.0/,   'dev script binds 0.0.0.0 for WebContainer port detection')
-  assert.equal(after.scripts.build, 'vite build', 'build script set')
+test('isCRAProject: detects react-scripts in nested frontend/', () => {
+  const files = [{ path: 'frontend/package.json', content: JSON.stringify({ dependencies: { 'react-scripts': '5.0.1' } }) }]
+  assert.equal(isCRAProject(files), true)
+  assert.equal(findCRARoot(files), 'frontend/')
+})
 
-  // CRA deps removed.
-  assert.equal(after.dependencies['react-scripts'], undefined, 'react-scripts dropped')
-  assert.equal(after.dependencies['@craco/craco'], undefined, 'craco dropped')
-  assert.equal(after.devDependencies['eslint-config-react-app'], undefined, 'cra eslint dropped')
+test('isCRAProject: skips Vite project', () => {
+  const files = [{ path: 'package.json', content: JSON.stringify({ devDependencies: { vite: '^5' } }) }]
+  assert.equal(isCRAProject(files), false)
+})
 
-  // User deps preserved.
-  assert.equal(after.dependencies.react, '18.3.1', 'react preserved')
-  assert.equal(after.dependencies['react-router-dom'], '6.28.0', 'user deps preserved')
+// ── findEntryFile ──
+test('findEntryFile: prefers .tsx if present', () => {
+  const files = [
+    { path: 'src/index.tsx', content: '' },
+    { path: 'src/index.js', content: '' },
+  ]
+  assert.equal(findEntryFile(files, ''), 'src/index.tsx')
+})
 
-  // Vite deps injected.
-  assert.ok(after.devDependencies.vite, 'vite added')
-  assert.ok(after.devDependencies['@vitejs/plugin-react'], 'plugin-react added')
-  assert.equal(after.type, 'module', 'type:module set for Vite')
-  console.log('✓ rewritePackageJson swaps CRA → Vite cleanly')
-}
+test('findEntryFile: falls back to src/index.jsx default', () => {
+  assert.equal(findEntryFile([], ''), 'src/index.jsx')
+})
 
-// 3) rewriteIndexHtml strips CRA placeholders + injects entry script.
-{
-  const cra = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <title>App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`
-  const out = rewriteIndexHtml(cra, 'src/index.js')
-  assert.equal(out.includes('%PUBLIC_URL%'), false, '%PUBLIC_URL% stripped')
-  assert.ok(out.includes('<script type="module" src="/src/index.js">'), 'entry script injected')
-  assert.ok(out.includes('href="/favicon.ico"'), 'favicon path normalized')
-  console.log('✓ rewriteIndexHtml strips placeholders + injects entry')
-}
+// ── parseCRACoAliases ──
+test('parseCRACoAliases: extracts @ → src alias', () => {
+  const cracoSource = `module.exports = { webpack: { alias: { '@': path.resolve(__dirname, 'src') } } }`
+  const aliases = parseCRACoAliases(cracoSource)
+  assert.equal(aliases['@'], './src')
+})
 
-// 4) buildViteConfig contains the right pieces.
-{
-  const cfg = buildViteConfig()
-  assert.ok(cfg.includes('@vitejs/plugin-react'), 'imports plugin-react')
-  assert.ok(cfg.includes("envPrefix: 'REACT_APP_'"), 'CRA env prefix preserved')
-  assert.ok(cfg.includes('port: 3000'), 'port matches CRA default')
-  assert.ok(cfg.includes("outDir: 'build'"), 'CRA build dir preserved')
-  // CRA puts JSX in `.js` — plugin-react MUST be told to include `.js` or
-  // import-analysis crashes with "Unexpected token '<'".
-  assert.ok(/react\(\s*\{\s*include:[^}]*\\\.\(mjs\|cjs\|js\|jsx\|ts\|tsx\)/.test(cfg),
-    'plugin-react include covers .js/.mjs/.cjs (CRA JSX-in-.js compat)')
-  // WebContainers crash esbuild WASM on large dep graphs — pre-bundling MUST
-  // be disabled at dev time or Mangia-Mama (~500 deps) will gopark-panic
-  // / hang at boot. We use `disabled: 'dev'` rather than `disabled: true`
-  // because it preserves prod-build pre-bundling.
-  assert.ok(cfg.includes('optimizeDeps'), 'optimizeDeps block present')
-  assert.ok(/disabled:\s*['"]dev['"]/m.test(cfg) || /disabled:\s*true/m.test(cfg) || /noDiscovery:\s*true/m.test(cfg), 'optimizeDeps disables pre-bundling for WebContainer (esbuild WASM crash workaround)')
-  assert.ok(/host:\s*true/.test(cfg), 'server.host=true so WebContainer port-forwarder sees ready signal')
-  assert.ok(/usePolling:\s*true/.test(cfg), 'WebContainer-friendly polling watcher')
-  console.log('✓ buildViteConfig has the right shape (incl. WebContainer + esbuild + JSX-in-.js workarounds)')
-}
+test('parseCRACoAliases: handles double-quoted keys + nested paths', () => {
+  const cracoSource = `module.exports = { webpack: { alias: { "@components": path.resolve(__dirname, "src/components") } } }`
+  const aliases = parseCRACoAliases(cracoSource)
+  assert.equal(aliases['@components'], './src/components')
+})
 
-// 5) convertCraToVite end-to-end on a CRA scope.
-{
-  const tree = toWebContainerTree([
-    { path: 'package.json', content: JSON.stringify({
-      name: 'app',
-      scripts: { start: 'craco start' },
-      dependencies: { react: '18.3.1', 'react-scripts': '5.0.1', '@craco/craco': '^7' },
-    }) },
+// ── transformPackageJson ──
+test('transformPackageJson: removes react-scripts, adds vite', () => {
+  const pkg = transformPackageJson({
+    dependencies: { 'react-scripts': '5.0.1', react: '^18' },
+    devDependencies: { '@craco/craco': '^7' },
+    scripts: { start: 'craco start', eject: 'react-scripts eject' },
+  }, false)
+  assert.ok(!pkg.dependencies['react-scripts'])
+  assert.ok(!pkg.devDependencies['@craco/craco'])
+  assert.ok(pkg.devDependencies['vite'])
+  assert.ok(pkg.devDependencies['@vitejs/plugin-react'])
+  assert.equal(pkg.scripts.dev, 'vite')
+  assert.equal(pkg.scripts.start, 'vite')
+  assert.equal(pkg.scripts.build, 'vite build')
+  assert.ok(!pkg.scripts.eject)
+})
+
+test('transformPackageJson: adds typescript when project has .tsx', () => {
+  const pkg = transformPackageJson({ dependencies: { 'react-scripts': '5.0.1' } }, true)
+  assert.ok(pkg.devDependencies['typescript'])
+})
+
+test('transformPackageJson: drops eslintConfig with react-app extends', () => {
+  const pkg = transformPackageJson({
+    dependencies: { 'react-scripts': '5.0.1' },
+    eslintConfig: { extends: ['react-app'] },
+  }, false)
+  assert.equal(pkg.eslintConfig, undefined)
+})
+
+// ── cleanEntryImports ──
+test('cleanEntryImports: removes reportWebVitals import + call', () => {
+  const before = `import reportWebVitals from './reportWebVitals';\nReactDOM.render(<App />);\nreportWebVitals();\n`
+  const after = cleanEntryImports(before)
+  assert.ok(!after.includes('reportWebVitals'))
+})
+
+test('cleanEntryImports: rewrites REACT_APP_FOO → import.meta.env.VITE_FOO', () => {
+  const before = `const url = process.env.REACT_APP_API_URL;`
+  const after = cleanEntryImports(before)
+  assert.ok(after.includes('import.meta.env.VITE_API_URL'))
+  assert.ok(!after.includes('REACT_APP_'))
+})
+
+// ── generateRootIndexHtml ──
+test('generateRootIndexHtml: strips %PUBLIC_URL% template tag', () => {
+  const cra = `<head><link rel="icon" href="%PUBLIC_URL%/favicon.ico" /></head><body><div id="root"></div></body>`
+  const out = generateRootIndexHtml(cra, 'src/index.jsx')
+  assert.ok(!out.includes('%PUBLIC_URL%'))
+})
+
+test('generateRootIndexHtml: injects module script tag', () => {
+  const cra = `<body><div id="root"></div></body>`
+  const out = generateRootIndexHtml(cra, 'src/main.tsx')
+  assert.ok(out.includes('<script type="module" src="/src/main.tsx">'))
+})
+
+test('generateRootIndexHtml: works with empty input', () => {
+  const out = generateRootIndexHtml('', 'src/index.jsx')
+  assert.ok(out.includes('<div id="root">'))
+  assert.ok(out.includes('type="module"'))
+})
+
+// ── convertCRAtoVite end-to-end ──
+test('convertCRAtoVite: returns { converted: false } for non-CRA project', () => {
+  const r = convertCRAtoVite([{ path: 'package.json', content: JSON.stringify({ devDependencies: { vite: '^5' } }) }])
+  assert.equal(r.converted, false)
+})
+
+test('convertCRAtoVite: removes craco.config.js + public/index.html, adds vite.config.js + index.html', () => {
+  const r = convertCRAtoVite([
+    { path: 'package.json', content: JSON.stringify({ dependencies: { 'react-scripts': '5.0.1' } }) },
     { path: 'craco.config.js', content: 'module.exports = {}' },
     { path: 'public/index.html', content: '<html><body><div id="root"></div></body></html>' },
-    { path: 'src/index.js', content: '// entry' },
-    { path: 'src/App.js', content: 'export default function App() { return null }' },
+    { path: 'src/index.js', content: 'console.log("ok")' },
   ])
+  assert.equal(r.converted, true)
+  const findFile = p => r.files.find(f => f.path === p)
+  assert.ok(findFile('vite.config.js'))
+  assert.ok(findFile('index.html'))
+  assert.ok(!findFile('craco.config.js'))
+  assert.ok(!findFile('public/index.html'))
+})
 
-  convertCraToVite(tree)
-
-  const pkg = JSON.parse(tree['package.json'].file.contents)
-  assert.equal(pkg.dependencies['react-scripts'], undefined, 'react-scripts dropped')
-  assert.ok(pkg.devDependencies.vite, 'vite added')
-
-  // Root index.html created from public/index.html
-  assert.ok(tree['index.html']?.file, 'root index.html created')
-  assert.ok(tree['index.html'].file.contents.includes('/src/index.js'), 'entry detected')
-
-  // vite.config.js created
-  assert.ok(tree['vite.config.js']?.file, 'vite.config.js created')
-
-  // craco.config.js renamed to .bak
-  assert.equal(tree['craco.config.js'], undefined, 'craco config moved aside')
-  assert.ok(tree['craco.config.js.bak']?.file, 'craco config kept as .bak')
-
-  // User code untouched
-  assert.equal(tree.src.directory['App.js'].file.contents, 'export default function App() { return null }', 'App.js untouched')
-  console.log('✓ convertCraToVite transforms CRA → Vite without touching user code')
+let failed = 0
+for (const { name, fn } of tests) {
+  try { fn(); console.log(`  ✓ ${name}`) }
+  catch (err) { failed++; console.error(`  ✗ ${name}\n    ${err.message}`) }
 }
-
-// 6) Mangia Mama scenario — nested workspace + CRA → ensureScaffolding
-//    runs convert + detectDevCommand picks the new vite scripts.
-{
-  const tree = toWebContainerTree([
-    { path: 'README.md', content: '' },
-    { path: 'backend/server.py', content: '' },
-    { path: 'frontend/package.json', content: JSON.stringify({
-      scripts: { start: 'craco start' },
-      dependencies: { react: '18.3.1', 'react-scripts': '5.0.1', '@craco/craco': '^7' },
-    }) },
-    { path: 'frontend/craco.config.js', content: '' },
-    { path: 'frontend/public/index.html', content: '<html><body><div id="root"></div></body></html>' },
-    { path: 'frontend/src/index.js', content: '' },
-  ])
-
-  const scaffolded = ensureScaffolding(tree)
-  const frontendPkg = JSON.parse(scaffolded.frontend.directory['package.json'].file.contents)
-  assert.ok(frontendPkg.devDependencies.vite, 'frontend now uses vite')
-  assert.equal(frontendPkg.dependencies['react-scripts'], undefined, 'react-scripts removed')
-
-  const dev = detectDevCommand(scaffolded)
-  assert.equal(dev.cwd, 'frontend', 'cwd still points to frontend')
-  assert.deepEqual(dev.args, ['run', 'dev'], 'dev script kicks in (vite added it)')
-
-  const layout = detectProjectLayout(scaffolded)
-  // After conversion the framework is no longer 'cra' — it's whatever the
-  // post-transform package classifies as. Vite deps + index.html → 'vite'.
-  assert.equal(layout.framework, 'vite', 'post-conversion framework reads as vite')
-  console.log('✓ Mangia Mama nested CRA auto-converts to Vite end-to-end')
-}
-
-// 7) Non-CRA imports unaffected (Vite import stays Vite, Next.js stays Next.js).
-{
-  const viteTree = toWebContainerTree([
-    { path: 'package.json', content: JSON.stringify({
-      scripts: { dev: 'vite' },
-      dependencies: { vite: '^5.0.0', react: '18.3.1' },
-    }) },
-    { path: 'index.html', content: '<html></html>' },
-  ])
-  ensureScaffolding(viteTree)
-  const pkg = JSON.parse(viteTree['package.json'].file.contents)
-  assert.equal(pkg.scripts.dev, 'vite', 'vite project unchanged')
-  console.log('✓ non-CRA imports passed through unchanged')
-}
-
-// 8) Mangia Mama regression: postcss.config.js + tailwind.config.js using
-//    module.exports must be renamed to .cjs when we flip package.json to
-//    "type": "module". Otherwise WebContainer crashes with
-//    "module is not defined in ES module scope" at dev server boot.
-{
-  const tree = toWebContainerTree([
-    { path: 'frontend/package.json', content: JSON.stringify({
-      scripts: { start: 'react-scripts start' },
-      dependencies: { react: '18.3.1', 'react-scripts': '5.0.1' },
-    }) },
-    { path: 'frontend/public/index.html', content: '<html><body><div id="root"></div></body></html>' },
-    { path: 'frontend/src/index.js', content: '' },
-    { path: 'frontend/postcss.config.js', content: `module.exports = {\n  plugins: { tailwindcss: {}, autoprefixer: {} },\n}\n` },
-    { path: 'frontend/tailwind.config.js', content: `module.exports = { content: ['./src/**/*.{js,jsx}'] }\n` },
-    // An ESM-style config must NOT be renamed.
-    { path: 'frontend/prettier.config.js', content: `export default { semi: false }\n` },
-  ])
-
-  const scaffolded = ensureScaffolding(tree)
-  const frontend = scaffolded.frontend.directory
-
-  assert.equal(frontend['postcss.config.js'], undefined, 'postcss.config.js renamed away')
-  assert.ok(frontend['postcss.config.cjs']?.file, 'postcss.config.cjs created')
-  assert.equal(frontend['tailwind.config.js'], undefined, 'tailwind.config.js renamed away')
-  assert.ok(frontend['tailwind.config.cjs']?.file, 'tailwind.config.cjs created')
-
-  // ESM config stays as-is.
-  assert.ok(frontend['prettier.config.js']?.file, 'ESM prettier config left alone')
-  assert.equal(frontend['prettier.config.cjs'], undefined, 'ESM configs not renamed')
-  console.log('✓ CommonJS configs (postcss/tailwind) renamed to .cjs; ESM configs untouched')
-}
-
-// 9) Re-import regression: a project that was ALREADY converted in a
-//    previous session (no react-scripts, type:module set) but still has
-//    a leftover postcss.config.js using module.exports — the ensureScaffolding
-//    safety net must rename it even though convertCraToVite is skipped.
-{
-  const tree = toWebContainerTree([
-    { path: 'frontend/package.json', content: JSON.stringify({
-      name: 'frontend',
-      type: 'module',
-      scripts: { dev: 'vite --port 3000 --host 0.0.0.0 --logLevel info' },
-      dependencies: { react: '18.3.1', 'react-dom': '18.3.1' },
-      devDependencies: { vite: '^5.4.0', '@vitejs/plugin-react': '^4.3.0' },
-    }) },
-    { path: 'frontend/index.html', content: '<html><body><div id="root"></div><script type="module" src="/src/index.js"></script></body></html>' },
-    { path: 'frontend/vite.config.js', content: `export default { plugins: [] }\n` },
-    { path: 'frontend/src/index.js', content: '' },
-    { path: 'frontend/postcss.config.js', content: `module.exports = {\n  plugins: { tailwindcss: {}, autoprefixer: {} },\n}\n` },
-  ])
-
-  const scaffolded = ensureScaffolding(tree)
-  const frontend = scaffolded.frontend.directory
-
-  // CRA conversion does NOT run (no react-scripts), but the safety net
-  // must still rename postcss.config.js because type:module is set.
-  assert.equal(frontend['postcss.config.js'], undefined, 'safety net renames postcss.config.js even on already-converted projects')
-  assert.ok(frontend['postcss.config.cjs']?.file, 'postcss.config.cjs created by safety net')
-  console.log('✓ already-converted projects (Mangia-Mama re-import) get the postcss safety-net rename')
-}
-
-// 10) CSS @import bubbling — Mangia-Mama white-screen regression.
-//     Vite drops `@import url(...)` if it comes after `@tailwind` etc.,
-//     causing the whole stylesheet to fail and the page to render white.
-{
-  const before = `@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Import Fredoka for playful arcade feel */
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500&display=swap');
-
-body { margin: 0; }
-`
-  const after = bubbleCssImports(before)
-  assert.match(after, /^@import url\(/, '@import bubbles to the very top')
-  assert.ok(after.indexOf('@tailwind base') > after.indexOf('@import'),
-    '@tailwind directives now come AFTER the @import')
-  assert.ok(after.includes('body { margin: 0; }'), 'body rule preserved')
-  // Idempotent.
-  assert.equal(bubbleCssImports(after), after, 'bubbleCssImports is idempotent')
-  // No-op for files without @import.
-  const noImport = '.foo { color: red; }\n'
-  assert.equal(bubbleCssImports(noImport), noImport, 'no @import = no change')
-  // @charset stays first.
-  const charsetCase = `@charset "utf-8";
-.x { color: blue; }
-@import url("a.css");
-`
-  const charsetOut = bubbleCssImports(charsetCase)
-  assert.match(charsetOut, /^@charset "utf-8";\s*\n@import url\("a\.css"\);/, '@charset stays first, then @import, then rules')
-  console.log('✓ bubbleCssImports moves @import to top, idempotent, respects @charset')
-}
-
-// 11) bubbleCssImportsInTree walks nested directories and rewrites every .css.
-{
-  const tree = toWebContainerTree([
-    { path: 'src/index.css', content: '@tailwind base;\n@import url("a.css");\n.x{}' },
-    { path: 'src/components/Foo.css', content: '@tailwind components;\n@import url("b.css");\n.y{}' },
-    { path: 'src/Foo.jsx', content: '' },
-    { path: 'package.json', content: '{}' },
-  ])
-  bubbleCssImportsInTree(tree)
-  const idx = tree.src.directory['index.css'].file.contents
-  const foo = tree.src.directory.components.directory['Foo.css'].file.contents
-  assert.match(idx, /^@import/, 'nested src/index.css rewritten')
-  assert.match(foo, /^@import/, 'deeper src/components/Foo.css rewritten')
-  assert.equal(tree.src.directory['Foo.jsx'].file.contents, '', '.jsx files untouched')
-  console.log('✓ bubbleCssImportsInTree rewrites every .css, leaves non-css alone')
-}
-
-// 12) Emergent-template re-import regression: project was already converted
-//     CRA→Vite in a previous session (no react-scripts), public/index.html
-//     is the original Emergent CRA template with NO entry script tag, and
-//     no root index.html exists. ensureRootIndexHtml must create the root
-//     index.html, inject the entry script, AND delete public/index.html so
-//     Vite's static fallback can't shadow it.
-{
-  const emergentHtml = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Emergent | Fullstack App</title>
-    <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <a id="emergent-badge" href="https://app.emergent.sh">Made with Emergent</a>
-  </body>
-</html>`
-  const tree = toWebContainerTree([
-    { path: 'package.json', content: JSON.stringify({
-      name: 'frontend', type: 'module',
-      scripts: { dev: 'vite' },
-      dependencies: { react: '18.3.1', 'react-dom': '18.3.1' },
-      devDependencies: { vite: '^5.4.0' },
-    }) },
-    { path: 'public/index.html', content: emergentHtml },
-    { path: 'src/index.js', content: '' },
-  ])
-  ensureRootIndexHtml(tree)
-
-  // Root index.html created, entry script injected.
-  assert.ok(tree['index.html']?.file?.contents, 'root index.html created')
-  const rootHtml = tree['index.html'].file.contents
-  assert.match(rootHtml, /<script[^>]+type=["']module["'][^>]+src=["']\/src\/index\.js["']/,
-    'entry script tag injected before </body>')
-  assert.ok(rootHtml.includes('<div id="root"></div>'), 'mount node preserved')
-  assert.ok(rootHtml.includes('Made with Emergent'), 'Emergent badge preserved')
-
-  // public/index.html deleted (so Vite static fallback can't shadow root).
-  assert.equal(tree.public?.directory['index.html'], undefined,
-    'public/index.html removed so Vite root index.html wins')
-
-  // Idempotent: running again leaves it alone.
-  const before = tree['index.html'].file.contents
-  ensureRootIndexHtml(tree)
-  assert.equal(tree['index.html'].file.contents, before,
-    'ensureRootIndexHtml is idempotent on already-correct tree')
-  console.log('✓ ensureRootIndexHtml: Emergent template gets entry script injected + public copy deleted')
-}
-
-// 13) ensureRootIndexHtml falls through to a minimal placeholder when no
-//     HTML exists anywhere (defensive — should never happen for real
-//     imports but guards against malformed trees).
-{
-  const tree = toWebContainerTree([
-    { path: 'package.json', content: '{"type":"module"}' },
-    { path: 'src/index.js', content: '' },
-  ])
-  ensureRootIndexHtml(tree)
-  const html = tree['index.html']?.file?.contents
-  assert.ok(html, 'placeholder index.html created')
-  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']\/src\/index\.js["']/, 'entry script in placeholder')
-  assert.ok(html.includes('<div id="root"></div>'), 'placeholder has mount node')
-  console.log('✓ ensureRootIndexHtml falls back to a minimal Vite shell when no HTML exists')
-}
-
-// 14) ensureRootIndexHtml also fixes a root index.html that exists but is
-//     missing the entry script (e.g. user committed only `<div id="root">`
-//     and forgot the bundle).
-{
-  const partialHtml = `<!doctype html>
-<html><body><div id="root"></div></body></html>`
-  const tree = toWebContainerTree([
-    { path: 'package.json', content: '{"type":"module"}' },
-    { path: 'index.html', content: partialHtml },
-    { path: 'src/index.js', content: '' },
-  ])
-  ensureRootIndexHtml(tree)
-  const html = tree['index.html'].file.contents
-  assert.match(html, /<script[^>]+type=["']module["'][^>]+src=["']\/src\/index\.js["']/,
-    'partial root index.html gets entry script injected')
-  console.log('✓ ensureRootIndexHtml fixes partial root index.html missing the entry script')
-}
-
-
-
-console.log('\nAll CRA → Vite converter tests passed ✓')
+console.log(`\n${tests.length - failed}/${tests.length} passed`)
+process.exit(failed === 0 ? 0 : 1)
