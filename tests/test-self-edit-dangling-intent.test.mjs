@@ -16,12 +16,21 @@ function isDangling(fullContent) {
   const fullText = (fullContent || '').toLowerCase()
   const tailText = fullText.trim().slice(-300)
   const hasIntentVerb = /\b(let me|i'?ll|i will|i'?m (going|about) to|going to|about to|searching|reading|looking (at|for|through|into)|finding|checking|investigating|inspecting|examining|exploring|locating|tracing|attempting to)\b/.test(tailText)
-  const hasCompletionVerb = /\b(i (found|read|checked|saw|identified|located|discovered|see)|i'?ve (found|read|checked|identified|located)|(found|located|identified) (it|the|a|an)|here(?:'s| is) (the|what|how|why|a|an)|the (bug|issue|problem|error|file|root cause|fix|reason) (is|was) (at|in|that|because|caused|missing|located|in line|the)|at line \d+|in \/app\/|in (line|the file) \d|appears to be|after (reading|checking|searching|looking)|turns out|based on (the|what|my))\b/.test(fullText)
+  const hasCompletionVerb = /\b(i (found|read|checked|saw|identified|located|discovered|see)|i'?ve (found|read|checked|identified|located)|(found|located|identified) (it|the|a|an)|here(?:'s| is) (the|what|how|why|a|an)|the (bug|issue|problem|error|root cause|fix|reason) (is|was) (at|in line|that|because|caused)|at line \d+|in (line|the file) \d|appears to be|after (reading|checking|searching|looking)|turns out|based on (the|what|my))\b/.test(fullText) || /\/app\/[\w./-]+/.test(fullText)
   const isTooShort = (fullContent || '').length < 300
-  return hasIntentVerb && !hasCompletionVerb && isTooShort
+  // Ultra-short catch: < 100 chars + no completion verb + no tool call → almost certainly Part-1 only
+  const isUltraShortWithoutTool = (fullContent || '').trim().length > 0 && (fullContent || '').trim().length < 100 && !hasCompletionVerb  // we assume no tool was called in this test
+  return (hasIntentVerb && !hasCompletionVerb && isTooShort) || isUltraShortWithoutTool
 }
 
 const cases = [
+  // ── The newest user-failing case (ultra-short Part-1-only) ──
+  ['Looking now:', true],
+  ['Looking now.', true],
+  ['Searching...', true],
+  ['Checking...', true],
+  ['Sure!', true],  // 5 chars, no tool call in self-edit context = failure (user asked for action)
+
   // ── The exact user-failing case (period-terminated promise, short) ──
   ["I'll search through the codebase to find the streaming-related files.", true],
 
@@ -51,10 +60,10 @@ const cases = [
 
   // ── Edge cases ──
   ['', false],  // empty
-  ['ok', false],  // very short, no intent
-  ['Let me know if you have other questions!', true],  // "Let me" matches intent but it's a polite closing — known false positive, acceptable since synthesis pass is harmless
-  ['Sure, that exists.', false],  // no intent verb, complete
-  ['Done!', false],  // no intent verb
+  ['ok', true],  // very short, no tool call in action mode = failure
+  ['Let me know if you have other questions!', true],  // matches "Let me" intent + short
+  ['Sure, that exists.', true],  // < 100 chars, no tool call in action mode = failure
+  ['Done!', true],  // < 100 chars, no tool call in action mode = failure
 ]
 
 let failed = 0
