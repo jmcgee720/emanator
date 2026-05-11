@@ -477,7 +477,7 @@ export default function LeftPanel({
                   : 'bg-amber-500/10 border border-amber-500/20 text-amber-300/70'
               }`}
               data-testid="agent-v2-toggle"
-              title="v2 = Emergent-style agent loop (clean tool use, no policing). v1 = legacy."
+              title="v2 = Emergent-style agent loop (clean tool use, no policing). Works in BOTH Core System and project chats. v1 = legacy."
             >
               {useV2Agent ? '⚡ v2 Agent (beta) ON' : 'v1 (legacy)'}
             </button>
