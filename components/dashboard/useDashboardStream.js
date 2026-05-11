@@ -117,6 +117,13 @@ export function useDashboardStream(ctx) {
     }
     if (isSelfEditChat) {
       streamOpts.selfEditTarget = selfEditTarget || { id: 'all', path: null }
+      // v2 Emergent-style agent opt-in (self-edit only for Phase 1).
+      // Toggle via the Core System panel switch or `localStorage.auroraly_use_v2_agent = '1'`.
+      try {
+        if (typeof window !== 'undefined' && window.localStorage?.getItem('auroraly_use_v2_agent') === '1') {
+          streamOpts.useV2Agent = true
+        }
+      } catch {}
     }
     if (opts.silent) {
       streamOpts.silent = true

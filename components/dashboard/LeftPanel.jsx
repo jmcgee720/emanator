@@ -283,6 +283,17 @@ export default function LeftPanel({
   const [convoCollapsed, setConvoCollapsed] = useState(() => {
     try { return localStorage.getItem('mymergent_convo_collapsed') === 'true' } catch { return false }
   })
+  // v2 Emergent-style agent toggle (self-edit only, Phase 1)
+  const [useV2Agent, setUseV2Agent] = useState(() => {
+    try { return localStorage.getItem('auroraly_use_v2_agent') === '1' } catch { return false }
+  })
+  const toggleV2Agent = () => {
+    setUseV2Agent((prev) => {
+      const next = !prev
+      try { localStorage.setItem('auroraly_use_v2_agent', next ? '1' : '0') } catch {}
+      return next
+    })
+  }
     const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
   const userIsScrolledUpRef = useRef(false)
@@ -454,6 +465,22 @@ export default function LeftPanel({
                 <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
+          </div>
+          {/* v2 Agent toggle (Emergent-style, Phase 1 — self-edit only) */}
+          <div className="flex items-center gap-1.5 mt-1 pt-1 border-t border-amber-500/15">
+            <span className="text-[9px] text-amber-400/50">Engine:</span>
+            <button
+              onClick={toggleV2Agent}
+              className={`text-[10px] rounded px-1.5 py-0.5 transition-colors ${
+                useV2Agent
+                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                  : 'bg-amber-500/10 border border-amber-500/20 text-amber-300/70'
+              }`}
+              data-testid="agent-v2-toggle"
+              title="v2 = Emergent-style agent loop (clean tool use, no policing). v1 = legacy."
+            >
+              {useV2Agent ? '⚡ v2 Agent (beta) ON' : 'v1 (legacy)'}
+            </button>
           </div>
         </div>
       )}
