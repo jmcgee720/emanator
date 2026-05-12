@@ -12,6 +12,35 @@ When the agent modifies code in **any** of these targets it MUST tell the user u
 
 Common Fly token gotcha: SSO-locked personal accounts cannot create personal tokens via the UI. Use `flyctl tokens create org <orgname>` from terminal instead.
 
+## Implemented (2026-02-XX — v2 agent security + preview refresh)
+
+### 🛠 Core System token-leak + Nexsara preview-refresh fixes (P0)
+
+**Two production bugs reported in separate chat sessions:**
+1. Core System chat leaked a GitHub PAT + Supabase service-role key by running raw `curl` against APIs from within `run_command`, and tried to mistakenly edit user-project files from the Auroraly self-edit scope.
+2. Nexsara project chat appeared to silently fail — edits round-tripped to Supabase (hybrid storage was already working in `db.projectFiles`) but the iframe never refreshed because the v2 stream handler never emitted a `files_saved` SSE event.
+
+**Shipped**:
+
+1. **`/app/lib/ai/agent-tools-v2.js`** — `run_command` credential sanitizer already in place (lines 231-247): refuses any command containing `ghp_…`, `github_pat_…`, `sk-…`, `xoxb-…`, or long JWT-shaped strings before execution. Throws a self-explanatory error directing the model to use the configured file tools instead.
+
+2. **`/app/lib/api/stream-handler-v2.js`** — both system prompts hardened with three explicit HARD RULES each:
+   - SCOPE: Core System cannot touch user projects (different DB, separate chat); Project agent cannot touch the Auroraly source tree.
+   - NO RAW HTTP: Never run `curl` / `wget` / `fetch` against GitHub/Supabase/Vercel/Anthropic/OpenAI — the file tools already use server-side credentials.
+   - NO CREDENTIALS IN COMMANDS: Never paste a PAT, service-role key, API key, JWT, or `Authorization: Bearer …` value into a shell command or file write.
+
+3. **`/app/lib/api/stream-handler-v2.js`** — preview-refresh hook: after each `tool_result` for `write_file` or `edit_file` in PROJECT mode (non self-edit), if the result string doesn't begin with `Error`/`Error executing`, emit `files_saved` SSE event with `{paths: [filePath], action: 'write'|'edit', agent_version: 'v2'}`. The dashboard's `useDashboardStream.js` `onFilesSaved` handler (line 202) already refetches the project's files and forces the preview iframe to recompile — so this single emission is enough to make Nexsara edits visible immediately.
+
+4. **`/app/tests/test-run-command-sanitizer.test.mjs`** (+8 tests): rejects GitHub classic PAT, fine-grained PAT, OpenAI/Anthropic `sk-` keys, long JWTs, Slack bot tokens, and tokens embedded mid-string. Allows innocuous commands (`echo hello`, `pwd`).
+
+5. **`/app/tests/test-stream-handler-v2-files-saved.test.mjs`** (+7 tests): emits `files_saved` on successful `write_file` / `edit_file` in project mode, on every write in a multi-write turn, with correct path/action/version metadata. Does NOT emit on tool failure, on read-only tools, or in self-edit mode (which uses GitHub API + Vercel redeploys instead of an in-app iframe). Defensive: empty paths array when `args.path` is absent.
+
+**Test health**: 83/83 passing across the touched test files (sanitizer + files-saved + existing v2 wiring + agent-tools-v2 + project-fs). No regressions.
+
+**Pending**: User must "Save to GitHub" to push to `main` so Vercel deploys the v2 stream handler updates. Once deployed, both Core System (no token leaks, proper scope guard) and Nexsara (preview refreshes immediately after edits) flow correctly.
+
+---
+
 ## Original Problem Statement
 Transition Emanator into a full Agent Platform that behaves exactly like the AI Engineer (E1). Emanator must autonomously build beautiful, highly polished, fully functional applications from a Creative Brief — including flows the user didn't explicitly ask for (Sign Up, Onboarding, Settings, etc.).
 
