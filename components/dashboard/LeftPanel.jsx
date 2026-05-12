@@ -487,12 +487,31 @@ export default function LeftPanel({
 
       {/* Project context label — shown for non-self-edit chats */}
       {selectedChat && getChatType(selectedChat) !== CHAT_TYPES.SELF_EDIT && projectName && (
-        <div className="px-3 py-1 border-b border-[rgba(255,255,255,0.06)]" data-testid="project-context-label">
-          <span className="text-[10px] em-text-muted">Project: </span>
-          <span className="text-[10px] text-[var(--em-cyan)] font-medium">{projectName}</span>
-          {builderMode && (
-            <span className="text-[10px] em-text-muted"> · {builderMode.charAt(0).toUpperCase() + builderMode.slice(1)}</span>
-          )}
+        <div className="px-3 py-1.5 border-b border-[rgba(255,255,255,0.06)]" data-testid="project-context-label">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div>
+              <span className="text-[10px] em-text-muted">Project: </span>
+              <span className="text-[10px] text-[var(--em-cyan)] font-medium">{projectName}</span>
+              {builderMode && (
+                <span className="text-[10px] em-text-muted"> · {builderMode.charAt(0).toUpperCase() + builderMode.slice(1)}</span>
+              )}
+            </div>
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-[9px] em-text-muted">Engine:</span>
+              <button
+                onClick={toggleV2Agent}
+                className={`text-[10px] rounded px-1.5 py-0.5 transition-colors ${
+                  useV2Agent
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                    : 'bg-white/5 border border-white/10 text-white/60'
+                }`}
+                data-testid="agent-v2-toggle-project"
+                title="v2 = Emergent-style agent loop (real tools, no JSON dumps to chat). Works in project chats and Core System. v1 = legacy."
+              >
+                {useV2Agent ? '⚡ v2 (beta) ON' : 'v1 (legacy)'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

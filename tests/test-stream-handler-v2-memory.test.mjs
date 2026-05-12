@@ -108,7 +108,10 @@ describe('v2 tool visibility — inline blockquote markers', () => {
       if (args.name_pattern) return ` "${args.name_pattern}"`
       if (args.pattern) return ` "${args.pattern}"`
       if (args.command) return ` ${String(args.command).slice(0, 80)}`
-      return ' ' + JSON.stringify(args).slice(0, 80)
+      if (args.old_str) return ' (edit)'
+      const keys = Object.keys(args)
+      if (keys.length === 0) return ''
+      return ` (${keys.length} arg${keys.length === 1 ? '' : 's'})`
     } catch { return '' }
   }
   function summarizeResult(content) {
@@ -154,6 +157,24 @@ describe('v2 tool visibility — inline blockquote markers', () => {
     assert.equal(summarizeResult(null), '')
     assert.equal(summarizeResult(undefined), '')
     assert.equal(summarizeResult(''), '')
+  })
+
+  test('NEVER dumps raw JSON for unknown args — user-reported regression', () => {
+    // User report: "when I refreshed the Nexsara project, it sent this JSON
+    // code. Fix that — it always just do the action, never send the code to
+    // the user." The old fallback was `' ' + JSON.stringify(args).slice(0, 80)`
+    // which surfaced raw JSON in chat. New behavior: show arg count only.
+    const out = summarizeArgs({ random_field: 'whatever', another: 42 })
+    assert.doesNotMatch(out, /[{}]/, 'must not contain JSON braces')
+    assert.doesNotMatch(out, /random_field/, 'must not echo arg keys')
+    assert.match(out, /\(2 args\)/, 'must surface arg count only')
+  })
+
+  test('edit_file args summarize to "(edit)" not the old_str content', () => {
+    // Defensive: dumping old_str / new_str would leak code into the chat
+    const out = summarizeArgs({ path: 'lib/foo.js', old_str: 'secret token', new_str: 'x' })
+    assert.match(out, /lib\/foo\.js/, 'path takes priority')
+    assert.doesNotMatch(out, /secret/, 'never leak old_str content')
   })
 })
 
