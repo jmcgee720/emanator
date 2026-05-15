@@ -1201,7 +1201,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
-  const [previewEngine, setPreviewEngine] = useState('babel') // 'babel' | 'webcontainer'
+  const [previewEngine, setPreviewEngine] = useState('server') // 'babel' | 'webcontainer' | 'server'
   const [iframeErrors, setIframeErrors] = useState([])
   const [consoleLogs, setConsoleLogs] = useState([])
   const [showConsole, setShowConsole] = useState(false)
