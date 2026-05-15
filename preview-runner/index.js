@@ -627,6 +627,7 @@ async function bootDevServerInBackground() {
     const previewUrl = `https://${projectId}.${baseDomain}`
 
     appendLog('runner', `[runner] spawning ${cmd[0]} ${cmd[1].join(' ')} in ${nested || '/project'}`)
+    appendLog('runner', `[runner] injecting preview URL env vars: ${previewUrl}`)
     devProc = spawn(cmd[0], cmd[1], {
       cwd,
       env: {
