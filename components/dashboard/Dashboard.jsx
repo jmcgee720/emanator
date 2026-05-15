@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { authFetch } from '@/lib/auth-fetch'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { useToast } from '@/hooks/use-toast'
@@ -61,9 +62,10 @@ const EMANATOR_HEADLINES = [
 // JSON headers for POST/PUT requests (cookies handle auth automatically)
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
-export default function Dashboard({ user, dbUser, onSignOut }) {
+export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = null }) {
   const isOwner = dbUser?.role === 'owner'
   const isMonitored = dbUser?.role === 'child_monitored'
+  const router = useRouter()
 
   const [projects, setProjects] = useState([])
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
@@ -342,6 +344,7 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
       setSelectedChat(null)
       setMessages([])
       setSelectedProject(data.project)
+      try { router.replace(`/project/${data.project.id}`) } catch {}
       // loadProjectData will auto-create/select a chat since skipChatSelect=false
       loadProjects()
     } catch (err) {
@@ -451,6 +454,27 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     }
   }, [isOwner, builderMode])
 
+  // Deep-link: when the page loads at /project/[projectId] and projects
+  // have finished loading, auto-open that project so the URL drives the
+  // selection. Runs at most once per `initialProjectId`. Falls back
+  // silently if the user doesn't own/can't see the requested project.
+  const initialProjectAppliedRef = useRef(false)
+  useEffect(() => {
+    if (initialProjectAppliedRef.current) return
+    if (!initialProjectId) return
+    if (!Array.isArray(projects) || projects.length === 0) return
+    const target = projects.find(p => p.id === initialProjectId)
+    if (!target) {
+      // Project gone / not accessible — bounce to home, clean the URL.
+      initialProjectAppliedRef.current = true
+      try { router.replace('/') } catch {}
+      return
+    }
+    initialProjectAppliedRef.current = true
+    setOpenProjectTabs(prev => prev.some(p => p.id === target.id) ? prev : [...prev, target])
+    setSelectedProject(target)
+  }, [initialProjectId, projects, router])
+
   const openProjectWorkspace = useCallback((project) => {
     if (!project) return
 
@@ -461,7 +485,11 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     })
 
     setSelectedProject(project)
-  }, [])
+    // Sync URL so the address bar reflects the open project (bookmarkable,
+    // shareable, survives refresh). `replace` keeps history clean — back
+    // button still returns to wherever the user came from.
+    try { router.replace(`/project/${project.id}`) } catch {}
+  }, [router])
 
   const closeProjectWorkspaceTab = useCallback((projectId) => {
     // Clean up stored chat state
@@ -481,17 +509,19 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
           setSelectedChat(null)
           setMessages([])
           setSelectedProject(target)
+          try { router.replace(`/project/${target.id}`) } catch {}
         } else {
           // No project tabs remain — fall back to Project Bin
           setSelectedProject(null)
           setSelectedChat(null)
           setMessages([])
+          try { router.replace('/') } catch {}
         }
       }
 
       return nextTabs
     })
-  }, [selectedProject])
+  }, [selectedProject, router])
 
   const switchToProjectTab = useCallback((project) => {
     if (selectedProject?.id === project.id) return
@@ -507,7 +537,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setSelectedChat(null)
     setMessages([])
     setSelectedProject(project)
-  }, [selectedProject, selectedChat])
+    try { router.replace(`/project/${project.id}`) } catch {}
+  }, [selectedProject, selectedChat, router])
 
   const goToProjectsGrid = useCallback(() => {
     if (selectedProject) {
@@ -516,7 +547,8 @@ export default function Dashboard({ user, dbUser, onSignOut }) {
     setSelectedProject(null)
     setSelectedChat(null)
     setMessages([])
-  }, [selectedProject, selectedChat])
+    try { router.replace('/') } catch {}
+  }, [selectedProject, selectedChat, router])
 
   // Clear selfEditTarget when switching to a non-self-edit chat
   const handleSelectChat = (chat) => {
@@ -1309,6 +1341,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   setMessages([])
                   setFiles([])
                   setCanvas(null)
+                  try { router.replace('/') } catch {}
                 }}
                 className="shrink-0 px-4 py-2 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 border border-white/10 transition-all duration-300 backdrop-blur-sm"
                 data-testid="workspace-back-to-grid"
