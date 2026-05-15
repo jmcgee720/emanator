@@ -1255,7 +1255,6 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   // can auto-pick the right preview engine. Memoized on the file list so
   // we don't re-scan on every render.
   const detectedFramework = useMemo(() => {
-    if (!isWebContainerEnabled()) return 'auroraly'
     if (!Array.isArray(files) || files.length === 0) return 'auroraly'
     try {
       const layout = detectProjectLayout(toWebContainerTree(files))
