@@ -118,12 +118,11 @@ export function useDashboardStream(ctx) {
     if (isSelfEditChat) {
       streamOpts.selfEditTarget = selfEditTarget || { id: 'all', path: null }
     }
-    // v2 Emergent-style agent opt-in (now works for BOTH self-edit and project chats).
-    // Toggle via the v2 button in the Core System panel OR
-    // `localStorage.auroraly_use_v2_agent = '1'`.
+    // v2 agent is now the default for all chats (includes image vision support).
+    // To use the legacy v1 endpoint, set `localStorage.auroraly_use_v1_agent = '1'`.
     try {
-      if (typeof window !== 'undefined' && window.localStorage?.getItem('auroraly_use_v2_agent') === '1') {
-        streamOpts.useV2Agent = true
+      if (typeof window !== 'undefined' && window.localStorage?.getItem('auroraly_use_v1_agent') === '1') {
+        streamOpts.useV1Agent = true
       }
     } catch {}
     if (opts.silent) {
