@@ -620,6 +620,12 @@ async function bootDevServerInBackground() {
       return
     }
 
+    // Compute the public preview URL so Next.js / framework apps can
+    // generate correct absolute URLs (for <Link> hover, OG tags, etc).
+    const projectId = process.env.AURORALY_PROJECT_ID || 'unknown'
+    const baseDomain = process.env.PREVIEW_BASE_DOMAIN || 'preview.auroraly.co'
+    const previewUrl = `https://${projectId}.${baseDomain}`
+
     appendLog('runner', `[runner] spawning ${cmd[0]} ${cmd[1].join(' ')} in ${nested || '/project'}`)
     devProc = spawn(cmd[0], cmd[1], {
       cwd,
@@ -633,6 +639,14 @@ async function bootDevServerInBackground() {
         // check defeats our wildcard subdomain → disable it.
         DANGEROUSLY_DISABLE_HOST_CHECK: 'true',
         WDS_SOCKET_PORT: '443',
+        // Inject the preview URL so Next.js / framework apps know their
+        // public domain and generate correct absolute URLs.
+        NEXT_PUBLIC_SITE_URL: previewUrl,
+        NEXTAUTH_URL: previewUrl,
+        VERCEL_URL: `${projectId}.${baseDomain}`,
+        // Also set generic PUBLIC_URL for CRA / Vite apps
+        PUBLIC_URL: previewUrl,
+        VITE_PUBLIC_URL: previewUrl,
       },
     })
     devProc.stdout.on('data', d => appendLog('dev', d))
