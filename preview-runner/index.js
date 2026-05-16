@@ -550,6 +550,82 @@ async function runInstallIfNeeded(workCwd) {
   } catch (err) {
     appendLog('runner', `[runner v3] ajv-detection skipped: ${err.message}`)
   }
+
+  // ── Next.js PostCSS deps belt-and-suspenders ────────────────────────
+  // If the project is Next.js and globals.css uses @tailwind directives
+  // (or any postcss plugin via postcss.config.js), Next's webpack config
+  // will require('tailwindcss')/('postcss')/('autoprefixer') at compile
+  // time. Even when those packages are declared in package.json, we've
+  // observed scenarios where they aren't present in node_modules after
+  // npm install (root cause unknown — possibly a cache/lockfile mismatch
+  // from Supabase syncs). Sidecar-install them so Next never crashes
+  // with `Cannot find module 'tailwindcss'`.
+  try {
+    const fs = await import('node:fs/promises')
+    const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
+    if (pkgRaw) {
+      const pkg = JSON.parse(pkgRaw)
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
+      const isNext = !!deps.next
+
+      if (isNext) {
+        const declared = {
+          tailwindcss: deps.tailwindcss || '^3.4.0',
+          postcss: deps.postcss || '^8.4.31',
+          autoprefixer: deps.autoprefixer || '^10.4.16',
+        }
+        const present = {}
+        const missing = []
+        for (const name of Object.keys(declared)) {
+          const path = join(cwd, 'node_modules', name, 'package.json')
+          if (existsSync(path)) {
+            try {
+              const v = JSON.parse(await fs.readFile(path, 'utf8')).version
+              present[name] = v
+            } catch { present[name] = 'unparseable' }
+          } else {
+            missing.push(name)
+          }
+        }
+        appendLog('runner', `[runner v3] next.js postcss deps check: present=${JSON.stringify(present)} missing=${JSON.stringify(missing)}`)
+
+        // Always sidecar-install the trio for Next.js projects. Even if
+        // they're "present", we want to guarantee they resolve from
+        // /<cwd>/node_modules (where Next's webpack-config looks) and
+        // not just from a transitive sub-path that Next can't see.
+        const installArgs = [
+          `tailwindcss@${declared.tailwindcss}`,
+          `postcss@${declared.postcss}`,
+          `autoprefixer@${declared.autoprefixer}`,
+        ]
+        appendLog('runner', `[runner v3] next.js fallback: force-installing ${installArgs.join(' ')} (no-save) as belt-and-suspenders`)
+        await new Promise((res, rej) => {
+          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', ...installArgs], { cwd, env: { ...process.env, CI: '1' } })
+          p.stdout.on('data', d => appendLog('install', d))
+          p.stderr.on('data', d => appendLog('install', d))
+          p.on('exit', code => code === 0 ? res() : rej(new Error('next-postcss-trio sidecar install exited ' + code)))
+          p.on('error', rej)
+        }).catch((err) => {
+          appendLog('runner', `[runner v3] next-postcss-trio sidecar install failed: ${err.message}`)
+        })
+
+        // Verify post-install resolvability.
+        const after = {}
+        for (const name of Object.keys(declared)) {
+          const path = join(cwd, 'node_modules', name, 'package.json')
+          if (existsSync(path)) {
+            try { after[name] = JSON.parse(await fs.readFile(path, 'utf8')).version }
+            catch { after[name] = 'unparseable' }
+          } else {
+            after[name] = 'STILL MISSING'
+          }
+        }
+        appendLog('runner', `[runner v3] post-sidecar next.js postcss deps: ${JSON.stringify(after)}`)
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner v3] next-postcss detection skipped: ${err.message}`)
+  }
 }
 
 // ─── routes ──────────────────────────────────────────────────────────
@@ -812,8 +888,8 @@ app.get('/logs', (req, res) => {
 })
 
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
-  appendLog('runner', `[runner v3.cra-overrides] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
-  appendLog('runner', `[runner v3.cra-overrides] CRA fix active: package.json overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4} + post-install force-install fallback`)
+  appendLog('runner', `[runner v4.next-postcss] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
+  appendLog('runner', `[runner v4.next-postcss] CRA fix: package.json overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4}; Next.js fix: force-install tailwindcss/postcss/autoprefixer as sidecar`)
 })
 
 // Graceful shutdown so Fly's machine-stop doesn't leave zombies.
