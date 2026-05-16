@@ -135,4 +135,67 @@ describe('notifyPreviewOfFileChange — graceful degradation', () => {
     assert.match(r.reason, /fetch-failed/)
     assert.equal(r.machineId, 'mc1')
   })
+
+  test('flags requiresRestart when package.json is among changed paths', async () => {
+    const fakeMachine = {
+      id: 'mc1',
+      state: 'started',
+      config: { metadata: { auroraly_project_id: 'p1' } },
+    }
+    let calls = 0
+    global.fetch = async () => {
+      calls++
+      if (calls === 1) return new Response(JSON.stringify([fakeMachine]), { status: 200 })
+      return new Response('{}', { status: 200 })
+    }
+    const r = await notifyPreviewOfFileChange('p1', { changedPaths: ['package.json'] })
+    assert.equal(r.notified, true)
+    assert.equal(r.requiresRestart, true)
+  })
+
+  test('flags requiresRestart even for nested package.json (workspaces)', async () => {
+    const fakeMachine = { id: 'mc1', state: 'started', config: { metadata: { auroraly_project_id: 'p1' } } }
+    let calls = 0
+    global.fetch = async () => {
+      calls++
+      if (calls === 1) return new Response(JSON.stringify([fakeMachine]), { status: 200 })
+      return new Response('{}', { status: 200 })
+    }
+    const r = await notifyPreviewOfFileChange('p1', { changedPaths: ['apps/web/package.json'] })
+    assert.equal(r.requiresRestart, true)
+  })
+
+  test('does NOT flag requiresRestart for ordinary code changes', async () => {
+    const fakeMachine = { id: 'mc1', state: 'started', config: { metadata: { auroraly_project_id: 'p1' } } }
+    let calls = 0
+    global.fetch = async () => {
+      calls++
+      if (calls === 1) return new Response(JSON.stringify([fakeMachine]), { status: 200 })
+      return new Response('{}', { status: 200 })
+    }
+    const r = await notifyPreviewOfFileChange('p1', { changedPaths: ['app/page.jsx', 'lib/foo.ts'] })
+    assert.equal(r.requiresRestart, false)
+  })
+
+  test('does NOT flag requiresRestart for a substring match like package.json.bak', async () => {
+    const fakeMachine = { id: 'mc1', state: 'started', config: { metadata: { auroraly_project_id: 'p1' } } }
+    let calls = 0
+    global.fetch = async () => {
+      calls++
+      if (calls === 1) return new Response(JSON.stringify([fakeMachine]), { status: 200 })
+      return new Response('{}', { status: 200 })
+    }
+    const r = await notifyPreviewOfFileChange('p1', { changedPaths: ['package.json.bak'] })
+    assert.equal(r.requiresRestart, false)
+  })
+
+  test('requiresRestart is surfaced even when sync itself fails (no machine)', async () => {
+    global.fetch = async () => new Response('[]', { status: 200 })
+    const r = await notifyPreviewOfFileChange('p1', { changedPaths: ['package.json'] })
+    assert.equal(r.notified, false)
+    assert.equal(r.reason, 'no-machine')
+    // Caller still needs to know about the dep change to show the user
+    // a Stop→Start hint when they eventually open the preview.
+    assert.equal(r.requiresRestart, true)
+  })
 })

@@ -95,7 +95,25 @@ export async function POST(request, { params }) {
       machine = await createMachineForProject(projectId, secret)
       createdNew = true
     } else if (machine.state !== 'started') {
-      await startMachine(machine.id)
+      // Fly refuses to start a machine that's mid-transition with a
+      // `412 failed_precondition: unable to start machine from current
+      // state: 'stopping'`. Wait for the machine to finish its current
+      // transition (up to 30s) before attempting start. This avoids
+      // the race when a user clicks Stop → Start quickly.
+      if (machine.state === 'stopping' || machine.state === 'starting') {
+        const settled = ['stopping', 'starting'].includes(machine.state)
+          ? await waitForMachineState(
+              machine.id,
+              machine.state === 'stopping' ? 'stopped' : 'started',
+              30_000,
+            ).catch(() => null)
+          : null
+        // Refresh the latest state so the start call uses the post-wait reality.
+        if (settled?.ok && settled.state) machine.state = settled.state
+      }
+      if (machine.state !== 'started') {
+        await startMachine(machine.id)
+      }
     }
 
     // 2) Wait briefly for the machine to be `started` (cold-start ~5-10s).
