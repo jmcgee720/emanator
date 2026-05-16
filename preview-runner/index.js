@@ -155,17 +155,10 @@ async function ensureViteHostOverride(pkg, cwd) {
   for (const c of candidates) {
     if (existsSync(join(dir, c))) { userConfigImport = `./${c}`; break }
   }
-  // ESM file that imports the user's config (if any) and merges in the
-  // server.allowedHosts override. `allowedHosts: true` = allow ALL hosts.
-  // We also set Cross-Origin-Resource-Policy + Cross-Origin-Embedder-Policy
-  // headers so the auroraly.co dashboard (which sets COEP=credentialless
-  // for WebContainers) can embed this iframe without Firefox's "security
-  // configuration doesn't match" block.
-  const COEP_HEADERS = `      'Cross-Origin-Resource-Policy': 'cross-origin',
-      'Cross-Origin-Embedder-Policy': 'credentialless',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      // also send a permissive frame-ancestors so we're embeddable.
-      'Content-Security-Policy': "frame-ancestors *",`
+  // ESM file that imports the user's config (if any) and merges in
+  // `server.allowedHosts: true` so Vite's v5 host-check accepts our
+  // wildcard preview subdomains. HMR over wss:443 because Fly's edge
+  // upgrades to TLS even when the internal port is plain HTTP.
   const body = userConfigImport
     ? `import userConfig from '${userConfigImport}'
 import { defineConfig } from 'vite'
@@ -178,10 +171,6 @@ export default defineConfig({
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
-    headers: {
-      ...(cfg?.server?.headers || {}),
-${COEP_HEADERS}
-    },
     hmr: { ...(cfg?.server?.hmr || {}), clientPort: 443, protocol: 'wss' },
   },
 })
@@ -193,122 +182,12 @@ export default defineConfig({
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
-    headers: {
-${COEP_HEADERS}
-    },
     hmr: { clientPort: 443, protocol: 'wss' },
   },
 })
 `
   await fs.writeFile(join(dir, 'vite.config.runner.mjs'), body, 'utf8')
   appendLog('runner', `[runner] vite host-check override written (allowedHosts: true)`)
-  return true
-}
-
-/**
- * Patch a Next.js project's config to emit COEP/COOP/CORP headers so
- * Firefox can embed the preview iframe without the "security
- * configuration doesn't match" block. Chrome/Safari are lenient about
- * missing headers, Firefox is not.
- *
- * Strategy: write `next.config.runner.mjs` that imports the user's
- * existing config (if any) and wraps `headers()` to append our
- * cross-origin headers. Then point Next at it via the NEXT_CONFIG_FILE
- * env var (Next 14+) — falls back to overwriting `next.config.mjs`
- * when NEXT_CONFIG_FILE isn't honoured.
- */
-async function ensureNextHeadersOverride(pkg, cwd) {
-  const dir = cwd || PROJECT_DIR
-  const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
-  if (!deps.next) return false
-  const fs = await import('node:fs/promises')
-
-  // Locate the user's existing next config (if any) so we can wrap it.
-  const candidates = ['next.config.js', 'next.config.mjs', 'next.config.cjs', 'next.config.ts']
-  let userCfg = null
-  for (const c of candidates) {
-    if (existsSync(join(dir, c))) { userCfg = c; break }
-  }
-
-  // Header set: same as Vite override so embedder COEP matches.
-  // The headers() function in Next.js applies these to every route.
-  const HEADERS_JSON = JSON.stringify([
-    { source: '/:path*', headers: [
-      { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
-      { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
-      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-      { key: 'Content-Security-Policy', value: 'frame-ancestors *' },
-    ] },
-  ])
-
-  // Build a wrapper config. If the user already has next.config.*, we
-  // import it and merge our headers() in front. If theirs returns
-  // headers too, we concat both arrays.
-  const wrapperBody = userCfg
-    ? `// Auroraly preview-runner generated wrapper — do not commit.
-import userCfg from './${userCfg}'
-const base = (typeof userCfg === 'function') ? await userCfg() : userCfg
-const extraHeaders = ${HEADERS_JSON}
-export default {
-  ...(base || {}),
-  async headers() {
-    const userHeaders = typeof base?.headers === 'function' ? (await base.headers()) : []
-    return [...(userHeaders || []), ...extraHeaders]
-  },
-}
-`
-    : `// Auroraly preview-runner generated wrapper — do not commit.
-const extraHeaders = ${HEADERS_JSON}
-export default {
-  async headers() { return extraHeaders },
-}
-`
-  // Next 14+ honours NEXT_CONFIG_FILE only intermittently. Safest path:
-  // - If no user config exists → write next.config.mjs directly.
-  // - If a user config exists → write next.config.runner.mjs AND
-  //   overwrite next.config.mjs to re-export it (so `next dev` picks
-  //   it up without us having to pass any flag).
-  await fs.writeFile(join(dir, 'next.config.runner.mjs'), wrapperBody, 'utf8')
-  if (!userCfg) {
-    // No conflicting file — point Next.js straight at our wrapper.
-    await fs.writeFile(
-      join(dir, 'next.config.mjs'),
-      `export { default } from './next.config.runner.mjs'\n`,
-      'utf8',
-    )
-    appendLog('runner', '[runner] next headers override written (fresh next.config.mjs)')
-  } else if (userCfg !== 'next.config.mjs') {
-    // User has e.g. next.config.js — write a thin .mjs re-exporter.
-    // Next picks .mjs first when both exist, so our wrapper wins.
-    await fs.writeFile(
-      join(dir, 'next.config.mjs'),
-      `export { default } from './next.config.runner.mjs'\n`,
-      'utf8',
-    )
-    appendLog('runner', `[runner] next headers override written (wrapping user's ${userCfg} via next.config.mjs shim)`)
-  } else {
-    // User had next.config.mjs and we just overwrote it... no, we
-    // wrote next.config.runner.mjs only. We can't safely clobber the
-    // user's next.config.mjs because they might re-sync from Supabase.
-    // Instead: re-write the user's file to re-export the runner wrapper.
-    // The original user content is preserved in next.config.runner.mjs
-    // (we imported it above with `import userCfg from './next.config.mjs'`).
-    // To break the import cycle, copy the user file to next.config.user.mjs
-    // first and re-point the wrapper at it.
-    const userBody = await fs.readFile(join(dir, 'next.config.mjs'), 'utf8')
-    await fs.writeFile(join(dir, 'next.config.user.mjs'), userBody, 'utf8')
-    const fixedWrapper = wrapperBody.replace(
-      `from './${userCfg}'`,
-      `from './next.config.user.mjs'`,
-    )
-    await fs.writeFile(join(dir, 'next.config.runner.mjs'), fixedWrapper, 'utf8')
-    await fs.writeFile(
-      join(dir, 'next.config.mjs'),
-      `export { default } from './next.config.runner.mjs'\n`,
-      'utf8',
-    )
-    appendLog('runner', '[runner] next headers override written (relocated user next.config.mjs → next.config.user.mjs)')
-  }
   return true
 }
 
@@ -383,65 +262,21 @@ async function runInstallIfNeeded(workCwd) {
   const fs = await import('node:fs/promises')
   const pkgPath = join(cwd, 'package.json')
 
-  // ── PRE-CACHE-CHECK: patch package.json with overrides for CRA ──
-  // This MUST run BEFORE the cache-hit early return so it always applies,
-  // even on warm restarts where node_modules persists. The patch is
-  // idempotent (writes only if not already correct).
-  let craOverridesApplied = false
-  try {
-    if (existsSync(pkgPath)) {
-      const pkgRaw = await fs.readFile(pkgPath, 'utf8')
-      const pkg = JSON.parse(pkgRaw)
-      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
-      const isCRA = !!deps['react-scripts']
-      if (isCRA) {
-        const overrides = pkg.overrides || {}
-        const desired = { ajv: '^8', 'ajv-keywords': '^5', 'schema-utils': '^4' }
-        let changed = false
-        for (const [k, v] of Object.entries(desired)) {
-          if (overrides[k] !== v) { overrides[k] = v; changed = true }
-        }
-        if (changed) {
-          pkg.overrides = overrides
-          await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2), 'utf8')
-          appendLog('runner', '[runner v3] CRA detected — patched package.json with overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4}')
-          // Invalidate any existing lockfile + node_modules so the next install
-          // picks up the overrides. WARM CACHE on CRA must be wiped because
-          // the existing tree was installed without overrides.
-          for (const lf of ['package-lock.json', 'yarn.lock']) {
-            const p = join(cwd, lf)
-            if (existsSync(p)) { try { await rm(p) } catch {} }
-          }
-          const nm = join(cwd, 'node_modules')
-          if (existsSync(nm)) {
-            appendLog('runner', '[runner v3] wiping stale node_modules so overrides take effect on reinstall')
-            try { await rm(nm, { recursive: true, force: true }) } catch (e) { appendLog('runner', `[runner v3] wipe failed: ${e.message}`) }
-          }
-          lastInstallHash = null
-          craOverridesApplied = true
-        } else {
-          appendLog('runner', '[runner v3] CRA detected — overrides already pinned')
-        }
-      }
-    }
-  } catch (err) {
-    appendLog('runner', `[runner v3] ajv-overrides patch skipped: ${err.message}`)
-  }
-
-  // Drop in .npmrc with legacy-peer-deps=true to avoid ERESOLVE crashes
-  // on every nested install (npx, sidecar installs, etc.) — CRA + React 18
-  // routinely break npm@10's strict peer resolution.
+  // Drop in .npmrc with legacy-peer-deps=true. React 18 + many libraries
+  // routinely break npm@10's strict peer-dep resolution; legacy-peer-deps
+  // is the same flag npm itself recommends. Idempotent.
   try {
     const npmrcPath = join(cwd, '.npmrc')
     const desired = 'legacy-peer-deps=true\nfund=false\naudit=false\n'
     const existing = existsSync(npmrcPath) ? await fs.readFile(npmrcPath, 'utf8') : ''
     if (!/legacy-peer-deps\s*=\s*true/.test(existing)) {
       await fs.writeFile(npmrcPath, existing + (existing && !existing.endsWith('\n') ? '\n' : '') + desired, 'utf8')
-      appendLog('runner', '[runner v3] wrote .npmrc with legacy-peer-deps=true')
+      appendLog('runner', '[runner] wrote .npmrc with legacy-peer-deps=true')
     }
   } catch {}
 
-  // Cheap content hash so we don't reinstall on every /start.
+  // Cheap content hash so we don't reinstall on every /start. The hash
+  // includes the full package.json + all lockfiles; any change → reinstall.
   const lockPaths = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
   let key = ''
   for (const p of lockPaths) {
@@ -456,10 +291,7 @@ async function runInstallIfNeeded(workCwd) {
 
   appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
   await new Promise((res, rej) => {
-    // --legacy-peer-deps bypasses ERESOLVE conflicts on imported CRA apps
-    // (react-scripts@5 + react@18 routinely throws peerDep errors that
-    // npm@10 treats as fatal without this flag).
-    installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline', '--legacy-peer-deps'], {
+    installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], {
       cwd,
       env: { ...process.env, CI: '1' },
     })
@@ -472,160 +304,6 @@ async function runInstallIfNeeded(workCwd) {
     })
     installProc.on('error', rej)
   })
-
-  // Patch missing craco — Emergent-shaped imports (Mangia-Mama et al)
-  // ship `craco.config.js` + `scripts.start = "craco start"` but never
-  // declare `@craco/craco` as a dependency. Detect that pattern and
-  // install craco as a sidecar so the project's webpack alias config
-  // (`@/` → `src/`) actually applies and JSX imports compile.
-  //
-  // Without this fix the runner's own framework-fallback would spawn
-  // `react-scripts start` directly — which compiles but FAILS on every
-  // `import "@/components/..."` because vanilla CRA doesn't honor the
-  // jsconfig.json paths for webpack resolution.
-  try {
-    const fs = await import('node:fs/promises')
-    const cracoCfg = join(cwd, 'craco.config.js')
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
-    if (pkgRaw && existsSync(cracoCfg)) {
-      const pkg = JSON.parse(pkgRaw)
-      const usesCraco = /\bcraco\b/.test(pkg.scripts?.start || '') || /\bcraco\b/.test(pkg.scripts?.dev || '')
-      const cracoBin = join(cwd, 'node_modules', '.bin', 'craco')
-      if (usesCraco && !existsSync(cracoBin)) {
-        appendLog('runner', '[runner] craco.config.js present + craco scripted but @craco/craco not installed — adding sidecar dep so @/-aliases resolve')
-        await new Promise((res, rej) => {
-          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', '@craco/craco'], { cwd, env: { ...process.env, CI: '1' } })
-          p.stdout.on('data', d => appendLog('install', d))
-          p.stderr.on('data', d => appendLog('install', d))
-          p.on('exit', code => code === 0 ? res() : rej(new Error('craco sidecar install exited ' + code)))
-          p.on('error', rej)
-        }).catch((err) => {
-          // Best-effort — if it fails, the runner's react-scripts fallback
-          // still kicks in. The user gets a worse rendering (alias errors)
-          // but not a hard "preview won't start" failure.
-          appendLog('runner', `[runner] craco sidecar install failed: ${err.message} — falling back to vanilla react-scripts`)
-        })
-      }
-    }
-  } catch (err) {
-    appendLog('runner', `[runner] craco-detection skipped: ${err.message}`)
-  }
-
-  // Patch missing ajv@^8 — UNCONDITIONAL belt-and-suspenders for CRA.
-  // Don't gate on existsSync — even if codegen/index.js exists, force
-  // a clean install of ajv@^8 + ajv-keywords@^5 + schema-utils@^4 so
-  // that ANY transitive copy at the resolution path that ajv-keywords
-  // walks ends up at the right version. This is defensive insurance
-  // against the package.json overrides not taking effect on first install.
-  try {
-    const fs = await import('node:fs/promises')
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
-    if (pkgRaw) {
-      const pkg = JSON.parse(pkgRaw)
-      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
-      const isCRA = !!deps['react-scripts']
-      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen', 'index.js')
-      const codegenExists = existsSync(ajvCodegen)
-      let ajvVer = 'unknown'
-      try { ajvVer = JSON.parse(await fs.readFile(join(cwd, 'node_modules', 'ajv', 'package.json'), 'utf8')).version } catch {}
-      appendLog('runner', `[runner v3] post-install ajv check: isCRA=${isCRA}, ajv version=${ajvVer}, codegen/index.js exists=${codegenExists}`)
-      if (isCRA) {
-        appendLog('runner', '[runner v3] CRA fallback: force-installing ajv@^8 ajv-keywords@^5 schema-utils@^4 (no-save) as belt-and-suspenders')
-        await new Promise((res, rej) => {
-          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8', 'ajv-keywords@^5', 'schema-utils@^4'], { cwd, env: { ...process.env, CI: '1' } })
-          p.stdout.on('data', d => appendLog('install', d))
-          p.stderr.on('data', d => appendLog('install', d))
-          p.on('exit', code => code === 0 ? res() : rej(new Error('ajv-trio sidecar install exited ' + code)))
-          p.on('error', rej)
-        }).catch((err) => {
-          appendLog('runner', `[runner v3] ajv-trio sidecar install failed: ${err.message}`)
-        })
-        // Re-check after install + verify resolvability via require
-        const after = existsSync(ajvCodegen)
-        let ajvVerAfter = 'unknown'
-        try { ajvVerAfter = JSON.parse(await fs.readFile(join(cwd, 'node_modules', 'ajv', 'package.json'), 'utf8')).version } catch {}
-        appendLog('runner', `[runner v3] post-sidecar: ajv version=${ajvVerAfter}, codegen/index.js exists=${after}`)
-      }
-    }
-  } catch (err) {
-    appendLog('runner', `[runner v3] ajv-detection skipped: ${err.message}`)
-  }
-
-  // ── Next.js PostCSS deps belt-and-suspenders ────────────────────────
-  // If the project is Next.js and globals.css uses @tailwind directives
-  // (or any postcss plugin via postcss.config.js), Next's webpack config
-  // will require('tailwindcss')/('postcss')/('autoprefixer') at compile
-  // time. Even when those packages are declared in package.json, we've
-  // observed scenarios where they aren't present in node_modules after
-  // npm install (root cause unknown — possibly a cache/lockfile mismatch
-  // from Supabase syncs). Sidecar-install them so Next never crashes
-  // with `Cannot find module 'tailwindcss'`.
-  try {
-    const fs = await import('node:fs/promises')
-    const pkgRaw = await fs.readFile(pkgPath, 'utf8').catch(() => null)
-    if (pkgRaw) {
-      const pkg = JSON.parse(pkgRaw)
-      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
-      const isNext = !!deps.next
-
-      if (isNext) {
-        const declared = {
-          tailwindcss: deps.tailwindcss || '^3.4.0',
-          postcss: deps.postcss || '^8.4.31',
-          autoprefixer: deps.autoprefixer || '^10.4.16',
-        }
-        const present = {}
-        const missing = []
-        for (const name of Object.keys(declared)) {
-          const path = join(cwd, 'node_modules', name, 'package.json')
-          if (existsSync(path)) {
-            try {
-              const v = JSON.parse(await fs.readFile(path, 'utf8')).version
-              present[name] = v
-            } catch { present[name] = 'unparseable' }
-          } else {
-            missing.push(name)
-          }
-        }
-        appendLog('runner', `[runner v3] next.js postcss deps check: present=${JSON.stringify(present)} missing=${JSON.stringify(missing)}`)
-
-        // Always sidecar-install the trio for Next.js projects. Even if
-        // they're "present", we want to guarantee they resolve from
-        // /<cwd>/node_modules (where Next's webpack-config looks) and
-        // not just from a transitive sub-path that Next can't see.
-        const installArgs = [
-          `tailwindcss@${declared.tailwindcss}`,
-          `postcss@${declared.postcss}`,
-          `autoprefixer@${declared.autoprefixer}`,
-        ]
-        appendLog('runner', `[runner v3] next.js fallback: force-installing ${installArgs.join(' ')} (no-save) as belt-and-suspenders`)
-        await new Promise((res, rej) => {
-          const p = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', ...installArgs], { cwd, env: { ...process.env, CI: '1' } })
-          p.stdout.on('data', d => appendLog('install', d))
-          p.stderr.on('data', d => appendLog('install', d))
-          p.on('exit', code => code === 0 ? res() : rej(new Error('next-postcss-trio sidecar install exited ' + code)))
-          p.on('error', rej)
-        }).catch((err) => {
-          appendLog('runner', `[runner v3] next-postcss-trio sidecar install failed: ${err.message}`)
-        })
-
-        // Verify post-install resolvability.
-        const after = {}
-        for (const name of Object.keys(declared)) {
-          const path = join(cwd, 'node_modules', name, 'package.json')
-          if (existsSync(path)) {
-            try { after[name] = JSON.parse(await fs.readFile(path, 'utf8')).version }
-            catch { after[name] = 'unparseable' }
-          } else {
-            after[name] = 'STILL MISSING'
-          }
-        }
-        appendLog('runner', `[runner v3] post-sidecar next.js postcss deps: ${JSON.stringify(after)}`)
-      }
-    }
-  } catch (err) {
-    appendLog('runner', `[runner v3] next-postcss detection skipped: ${err.message}`)
-  }
 }
 
 // ─── routes ──────────────────────────────────────────────────────────
@@ -644,11 +322,14 @@ app.get('/status', (_req, res) => {
 })
 
 app.post('/sync-from-supabase', async (req, res) => {
-  // Direct Supabase pull — bypasses Vercel's 60s function timeout.
-  // Vercel just calls us with { projectId, runnerSecret }; we fetch all
-  // files (table rows + storage_path bodies) in parallel using our own
-  // env-injected service-role key. Replaces the body-heavy /sync flow
-  // for projects > ~50 files or with binary assets.
+  // Direct Supabase pull. Vercel just calls us with { projectId } and we
+  // fetch all files in parallel using the env-injected service-role key.
+  //
+  // Architecture (Feb 2026 rewrite): every text file lives inline in the
+  // `content` column. Storage is used ONLY for `_assets/*` binary rows
+  // (image data URIs from image-extractor). That eliminates the whole
+  // class of "Storage download timed out → file silently dropped from
+  // the synced project" bugs that plagued the previous design.
   const projectId = req.body?.projectId || process.env.AURORALY_PROJECT_ID
   if (!projectId) return res.status(400).json({ error: 'projectId required' })
   const supabaseUrl = process.env.SUPABASE_URL
@@ -673,44 +354,60 @@ app.post('/sync-from-supabase', async (req, res) => {
     allRows.push(...batch)
     if (batch.length < 1000) break
   }
-  appendLog('runner', `[sync-from-supabase] listed ${allRows.length} rows in ${Date.now() - t0}ms`)
+  appendLog('runner', `[sync] listed ${allRows.length} rows in ${Date.now() - t0}ms`)
 
-  // 2) Wipe existing project tree (keep node_modules for warm restarts).
+  // 2) Wipe existing project tree (keep node_modules + .next for warm
+  //    restarts, which dramatically speeds up second-and-later boots).
   if (existsSync(PROJECT_DIR)) {
     const fs = await import('node:fs/promises')
     for (const entry of await fs.readdir(PROJECT_DIR)) {
-      if (entry === 'node_modules') continue
+      if (entry === 'node_modules' || entry === '.next') continue
       await rm(join(PROJECT_DIR, entry), { recursive: true, force: true })
     }
   }
   await mkdir(PROJECT_DIR, { recursive: true })
 
-  // 3) Resolve content (parallel storage downloads) and write to disk.
+  // 3) Write all files to disk. Text files come from the `content` column
+  //    directly — single source of truth, no flaky middleman. Asset rows
+  //    (_assets/*) still come from Storage; on Storage failure we ABORT
+  //    the whole sync rather than silently skipping a file.
   let written = 0
   let decodedAssets = 0
   let storageDownloads = 0
-  const limit = 12 // parallel storage downloads
+  const failures = []
+  const limit = 8
   let cursor = 0
   async function workOne() {
     while (cursor < allRows.length) {
       const idx = cursor++
       const row = allRows[idx]
       if (!row.path) continue
-      let body = row.content || ''
+
+      let body = typeof row.content === 'string' ? row.content : ''
+
+      // Fallback to Storage ONLY for legacy rows (post-rewrite, all text
+      // files have content set). If a Storage download fails we record
+      // it for the response so the orchestrator can surface a real error
+      // instead of pretending sync succeeded with a half-empty project.
       if (!body && row.storage_path) {
         const dl = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${encodeURI(row.storage_path)}`, { headers })
         if (!dl.ok) {
-          appendLog('runner', `[sync-from-supabase] download failed for ${row.path}: ${dl.status}`)
+          const msg = `${row.path}: storage ${dl.status}`
+          failures.push(msg)
+          appendLog('runner', `[sync] FAIL ${msg}`)
           continue
         }
         body = await dl.text()
         storageDownloads++
       }
+
       const target = resolve(PROJECT_DIR, row.path)
       if (!target.startsWith(PROJECT_DIR + '/') && target !== PROJECT_DIR) continue
       await mkdir(dirname(target), { recursive: true })
 
-      // Decode data: URIs back to binary (same logic as /sync).
+      // Decode `data:<mime>;base64,<...>` URIs back to binary so binary
+      // assets (sprites, audio) load correctly. This is intentional for
+      // legitimate _assets rows and a no-op for source files.
       let content = body
       let encoding = 'utf8'
       const m = typeof content === 'string'
@@ -728,51 +425,21 @@ app.post('/sync-from-supabase', async (req, res) => {
   await Promise.all(Array.from({ length: limit }, workOne))
 
   const ms = Date.now() - t0
-  appendLog('runner', `[sync-from-supabase] wrote ${written} files (${decodedAssets} binary, ${storageDownloads} storage downloads) in ${ms}ms`)
+  appendLog('runner', `[sync] wrote ${written}/${allRows.length} files (${decodedAssets} binary, ${storageDownloads} storage, ${failures.length} failures) in ${ms}ms`)
+
+  // Loud failure: if ANY required file is missing, return a non-OK status
+  // so the orchestrator stops the boot and surfaces a real error to the
+  // user instead of letting Next.js crash with "Cannot find module" on a
+  // file that just never made it to disk.
+  if (failures.length > 0) {
+    return res.status(502).json({
+      error: 'sync incomplete',
+      failures,
+      written,
+      total: allRows.length,
+    })
+  }
   res.json({ ok: true, written, decodedAssets, storageDownloads, ms })
-})
-
-app.post('/sync', async (req, res) => {
-  const files = req.body?.files
-  if (!Array.isArray(files)) return res.status(400).json({ error: 'files[] required' })
-  // Wipe existing project tree (but keep node_modules for warm restarts).
-  if (existsSync(PROJECT_DIR)) {
-    const fs = await import('node:fs/promises')
-    for (const entry of await fs.readdir(PROJECT_DIR)) {
-      if (entry === 'node_modules') continue
-      await rm(join(PROJECT_DIR, entry), { recursive: true, force: true })
-    }
-  }
-  await mkdir(PROJECT_DIR, { recursive: true })
-  let written = 0
-  let decodedAssets = 0
-  for (const f of files) {
-    if (!f.path) continue
-    const target = resolve(PROJECT_DIR, f.path)
-    if (!target.startsWith(PROJECT_DIR + '/') && target !== PROJECT_DIR) continue
-    await mkdir(dirname(target), { recursive: true })
-
-    // Files whose content is a `data:image/...;base64,...` URI need to
-    // be decoded back to BINARY before writing. Auroraly stores binary
-    // assets (PNG/JPG/SVG/GIF/etc) as data URIs in project_files.content
-    // — when imported projects ship sprites/audio files this way, Phaser
-    // (or any browser request) would otherwise download the literal
-    // text 'data:image/png;base64,iVBOR...' and fail to parse as image.
-    let content = f.content ?? ''
-    let encoding = typeof content === 'string' ? 'utf8' : undefined
-    if (typeof content === 'string') {
-      const m = content.match(/^data:[a-zA-Z0-9+\-./]+;base64,(.+)$/s)
-      if (m) {
-        content = Buffer.from(m[1], 'base64')
-        encoding = undefined
-        decodedAssets++
-      }
-    }
-    await writeFile(target, content, encoding)
-    written++
-  }
-  appendLog('runner', `[runner] synced ${written} files (${decodedAssets} binary assets decoded from data URIs)`)
-  res.json({ ok: true, written, decodedAssets })
 })
 
 // Track the last error from a background install/spawn so /status can surface it.
@@ -796,7 +463,6 @@ async function bootDevServerInBackground() {
     await installPromise
 
     await ensureViteHostOverride(pkg, cwd)
-    await ensureNextHeadersOverride(pkg, cwd)
     const cmd = pickDevCommand(pkg, cwd)
     if (!cmd) {
       lastStartError = 'no usable dev/start/preview script and no recognizable framework (vite/next/react-scripts) in node_modules'
@@ -888,8 +554,8 @@ app.get('/logs', (req, res) => {
 })
 
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
-  appendLog('runner', `[runner v4.next-postcss] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
-  appendLog('runner', `[runner v4.next-postcss] CRA fix: package.json overrides {ajv:^8, ajv-keywords:^5, schema-utils:^4}; Next.js fix: force-install tailwindcss/postcss/autoprefixer as sidecar`)
+  appendLog('runner', `[runner v5.clean] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
+  appendLog('runner', `[runner v5.clean] single-source-of-truth files (DB content), loud-fail sync, no config injection`)
 })
 
 // Graceful shutdown so Fly's machine-stop doesn't leave zombies.

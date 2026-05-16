@@ -1201,7 +1201,18 @@ function NodePreviewRunner({ project, files, onLog }) {
 export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
-  const [previewEngine, setPreviewEngine] = useState('server') // 'babel' | 'webcontainer' | 'server'
+  // Server is the only supported preview engine (Feb 2026 rewrite).
+  // The setter still exists so older callsites don't blow up, but any
+  // attempt to change to 'babel'/'webcontainer' is intercepted and
+  // forced back to 'server'. This keeps the surface tiny while we
+  // delete the old engines for good in a follow-up.
+  const [previewEngineRaw, setPreviewEngineRaw] = useState('server')
+  const previewEngine = 'server'
+  const setPreviewEngine = useCallback((next) => {
+    if (next !== 'server') return
+    setPreviewEngineRaw('server')
+  }, [])
+  void previewEngineRaw // intentional: silence unused-var lint
   const [iframeErrors, setIframeErrors] = useState([])
   const [consoleLogs, setConsoleLogs] = useState([])
   const [showConsole, setShowConsole] = useState(false)
@@ -1813,35 +1824,14 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
           <span className="ml-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded" data-testid="preview-mode-label">
             {modeLabel}{projectInfo.usesTailwind ? ' + Tailwind' : ''}
           </span>
-          {/* Engine toggle: Babel (always), Server (always — preferred for framework projects), WebContainer (legacy/experimental) */}
-          <div className="ml-2 inline-flex rounded border border-border/40 overflow-hidden" data-testid="preview-engine-toggle">
-            <button
-              onClick={() => setPreviewEngine('babel')}
-              className={`px-2 py-0.5 text-[10px] font-medium ${previewEngine === 'babel' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/40'}`}
-              data-testid="preview-engine-babel"
-              title="Fast Babel-transform preview"
-            >
-              Babel
-            </button>
-            <button
-              onClick={() => setPreviewEngine('server')}
-              className={`px-2 py-0.5 text-[10px] font-medium inline-flex items-center gap-1 ${previewEngine === 'server' ? 'bg-emerald-500/15 text-emerald-300' : 'text-muted-foreground hover:bg-muted/40'}`}
-              data-testid="preview-engine-server"
-              title="Run a real dev server in a Fly Machine container (recommended for imported projects)"
-            >
-              <Zap className="w-3 h-3" /> Server
-            </button>
-            {isWebContainerEnabled() && (
-              <button
-                onClick={() => setPreviewEngine('webcontainer')}
-                className={`px-2 py-0.5 text-[10px] font-medium ${previewEngine === 'webcontainer' ? 'bg-amber-500/15 text-amber-300' : 'text-muted-foreground hover:bg-muted/40'}`}
-                data-testid="preview-engine-webcontainer"
-                title="Legacy in-browser WebContainer (kept for greenfield Auroraly-native projects)"
-              >
-                WC
-              </button>
-            )}
-          </div>
+          {/* Server is the only supported engine — Babel and WebContainer
+              were dropped Feb 2026. The badge below is informational only. */}
+          <span
+            className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded border border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+            data-testid="preview-engine-server"
+          >
+            <Zap className="w-3 h-3" /> Server
+          </span>
           {isWebContainerEnabled() && ['cra', 'next', 'vite'].includes(detectedFramework) && (
             <span
               className="ml-1 text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20"

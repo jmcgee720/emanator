@@ -1,16 +1,23 @@
 // ──────────────────────────────────────────────────────────────────────
 // Unit tests for /app/lib/supabase/file-storage.js
 //
-// We mirror the pure decision logic (size threshold, key normalization,
-// fallback semantics) from file-storage.js. If the source drifts from
-// these tests, both fail loudly. Integration with real Supabase Storage
-// is verified separately via /app/scripts/migrate-files-to-storage.mjs
-// dry-run + live deployment smoke tests.
+// Updated Feb 2026 for the single-source-of-truth rewrite:
+//   - All text files are stored INLINE in `project_files.content`,
+//     regardless of size (Postgres TOAST handles multi-MB TEXT fine).
+//   - Supabase Storage is used ONLY for `_assets/*` rows (binary image
+//     data URIs from image-extractor).
+//   - Oversized text files are REJECTED with FILE_TOO_LARGE rather
+//     than silently spilling to Storage. 2MB cap on source files.
+//
+// We mirror the pure decision logic + storageKey normalization here so
+// changes to file-storage.js have to update both. Integration with real
+// Supabase Storage is exercised by the deployed runner.
 // ──────────────────────────────────────────────────────────────────────
 
 import assert from 'node:assert/strict'
 
-const INLINE_SIZE_LIMIT = 8 * 1024
+const MAX_FILE_BYTES = 2 * 1024 * 1024
+const MAX_ASSET_BYTES = 8 * 1024 * 1024
 
 function storageKey(projectId, filePath) {
   const safePath = String(filePath || '')
@@ -22,76 +29,100 @@ function storageKey(projectId, filePath) {
   return `${projectId}/${safePath}`
 }
 
-function decidePersist(content) {
+// Mirrors persistContent's routing decision (without the actual Supabase
+// upload). Returns the would-be row shape so callers can assert.
+function decidePersist(filePath, content) {
   const text = typeof content === 'string' ? content : ''
   const bytes = Buffer.byteLength(text, 'utf8')
-  return { goesToStorage: bytes > INLINE_SIZE_LIMIT, bytes }
+  const isAssetRow = String(filePath || '').startsWith('_assets/')
+  const cap = isAssetRow ? MAX_ASSET_BYTES : MAX_FILE_BYTES
+  if (bytes > cap) {
+    return { error: 'FILE_TOO_LARGE', bytes, cap }
+  }
+  if (!isAssetRow) {
+    return { inline: true, content: text, storage_path: null }
+  }
+  // Asset rows go to Storage with a stable key.
+  return { inline: false, content: null, storage_path: storageKey('proj-x', filePath) }
 }
 
 const tests = []
 function test(name, fn) { tests.push({ name, fn }) }
 
-// ─── size-threshold decision ─────────────────────────────────────────
-test('content under 8 KB stays inline (small package.json)', () => {
-  const r = decidePersist('{"name":"tiny"}')
-  assert.equal(r.goesToStorage, false)
+// ─── routing: text files always inline ──────────────────────────────
+test('tiny text file (package.json) stays inline', () => {
+  const r = decidePersist('package.json', '{"name":"tiny"}')
+  assert.equal(r.inline, true)
+  assert.equal(r.storage_path, null)
 })
 
-test('content exactly at 8 KB stays inline (boundary)', () => {
-  const r = decidePersist('x'.repeat(8 * 1024))
-  assert.equal(r.goesToStorage, false)
+test('500KB text file stays inline (was previously routed to Storage)', () => {
+  const r = decidePersist('app/page.jsx', 'x'.repeat(500 * 1024))
+  assert.equal(r.inline, true)
+  assert.equal(r.storage_path, null)
 })
 
-test('content just over 8 KB goes to storage', () => {
-  const r = decidePersist('x'.repeat(8 * 1024 + 1))
-  assert.equal(r.goesToStorage, true)
+test('1.5MB text file still inline (under 2MB cap)', () => {
+  const r = decidePersist('huge-component.jsx', 'x'.repeat(1.5 * 1024 * 1024))
+  assert.equal(r.inline, true)
 })
 
-test('content 100 KB goes to storage', () => {
-  const r = decidePersist('x'.repeat(100 * 1024))
-  assert.equal(r.goesToStorage, true)
-})
-
-test('multi-byte chars counted by bytes (not chars)', () => {
-  // 4-byte emoji × 2049 = 8196 bytes → over 8 KB
-  const r = decidePersist('🌟'.repeat(2049))
-  assert.equal(r.goesToStorage, true)
+test('text file just over 2MB rejected with FILE_TOO_LARGE', () => {
+  const r = decidePersist('runaway.js', 'x'.repeat(2 * 1024 * 1024 + 1))
+  assert.equal(r.error, 'FILE_TOO_LARGE')
 })
 
 test('empty string stays inline (cheap NULL-safe path)', () => {
-  const r = decidePersist('')
-  assert.equal(r.goesToStorage, false)
+  const r = decidePersist('blank.txt', '')
+  assert.equal(r.inline, true)
 })
 
-test('non-string (null/undefined) treated as empty', () => {
-  assert.equal(decidePersist(null).goesToStorage, false)
-  assert.equal(decidePersist(undefined).goesToStorage, false)
+test('non-string (null/undefined) treated as empty inline', () => {
+  assert.equal(decidePersist('a.js', null).inline, true)
+  assert.equal(decidePersist('a.js', undefined).inline, true)
+})
+
+// ─── routing: asset rows go to Storage ──────────────────────────────
+test('_assets/ row goes to Storage (binary image data URI)', () => {
+  // 1MB base64 image data URI, well within MAX_ASSET_BYTES (8MB).
+  const dataUri = 'data:image/png;base64,' + 'A'.repeat(1024 * 1024)
+  const r = decidePersist('_assets/hero-image.png', dataUri)
+  assert.equal(r.inline, false)
+  assert.match(r.storage_path, /^proj-x\/_assets\/hero-image\.png$/)
+})
+
+test('_assets/ row over 8MB rejected', () => {
+  const big = 'data:image/png;base64,' + 'A'.repeat(9 * 1024 * 1024)
+  const r = decidePersist('_assets/oversized.png', big)
+  assert.equal(r.error, 'FILE_TOO_LARGE')
+})
+
+test('multi-byte chars counted by bytes (not chars) for cap enforcement', () => {
+  // 4-byte emoji × ~600k = ~2.4MB — should reject as text file.
+  const r = decidePersist('big-emoji.txt', '🌟'.repeat(600 * 1024))
+  assert.equal(r.error, 'FILE_TOO_LARGE')
 })
 
 // ─── storage key normalization (security: prevents bucket escape) ───
 test('storageKey: simple project_id/path', () => {
-  assert.equal(storageKey('proj-1', 'src/index.js'), 'proj-1/src/index.js')
+  assert.equal(storageKey('proj-1', '_assets/index.png'), 'proj-1/_assets/index.png')
 })
 
 test('storageKey: strips leading slashes', () => {
-  assert.equal(storageKey('proj-1', '/src/index.js'), 'proj-1/src/index.js')
-  assert.equal(storageKey('proj-1', '///src/index.js'), 'proj-1/src/index.js')
+  assert.equal(storageKey('proj-1', '/_assets/img.png'), 'proj-1/_assets/img.png')
+  assert.equal(storageKey('proj-1', '///_assets/img.png'), 'proj-1/_assets/img.png')
 })
 
 test('storageKey: ../../ traversal sanitized to underscore', () => {
-  // CRITICAL: prevents writing into another tenant's bucket prefix.
-  // The regex replaces `..` with `_` but the surrounding `/` is kept.
   assert.equal(storageKey('proj-1', '../etc/passwd'), 'proj-1/_/etc/passwd')
   assert.equal(storageKey('proj-1', '../../../../root/.ssh/id_rsa'), 'proj-1/_/_/_/_/root/.ssh/id_rsa')
 })
 
 test('storageKey: unicode in paths sanitized to underscores (Supabase rejects)', () => {
-  // Supabase Storage rejects non-ASCII chars with "Invalid key". Sanitize.
-  assert.equal(storageKey('proj-1', 'src/héllo.js'), 'proj-1/src/h_llo.js')
+  assert.equal(storageKey('proj-1', '_assets/héllo.png'), 'proj-1/_assets/h_llo.png')
 })
 
-test('storageKey: spaces and special chars sanitized (was breaking real uploads)', () => {
-  // Real-world failures we hit: "Screenshot 2026-04-12 at 4.23.22 PM.png"
+test('storageKey: spaces and special chars sanitized', () => {
   assert.equal(
     storageKey('proj-1', '_uploads/Screenshot 2026-04-12 at 4.23.22 PM.png'),
     'proj-1/_uploads/Screenshot_2026-04-12_at_4.23.22_PM.png',
@@ -106,14 +137,14 @@ test('storageKey: empty path is safe', () => {
 
 // ─── module export contract ─────────────────────────────────────────
 test('file-storage module exports the documented surface', async () => {
-  // file-storage.js calls createAdminClient() at import time, which
-  // requires env vars. Set test stubs before importing.
   process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role'
   const mod = await import('../lib/supabase/file-storage.js')
   for (const name of [
     'STORAGE_BUCKET',
     'INLINE_SIZE_LIMIT',
+    'MAX_FILE_BYTES',
+    'MAX_ASSET_BYTES',
     'ensureBucket',
     'persistContent',
     'resolveContent',
@@ -123,7 +154,10 @@ test('file-storage module exports the documented surface', async () => {
     assert.ok(name in mod, `missing export: ${name}`)
   }
   assert.equal(mod.STORAGE_BUCKET, 'project-files')
-  assert.equal(mod.INLINE_SIZE_LIMIT, 8 * 1024)
+  // INLINE_SIZE_LIMIT is now Infinity — text files always inline.
+  assert.equal(mod.INLINE_SIZE_LIMIT, Infinity)
+  assert.equal(mod.MAX_FILE_BYTES, 2 * 1024 * 1024)
+  assert.equal(mod.MAX_ASSET_BYTES, 8 * 1024 * 1024)
 })
 
 // ─── db.js wires up correctly (smoke check the imports resolve) ─────
