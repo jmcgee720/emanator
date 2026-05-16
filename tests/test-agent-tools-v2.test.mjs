@@ -306,10 +306,11 @@ describe('agent-tools-v2 — list_files', () => {
 /* ── default toolset ─────────────────────────────────────────────────── */
 
 describe('agent-tools-v2 — buildDefaultToolset', () => {
-  test('returns the 6 expected tools', () => {
+  test('returns the 7 expected tools', () => {
     const tools = buildDefaultToolset(scope)
     const names = tools.map((t) => t.name).sort()
     assert.deepEqual(names, [
+      'delete_file',
       'edit_file',
       'list_files',
       'read_file',
