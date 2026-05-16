@@ -134,6 +134,29 @@ export default function ServerPreview({ projectId, projectName }) {
     } catch { /* best-effort */ }
   }, [projectId])
 
+  // Hard reset = destroy the Fly machine outright so the next Start
+  // provisions a fresh one with an empty filesystem. Use when files
+  // were deleted from Supabase but a stale copy lingers on disk and
+  // is breaking the dev server (e.g. an old middleware.js that Next
+  // tries to compile and crashes on). After this, click Start again.
+  const hardReset = useCallback(async () => {
+    cancelledRef.current = true
+    setStatus('stopped')
+    setLogs(prev => [...prev, { level: 'info', message: '[dashboard] Hard-resetting Fly machine — wait ~10s then click Start.' }])
+    try {
+      const res = await authFetch(`/api/previews/${projectId}/reset`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      setLogs(prev => [...prev, {
+        level: res.ok ? 'info' : 'error',
+        message: res.ok
+          ? `[dashboard] ${data.message || 'Machine destroyed. Click Start to provision a fresh one.'}`
+          : `[dashboard] Reset failed: ${data.error || res.status}`,
+      }])
+    } catch (err) {
+      setLogs(prev => [...prev, { level: 'error', message: `[dashboard] Reset error: ${err?.message || 'unknown'}` }])
+    }
+  }, [projectId])
+
   // Tail the log stream while running. Reconnects on key bump.
   useEffect(() => {
     if (status !== 'ready' && status !== 'starting') return
@@ -194,6 +217,17 @@ export default function ServerPreview({ projectId, projectName }) {
           {(status === 'ready' || status === 'starting') && (
             <Button size="sm" variant="ghost" onClick={stop} data-testid="server-preview-stop">
               Stop
+            </Button>
+          )}
+          {(status === 'idle' || status === 'stopped' || status === 'error') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={hardReset}
+              title="Destroy the Fly machine so the next Start provisions a fresh one. Use if the preview is stuck on a stale file from a previous run."
+              data-testid="server-preview-hard-reset"
+            >
+              Hard Reset
             </Button>
           )}
           {(status === 'idle' || status === 'stopped' || status === 'error') && (
