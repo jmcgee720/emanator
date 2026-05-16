@@ -206,6 +206,113 @@ ${COEP_HEADERS}
 }
 
 /**
+ * Patch a Next.js project's config to emit COEP/COOP/CORP headers so
+ * Firefox can embed the preview iframe without the "security
+ * configuration doesn't match" block. Chrome/Safari are lenient about
+ * missing headers, Firefox is not.
+ *
+ * Strategy: write `next.config.runner.mjs` that imports the user's
+ * existing config (if any) and wraps `headers()` to append our
+ * cross-origin headers. Then point Next at it via the NEXT_CONFIG_FILE
+ * env var (Next 14+) — falls back to overwriting `next.config.mjs`
+ * when NEXT_CONFIG_FILE isn't honoured.
+ */
+async function ensureNextHeadersOverride(pkg, cwd) {
+  const dir = cwd || PROJECT_DIR
+  const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
+  if (!deps.next) return false
+  const fs = await import('node:fs/promises')
+
+  // Locate the user's existing next config (if any) so we can wrap it.
+  const candidates = ['next.config.js', 'next.config.mjs', 'next.config.cjs', 'next.config.ts']
+  let userCfg = null
+  for (const c of candidates) {
+    if (existsSync(join(dir, c))) { userCfg = c; break }
+  }
+
+  // Header set: same as Vite override so embedder COEP matches.
+  // The headers() function in Next.js applies these to every route.
+  const HEADERS_JSON = JSON.stringify([
+    { source: '/:path*', headers: [
+      { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+      { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+      { key: 'Content-Security-Policy', value: 'frame-ancestors *' },
+    ] },
+  ])
+
+  // Build a wrapper config. If the user already has next.config.*, we
+  // import it and merge our headers() in front. If theirs returns
+  // headers too, we concat both arrays.
+  const wrapperBody = userCfg
+    ? `// Auroraly preview-runner generated wrapper — do not commit.
+import userCfg from './${userCfg}'
+const base = (typeof userCfg === 'function') ? await userCfg() : userCfg
+const extraHeaders = ${HEADERS_JSON}
+export default {
+  ...(base || {}),
+  async headers() {
+    const userHeaders = typeof base?.headers === 'function' ? (await base.headers()) : []
+    return [...(userHeaders || []), ...extraHeaders]
+  },
+}
+`
+    : `// Auroraly preview-runner generated wrapper — do not commit.
+const extraHeaders = ${HEADERS_JSON}
+export default {
+  async headers() { return extraHeaders },
+}
+`
+  // Next 14+ honours NEXT_CONFIG_FILE only intermittently. Safest path:
+  // - If no user config exists → write next.config.mjs directly.
+  // - If a user config exists → write next.config.runner.mjs AND
+  //   overwrite next.config.mjs to re-export it (so `next dev` picks
+  //   it up without us having to pass any flag).
+  await fs.writeFile(join(dir, 'next.config.runner.mjs'), wrapperBody, 'utf8')
+  if (!userCfg) {
+    // No conflicting file — point Next.js straight at our wrapper.
+    await fs.writeFile(
+      join(dir, 'next.config.mjs'),
+      `export { default } from './next.config.runner.mjs'\n`,
+      'utf8',
+    )
+    appendLog('runner', '[runner] next headers override written (fresh next.config.mjs)')
+  } else if (userCfg !== 'next.config.mjs') {
+    // User has e.g. next.config.js — write a thin .mjs re-exporter.
+    // Next picks .mjs first when both exist, so our wrapper wins.
+    await fs.writeFile(
+      join(dir, 'next.config.mjs'),
+      `export { default } from './next.config.runner.mjs'\n`,
+      'utf8',
+    )
+    appendLog('runner', `[runner] next headers override written (wrapping user's ${userCfg} via next.config.mjs shim)`)
+  } else {
+    // User had next.config.mjs and we just overwrote it... no, we
+    // wrote next.config.runner.mjs only. We can't safely clobber the
+    // user's next.config.mjs because they might re-sync from Supabase.
+    // Instead: re-write the user's file to re-export the runner wrapper.
+    // The original user content is preserved in next.config.runner.mjs
+    // (we imported it above with `import userCfg from './next.config.mjs'`).
+    // To break the import cycle, copy the user file to next.config.user.mjs
+    // first and re-point the wrapper at it.
+    const userBody = await fs.readFile(join(dir, 'next.config.mjs'), 'utf8')
+    await fs.writeFile(join(dir, 'next.config.user.mjs'), userBody, 'utf8')
+    const fixedWrapper = wrapperBody.replace(
+      `from './${userCfg}'`,
+      `from './next.config.user.mjs'`,
+    )
+    await fs.writeFile(join(dir, 'next.config.runner.mjs'), fixedWrapper, 'utf8')
+    await fs.writeFile(
+      join(dir, 'next.config.mjs'),
+      `export { default } from './next.config.runner.mjs'\n`,
+      'utf8',
+    )
+    appendLog('runner', '[runner] next headers override written (relocated user next.config.mjs → next.config.user.mjs)')
+  }
+  return true
+}
+
+/**
  * Find the working directory that contains the project's package.json.
  *
  * Mangia-Mama, Dopples, and other Emergent imports often nest the actual
@@ -613,6 +720,7 @@ async function bootDevServerInBackground() {
     await installPromise
 
     await ensureViteHostOverride(pkg, cwd)
+    await ensureNextHeadersOverride(pkg, cwd)
     const cmd = pickDevCommand(pkg, cwd)
     if (!cmd) {
       lastStartError = 'no usable dev/start/preview script and no recognizable framework (vite/next/react-scripts) in node_modules'
