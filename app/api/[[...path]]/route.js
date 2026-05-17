@@ -43,7 +43,12 @@ import * as projectsRoutes from '@/lib/api/routes/projects'
 // App Router handles request bodies via Web Request streaming — no config needed.
 // For large uploads, routes read the body directly via req.formData() / req.json().
 export const runtime = 'nodejs'
-export const maxDuration = 300
+// Fluid Compute on Pro plan supports up to 800 seconds (~13 min).
+// Compose phase legitimately needs 4-7 minutes for projects with 10-15
+// pages (~20-30s per file via Claude streaming). 300s was insufficient
+// and timed out mid-build; 800s gives generous headroom while still
+// failing fast if something hangs.
+export const maxDuration = 800
 
 // Phase 1 module dispatch order (CRITICAL: preserve evaluation order)
 const phase1Modules = [
