@@ -19,7 +19,7 @@ import {
 } from '@/lib/fly/machines'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300 // npm install can take a while on cold start
+export const maxDuration = 800 // npm install + Fly boot can take a while on cold start (Vercel Fluid Compute max)
 
 export async function OPTIONS() {
   return handleCORS(NextResponse.json({}, { status: 200 }))
