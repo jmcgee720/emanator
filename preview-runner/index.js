@@ -304,6 +304,51 @@ async function runInstallIfNeeded(workCwd) {
     })
     installProc.on('error', rej)
   })
+
+  // ─── Tailwind safety-net ──────────────────────────────────────────
+  // npm install --legacy-peer-deps occasionally completes with exit 0
+  // while silently dropping a transient dep — we have repro'd this with
+  // tailwindcss specifically on cold-starts. Without this recovery, the
+  // dev server boots but PostCSS fails to resolve `tailwindcss` →
+  // `globals.css` parses raw → "Unexpected character '@'" build error.
+  //
+  // We detect by file probe (cheap) instead of `npm ls` (slow + flaky)
+  // and recover with a direct, non-saving install of just the trio.
+  // Idempotent: the next /start sees the modules + matching hash and
+  // skips this branch entirely.
+  try {
+    const pkgRaw = existsSync(pkgPath) ? await fs.readFile(pkgPath, 'utf8') : ''
+    const pkgJson = pkgRaw ? JSON.parse(pkgRaw) : {}
+    const wantsTailwind = !!(pkgJson.devDependencies?.tailwindcss || pkgJson.dependencies?.tailwindcss)
+    if (wantsTailwind) {
+      const tailwindOnDisk = existsSync(join(cwd, 'node_modules', 'tailwindcss', 'package.json'))
+      const postcssOnDisk = existsSync(join(cwd, 'node_modules', 'postcss', 'package.json'))
+      const autoprefixerOnDisk = existsSync(join(cwd, 'node_modules', 'autoprefixer', 'package.json'))
+      if (!tailwindOnDisk || !postcssOnDisk || !autoprefixerOnDisk) {
+        const missing = [
+          tailwindOnDisk ? null : 'tailwindcss',
+          postcssOnDisk ? null : 'postcss',
+          autoprefixerOnDisk ? null : 'autoprefixer',
+        ].filter(Boolean)
+        appendLog('runner', `[runner] Tailwind safety-net: ${missing.join(', ')} listed in package.json but missing from node_modules — running recovery install`)
+        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps',
+          'tailwindcss@^3.4.10', 'postcss@^8.4.41', 'autoprefixer@^10.4.20']
+        await new Promise((res2, rej2) => {
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1' } })
+          proc.stdout.on('data', d => appendLog('install', d))
+          proc.stderr.on('data', d => appendLog('install', d))
+          proc.on('exit', code => {
+            if (code === 0) res2()
+            else rej2(new Error('tailwind safety-net install exited ' + code))
+          })
+          proc.on('error', rej2)
+        })
+        appendLog('runner', '[runner] Tailwind safety-net: recovery install complete')
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] Tailwind safety-net skipped (${err.message})`)
+  }
 }
 
 // ─── routes ──────────────────────────────────────────────────────────
@@ -538,6 +583,59 @@ app.post('/stop', async (_req, res) => {
   try { devProc.kill('SIGTERM') } catch {}
   setTimeout(() => { try { devProc?.kill('SIGKILL') } catch {} }, 5000)
   res.json({ ok: true, pid })
+})
+
+// POST /force-install — surgical recovery when a project's dev server
+// is up but Tailwind (or its trio) isn't actually on disk. Kills the
+// dev server, force-installs tailwindcss@3/postcss@8/autoprefixer@10
+// into /project/node_modules, then respawns. Used by the orchestrator's
+// /api/previews/:id/force-install endpoint as a no-reset recovery path
+// — way faster than destroy → recreate → npm install everything.
+app.post('/force-install', async (_req, res) => {
+  try {
+    const resolved = await resolveProjectCwd()
+    if (!resolved) return res.status(500).json({ error: 'no usable project cwd' })
+    const { cwd } = resolved
+
+    // Kill any running dev server before mutating node_modules — Next.js
+    // caches require() resolutions in-process and won't pick up the new
+    // tailwindcss otherwise.
+    if (devProc) {
+      try { devProc.kill('SIGTERM') } catch {}
+      await new Promise(r => setTimeout(r, 500))
+      try { devProc?.kill('SIGKILL') } catch {}
+      devProc = null
+    }
+
+    appendLog('runner', '[force-install] installing tailwindcss/postcss/autoprefixer (no-save)…')
+    await new Promise((resolveInstall, rejectInstall) => {
+      const proc = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps',
+        'tailwindcss@^3.4.10', 'postcss@^8.4.41', 'autoprefixer@^10.4.20'], {
+        cwd,
+        env: { ...process.env, CI: '1' },
+      })
+      proc.stdout.on('data', d => appendLog('install', d))
+      proc.stderr.on('data', d => appendLog('install', d))
+      proc.on('exit', code => {
+        if (code === 0) resolveInstall()
+        else rejectInstall(new Error('force-install exited ' + code))
+      })
+      proc.on('error', rejectInstall)
+    })
+    appendLog('runner', '[force-install] done — respawning dev server')
+
+    // Reset the install-hash cache so a subsequent /start doesn't decide
+    // node_modules is "fresh" and skip its own sanity check.
+    lastInstallHash = ''
+
+    // Respawn the dev server in the background.
+    bootDevServerInBackground().catch(err => appendLog('runner', `[force-install] respawn crashed: ${err.message}`))
+
+    res.json({ ok: true, message: 'tailwind trio installed, dev server respawning' })
+  } catch (err) {
+    appendLog('runner', `[force-install] FAIL: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 app.get('/logs', (req, res) => {

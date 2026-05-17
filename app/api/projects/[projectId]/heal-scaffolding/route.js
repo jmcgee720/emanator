@@ -16,7 +16,11 @@
 import { NextResponse } from 'next/server'
 import { handleCORS, getAuthUser, checkAllowlist } from '@/lib/api/helpers'
 import { db } from '@/lib/supabase/db'
-import { buildScaffolding, mergeRequiredPackageDeps } from '@/lib/ai/phased-pipeline/scaffolding'
+import {
+  buildScaffolding,
+  mergeRequiredPackageDeps,
+  FORCE_OVERWRITE_PATHS,
+} from '@/lib/ai/phased-pipeline/scaffolding'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,10 +41,6 @@ export async function POST(request, { params }) {
     return handleCORS(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
   }
 
-  // We don't know the design tokens at this stage (they live in the
-  // build run's prior_results, not the project record), so we seed an
-  // empty token set. globals.css falls back to a sane default with no
-  // CSS variables — Tailwind utility classes carry the visual design.
   const fullstack = project.archetype === 'fullstack_app'
   const scaffoldFiles = buildScaffolding({
     projectName: project.name || 'auroraly-project',
@@ -49,8 +49,10 @@ export async function POST(request, { params }) {
   })
 
   const written = []
+  const overwritten = []
   const healed = []
   const skipped = []
+  const forceOverwriteSet = new Set(FORCE_OVERWRITE_PATHS)
 
   for (const f of scaffoldFiles) {
     let existing = null
@@ -60,27 +62,41 @@ export async function POST(request, { params }) {
       console.error(`[heal] findByPath(${f.path}) failed:`, err.message)
     }
 
-    if (existing) {
-      if (f.path === 'package.json') {
-        try {
-          const parsed = JSON.parse(existing.content || '{}')
-          const { pkg, changed } = mergeRequiredPackageDeps(parsed, { fullstack })
-          if (changed) {
-            await db.projectFiles.update(existing.id, {
-              content: JSON.stringify(pkg, null, 2) + '\n',
-              updated_at: new Date().toISOString(),
-            })
-            healed.push(f.path)
-            continue
-          }
-        } catch (err) {
-          console.warn(`[heal] could not parse existing package.json (${err.message})`)
+    // package.json → merge deps non-destructively
+    if (f.path === 'package.json' && existing) {
+      try {
+        const parsed = JSON.parse(existing.content || '{}')
+        const { pkg, changed } = mergeRequiredPackageDeps(parsed, { fullstack })
+        if (changed) {
+          await db.projectFiles.update(existing.id, {
+            content: JSON.stringify(pkg, null, 2) + '\n',
+            updated_at: new Date().toISOString(),
+          })
+          healed.push(f.path)
+          continue
         }
+        skipped.push(f.path)
+        continue
+      } catch (err) {
+        console.warn(`[heal] could not parse existing package.json (${err.message}) — overwriting`)
+        // Fall through to overwrite below.
       }
-      skipped.push(f.path)
+    }
+
+    // Framework infrastructure → ALWAYS force-overwrite. The whole
+    // point of this endpoint is to repair these when Claude wrote
+    // broken versions (e.g. globals.css with `--hex: [object Object]`).
+    if (forceOverwriteSet.has(f.path) && existing) {
+      await db.projectFiles.update(existing.id, {
+        content: f.content,
+        updated_at: new Date().toISOString(),
+      })
+      overwritten.push(f.path)
       continue
     }
 
+    // Misc scaffold (jsconfig, .gitignore) → create-if-absent.
+    if (existing) { skipped.push(f.path); continue }
     await db.projectFiles.create({
       project_id: projectId,
       path: f.path,
@@ -91,15 +107,17 @@ export async function POST(request, { params }) {
     written.push(f.path)
   }
 
+  const totalChanged = written.length + overwritten.length + healed.length
   return handleCORS(NextResponse.json({
     ok: true,
     projectId,
     written,
+    overwritten,
     healed,
     skipped,
-    summary: `wrote ${written.length}, healed ${healed.length}, skipped ${skipped.length}`,
-    nextStep: written.length > 0 || healed.length > 0
-      ? 'Click Reset Preview, then Start Preview — the dev server will pick up the new files on its next sync.'
+    summary: `wrote ${written.length}, overwrote ${overwritten.length}, healed ${healed.length}, skipped ${skipped.length}`,
+    nextStep: totalChanged > 0
+      ? 'Click Reset Preview, then Start Preview — the dev server will pick up the new files on its next sync and run a fresh npm install.'
       : 'No changes needed — scaffolding already complete.',
   }))
 }
