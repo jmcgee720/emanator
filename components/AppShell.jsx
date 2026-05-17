@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import LoginPage from '@/components/auth/LoginPage'
@@ -31,6 +32,21 @@ export default function AppShell({ initialProjectId = null }) {
   const [dbUser, setDbUser] = useState(null)
   const [accessDenied, setAccessDenied] = useState(false)
   const [accessMessage, setAccessMessage] = useState('')
+  const pathname = usePathname()
+  const router = useRouter()
+
+  // Pretty-URL redirect: authenticated users on `/` get bounced to
+  // `/project-bin` so the address bar reads meaningfully ("here's your
+  // project list") instead of the bare domain. Login lives at `/`, so
+  // unauthenticated users stay there. Skipped on any non-root path
+  // (e.g. /project/[id], /pricing, /gallery) so we don't yank users
+  // out of deep links.
+  useEffect(() => {
+    if (!user) return
+    if (pathname === '/') {
+      try { router.replace('/project-bin') } catch {}
+    }
+  }, [user, pathname, router])
 
   const supabaseRef = useRef(null)
   if (!supabaseRef.current) {

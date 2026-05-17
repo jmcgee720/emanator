@@ -467,7 +467,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     if (!target) {
       // Project gone / not accessible — bounce to home, clean the URL.
       initialProjectAppliedRef.current = true
-      try { router.replace('/') } catch {}
+      try { router.replace('/project-bin') } catch {}
       return
     }
     initialProjectAppliedRef.current = true
@@ -515,7 +515,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
           setSelectedProject(null)
           setSelectedChat(null)
           setMessages([])
-          try { router.replace('/') } catch {}
+          try { router.replace('/project-bin') } catch {}
         }
       }
 
@@ -547,7 +547,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     setSelectedProject(null)
     setSelectedChat(null)
     setMessages([])
-    try { router.replace('/') } catch {}
+    try { router.replace('/project-bin') } catch {}
   }, [selectedProject, selectedChat, router])
 
   // Clear selfEditTarget when switching to a non-self-edit chat
@@ -1359,7 +1359,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   setMessages([])
                   setFiles([])
                   setCanvas(null)
-                  try { router.replace('/') } catch {}
+                  try { router.replace('/project-bin') } catch {}
                 }}
                 className="shrink-0 px-4 py-2 rounded-full text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 border border-white/10 transition-all duration-300 backdrop-blur-sm"
                 data-testid="workspace-back-to-grid"
