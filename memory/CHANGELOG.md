@@ -4,6 +4,44 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-02-XX — Preview timeout fix, v2 attachments, 529 retry
+
+### Shipped (Vercel deploy in flight — commit `66cfc05`)
+
+- **`/api/previews/[projectId]/start` maxDuration 300 → 800s.** Vercel
+  was killing the boot before Fly finished `npm install` + dev-server
+  bind, breaking the preview iframe. Now sized to match Vercel Pro
+  Fluid Compute's 800s ceiling, matching the catch-all API route.
+- **Attachments in v2 project chats.** Extracted
+  `attachmentToContentBlock` + `buildUserContent` helpers in
+  `lib/api/stream-handler-v2.js`. Text files, code files, and PDFs
+  (with server-side extracted text) now flow into Claude's prompt as
+  fenced text blocks alongside image vision blocks. Previously only
+  images survived; PDFs/text were saved to message metadata but
+  silently dropped from the LLM context. Both the current-message
+  path and `loadPriorMessages` (history) use the same helper, so a
+  follow-up turn can still reference a file uploaded earlier.
+  Attachments >30k chars are truncated with a `[…truncated]` marker
+  to bound context-window usage.
+- **Anthropic 529 retry in compose phase.** Wrapped stream +
+  non-stream tool calls in `withOverloadedRetry` (exponential 1s →
+  2s → 4s + up to 500ms jitter, capped at 3 retries). 529 detected
+  by `status === 529/503/502/504` OR message-text match (`overloaded`,
+  `overloaded_error`, `service unavailable`). Non-transient errors
+  (parse failures, format issues) short-circuit immediately.
+
+### Tests added
+
+- `tests/test-stream-handler-v2-attachments.test.mjs` — image, text,
+  pdf attachments produce correct content blocks; unknown types
+  gracefully degrade to plain text.
+- `tests/test-phase-5-compose-retry.test.mjs` — retry succeeds after
+  transient 529s, short-circuits on non-overloaded errors, bounded
+  by `maxRetries`.
+
+---
+
+
 ## 2026-02-XX — File-storage rewrite, /project-bin URL, Brief navigation fix
 
 ### Shipped (Vercel + Fly deploys live)
