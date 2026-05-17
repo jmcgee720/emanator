@@ -95,23 +95,23 @@ export async function POST(request, { params }) {
       machine = await createMachineForProject(projectId, secret)
       createdNew = true
     } else if (machine.state !== 'started') {
-      // Fly refuses to start a machine that's mid-transition with a
-      // `412 failed_precondition: unable to start machine from current
-      // state: 'stopping'`. Wait for the machine to finish its current
-      // transition (up to 30s) before attempting start. This avoids
-      // the race when a user clicks Stop → Start quickly.
-      if (machine.state === 'stopping' || machine.state === 'starting') {
-        const settled = ['stopping', 'starting'].includes(machine.state)
-          ? await waitForMachineState(
-              machine.id,
-              machine.state === 'stopping' ? 'stopped' : 'started',
-              30_000,
-            ).catch(() => null)
-          : null
-        // Refresh the latest state so the start call uses the post-wait reality.
+      // Fly refuses to start a machine that's mid-transition or in
+      // `created` (just-spawned, auto-starting) with a `412
+      // failed_precondition: unable to start machine from current state`.
+      // Wait for the machine to finish its current transition (up to 30s)
+      // before attempting start. Covers: rapid Stop → Start clicks, and
+      // a polling Start that lands on a machine we just created on a
+      // prior call but Fly hasn't finished auto-starting yet.
+      const transitional = ['stopping', 'starting', 'created']
+      if (transitional.includes(machine.state)) {
+        const target = machine.state === 'stopping' ? 'stopped' : 'started'
+        const settled = await waitForMachineState(machine.id, target, 30_000).catch(() => null)
         if (settled?.ok && settled.state) machine.state = settled.state
       }
-      if (machine.state !== 'started') {
+      // Only call startMachine if the machine genuinely landed in a
+      // startable state (stopped). Calling start on 'created' / 'starting'
+      // is the original 412 trigger.
+      if (machine.state === 'stopped') {
         await startMachine(machine.id)
       }
     }
