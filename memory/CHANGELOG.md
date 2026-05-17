@@ -4,6 +4,57 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-02-XX — Framework files: strip from LLM + force-overwrite + runner safety-net
+
+### The recurring "Module parse failed: Unexpected character '@'" bug
+
+Root cause: we let Claude author framework infrastructure
+(`package.json`, `postcss.config.js`, `tailwind.config.js`,
+`app/globals.css`, `app/layout.jsx`, `next.config.js`). Claude routinely
+produced subtly broken versions — e.g. `--hex: [object Object];` CSS
+vars, package.json missing devDeps, broken postcss plugin config. The
+scaffolding pass's "skip if exists" policy meant our canonical versions
+never overwrote the broken ones. Every preview-boot failure was a
+symptom of this architectural choice.
+
+### Shipped (commit `ff8fc1e`)
+
+- **Layer 1 — `phase-5-compose.js`** strips `FRAMEWORK_PATHS` from
+  Claude's `plan.files` before composing. Saves N LLM calls + ~2k
+  tokens each. The model literally cannot author these any more.
+- **Layer 2 — scaffolding pass FORCE-OVERWRITES framework infra**
+  every build. `package.json` is merged (preserves user deps like
+  framer-motion). `heal-scaffolding` endpoint upgraded to do the
+  same so existing broken projects can self-recover.
+- **Layer 2b — `globals.css` token serializer hardened.** Only emits
+  CSS vars whose values are real colors (hex, `rgb()`/`rgba()`,
+  `hsl()`/`hsla()`, `oklch()`/`oklab()`, `color()`/`hwb()`/`lab()`/
+  `lch()`, or `transparent`/`currentColor` keywords). Tailwind class
+  names and `[object Object]` strings are dropped silently. Unwraps
+  `{ hex: "#abc" }` objects.
+- **Layer 3 — runner tailwind safety-net** in
+  `preview-runner/index.js`. After `npm install` completes, verify
+  `/project/node_modules/{tailwindcss,postcss,autoprefixer}` exist.
+  If missing despite being in package.json (known cold-start install-
+  skip failure mode), run a targeted recovery install of just the
+  trio with `--no-save --legacy-peer-deps`. **Requires `fly deploy`
+  from `/app/preview-runner/` to take effect.**
+- **Layer 3b — new `POST /api/previews/:id/force-install`** endpoint
+  proxies to runner `/force-install`. Surgical Tailwind recovery for
+  already-running machines: kills dev server → installs trio →
+  respawns. ~15s vs the ~90s of destroy+recreate. Unblocks Nexsara
+  today; safety net for any future regression.
+
+### Tests
+
+- `tests/test-framework-files-contract.test.mjs`: FRAMEWORK_PATHS /
+  FORCE_OVERWRITE_PATHS contract; globals.css filter against Nexsara
+  repro inputs (Tailwind classes, `[object Object]`, nested `{hex}`,
+  raw objects); package.json merger preserves user deps.
+
+---
+
+
 ## 2026-02-XX — Scaffolding heal pass for existing projects
 
 ### Shipped (commit `2f05a8b`)
