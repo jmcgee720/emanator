@@ -82,7 +82,8 @@ import {
   const { pkg, changed } = mergeRequiredPackageDeps(existing, {})
   assert.equal(changed, true)
   assert.equal(pkg.dependencies['framer-motion'], '^11.0.0')
-  assert.ok(pkg.devDependencies.tailwindcss)
+  // Trio in dependencies (Fly NODE_ENV=production fix).
+  assert.ok(pkg.dependencies.tailwindcss)
 }
 
 console.log('PASS: Layer 1/2 — framework paths contract, globals.css filtering, package.json merge')

@@ -293,7 +293,13 @@ async function runInstallIfNeeded(workCwd) {
   await new Promise((res, rej) => {
     installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], {
       cwd,
-      env: { ...process.env, CI: '1' },
+      // Force NODE_ENV=development so npm installs `devDependencies`.
+      // Fly auto-sets NODE_ENV=production on Node containers, which
+      // makes npm silently skip devDeps even when --production is not
+      // passed. Without this override we'd see `next` install fine but
+      // tailwindcss/postcss/autoprefixer go missing → PostCSS chain
+      // dies at boot with `require.resolve('tailwindcss')` throwing.
+      env: { ...process.env, CI: '1', NODE_ENV: 'development' },
     })
     installProc.stdout.on('data', d => appendLog('install', d))
     installProc.stderr.on('data', d => appendLog('install', d))
@@ -334,7 +340,7 @@ async function runInstallIfNeeded(workCwd) {
         const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps',
           'tailwindcss@^3.4.10', 'postcss@^8.4.41', 'autoprefixer@^10.4.20']
         await new Promise((res2, rej2) => {
-          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1' } })
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
           proc.stdout.on('data', d => appendLog('install', d))
           proc.stderr.on('data', d => appendLog('install', d))
           proc.on('exit', code => {
@@ -612,7 +618,7 @@ app.post('/force-install', async (_req, res) => {
       const proc = spawn('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps',
         'tailwindcss@^3.4.10', 'postcss@^8.4.41', 'autoprefixer@^10.4.20'], {
         cwd,
-        env: { ...process.env, CI: '1' },
+        env: { ...process.env, CI: '1', NODE_ENV: 'development' },
       })
       proc.stdout.on('data', d => appendLog('install', d))
       proc.stderr.on('data', d => appendLog('install', d))

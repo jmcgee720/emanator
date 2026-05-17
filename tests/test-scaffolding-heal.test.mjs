@@ -10,9 +10,11 @@ import { mergeRequiredPackageDeps } from '../lib/ai/phased-pipeline/scaffolding.
   assert.equal(pkg.scripts.dev, 'next dev')
   assert.ok(pkg.dependencies.next)
   assert.ok(pkg.dependencies.react)
-  assert.ok(pkg.devDependencies.tailwindcss)
-  assert.ok(pkg.devDependencies.postcss)
-  assert.ok(pkg.devDependencies.autoprefixer)
+  // Tailwind trio is now in DEPENDENCIES (not devDependencies) so that
+  // Fly's NODE_ENV=production default doesn't cause npm to skip them.
+  assert.ok(pkg.dependencies.tailwindcss)
+  assert.ok(pkg.dependencies.postcss)
+  assert.ok(pkg.dependencies.autoprefixer)
 }
 
 // ── Case 2: package.json missing ONLY tailwind trio (the Nexsara bug) ──
@@ -26,9 +28,10 @@ import { mergeRequiredPackageDeps } from '../lib/ai/phased-pipeline/scaffolding.
   assert.equal(changed, true, 'should patch missing tailwind trio')
   assert.equal(pkg.dependencies['framer-motion'], '^11.0.0', 'preserves user deps')
   assert.equal(pkg.dependencies.next, '^14.2.0', 'preserves user version of next')
-  assert.equal(pkg.devDependencies.tailwindcss, '^3.4.10')
-  assert.equal(pkg.devDependencies.postcss, '^8.4.41')
-  assert.equal(pkg.devDependencies.autoprefixer, '^10.4.20')
+  // Trio added to dependencies (not devDependencies).
+  assert.equal(pkg.dependencies.tailwindcss, '^3.4.10')
+  assert.equal(pkg.dependencies.postcss, '^8.4.41')
+  assert.equal(pkg.dependencies.autoprefixer, '^10.4.20')
 }
 
 // ── Case 3: fully scaffolded package.json → no-op ──
@@ -36,8 +39,14 @@ import { mergeRequiredPackageDeps } from '../lib/ai/phased-pipeline/scaffolding.
   const existing = {
     name: 'already-good',
     scripts: { dev: 'next dev', build: 'next build', start: 'next start', lint: 'next lint' },
-    dependencies: { next: '^14.2.5', react: '^18.3.1', 'react-dom': '^18.3.1' },
-    devDependencies: { tailwindcss: '^3.4.10', postcss: '^8.4.41', autoprefixer: '^10.4.20' },
+    dependencies: {
+      next: '^14.2.5',
+      react: '^18.3.1',
+      'react-dom': '^18.3.1',
+      tailwindcss: '^3.4.10',
+      postcss: '^8.4.41',
+      autoprefixer: '^10.4.20',
+    },
   }
   const { changed } = mergeRequiredPackageDeps(existing, {})
   assert.equal(changed, false, 'should be a no-op when nothing missing')
@@ -46,13 +55,14 @@ import { mergeRequiredPackageDeps } from '../lib/ai/phased-pipeline/scaffolding.
 // ── Case 4: tailwind in dependencies (not devDependencies) → no duplicate add ──
 {
   const existing = {
+    scripts: { dev: 'next dev', build: 'next build', start: 'next start', lint: 'next lint' },
     dependencies: { tailwindcss: '^3.5.0' },
   }
-  const { pkg, changed } = mergeRequiredPackageDeps(existing, {})
+  const { pkg } = mergeRequiredPackageDeps(existing, {})
   assert.equal(pkg.dependencies.tailwindcss, '^3.5.0', 'preserves user placement of tailwind in deps')
-  // It will still patch postcss + autoprefixer + react + next, so changed should be true
-  assert.equal(changed, true)
-  assert.equal(pkg.devDependencies.tailwindcss, undefined, 'should NOT also add tailwind to devDeps')
+  // Still patches postcss + autoprefixer + react + next.
+  assert.equal(pkg.dependencies.postcss, '^8.4.41')
+  assert.equal(pkg.dependencies.autoprefixer, '^10.4.20')
 }
 
 // ── Case 5: fullstack adds @supabase/supabase-js ──
