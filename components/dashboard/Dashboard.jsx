@@ -618,8 +618,26 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
 
   // Send pending hero prompt AFTER messages finish loading (avoids race condition)
   // ONLY depends on messagesReadyTick — NOT selectedChat — to ensure loadMessages
-  // has completed before we add new messages (otherwise loadMessages wipes them)
+  // has completed before we add new messages (otherwise loadMessages wipes them).
+  //
+  // Why the sessionStorage fallback: the InlineBrief stores the payload in
+  // pendingHeroPromptRef on the bin Dashboard. Submitting fires `router.replace`,
+  // which navigates from `/` to `/project/[id]`. Next's App Router unmounts the
+  // bin tree (taking the ref with it) and mounts a fresh Dashboard. The new
+  // Dashboard's ref starts empty, so we'd silently swallow the brief — the
+  // user sees an empty chat. Reading from sessionStorage on first tick lets
+  // the payload cross the route boundary.
   useEffect(() => {
+    if (!pendingHeroPromptRef.current) {
+      try {
+        const raw = sessionStorage.getItem('auroraly:pending_hero_prompt')
+        if (raw) {
+          pendingHeroPromptRef.current = JSON.parse(raw)
+          sessionStorage.removeItem('auroraly:pending_hero_prompt')
+          console.log('[HeroPromptEffect] rehydrated pending prompt from sessionStorage across route navigation')
+        }
+      } catch {}
+    }
     console.log('[HeroPromptEffect] tick:', messagesReadyTick, 'pending:', !!pendingHeroPromptRef.current, 'chat:', !!selectedChat, 'project:', !!selectedProject, 'streaming:', streamingMessageId)
     if (pendingHeroPromptRef.current && selectedChat && selectedProject && !streamingMessageId) {
       const pending = pendingHeroPromptRef.current

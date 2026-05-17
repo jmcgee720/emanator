@@ -281,7 +281,16 @@ export default function ProjectGrid({
                 onStartBuilding={async (displayMessage, fullInstruction, briefData, attachments, modelChoice) => {
                   setHeroSubmitting(true)
                   try {
-                    pendingHeroPromptRef.current = { displayMessage, fullInstruction, attachments, modelChoice }
+                    const payload = { displayMessage, fullInstruction, attachments, modelChoice }
+                    pendingHeroPromptRef.current = payload
+                    // Mirror to sessionStorage so the prompt survives the
+                    // `/` → `/project/[id]` route navigation. The bin Dashboard
+                    // unmounts when the URL changes, taking the in-memory ref
+                    // with it; the new Dashboard mount picks the payload back
+                    // up from storage and fires the brief build.
+                    try {
+                      sessionStorage.setItem('auroraly:pending_hero_prompt', JSON.stringify(payload))
+                    } catch {}
                     const projectName = briefData?.project_name || briefData?.elevator_pitch?.slice(0, 40) || 'New Project'
                     const chatTitle = briefData?.elevator_pitch?.slice(0, 50) || displayMessage?.slice(0, 50) || 'Initial Build'
                     importChatTitleRef.current = chatTitle
@@ -290,6 +299,7 @@ export default function ProjectGrid({
                     setActivityLevel(1)
                   } catch (error) {
                     pendingHeroPromptRef.current = null
+                    try { sessionStorage.removeItem('auroraly:pending_hero_prompt') } catch {}
                   } finally {
                     setHeroSubmitting(false)
                   }
