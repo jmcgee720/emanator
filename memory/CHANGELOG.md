@@ -4,6 +4,35 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-02-XX — Scaffolding heal pass for existing projects
+
+### Shipped (commit `2f05a8b`)
+
+- **Root cause**: compose-phase scaffolding only wrote files that didn't
+  already exist, so when Claude generated its own `package.json` it
+  permanently lost the Tailwind devDep trio. Result on Nexsara:
+  `Module parse failed: Unexpected character '@'` on `app/globals.css`
+  because PostCSS never ran.
+- **`mergeRequiredPackageDeps`** in `lib/ai/phased-pipeline/scaffolding.js`:
+  non-destructive merge of `next`/`react`/`react-dom`/`tailwindcss`/
+  `postcss`/`autoprefixer` deps + standard scripts into an existing
+  package.json. Preserves custom dev scripts, version pins, and extra
+  user deps. Returns `{ pkg, changed }`.
+- **`phase-5-compose.js`** scaffold pass now invokes the merger when a
+  pre-existing `package.json` is detected (rather than skipping it
+  outright). Future builds always end up runnable.
+- **New endpoint `POST /api/projects/[projectId]/heal-scaffolding`**:
+  runs the scaffolding pass against an existing project — fixes
+  pre-existing broken projects without forcing a rebuild. Auth-gated to
+  the project owner. Returns `{ written, healed, skipped, summary }`.
+- **`tests/test-scaffolding-heal.test.mjs`**: covers empty pkg, the
+  Nexsara repro (missing tailwind trio), already-good no-op, tailwind
+  in deps (no devDeps duplicate), fullstack supabase add, custom dev
+  script preserved, and null-input safety. All passing.
+
+---
+
+
 ## 2026-02-XX — Preview timeout fix, v2 attachments, 529 retry
 
 ### Shipped (Vercel deploy in flight — commit `66cfc05`)
