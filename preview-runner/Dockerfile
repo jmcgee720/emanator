@@ -34,7 +34,7 @@ WORKDIR /runner
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --no-audit --no-fund
 
-COPY index.js ./
+COPY index.js host-parser.js ./
 
 # /project is where each preview's user files get synced. Empty in the
 # image — populated by POST /sync at runtime.
@@ -47,8 +47,14 @@ RUN mkdir -p /project
 # servers: NODE_ENV=production made next dev fall back to a
 # production-mode CSS pipeline that skips PostCSS for App Router
 # globals.css → "Unexpected character '@'" build failures.)
-ENV RUNNER_PORT=8080 \
-    USER_DEV_PORT=3000
+#
+# USER_DEV_PORT is intentionally NOT baked in either — the runner
+# defaults it to 3001 so the user's dev server binds there and the
+# port-3000 project-routing proxy (which fly-replays wrong-machine
+# requests) owns 3000. Hard-pinning USER_DEV_PORT=3000 here used to
+# make both the proxy and the user dev server fight for the same
+# socket on boot.
+ENV RUNNER_PORT=8080
 
 EXPOSE 8080 3000
 

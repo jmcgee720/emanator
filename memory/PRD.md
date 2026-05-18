@@ -27,6 +27,14 @@ Common Fly token gotcha: SSO-locked personal accounts cannot create personal tok
 
 **Deploy notes**: `preview-runner/*` changes require `fly deploy --remote-only` from `preview-runner/` directory. Orchestrator changes auto-deploy via Vercel on `git push origin main`.
 
+**Verified live (2026-05-18)**: Deployed image `01KRYCQ5H0FVC0BYEZ553S76ZE`. Curl test against the new image:
+- `/__runner_health` → `200 ok` (proxy bypass works for health probes)
+- Wrong-project Host header → Fly edge honored `fly-replay: elsewhere=true` and re-routed to a sibling machine that served the correct project's HTML. CSS-bleed root cause eliminated for any machine running this image.
+
+**Pending cleanup**: 6 of 8 machines in `auroraly-preview-runner` were created by the orchestrator API (not part of the `fly deploy` rollout) and are still on older images without the proxy. Recommended action: destroy them so the orchestrator respawns them on the new image on next user preview start. Each user has at most one machine per project; respawn cost is ~30s cold boot.
+
+**Cleanup completed (2026-05-18)**: All 6 stale project machines destroyed (`286d23f7e21518`, `d895907a66d448`, `48ee35ea771678`, `e829710a6e4578`, `7819e52b155e18`, `78175d1cd477e8`). Only the 2 template machines remain (`0805456c71d428` stopped, `148ee5d9c5e408` started), both on the new image. Next user-triggered preview start will create a fresh project machine on the new image via `createMachineForProject` → `resolveDeployedImage`.
+
 ---
 
 
