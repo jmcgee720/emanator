@@ -12,6 +12,24 @@ When the agent modifies code in **any** of these targets it MUST tell the user u
 
 Common Fly token gotcha: SSO-locked personal accounts cannot create personal tokens via the UI. Use `flyctl tokens create org <orgname>` from terminal instead.
 
+## Implemented (2026-02-XX — Fly-replay single-hop project routing)
+
+### 🛠 Fixed Fly edge proxy round-robining iframe requests to wrong machines (P0)
+**Symptom**: User saw transient 500s and "preview rendering without CSS" because `*.preview.auroraly.co` was round-robined to *any* machine in the Fly app — only one machine had the project's files, others 200'd with their own project's compiled output.
+
+**Shipped**:
+1. **`/app/preview-runner/index.js`** — port 3000 `http-proxy` reverse proxy that reads the inbound Host header, compares against the machine's pinned `AURORALY_PROJECT_ID`, and either (a) forwards same-project HTTP/WS to the user's dev server on `127.0.0.1:3001`, or (b) responds with `fly-replay: instance=<machineId>` (single-hop) when the URL embeds the target machineId, falling back to `fly-replay: elsewhere=true` (multi-hop random retry).
+2. **`/app/preview-runner/fly.toml`** — removed the conflicting `USER_DEV_PORT = "3000"` env var so the user's dev server defaults to port 3001 and doesn't fight the proxy for port 3000.
+3. **`/app/preview-runner/host-parser.js`** — extracted `projectIdFromHost()` into a pure module so both the proxy and unit tests share one parser. Handles bare `<projectId>.preview.auroraly.co`, single-hop `<projectId>--<machineId>.preview.auroraly.co`, port-suffixed Host headers, mixed case, and 6PN debug hostnames.
+4. **`/app/lib/fly/machines.js`** — `publicDevUrl(projectId, machineId?)` now embeds the machine ID in the subdomain when known so the proxy can emit single-hop `instance=<machineId>` replays.
+5. **`/app/app/api/previews/[projectId]/start/route.js`** — 5 call sites updated to pass `machine.id` to `publicDevUrl()`.
+6. **Tests**: `/app/tests/test-preview-runner-host-parser.test.mjs` (+8 tests) — empty/null host, bare projectId, single-hop format, port stripping, lowercasing, defensive `--` handling, 6PN. `/app/tests/test-fly-machines.test.mjs` (+1 new test) — `publicDevUrl` single-hop variant, plus the existing bare-subdomain test still passes. **18/18 passing**.
+
+**Deploy notes**: `preview-runner/*` changes require `fly deploy --remote-only` from `preview-runner/` directory. Orchestrator changes auto-deploy via Vercel on `git push origin main`.
+
+---
+
+
 ## Implemented (2026-02-XX — v2 agent security + preview refresh)
 
 ### 🛠 Core System token-leak + Nexsara preview-refresh fixes (P0)

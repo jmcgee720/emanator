@@ -765,6 +765,7 @@ app.listen(RUNNER_PORT, '0.0.0.0', () => {
 // routed before WS attempts open.
 import http from 'node:http'
 import httpProxyMod from 'http-proxy'
+import { projectIdFromHost } from './host-parser.js'
 const httpProxy = httpProxyMod.default || httpProxyMod
 
 const devProxy = httpProxy.createProxyServer({
@@ -784,17 +785,8 @@ devProxy.on('error', (err, _req, res) => {
   } catch {}
 })
 
-function projectIdFromHost(hostHeader) {
-  // Expected formats:
-  //   <projectId>.preview.auroraly.co
-  //   <projectId>--<machineId>.preview.auroraly.co  ← new: 1-hop replay
-  //   <machineId>.vm.<app>.internal                 ← template / debug
-  if (!hostHeader) return { projectId: '', machineId: '' }
-  const host = hostHeader.split(':')[0].toLowerCase()
-  const sub = host.split('.')[0]
-  const parts = sub.split('--')
-  return { projectId: parts[0] || '', machineId: parts[1] || '' }
-}
+// projectIdFromHost is imported from ./host-parser.js above — single
+// source of truth shared with the unit tests.
 
 const proxyServer = http.createServer((req, res) => {
   const { projectId: reqProject, machineId: reqMachine } = projectIdFromHost(req.headers.host)

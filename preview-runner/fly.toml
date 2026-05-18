@@ -18,7 +18,11 @@ primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
 
 [env]
   RUNNER_PORT = "8080"
-  USER_DEV_PORT = "3000"
+  # USER_DEV_PORT intentionally unset — the runner defaults it to 3001
+  # so the user's dev server binds there and the project-routing proxy
+  # (which fly-replays mis-targeted iframe traffic) can own port 3000.
+  # Hard-pinning USER_DEV_PORT=3000 here used to make both the proxy
+  # and the dev server fight for the same socket on boot.
   # NODE_ENV deliberately NOT set here. Per-spawn overrides in
   # preview-runner/index.js are authoritative: NODE_ENV=development
   # for both npm install (so devDependencies install) AND the dev

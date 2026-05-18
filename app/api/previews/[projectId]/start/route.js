@@ -129,7 +129,7 @@ export async function POST(request, { params }) {
         ok: true,
         machineId: machine.id,
         state: 'booting-machine',
-        previewUrl: publicDevUrl(projectId),
+        previewUrl: publicDevUrl(projectId, machine.id),
       }))
     }
 
@@ -149,7 +149,7 @@ export async function POST(request, { params }) {
         ok: true,
         machineId: machine.id,
         state: 'booting-runner',
-        previewUrl: publicDevUrl(projectId),
+        previewUrl: publicDevUrl(projectId, machine.id),
       }))
     }
 
@@ -193,7 +193,7 @@ export async function POST(request, { params }) {
       ok: true,
       machineId: machine.id,
       state: 'installing',
-      previewUrl: publicDevUrl(projectId),
+      previewUrl: publicDevUrl(projectId, machine.id),
     }))
   } catch (err) {
     console.error(`[/api/previews/${projectId}/start] failed:`, err)
@@ -221,7 +221,7 @@ export async function GET(request, { params }) {
         machineId: machine.id,
         state: machine.state,
         runner: null,
-        previewUrl: publicDevUrl(projectId),
+        previewUrl: publicDevUrl(projectId, machine.id),
       }))
     }
 
@@ -258,7 +258,7 @@ export async function GET(request, { params }) {
       machineId: machine.id,
       state: machine.state,
       runner: runnerStatus,
-      previewUrl: publicDevUrl(projectId),
+      previewUrl: publicDevUrl(projectId, machine.id),
     }))
   } catch (err) {
     return handleCORS(NextResponse.json({ error: err.message }, { status: 500 }))

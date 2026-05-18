@@ -165,6 +165,23 @@ test('publicDevUrl: assembles wildcard subdomain', async () => {
   assert.equal(fly.publicDevUrl('proj-xyz'), 'https://proj-xyz.preview.auroraly.co')
 })
 
+test('publicDevUrl: embeds machineId for single-hop fly-replay', async () => {
+  process.env.PREVIEW_BASE_DOMAIN = 'preview.auroraly.co'
+  const fly = await import('../lib/fly/machines.js')
+  // When the orchestrator knows which Fly machine serves this project,
+  // it passes the machineId so the runner's :3000 proxy can emit
+  // `fly-replay: instance=<machineId>` (single-hop) instead of the
+  // multi-hop `elsewhere=true` fallback.
+  assert.equal(
+    fly.publicDevUrl('proj-xyz', 'mach-abc'),
+    'https://proj-xyz--mach-abc.preview.auroraly.co',
+  )
+  // Falsy machineId → plain subdomain (orchestrator's GET poll path
+  // before the machine is known).
+  assert.equal(fly.publicDevUrl('proj-xyz', ''), 'https://proj-xyz.preview.auroraly.co')
+  assert.equal(fly.publicDevUrl('proj-xyz', undefined), 'https://proj-xyz.preview.auroraly.co')
+})
+
 test('machineControlUrl: uses Fly-Force-Instance-Id header for routing', async () => {
   const fly = await import('../lib/fly/machines.js')
   const { url, headers } = fly.machineControlUrl('mach-abc')
