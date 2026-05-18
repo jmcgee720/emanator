@@ -19,7 +19,13 @@ primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
 [env]
   RUNNER_PORT = "8080"
   USER_DEV_PORT = "3000"
-  NODE_ENV = "production"
+  # NODE_ENV deliberately NOT set here. Per-spawn overrides in
+  # preview-runner/index.js are authoritative: NODE_ENV=development
+  # for both npm install (so devDependencies install) AND the dev
+  # server spawn (so Next.js wires its dev-mode CSS pipeline with
+  # PostCSS / Tailwind). Setting it here as "production" silently
+  # broke user previews — Next.js's App Router CSS handler skipped
+  # PostCSS and webpack choked on @tailwind directives.
 
 # User dev server — what the iframe actually loads.
 [[services]]

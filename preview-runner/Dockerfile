@@ -40,8 +40,14 @@ COPY index.js ./
 # image — populated by POST /sync at runtime.
 RUN mkdir -p /project
 
-ENV NODE_ENV=production \
-    RUNNER_PORT=8080 \
+# Image-level defaults. NODE_ENV is intentionally NOT set here — the
+# runner itself doesn't care, and leaving it unset lets per-spawn
+# overrides in runner code be authoritative. (Previously this was
+# baked to "production", which silently broke user Next.js dev
+# servers: NODE_ENV=production made next dev fall back to a
+# production-mode CSS pipeline that skips PostCSS for App Router
+# globals.css → "Unexpected character '@'" build failures.)
+ENV RUNNER_PORT=8080 \
     USER_DEV_PORT=3000
 
 EXPOSE 8080 3000

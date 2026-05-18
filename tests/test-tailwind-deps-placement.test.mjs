@@ -110,11 +110,28 @@ import {
 {
   const runnerSrc = readFileSync(new URL('../preview-runner/index.js', import.meta.url), 'utf8')
   const occurrences = runnerSrc.match(/NODE_ENV:\s*'development'/g) || []
-  assert.ok(occurrences.length >= 3,
-    `runner must override NODE_ENV in all 3 npm install spawn sites; found ${occurrences.length}`)
+  // 3 install spawns + 1 dev-server spawn = 4 sites total
+  assert.ok(occurrences.length >= 4,
+    `runner must override NODE_ENV in all 4 spawn sites (3 install + 1 dev server); found ${occurrences.length}`)
   // Sanity: no remaining spawn site with bare `CI: '1' }` (no NODE_ENV).
   const bareCI = runnerSrc.match(/env:\s*\{\s*\.\.\.process\.env,\s*CI:\s*'1'\s*\}/g) || []
   assert.equal(bareCI.length, 0, `found ${bareCI.length} spawn site(s) missing NODE_ENV override`)
+}
+
+// ── 6) Dockerfile/fly.toml don't pin NODE_ENV at the image level ──
+// The user's dev server inheriting NODE_ENV=production from Fly env
+// caused Next.js to skip its dev-mode CSS pipeline → `@tailwind`
+// reached webpack raw → "Unexpected character '@'" parse error.
+// Per-spawn overrides are authoritative; image-level NODE_ENV must
+// not leak in.
+{
+  const dockerfileSrc = readFileSync(new URL('../preview-runner/Dockerfile', import.meta.url), 'utf8')
+  assert.ok(!/^\s*ENV\s+NODE_ENV\s*=/m.test(dockerfileSrc),
+    'Dockerfile must NOT pin NODE_ENV — per-spawn overrides own this')
+
+  const flyTomlSrc = readFileSync(new URL('../preview-runner/fly.toml', import.meta.url), 'utf8')
+  assert.ok(!/^\s*NODE_ENV\s*=/m.test(flyTomlSrc),
+    'fly.toml [env] must NOT set NODE_ENV — per-spawn overrides own this')
 }
 
 console.log('PASS: Fly NODE_ENV=production fix — trio in deps, migration works, all runner spawns overridden')

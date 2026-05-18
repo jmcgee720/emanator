@@ -533,6 +533,15 @@ async function bootDevServerInBackground() {
       cwd,
       env: {
         ...process.env,
+        // CRITICAL: force NODE_ENV=development for the dev server.
+        // The image (Dockerfile) sets NODE_ENV=production so the
+        // RUNNER itself runs in prod mode for its own deps, but the
+        // user's Next.js dev server MUST run in development mode or
+        // its dev-mode CSS pipeline (PostCSS → tailwindcss expansion)
+        // never gets attached. Next.js sees a non-standard NODE_ENV,
+        // logs a warning, falls back to next-flight-css-loader alone,
+        // and webpack chokes on `@tailwind` directives.
+        NODE_ENV: 'development',
         PORT: String(USER_DEV_PORT),
         HOST: '0.0.0.0',
         BROWSER: 'none',
