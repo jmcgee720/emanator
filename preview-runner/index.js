@@ -407,16 +407,52 @@ app.post('/sync-from-supabase', async (req, res) => {
   }
   appendLog('runner', `[sync] listed ${allRows.length} rows in ${Date.now() - t0}ms`)
 
-  // 2) Wipe existing project tree (keep node_modules + .next for warm
-  //    restarts, which dramatically speeds up second-and-later boots).
-  if (existsSync(PROJECT_DIR)) {
+  // 2) Content-aware sync: instead of wiping the project tree and
+  //    rewriting all files (which bumps mtime on every file and triggers
+  //    a chokidar storm → Next.js HMR + full server restart on next.config.js
+  //    touches), we now diff DB content against disk and only write files
+  //    that actually changed. Files present on disk but absent from the DB
+  //    set get removed. node_modules + .next are always preserved.
+  //
+  //    Before this fix, every sync would write all 73 files with fresh
+  //    mtimes. Next.js's watcher saw the bundle as wholesale modified,
+  //    restarted the dev server, and the iframe's CSS request would land
+  //    on a restart window → 500 from the server → page rendered with no
+  //    stylesheet → user saw plain text with default browser styles.
+  if (!existsSync(PROJECT_DIR)) {
+    await mkdir(PROJECT_DIR, { recursive: true })
+  }
+  const dbPaths = new Set(allRows.filter((r) => r.path).map((r) => r.path))
+  // Walk the existing tree and gather disk paths (excluding the
+  // preserved node_modules / .next / .npmrc-style runner files).
+  const PRESERVE = new Set(['node_modules', '.next', '.npmrc'])
+  async function collectDiskPaths(dir, rel = '') {
+    const out = []
     const fs = await import('node:fs/promises')
-    for (const entry of await fs.readdir(PROJECT_DIR)) {
-      if (entry === 'node_modules' || entry === '.next') continue
-      await rm(join(PROJECT_DIR, entry), { recursive: true, force: true })
+    let entries
+    try { entries = await fs.readdir(dir, { withFileTypes: true }) } catch { return out }
+    for (const ent of entries) {
+      const relPath = rel ? `${rel}/${ent.name}` : ent.name
+      if (rel === '' && PRESERVE.has(ent.name)) continue
+      const full = join(dir, ent.name)
+      if (ent.isDirectory()) {
+        const nested = await collectDiskPaths(full, relPath)
+        out.push(...nested)
+      } else {
+        out.push(relPath)
+      }
+    }
+    return out
+  }
+  const diskPaths = await collectDiskPaths(PROJECT_DIR)
+  // Remove files that exist on disk but no longer in the DB.
+  let removed = 0
+  for (const p of diskPaths) {
+    if (!dbPaths.has(p)) {
+      await rm(join(PROJECT_DIR, p), { force: true })
+      removed++
     }
   }
-  await mkdir(PROJECT_DIR, { recursive: true })
 
   // 3) Write all files to disk. Text files come from the `content` column
   //    directly — single source of truth, no flaky middleman. Asset rows
@@ -469,6 +505,28 @@ app.post('/sync-from-supabase', async (req, res) => {
         encoding = undefined
         decodedAssets++
       }
+
+      // ── Content-aware write ──
+      // Skip the write if the file on disk already has identical bytes.
+      // Critical for stability: writeFile() bumps the mtime even when
+      // content is unchanged, which would trigger Next.js's chokidar
+      // watcher to restart the dev server during every sync. Skipping
+      // identical writes turns N-file syncs into O(changed) work and
+      // keeps the dev server stable across rapid chat-driven file edits.
+      try {
+        const fs = await import('node:fs/promises')
+        const existing = await fs.readFile(target).catch(() => null)
+        if (existing !== null) {
+          const same = encoding === 'utf8'
+            ? existing.toString('utf8') === content
+            : Buffer.isBuffer(content) && existing.equals(content)
+          if (same) {
+            // Identical — leave mtime alone, no Next.js restart.
+            continue
+          }
+        }
+      } catch { /* fall through to write */ }
+
       await writeFile(target, content, encoding)
       written++
     }
@@ -476,7 +534,8 @@ app.post('/sync-from-supabase', async (req, res) => {
   await Promise.all(Array.from({ length: limit }, workOne))
 
   const ms = Date.now() - t0
-  appendLog('runner', `[sync] wrote ${written}/${allRows.length} files (${decodedAssets} binary, ${storageDownloads} storage, ${failures.length} failures) in ${ms}ms`)
+  const skipped = allRows.length - written - failures.length
+  appendLog('runner', `[sync] wrote ${written} changed, skipped ${skipped} identical, removed ${removed} stale (${decodedAssets} binary, ${storageDownloads} storage, ${failures.length} failures) in ${ms}ms`)
 
   // Loud failure: if ANY required file is missing, return a non-OK status
   // so the orchestrator stops the boot and surfaces a real error to the
