@@ -28,7 +28,16 @@ import { existsSync } from 'node:fs'
 import { EventEmitter } from 'node:events'
 
 const RUNNER_PORT = parseInt(process.env.RUNNER_PORT || '8080', 10)
-const USER_DEV_PORT = parseInt(process.env.USER_DEV_PORT || '3000', 10)
+// USER_DEV_PORT is what the user's framework dev server binds to internally.
+// Port 3000 is reserved for our project-routing proxy (see below), so the
+// dev server lives on 3001. The proxy listens on 3000 (the externally
+// exposed port via fly.toml) and forwards same-project requests to 3001.
+const USER_DEV_PORT = parseInt(process.env.USER_DEV_PORT || '3001', 10)
+const USER_DEV_PROXY_PORT = parseInt(process.env.USER_DEV_PROXY_PORT || '3000', 10)
+// The orchestrator injects this when creating the machine. It tells us
+// "this machine serves only this project — replay anything else." If
+// missing (e.g. template machines), the proxy replays ALL traffic.
+const AURORALY_PROJECT_ID = process.env.AURORALY_PROJECT_ID || ''
 const PROJECT_DIR = '/project'
 const SHARED_SECRET = process.env.RUNNER_SHARED_SECRET || ''
 const MAX_LOG_LINES = 2000
@@ -726,8 +735,105 @@ app.get('/logs', (req, res) => {
 })
 
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
-  appendLog('runner', `[runner v5.clean] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT})`)
+  appendLog('runner', `[runner v5.clean] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT}, proxy on :${USER_DEV_PROXY_PORT})`)
   appendLog('runner', `[runner v5.clean] single-source-of-truth files (DB content), loud-fail sync, no config injection`)
+  appendLog('runner', `[runner v5.clean] project pinning: AURORALY_PROJECT_ID=${AURORALY_PROJECT_ID || '(template)'}`)
+})
+
+// ─── Project-routing proxy on USER_DEV_PROXY_PORT (3000) ─────────────
+// Why: the external wildcard `*.preview.auroraly.co` routes to ANY
+// machine in the Fly app, not the one pinned to a specific project.
+// Without this proxy, an iframe request for projectId X would round-
+// robin across all machines — some would serve project X (200), others
+// would serve their OWN projects' CSS pretending to be X (visually
+// wrong!), others would 500. The user saw this as "preview rendering
+// without CSS" because the stylesheet request landed on a sibling
+// machine that returned its own project's compiled output (or an
+// error page with text/html content-type).
+//
+// Fix: every request entering port 3000 is inspected here first.
+//   • If the Host's subdomain matches this machine's AURORALY_PROJECT_ID
+//     → reverse-proxy to the local dev server on USER_DEV_PORT (3001).
+//   • If it doesn't match → respond with `fly-replay: elsewhere=true`,
+//     telling Fly's edge to retry on a different machine. Eventually
+//     Fly lands on the machine pinned to that project.
+//
+// WebSocket upgrades (Next.js HMR / Vite HMR) are also proxied to the
+// dev server when the project matches. WS replays aren't supported by
+// Fly so mismatched WS connections are closed; this is acceptable
+// because the iframe's initial HTTP request will have been correctly
+// routed before WS attempts open.
+import http from 'node:http'
+import httpProxyMod from 'http-proxy'
+const httpProxy = httpProxyMod.default || httpProxyMod
+
+const devProxy = httpProxy.createProxyServer({
+  target: `http://127.0.0.1:${USER_DEV_PORT}`,
+  changeOrigin: false, // keep Host so Next.js HMR knows its public URL
+  ws: true,
+  xfwd: true,
+})
+devProxy.on('error', (err, _req, res) => {
+  try {
+    if (res && !res.headersSent) {
+      // Dev server isn't up yet (still installing) or just crashed.
+      // 503 with retry hint so the iframe's auto-reload re-attempts.
+      res.writeHead(503, { 'content-type': 'text/plain', 'retry-after': '3' })
+      res.end(`dev server not ready: ${err.message}`)
+    }
+  } catch {}
+})
+
+function projectIdFromHost(hostHeader) {
+  // Expected formats:
+  //   <projectId>.preview.auroraly.co
+  //   <projectId>--<machineId>.preview.auroraly.co  ← new: 1-hop replay
+  //   <machineId>.vm.<app>.internal                 ← template / debug
+  if (!hostHeader) return { projectId: '', machineId: '' }
+  const host = hostHeader.split(':')[0].toLowerCase()
+  const sub = host.split('.')[0]
+  const parts = sub.split('--')
+  return { projectId: parts[0] || '', machineId: parts[1] || '' }
+}
+
+const proxyServer = http.createServer((req, res) => {
+  const { projectId: reqProject, machineId: reqMachine } = projectIdFromHost(req.headers.host)
+  const myProject = AURORALY_PROJECT_ID
+  // Health probe path bypasses project pinning so Fly TCP checks pass
+  // even on template machines that have no AURORALY_PROJECT_ID.
+  if (req.url === '/__runner_health') {
+    res.writeHead(200, { 'content-type': 'text/plain' })
+    return res.end('ok')
+  }
+  if (!myProject || reqProject !== myProject) {
+    // Wrong machine for this project. Prefer a targeted replay when
+    // the iframe URL embeds the machineId (single hop). Otherwise fall
+    // back to `elsewhere=true` (Fly picks a random sibling; may take
+    // several hops to find the right one).
+    const replayHeader = reqMachine
+      ? `instance=${reqMachine}`
+      : 'elsewhere=true'
+    res.writeHead(200, {
+      'content-type': 'text/plain',
+      'fly-replay': replayHeader,
+    })
+    return res.end(`auroraly-routing: this machine serves "${myProject || '(none)'}", request was for "${reqProject}" — replaying via ${replayHeader}`)
+  }
+  devProxy.web(req, res)
+})
+proxyServer.on('upgrade', (req, socket, head) => {
+  const { projectId: reqProject } = projectIdFromHost(req.headers.host)
+  if (!AURORALY_PROJECT_ID || reqProject !== AURORALY_PROJECT_ID) {
+    // Can't fly-replay a WS handshake. Close cleanly so the browser
+    // can re-issue after the HTTP-level replay puts it on the right
+    // machine.
+    socket.destroy()
+    return
+  }
+  devProxy.ws(req, socket, head)
+})
+proxyServer.listen(USER_DEV_PROXY_PORT, '0.0.0.0', () => {
+  appendLog('runner', `[proxy] listening on :${USER_DEV_PROXY_PORT} → forwards same-project to :${USER_DEV_PORT}, fly-replays others`)
 })
 
 // Graceful shutdown so Fly's machine-stop doesn't leave zombies.
