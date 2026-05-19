@@ -12,6 +12,25 @@ When the agent modifies code in **any** of these targets it MUST tell the user u
 
 Common Fly token gotcha: SSO-locked personal accounts cannot create personal tokens via the UI. Use `flyctl tokens create org <orgname>` from terminal instead.
 
+## Implemented (2026-02-XX — Chat attachment UX + vision-aware system prompt)
+
+### 🐛 Fixed: "I don't see any attachments" agent response after drag-and-drop
+**Symptom**: User dragged Mangia Mama artwork onto the project chat panel. Agent responded "I don't see any attachments yet — please attach them." Pipeline trace showed the data plumbing was 100% correct (drop → base64 → upload → DB → message metadata → Anthropic vision content blocks), so the agent should have received the images.
+
+**Root cause**: The drop zone was scoped to the ~80px ChatComposer footer band only. Drops onto the messages scroll area (the most intuitive target) fell through to the browser's default "open file in new tab" behaviour. No attachment chips appeared, the message sent without attachments, and the agent truthfully reported it couldn't see any.
+
+**Shipped**:
+1. **`components/dashboard/ChatComposer.jsx`** — exposed `attachFiles(File[])` on the component's imperative ref so a parent can forward dropped files into the existing `processFiles` → validation → base64 → upload pipeline.
+2. **`components/dashboard/LeftPanel.jsx`** — wired a panel-wide drag-and-drop overlay covering the entire chat panel (header, messages, composer). Drag-over shows a full-panel cyan overlay with the message "Drop to attach — Images, PDFs, code, or text files up to 5 MB each", giving users instant visual confirmation. Drop forwards files to `composerRef.current.attachFiles()`.
+3. **`lib/api/stream-handler-v2.js`** — added 5 image-handling rules to the project agent's system prompt: (a) "You CAN see them" explicit vision acknowledgement, (b) INVENTORY FIRST — describe each image before any action, (c) CONFIRM DO NOT GUESS — never silently substitute slots, (d) NEVER FABRICATE — only reference details from the inventory, (e) ONLY THEN ACT — file writes happen after user confirmation, with paths surfaced.
+4. **`tests/test-stream-handler-v2-image-prompt.test.mjs`** (new) — 5 tests pinning the image-handling rules so a future system-prompt refactor can't silently strip them.
+
+**Tests**: 6/6 passing (existing attachment plumbing + new image-prompt rules).
+**Deploy**: orchestrator-side only; auto-deploys via Vercel on `git push origin main`.
+
+---
+
+
 ## Implemented (2026-02-XX — Fly-replay single-hop project routing)
 
 ### 🛠 Fixed Fly edge proxy round-robining iframe requests to wrong machines (P0)

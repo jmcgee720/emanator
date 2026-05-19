@@ -108,7 +108,19 @@ const ChatComposer = forwardRef(function ChatComposer({
 
   useImperativeHandle(ref, () => ({
     setInput: (text) => setInput(text),
-    focus: () => textareaRef.current?.focus()
+    focus: () => textareaRef.current?.focus(),
+    // Exposed so a parent (LeftPanel) can capture drag-and-drop on the
+    // entire chat panel — not just the composer footer — and forward
+    // the dropped File[] here for validation + base64 read + upload.
+    // The previous UX only honoured drops onto the ~80px composer band,
+    // so users dropping artwork onto the message scroll area silently
+    // hit the browser's default "open file" behaviour, with no attached
+    // chips appearing. Image uploads then "didn't work" mysteriously.
+    attachFiles: (fileList) => {
+      if (fileList && fileList.length > 0) {
+        processFiles(Array.from(fileList))
+      }
+    },
   }))
 
   useEffect(() => {

@@ -335,6 +335,48 @@ export default function LeftPanel({
   // Sending is derived from streaming state
   const isStreaming = !!streamingMessageId
 
+  // ── Panel-wide drag-and-drop for file attachments ──────────────────
+  // Previously the drop zone was only the ~80px composer footer band,
+  // so users dropping artwork onto the message scroll area (the most
+  // intuitive target — it's where the conversation lives) hit the
+  // browser's default "open file in new tab" behaviour. No chips
+  // appeared, the message sent without attachments, and the agent
+  // truthfully responded "I don't see any attachments". This forwards
+  // any file dropped anywhere inside the chat panel to the composer's
+  // existing processFiles() pipeline so the upload flow is identical.
+  const [panelDragOver, setPanelDragOver] = useState(false)
+  const dragCounterRef = useRef(0)
+  const handlePanelDragEnter = (e) => {
+    if (!e.dataTransfer?.types?.includes('Files')) return
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current += 1
+    setPanelDragOver(true)
+  }
+  const handlePanelDragOver = (e) => {
+    if (!e.dataTransfer?.types?.includes('Files')) return
+    e.preventDefault()
+    e.stopPropagation()
+    // dropEffect tells the browser this is a "copy" target so the
+    // cursor shows a + icon and Chrome doesn't fall back to "open file".
+    try { e.dataTransfer.dropEffect = 'copy' } catch {}
+  }
+  const handlePanelDragLeave = (e) => {
+    if (!e.dataTransfer?.types?.includes('Files')) return
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
+    if (dragCounterRef.current === 0) setPanelDragOver(false)
+  }
+  const handlePanelDrop = (e) => {
+    if (!e.dataTransfer?.files?.length) return
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = 0
+    setPanelDragOver(false)
+    composerRef.current?.attachFiles?.(e.dataTransfer.files)
+  }
+
   const handleSendMessage = async (content) => {
     if (!content.trim() || isStreaming) return
     setSending(true)
@@ -368,7 +410,34 @@ export default function LeftPanel({
   const ModeIcon = modeIcons[builderMode] || Layers
 
   return (
-    <div className="h-full flex flex-col min-w-0 overflow-hidden" data-testid="left-panel">
+    <div
+      className="h-full flex flex-col min-w-0 overflow-hidden relative"
+      data-testid="left-panel"
+      onDragEnter={handlePanelDragEnter}
+      onDragOver={handlePanelDragOver}
+      onDragLeave={handlePanelDragLeave}
+      onDrop={handlePanelDrop}
+    >
+      {/* Panel-wide drag-and-drop overlay. Only renders while a file is
+          being dragged over the chat panel. Clear visual confirmation
+          that the drop will be captured, with a hint about what happens
+          next so users don't doubt the action worked. */}
+      {panelDragOver && (
+        <div
+          className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center"
+          style={{
+            background: 'rgba(0, 229, 255, 0.08)',
+            border: '2px dashed rgba(0, 229, 255, 0.6)',
+            backdropFilter: 'blur(2px)',
+          }}
+          data-testid="chat-panel-drop-overlay"
+        >
+          <div className="bg-[hsl(var(--em-sidebar))] border border-[rgba(0,229,255,0.4)] rounded-xl px-6 py-4 shadow-xl text-center">
+            <div className="text-base font-semibold text-[hsl(190,100%,55%)]">Drop to attach</div>
+            <div className="text-xs text-muted-foreground mt-1">Images, PDFs, code, or text files — up to 5 MB each</div>
+          </div>
+        </div>
+      )}
       {/* Compact Header — project + mode in one row */}
       <div className="flex items-center gap-1.5 h-11 px-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0, 229, 255, 0.06)' }} data-testid="sidebar-header">
         <DropdownMenu>
