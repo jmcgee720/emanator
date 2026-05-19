@@ -369,13 +369,34 @@ export default function LeftPanel({
     if (dragCounterRef.current === 0) setPanelDragOver(false)
   }
   const handlePanelDrop = (e) => {
-    if (!e.dataTransfer?.files?.length) return
+    // ALWAYS preventDefault + reset overlay state, even if the drop
+    // turned out to carry zero files. Otherwise a stray drop (e.g. a
+    // dragged image url instead of a File) leaves the overlay stuck.
     e.preventDefault()
     e.stopPropagation()
     dragCounterRef.current = 0
     setPanelDragOver(false)
-    composerRef.current?.attachFiles?.(e.dataTransfer.files)
+    if (e.dataTransfer?.files?.length) {
+      composerRef.current?.attachFiles?.(e.dataTransfer.files)
+    }
   }
+
+  // Safety net: Some browsers (Safari especially) don't fire dragleave
+  // when the cursor exits the window entirely. Listen for global
+  // dragend / drop on the window so the overlay clears even when the
+  // user releases outside the panel or aborts the drag with Escape.
+  useEffect(() => {
+    const clear = () => {
+      dragCounterRef.current = 0
+      setPanelDragOver(false)
+    }
+    window.addEventListener('dragend', clear)
+    window.addEventListener('drop', clear)
+    return () => {
+      window.removeEventListener('dragend', clear)
+      window.removeEventListener('drop', clear)
+    }
+  }, [])
 
   const handleSendMessage = async (content) => {
     if (!content.trim() || isStreaming) return

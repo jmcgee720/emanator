@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Send, Paperclip, Loader2, Layers, Globe, Image as ImageIcon, FileText,
-  X, File, FileCode, FileImage, Upload, Sparkles, Camera, GitCompare
+  X, File, FileCode, FileImage, Sparkles, Camera, GitCompare
 } from 'lucide-react'
 import ModelSelector from './ModelSelector'
 import RecipeSelector from './RecipeSelector'
@@ -93,7 +93,6 @@ const ChatComposer = forwardRef(function ChatComposer({
   const [input, setInput] = useState('')
   const [attachedFiles, setAttachedFiles] = useState([])
   const [uploading, setUploading] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
   const [compareOpen, setCompareOpen] = useState(false)
@@ -247,35 +246,22 @@ const ChatComposer = forwardRef(function ChatComposer({
     textareaRef.current?.focus()
   }
 
-  // Drag and drop handlers
-  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }
-  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }
-  const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation(); setDragOver(false)
-    if (e.dataTransfer?.files?.length) {
-      processFiles(Array.from(e.dataTransfer.files))
-    }
-  }
+  // Drag-and-drop is now handled at the LeftPanel level (panel-wide drop
+  // zone) and forwarded into this component via the imperative ref's
+  // attachFiles() method. The previous composer-scoped onDrop/onDragOver
+  // handlers called e.stopPropagation(), which prevented LeftPanel's
+  // parent listener from ever seeing the drop event — leaving the
+  // panel-wide "Drop to attach" overlay stuck visible forever after a
+  // successful drop. Single owner = no event-bubbling fights.
 
   const ModeIcon = modeIcons[builderMode] || Layers
   const validFileCount = attachedFiles.filter(f => !f.error).length
 
   return (
     <div
-      className={`border-t border-[hsl(270_70%_55%/0.12)] bg-[hsl(var(--em-sidebar))] p-3 transition-colors ${dragOver ? 'bg-[hsl(190_100%_50%/0.05)] border-[hsl(190_100%_50%/0.2)]' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      className="border-t border-[hsl(270_70%_55%/0.12)] bg-[hsl(var(--em-sidebar))] p-3"
       data-testid="chat-composer"
     >
-      {/* Drop overlay */}
-      {dragOver && (
-        <div className="flex items-center justify-center gap-2 py-3 mb-2 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 text-primary text-sm">
-          <Upload className="w-4 h-4" />
-          Drop files here
-        </div>
-      )}
-
       {/* Attached files preview */}
       {attachedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2" data-testid="attached-files">

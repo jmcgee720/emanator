@@ -46,5 +46,14 @@ test('project system prompt: forbids fabrication of unseen details', async () =>
 
 test('project system prompt: gates action on confirmation', async () => {
   await must('ONLY THEN ACT', 'must require inventory + confirmation before file writes')
-  await must('Mention each saved path', 'must surface saved paths for verification')
+  await must('mention the saved path', 'must surface saved paths for verification')
+})
+
+test('project system prompt: forbids write_file for binary attachments', async () => {
+  // The agent previously called write_file with a binary PNG, which
+  // silently truncated to a few bytes. The prompt must now route the
+  // model to save_attachment_to_path instead.
+  await must('save_attachment_to_path', 'must reference the new binary-safe tool')
+  await must('NOT `write_file`', 'must explicitly forbid write_file for binaries')
+  await must('silently truncate', 'must explain why write_file fails on binary data')
 })
