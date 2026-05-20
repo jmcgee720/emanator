@@ -233,8 +233,18 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   const monitoredCount = users.filter(u => u.role === 'child_monitored').length
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4" onClick={onClose} data-testid="admin-panel-overlay">
-      <div className="em-glass rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col border border-[rgba(255,255,255,0.15)] my-auto" onClick={(e) => e.stopPropagation()} data-testid="admin-panel">
+    <div 
+      className="fixed bg-black/60 backdrop-blur-sm" 
+      style={{ inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}
+      onClick={onClose} 
+      data-testid="admin-panel-overlay"
+    >
+      <div 
+        className="em-glass rounded-2xl w-full max-w-5xl flex flex-col border border-[rgba(255,255,255,0.15)]" 
+        style={{ maxHeight: '85vh' }}
+        onClick={(e) => e.stopPropagation()} 
+        data-testid="admin-panel"
+      >
         {/* Header */}
         <div className="h-12 border-b border-border/50 flex items-center px-4 gap-3 flex-shrink-0">
           <div className="flex items-center gap-2">
