@@ -233,7 +233,12 @@ export default function AdminPanel({ user, dbUser, onClose }) {
 
   const monitoredCount = users.filter(u => u.role === 'child_monitored').length
 
-  return (
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) return null
+
+  return createPortal(
     <div 
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-8" 
       style={{ zIndex: 9999 }}
