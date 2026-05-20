@@ -29,7 +29,8 @@ import {
   MessageSquare,
   Tag,
   Plus,
-  Copy
+  Copy,
+  Gift
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { getUserRole, hasPermission } from '@/lib/constants'
