@@ -1606,6 +1606,15 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         />
       )}
 
+      {showAdmin && (
+        <AdminPanel
+          user={user}
+          dbUser={dbUser}
+          onClose={() => setShowAdmin(false)}
+          onSignOut={onSignOut}
+        />
+      )}
+
       {/* BuildWizard now renders inline inside the chat thread (LeftPanel)
           rather than as a fullscreen modal overlay. State is still held
           in `buildWizardConfig` and passed down through props. */}
