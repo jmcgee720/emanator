@@ -241,7 +241,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
     >
       <div 
         className="em-glass rounded-2xl w-full max-w-5xl flex flex-col border border-[rgba(255,255,255,0.15)]" 
-        style={{ maxHeight: '85vh' }}
+        style={{ maxHeight: '85vh', position: 'static' }}
         onClick={(e) => e.stopPropagation()} 
         data-testid="admin-panel"
       >
