@@ -1000,17 +1000,6 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     }
   }
 
-  if (showAdmin) {
-    return (
-      <AdminPanel
-        user={user}
-        dbUser={dbUser}
-        onClose={() => setShowAdmin(false)}
-        onSignOut={onSignOut}
-      />
-    )
-  }
-
   if (showGrowth) {
     return (
       <div className="flex flex-col h-screen em-bg-base">
