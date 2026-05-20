@@ -117,6 +117,7 @@ export default function AppShell({ initialProjectId = null }) {
       }
 
       if (data.allowed) {
+        console.log('[AppShell] Setting dbUser:', data.user)
         setUser(authUser)
         setDbUser(data.user)
         setAccessDenied(false)
