@@ -453,7 +453,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
               </div>
             )}
           </ScrollArea>
-        ) : (
+        ) : tab === 'monitored' ? (
           /* Monitored Activity */
           <ScrollArea className="h-full" data-testid="monitored-log">
             {monitored.length === 0 ? (
@@ -502,7 +502,94 @@ export default function AdminPanel({ user, dbUser, onClose }) {
               </div>
             )}
           </ScrollArea>
-        )}
+        ) : tab === 'promo' ? (
+          /* Promo Codes */
+          <div className="h-full flex flex-col">
+            {/* Generate promo code form */}
+            {canManage && (
+              <div className="p-4 border-b border-border" data-testid="generate-promo-form">
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="text"
+                    placeholder="Description (e.g., 'For John')"
+                    value={promoDescription}
+                    onChange={(e) => setPromoDescription(e.target.value)}
+                    className="flex-1 h-8 text-sm"
+                    data-testid="promo-description"
+                  />
+                  <Button size="sm" className="h-8" onClick={generatePromoCode} disabled={generating || !promoDescription.trim()} data-testid="generate-promo-btn">
+                    {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Generate Code'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Promo codes list */}
+            <ScrollArea className="flex-1" data-testid="promo-list">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : promoCodes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <Gift className="w-8 h-8 mb-2 opacity-20" />
+                  <p className="text-sm">No promo codes yet</p>
+                  <p className="text-xs opacity-50 mt-1">Generate codes for friends and family</p>
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {promoCodes.map((code) => {
+                    const isUsed = code.status === 'used'
+                    return (
+                      <div
+                        key={code.id}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors group ${
+                          isUsed ? 'opacity-60' : ''
+                        }`}
+                        data-testid={`promo-row-${code.id}`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          isUsed ? 'bg-zinc-500/10' : 'bg-amber-500/10'
+                        }`}>
+                          <Gift className={`w-4 h-4 ${isUsed ? 'text-zinc-400' : 'text-amber-400'}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm font-mono font-semibold">{code.code}</code>
+                            {isUsed && (
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1">used</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                            <span>{code.description || 'Unlimited credits'}</span>
+                            {isUsed && code.redeemed_at && (
+                              <span>Redeemed {relativeTime(code.redeemed_at)}</span>
+                            )}
+                            {isUsed && code.redeemed_by_email && (
+                              <span>by {code.redeemed_by_email}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {!isUsed && (
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100"
+                              onClick={() => copyPromoCode(code.code)}
+                              data-testid={`copy-promo-${code.id}`}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        ) : null}
       </div>
     </div>
   )
