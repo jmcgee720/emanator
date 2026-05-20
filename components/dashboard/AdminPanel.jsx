@@ -122,6 +122,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   useEffect(() => {
     if (tab === 'activity') loadActivity()
     if (tab === 'monitored') loadMonitored()
+    if (tab === 'promo') loadPromoCodes()
   }, [tab])
 
   const loadUsers = async () => {
