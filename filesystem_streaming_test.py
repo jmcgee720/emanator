@@ -28,8 +28,8 @@ SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 PROJECT_ID = "be43ac27-901d-46b3-a965-e1ad7e3e7d0a"
 CHAT_ID = "36c0d150-2960-4b70-9267-9b6a521893a8"
-TEST_EMAIL = "REDACTED_LEAKED_USER"
-TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
+TEST_EMAIL = "REDACTED_SEE_ENV_VAR"
+TEST_PASSWORD = "REDACTED_SEE_ENV_VAR"
 
 def log(message):
     """Log test results with timestamp"""

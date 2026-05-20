@@ -19,7 +19,7 @@ Test scenarios:
 8. getUserRole + hasPermission function verification
 
 Environment: https://webcontainer-preview.preview.emergentagent.com
-Auth: REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD (owner account)
+Auth: REDACTED_SEE_ENV_VAR / REDACTED_SEE_ENV_VAR (owner account)
 """
 
 import asyncio
@@ -30,8 +30,8 @@ from datetime import datetime
 
 # Test configuration
 BASE_URL = "https://webcontainer-preview.preview.emergentagent.com/api"
-TEST_EMAIL = "REDACTED_LEAKED_USER"
-TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
+TEST_EMAIL = "REDACTED_SEE_ENV_VAR"
+TEST_PASSWORD = "REDACTED_SEE_ENV_VAR"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "
 
 class Phase12Step7Test:

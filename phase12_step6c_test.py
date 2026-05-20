@@ -16,8 +16,8 @@ from urllib.parse import urlparse
 
 # Test configuration
 BASE_URL = "https://webcontainer-preview.preview.emergentagent.com"
-TEST_EMAIL = "REDACTED_LEAKED_USER"
-TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
+TEST_EMAIL = "REDACTED_SEE_ENV_VAR"
+TEST_PASSWORD = "REDACTED_SEE_ENV_VAR"
 SELF_EDIT_PREFIX = "⚙ Self-Edit: "
 
 def authenticate():

@@ -11,8 +11,8 @@ API_URL = "https://webcontainer-preview.preview.emergentagent.com"
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 CHAT_ID = "36c0d150-2960-4b70-9267-9b6a521893a8"
-TEST_EMAIL = "REDACTED_LEAKED_USER"
-TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
+TEST_EMAIL = "REDACTED_SEE_ENV_VAR"
+TEST_PASSWORD = "REDACTED_SEE_ENV_VAR"
 
 def get_token():
     """Get auth token"""

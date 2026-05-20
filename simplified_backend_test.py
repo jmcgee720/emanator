@@ -9,8 +9,8 @@ import json
 import sys
 
 BASE_URL = "https://webcontainer-preview.preview.emergentagent.com"
-AUTH_EMAIL = "REDACTED_LEAKED_USER"
-AUTH_PASSWORD = "REDACTED_LEAKED_PASSWORD"
+AUTH_EMAIL = "REDACTED_SEE_ENV_VAR"
+AUTH_PASSWORD = "REDACTED_SEE_ENV_VAR"
 
 def get_auth_token():
     """Get Supabase auth token"""

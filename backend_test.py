@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Test configuration
 BASE_URL = "https://webcontainer-preview.preview.emergentagent.com"
-TEST_CREDENTIALS = {"email": "REDACTED_LEAKED_USER", "password": "REDACTED_LEAKED_PASSWORD"}
+TEST_CREDENTIALS = {"email": "REDACTED_SEE_ENV_VAR", "password": "REDACTED_SEE_ENV_VAR"}
 
 class VariationStudioBackendTester:
     def __init__(self):

@@ -18,7 +18,7 @@ const SUPABASE_ANON = 'sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22'
 // ── Helpers ──
 
 async function supabaseAuth() {
-  const body = JSON.stringify({ email: 'REDACTED_LEAKED_USER', password: 'REDACTED_LEAKED_PASSWORD' })
+  const body = JSON.stringify({ email: 'REDACTED_SEE_ENV_VAR', password: 'REDACTED_SEE_ENV_VAR' })
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { apikey: SUPABASE_ANON, 'Content-Type': 'application/json' },

@@ -170,3 +170,8 @@ credentials.json
 *.key
 .credentials
 node_modules/.cache/webpack/server-development/4.pack
+
+# --- Security cleanup 2026-05-20 ---
+# Test reports may contain credentials/PII from automated runs; never commit
+test_reports/
+!test_reports/.gitkeep

@@ -14,7 +14,7 @@ from datetime import datetime
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 APP_URL = "https://webcontainer-preview.preview.emergentagent.com"
-TEST_EMAIL = "REDACTED_LEAKED_USER"
+TEST_EMAIL = "[REDACTED_TEST_USER]"
 TEST_PASSWORD = "TestPass123!"
 
 class AuthSystemTester:

@@ -2,7 +2,7 @@
 """
 Comprehensive Backend Testing for Rollback Feature
 Testing at: https://webcontainer-preview.preview.emergentagent.com
-Auth: REDACTED_LEAKED_USER / REDACTED_LEAKED_PASSWORD
+Auth: REDACTED_SEE_ENV_VAR / REDACTED_SEE_ENV_VAR
 
 Full test flow (must be sequential):
 1. Setup - find source project and get original files
@@ -40,7 +40,7 @@ def get_auth_token():
         'https://cawmmqakaxbznbelcrwd.supabase.co/auth/v1/token?grant_type=password',
         '-H', 'Content-Type: application/json',
         '-H', 'apikey: sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22',
-        '-d', '{"email":"REDACTED_LEAKED_USER","password":"REDACTED_LEAKED_PASSWORD"}'
+        '-d', '{"email":"REDACTED_SEE_ENV_VAR","password":"REDACTED_SEE_ENV_VAR"}'
     ]
     
     try:
@@ -550,7 +550,7 @@ def generate_report():
     report = {
         "test_suite": "Rollback Feature Comprehensive Testing",
         "url": BASE_URL.replace('/api', ''),
-        "auth": "REDACTED_LEAKED_USER",
+        "auth": "REDACTED_SEE_ENV_VAR",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
         "summary": {
             "total_tests": total_tests,

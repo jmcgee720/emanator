@@ -12,7 +12,7 @@ API_URL = "https://webcontainer-preview.preview.emergentagent.com"
 def get_token():
     r = requests.post(f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
         headers={"apikey": ANON_KEY, "Content-Type": "application/json"},
-        json={"email": "REDACTED_LEAKED_USER", "password": "REDACTED_LEAKED_PASSWORD"})
+        json={"email": "REDACTED_SEE_ENV_VAR", "password": "REDACTED_SEE_ENV_VAR"})
     return r.json()["access_token"]
 
 def hdrs(token):

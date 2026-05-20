@@ -15,8 +15,8 @@ class MyMergentChildMonitoredTester:
         self.base_url = "https://webcontainer-preview.preview.emergentagent.com"
         self.supabase_url = "https://cawmmqakaxbznbelcrwd.supabase.co"
         self.supabase_anon_key = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-        self.test_email = "REDACTED_LEAKED_USER"
-        self.test_password = "REDACTED_LEAKED_PASSWORD"
+        self.test_email = "REDACTED_SEE_ENV_VAR"
+        self.test_password = "REDACTED_SEE_ENV_VAR"
         self.auth_token = None
         self.test_user_id = None
         self.test_user_email = None

@@ -32,8 +32,8 @@ class TestBeforeApplyTester:
         self.base_url = "https://webcontainer-preview.preview.emergentagent.com/api"
         self.supabase_url = "https://cawmmqakaxbznbelcrwd.supabase.co"
         self.supabase_key = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
-        self.test_email = "REDACTED_LEAKED_USER"
-        self.test_password = "REDACTED_LEAKED_PASSWORD"
+        self.test_email = "REDACTED_SEE_ENV_VAR"
+        self.test_password = "REDACTED_SEE_ENV_VAR"
         self.auth_token = None
         self.source_project_id = None
         self.sandbox_project_id = None

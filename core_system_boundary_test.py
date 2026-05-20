@@ -14,8 +14,8 @@ BASE_URL = "https://webcontainer-preview.preview.emergentagent.com"
 SUPABASE_URL = "https://cawmmqakaxbznbelcrwd.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_THdjUbHRES-r3CcQzzJh1A_CeSg-f22"
 TEST_PROJECT_ID = "2fa5e2c3-4e74-4dfe-872c-d9601fd0fcfd"
-TEST_EMAIL = "REDACTED_LEAKED_USER"
-TEST_PASSWORD = "REDACTED_LEAKED_PASSWORD"
+TEST_EMAIL = "REDACTED_SEE_ENV_VAR"
+TEST_PASSWORD = "REDACTED_SEE_ENV_VAR"
 
 class CoreSystemBoundaryTester:
     def __init__(self):

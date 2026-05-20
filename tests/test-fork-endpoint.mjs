@@ -44,8 +44,8 @@ async function run() {
   // 1. Sign in
   console.log('1. Signing in as owner...')
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: 'REDACTED_LEAKED_USER',
-    password: 'REDACTED_LEAKED_PASSWORD',
+    email: 'REDACTED_SEE_ENV_VAR',
+    password: 'REDACTED_SEE_ENV_VAR',
   })
   if (authError) {
     console.error('  FAIL: Auth error:', authError.message)
