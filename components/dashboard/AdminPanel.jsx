@@ -205,35 +205,27 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   }
 
   const generatePromoCode = async () => {
+    if (!promoDescription.trim()) return
     setGenerating(true)
     try {
       const r = await authFetch('/api/admin/promo-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'unlimited', max_uses: 1 })
+        body: JSON.stringify({ plan: 'unlimited', max_uses: 1, description: promoDescription })
       })
       if (!r.ok) throw new Error((await r.json()).error || 'Failed')
       const newCode = await r.json()
       setPromoCodes([newCode, ...promoCodes])
+      setPromoDescription('')
       toast({ title: 'Promo Code Generated', description: newCode.code })
     } catch (e) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' })
     } finally { setGenerating(false) }
   }
 
-  const copyCode = (code) => {
+  const copyPromoCode = (code) => {
     navigator.clipboard.writeText(code)
     toast({ title: 'Copied!', description: `Code ${code} copied to clipboard` })
-  }
-
-  const deactivateCode = async (codeId) => {
-    try {
-      await authFetch(`/api/admin/promo-codes/${codeId}`, { method: 'DELETE' })
-      setPromoCodes(promoCodes.map(c => c.id === codeId ? { ...c, is_active: false } : c))
-      toast({ title: 'Code Deactivated' })
-    } catch {
-      toast({ title: 'Error', description: 'Failed to deactivate code', variant: 'destructive' })
-    }
   }
 
   const monitoredCount = users.filter(u => u.role === 'child_monitored').length
