@@ -106,10 +106,12 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   const [users, setUsers] = useState([])
   const [activity, setActivity] = useState([])
   const [monitored, setMonitored] = useState([])
+  const [promoCodes, setPromoCodes] = useState([])
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [newRole, setNewRole] = useState('member')
   const [adding, setAdding] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const { toast } = useToast()
 
   const effectiveRole = getUserRole(dbUser)
