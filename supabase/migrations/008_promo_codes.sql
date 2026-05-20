@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS promo_codes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT UNIQUE NOT NULL,
   plan TEXT NOT NULL CHECK (plan IN ('unlimited')),
+  description TEXT,
   max_uses INTEGER NOT NULL DEFAULT 1,
   uses_count INTEGER NOT NULL DEFAULT 0,
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
