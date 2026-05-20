@@ -90,18 +90,15 @@ export function useDashboardProject(ctx) {
       const chatList = Array.isArray(chatsData) ? chatsData : []
       setChats(chatList)
 
+      // Only restore a specific chat if explicitly requested (e.g., tab switching)
+      // Never auto-select the first chat - let user choose from ProjectHub
       if (restoreChatId) {
         const restored = chatList.find(c => c.id === restoreChatId)
         if (restored) {
           setSelectedChat(restored)
         }
-      } else if (!skipChatSelect) {
-        if (chatList.length > 0) {
-          setSelectedChat(chatList[0])
-        } else {
-          await autoCreateChat(projectId, chatTitle)
-        }
       }
+      // Removed auto-selection logic - users now explicitly choose from conversation list
     } catch (error) {
       console.error('Error loading chats:', error)
     }
