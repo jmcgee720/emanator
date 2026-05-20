@@ -29,10 +29,33 @@ async function selfEditPromptSection() {
   // just the self-edit prompt, not the project one (they share several
   // phrases like "INVENTORY FIRST" so a whole-file grep would mask the
   // regression we care about).
+  //
+  // We ALSO include the shared IMAGE_ANALYSIS_PROTOCOL and
+  // META_COGNITION_RULE constants because buildSelfEditSystemPrompt
+  // references them by name — they are concatenated into the prompt
+  // at runtime. Without including them here, the slice would miss the
+  // very phrases the prompt actually emits to Claude.
   const src = await load()
   const startIdx = src.indexOf('function buildSelfEditSystemPrompt')
   const endIdx = src.indexOf('\nfunction ', startIdx + 1)
-  return src.slice(startIdx, endIdx > startIdx ? endIdx : src.length)
+  const fnSlice = src.slice(startIdx, endIdx > startIdx ? endIdx : src.length)
+
+  // Pull the constants too. They're declared with `const NAME = [ ... ].join('\n')`.
+  const grabConst = (name) => {
+    const i = src.indexOf(`const ${name} = [`)
+    if (i < 0) return ''
+    const j = src.indexOf("].join('\\n')", i)
+    return j > i ? src.slice(i, j) : ''
+  }
+  const protocol = grabConst('IMAGE_ANALYSIS_PROTOCOL')
+  const meta = grabConst('META_COGNITION_RULE')
+
+  // Only fold the constants in when the function actually references them
+  // (so a regression that removes the reference is still caught).
+  let combined = fnSlice
+  if (fnSlice.includes('IMAGE_ANALYSIS_PROTOCOL')) combined += '\n' + protocol
+  if (fnSlice.includes('META_COGNITION_RULE')) combined += '\n' + meta
+  return combined
 }
 
 test('self-edit prompt: tells agent it CAN see images', async () => {
