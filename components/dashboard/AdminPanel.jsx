@@ -151,6 +151,14 @@ export default function AdminPanel({ user, dbUser, onClose }) {
     } catch { }
   }
 
+  const loadPromoCodes = async () => {
+    try {
+      const r = await authFetch('/api/admin/promo-codes')
+      const d = await r.json()
+      setPromoCodes(Array.isArray(d) ? d : [])
+    } catch { }
+  }
+
   const addUser = async () => {
     if (!newEmail.trim()) return
     setAdding(true)
