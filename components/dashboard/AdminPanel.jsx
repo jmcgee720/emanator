@@ -234,14 +234,14 @@ export default function AdminPanel({ user, dbUser, onClose }) {
 
   return (
     <div 
-      className="fixed bg-black/60 backdrop-blur-sm" 
-      style={{ inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-8" 
+      style={{ zIndex: 9999 }}
       onClick={onClose} 
       data-testid="admin-panel-overlay"
     >
       <div 
-        className="em-glass rounded-2xl w-full max-w-5xl flex flex-col border border-[rgba(255,255,255,0.15)]" 
-        style={{ maxHeight: '85vh', position: 'static' }}
+        className="w-full max-w-5xl flex flex-col bg-[#0D0D2B] rounded-2xl border border-[rgba(255,255,255,0.15)] shadow-[0_16px_70px_rgba(0,0,0,0.30)]" 
+        style={{ maxHeight: '85vh', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)' }}
         onClick={(e) => e.stopPropagation()} 
         data-testid="admin-panel"
       >
