@@ -26,7 +26,10 @@ import {
   Clock,
   UserCog,
   Eye,
-  MessageSquare
+  MessageSquare,
+  Tag,
+  Plus,
+  Copy
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { getUserRole, hasPermission } from '@/lib/constants'
