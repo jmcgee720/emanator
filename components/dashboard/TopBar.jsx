@@ -46,7 +46,6 @@ export default function TopBar({
   const initials = user?.email?.slice(0, 2).toUpperCase() || 'U'
   const effectiveRole = getUserRole(dbUser)
   const canViewAdmin = hasPermission(effectiveRole, 'view_admin')
-  console.log('[TopBar] dbUser:', dbUser, 'effectiveRole:', effectiveRole, 'canViewAdmin:', canViewAdmin)
   const [collabOpen, setCollabOpen] = useState(false)
   const role = dbUser?.role || 'member'
   const roleBadgeClass = role === 'owner' ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' :
