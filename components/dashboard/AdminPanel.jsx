@@ -279,6 +279,18 @@ export default function AdminPanel({ user, dbUser, onClose }) {
             Monitored {monitoredCount > 0 && `(${monitoredCount})`}
           </button>
         )}
+        {canManage && (
+          <button
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+              tab === 'promo' ? 'border-amber-400 text-amber-400' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+            onClick={() => setTab('promo')}
+            data-testid="admin-tab-promo"
+          >
+            <Gift className="w-3.5 h-3.5" />
+            Promo Codes
+          </button>
+        )}
       </div>
 
       {/* Content */}
