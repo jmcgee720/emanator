@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { authFetch } from '@/lib/auth-fetch'
 import { Button } from '@/components/ui/button'
@@ -123,6 +123,101 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   const canManage = hasPermission(effectiveRole, 'manage_users')
   const canViewMonitored = hasPermission(effectiveRole, 'view_monitored')
 
+  // ── Modal positioning diagnostics ──────────────────────────────────
+  // The modal kept rendering cut-off at the top instead of centered.
+  // Multiple agent fixes (inline styles, portal, z-index) shipped but
+  // the screenshot still showed it broken. The root cause is almost
+  // always an ancestor element with `transform`, `filter`, `perspective`,
+  // `will-change: transform`, `contain`, or `backdrop-filter` set — any
+  // of those create a new containing block that capture `position: fixed`
+  // descendants and pin them inside, not to the viewport.
+  //
+  // This effect walks the parent chain on mount and logs every ancestor
+  // with one of those properties. Drop this output into the chat for
+  // the agent: the first non-empty log line is the bug.
+  const overlayRef = useRef(null)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const el = overlayRef.current
+    if (!el) {
+      console.warn('[AdminPanel diag] overlay ref is null — component mounted but ref did not attach. React rendering issue.')
+      return
+    }
+    // 1. Log this build's marker so we KNOW the deployed bundle has the fix.
+    console.log('[AdminPanel diag] MOUNTED — build marker:', 'admin-panel-diag-v1', 'at', new Date().toISOString())
+
+    // 2. Log the modal's own resolved layout.
+    const rect = el.getBoundingClientRect()
+    const cs = window.getComputedStyle(el)
+    console.log('[AdminPanel diag] modal rect:', {
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      bottom: rect.bottom,
+      right: rect.right,
+      viewportH: window.innerHeight,
+      viewportW: window.innerWidth,
+    })
+    console.log('[AdminPanel diag] modal computed:', {
+      position: cs.position,
+      top: cs.top,
+      left: cs.left,
+      inset: cs.inset || `${cs.top} ${cs.right} ${cs.bottom} ${cs.left}`,
+      display: cs.display,
+      alignItems: cs.alignItems,
+      justifyContent: cs.justifyContent,
+      zIndex: cs.zIndex,
+      transform: cs.transform,
+    })
+
+    // 3. Walk the parent chain. Anything with a containing-block-creating
+    //    property is the culprit when a fixed-positioned descendant
+    //    fails to anchor to the viewport.
+    const culprits = []
+    let p = el.parentElement
+    let depth = 0
+    while (p && depth < 40) {
+      const ps = window.getComputedStyle(p)
+      const reasons = []
+      if (ps.transform && ps.transform !== 'none') reasons.push(`transform=${ps.transform}`)
+      if (ps.filter && ps.filter !== 'none') reasons.push(`filter=${ps.filter}`)
+      if (ps.perspective && ps.perspective !== 'none') reasons.push(`perspective=${ps.perspective}`)
+      if (ps.willChange && /transform|filter|perspective/.test(ps.willChange)) reasons.push(`will-change=${ps.willChange}`)
+      if (ps.contain && /(layout|paint|strict|content)/.test(ps.contain)) reasons.push(`contain=${ps.contain}`)
+      if (ps.backdropFilter && ps.backdropFilter !== 'none') reasons.push(`backdrop-filter=${ps.backdropFilter}`)
+      if (reasons.length > 0) {
+        culprits.push({
+          depth,
+          tag: p.tagName,
+          id: p.id || null,
+          className: typeof p.className === 'string' ? p.className.slice(0, 120) : null,
+          dataTestid: p.dataset?.testid || null,
+          reasons,
+        })
+      }
+      p = p.parentElement
+      depth++
+    }
+    if (culprits.length === 0) {
+      console.log('[AdminPanel diag] NO containing-block creators found in parent chain. The modal SHOULD anchor to viewport. If it does not, suspect: (a) Tailwind class purge stripping `fixed inset-0`, (b) hydration mismatch where SSR rendered different markup, (c) parent removed the modal from the chain via a portal that landed in a transformed container.')
+    } else {
+      console.warn('[AdminPanel diag] CONTAINING BLOCK CREATORS FOUND — these capture position:fixed:', culprits)
+      console.warn('[AdminPanel diag] FIX: remove the offending property from the closest culprit (depth ' + culprits[0].depth + ', ' + culprits[0].tag + '), OR portal the modal out of that subtree using `createPortal(jsx, document.body)`.')
+    }
+
+    // 4. Confirm where in the DOM the modal actually sits — is it
+    //    a direct child of <body> (portal worked) or inside the
+    //    Dashboard tree (portal not active)?
+    const parentChainTags = []
+    let q = el.parentElement
+    for (let i = 0; i < 6 && q; i++) {
+      parentChainTags.push(`${q.tagName}${q.dataset?.testid ? `[testid=${q.dataset.testid}]` : ''}`)
+      q = q.parentElement
+    }
+    console.log('[AdminPanel diag] parent chain (closest first, 6 levels):', parentChainTags.join(' → '))
+  }, [])
+
   useEffect(() => { loadUsers() }, [])
   useEffect(() => {
     if (tab === 'activity') loadActivity()
@@ -240,6 +335,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
 
   return createPortal(
     <div 
+      ref={overlayRef}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-8" 
       style={{ zIndex: 9999 }}
       onClick={onClose} 
