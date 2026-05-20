@@ -175,3 +175,4 @@ node_modules/.cache/webpack/server-development/4.pack
 # Test reports may contain credentials/PII from automated runs; never commit
 test_reports/
 !test_reports/.gitkeep
+node_modules/.cache/webpack/server-development/12.pack
