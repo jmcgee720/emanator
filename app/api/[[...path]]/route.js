@@ -82,6 +82,8 @@ const phase1Modules = [
 // Phase 2 module dispatch order (CRITICAL: projectsRoutes MUST be last — its regex swallows /projects/:id)
 const phase2Modules = [
   adminUsersRoutes,
+  adminPromoRoutes,
+  promoRedeemRoutes,
   designRoutes,
   canvasRoutes,
   filesRoutes,
