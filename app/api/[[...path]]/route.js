@@ -30,6 +30,8 @@ import * as buildStepsRoutes from '@/lib/api/routes/build-steps'
 
 // Phase 2 route modules
 import * as adminUsersRoutes from '@/lib/api/routes/admin-users'
+import * as adminPromoRoutes from '@/lib/api/routes/admin-promo'
+import * as promoRedeemRoutes from '@/lib/api/routes/promo-redeem'
 import * as designRoutes from '@/lib/api/routes/design'
 import * as canvasRoutes from '@/lib/api/routes/canvas'
 import * as filesRoutes from '@/lib/api/routes/files'
