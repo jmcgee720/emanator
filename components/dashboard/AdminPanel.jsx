@@ -343,7 +343,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
     >
       <div 
         className="w-full max-w-5xl flex flex-col bg-[#0D0D2B] rounded-2xl border border-[rgba(255,255,255,0.15)] shadow-[0_16px_70px_rgba(0,0,0,0.30)]" 
-        style={{ maxHeight: '85vh', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)' }}
+        style={{ maxHeight: '85vh', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)', marginTop: '200px' }}
         onClick={(e) => e.stopPropagation()} 
         data-testid="admin-panel"
       >
