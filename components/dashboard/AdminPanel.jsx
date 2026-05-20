@@ -104,7 +104,7 @@ function relativeTime(ts) {
 }
 
 export default function AdminPanel({ user, dbUser, onClose }) {
-  // Admin panel with user management and promo codes
+  // Admin panel with user management and promo codes [v2]
   const [tab, setTab] = useState('users')
   const [users, setUsers] = useState([])
   const [activity, setActivity] = useState([])
