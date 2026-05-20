@@ -611,6 +611,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
