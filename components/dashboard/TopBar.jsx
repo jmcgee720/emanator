@@ -157,14 +157,14 @@ export default function TopBar({
           <Search className="w-3.5 h-3.5" />
         </Button>
 
-        {selectedProject && (
+        {canViewAdmin && (
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setCollabOpen(true)}
+            onClick={() => setAdminOpen(true)}
             className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
-            title="Collaborators"
-            data-testid="collaborators-btn"
+            title="User Management"
+            data-testid="admin-btn"
           >
             <Users className="w-3.5 h-3.5" />
           </Button>
