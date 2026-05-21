@@ -629,18 +629,29 @@ export default function AdminPanel({ user, dbUser, onClose }) {
               {/* Generate promo code form */}
               {canManage && (
                 <div className="p-4 border-b border-border" data-testid="generate-promo-form">
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="text"
-                      placeholder="Description (e.g., 'For John')"
-                      value={promoDescription}
-                      onChange={(e) => setPromoDescription(e.target.value)}
-                      className="flex-1 h-8 text-sm"
-                      data-testid="promo-description"
-                    />
-                    <Button size="sm" className="h-8" onClick={generatePromoCode} disabled={generating || !promoDescription.trim()} data-testid="generate-promo-btn">
-                      {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Generate Code'}
-                    </Button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="email"
+                        placeholder="Recipient email (e.g., friend@example.com)"
+                        value={promoRecipientEmail}
+                        onChange={(e) => setPromoRecipientEmail(e.target.value)}
+                        className="flex-1 h-8 text-sm"
+                        data-testid="promo-recipient-email"
+                      />
+                      <Input
+                        type="text"
+                        placeholder="Description (e.g., 'For John')"
+                        value={promoDescription}
+                        onChange={(e) => setPromoDescription(e.target.value)}
+                        className="flex-1 h-8 text-sm"
+                        data-testid="promo-description"
+                      />
+                      <Button size="sm" className="h-8 whitespace-nowrap" onClick={generatePromoCode} disabled={generating || !promoDescription.trim() || !promoRecipientEmail.trim()} data-testid="generate-promo-btn">
+                        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Generate & Email'}
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Code will be emailed to the recipient with redemption instructions</p>
                   </div>
                 </div>
               )}
