@@ -95,11 +95,8 @@ function MessagePart({ content, hideCodeBlocks }) {
             if (inline) {
               return <InlineCode>{children}</InlineCode>
             }
-            // Never render code blocks in AI chat — the user doesn't want to see code.
-            // Render as plain text paragraph instead.
-            const text = String(children).replace(/\n$/, '')
-            if (!text || text.length < 3) return null
-            return <span className="text-[13.5px] text-foreground/70">{text}</span>
+            // Render code blocks with syntax highlighting and copy button
+            return <CodeBlock className={className}>{children}</CodeBlock>
           },
           h1: ({ children }) => <h1 className="text-lg font-semibold mt-3 mb-1.5 text-foreground break-words">{children}</h1>,
           h2: ({ children }) => <h2 className="text-base font-semibold mt-2.5 mb-1.5 text-foreground break-words">{children}</h2>,
