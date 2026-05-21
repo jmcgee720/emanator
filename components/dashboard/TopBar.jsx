@@ -13,6 +13,7 @@ import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plu
 import Link from 'next/link'
 import { useState } from 'react'
 import CollaboratorsModal from './CollaboratorsModal'
+import AdminPanel from './AdminPanel'
 import { getUserRole, hasPermission } from '@/lib/constants'
 
 function AuroralyLogo({ className }) {
