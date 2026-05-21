@@ -47,6 +47,7 @@ export default function TopBar({
   const effectiveRole = getUserRole(dbUser)
   const canViewAdmin = hasPermission(effectiveRole, 'view_admin')
   const [collabOpen, setCollabOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
   const role = dbUser?.role || 'member'
   const roleBadgeClass = role === 'owner' ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' :
     role === 'admin' ? 'text-purple-400 bg-purple-500/10 border-purple-500/20' :
