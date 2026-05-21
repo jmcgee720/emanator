@@ -336,14 +336,13 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   return createPortal(
     <div 
       ref={overlayRef}
-      className="fixed inset-0 bg-black/60 flex items-center justify-center p-8" 
-      style={{ zIndex: 9999, backdropFilter: 'none' }}
+      className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center p-8" 
+      style={{ zIndex: 9999 }}
       onClick={onClose} 
       data-testid="admin-panel-overlay"
     >
       <div 
-        className="w-full max-w-5xl flex flex-col bg-[#0D0D2B] rounded-2xl border border-[rgba(255,255,255,0.15)] shadow-[0_16px_70px_rgba(0,0,0,0.30)]" 
-        style={{ maxHeight: '85vh' }}
+        className="w-full max-w-5xl h-[85vh] flex flex-col bg-[#0D0D2B] rounded-2xl border border-[rgba(255,255,255,0.15)] shadow-[0_16px_70px_rgba(0,0,0,0.30)]" 
         onClick={(e) => e.stopPropagation()} 
         data-testid="admin-panel"
       >
