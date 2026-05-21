@@ -72,7 +72,9 @@ export default function TopBar({
         {/* Credits display */}
         <div className="flex items-center gap-1.5 mr-1" data-testid="credits-display" style={{ filter: 'drop-shadow(0 0 6px rgba(0,229,255,0.25))' }}>
           <Zap className="w-3.5 h-3.5 text-[var(--em-cyan)]" />
-          <span className="text-sm font-bold em-gradient-text">{creditsBalance !== null && creditsBalance !== undefined ? Number(creditsBalance).toFixed(2) : '—'}</span>
+          <span className="text-sm font-bold em-gradient-text">
+            {creditsBalance === 'unlimited' ? 'UNLIMITED' : creditsBalance !== null && creditsBalance !== undefined ? Number(creditsBalance).toFixed(2) : '—'}
+          </span>
         </div>
 
         {/* Buy Credits button */}
