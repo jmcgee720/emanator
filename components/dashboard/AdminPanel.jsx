@@ -337,7 +337,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
     <div 
       ref={overlayRef}
       className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center p-8" 
-      style={{ zIndex: 9999 }}
+      style={{ zIndex: 99999 }}
       onClick={onClose} 
       data-testid="admin-panel-overlay"
     >
