@@ -9,6 +9,7 @@ import { authFetch } from '@/lib/auth-fetch'
  * Owner-only (the API enforces it too). Roles: viewer | editor.
  *
  * Rendered conditionally from the parent; dismisses on Escape + backdrop click.
+ * Fixed: Added p-4 padding and max-h-[90vh] to prevent top cropping.
  */
 export default function CollaboratorsModal({ open, onClose, projectId, projectName }) {
   const [list, setList] = useState([])
