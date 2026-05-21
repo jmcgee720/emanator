@@ -212,7 +212,15 @@ export function useDashboardProject(ctx) {
   const createChat = async (title = 'New Chat') => {
     if (!selectedProject) return
 
+    // Auto-convert to self-edit chat if in Core System project
+    const isCoreProject = selectedProject.settings?.is_core === true
     const isSelfEditTitle = title.startsWith('\u2699 Self-Edit: ')
+    
+    if (isCoreProject && !isSelfEditTitle && isOwner) {
+      // Core System project: force self-edit chat
+      return createSelfEditChat(title === 'New Chat' ? 'Internal Improvement' : title)
+    }
+    
     if (isSelfEditTitle && !isOwner) {
       toast({ title: 'Error', description: 'Only owners can create Core System chats', variant: 'destructive' })
       return
