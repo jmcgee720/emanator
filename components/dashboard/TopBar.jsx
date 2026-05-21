@@ -236,6 +236,13 @@ export default function TopBar({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {adminOpen && (
+        <AdminPanel
+          user={user}
+          dbUser={dbUser}
+          onClose={() => setAdminOpen(false)}
+        />
+      )}
       <CollaboratorsModal
         open={collabOpen}
         onClose={() => setCollabOpen(false)}
