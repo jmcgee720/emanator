@@ -20,6 +20,11 @@ export default function CollaboratorsModal({ open, onClose, projectId, projectNa
   const [inviting, setInviting] = useState(false)
   const [removingId, setRemovingId] = useState(null)
 
+  // DIAGNOSTIC: verify modal is rendering with new code
+  useEffect(() => {
+    if (open) console.log('[CollaboratorsModal] Mounted with padding fix (v2)')
+  }, [open])
+
   const load = useCallback(async () => {
     if (!projectId) return
     setLoading(true)
