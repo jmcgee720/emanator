@@ -99,8 +99,9 @@ export default function CollaboratorsModal({ open, onClose, projectId, projectNa
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
       data-testid="collaborators-modal"
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0D1220] shadow-2xl">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0D1220] shadow-2xl" style={{ margin: 'auto' }}>
         <div className="flex items-start justify-between p-5 border-b border-white/5">
           <div>
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/45">
