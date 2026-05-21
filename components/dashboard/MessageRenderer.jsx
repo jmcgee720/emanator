@@ -76,15 +76,12 @@ function MessagePart({ content, hideCodeBlocks }) {
   if (!content?.trim()) return null
   if (!content) return null
 
-  // Strip code blocks from AI responses.
-  // The AI should communicate through conversation and tool calls, not by dumping code/JSON.
+  // Clean up excess whitespace but preserve code blocks
   let displayContent = content
-    .replace(/```json[\s\S]*?```/g, '')    // always strip JSON blocks (plan dumps)
-    .replace(/```[\s\S]*?```/g, '')        // strip all fenced code blocks
     .replace(/\n{3,}/g, '\n\n')            // collapse excess newlines
     .trim()
 
-  // If stripping removed everything, show a clean fallback
+  // If content is empty after cleanup, show a clean fallback
   if (!displayContent) {
     displayContent = 'Building your project...'
   }
