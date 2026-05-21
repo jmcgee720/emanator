@@ -134,7 +134,8 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
       const res = await authFetch('/api/credits')
       if (res?.ok) {
         const data = await res.json()
-        setCreditsBalance(data.balance)
+        // If user has unlimited flag, show "unlimited" instead of numeric balance
+        setCreditsBalance(data.unlimited ? 'unlimited' : data.balance)
         setCreditsCosts(data.costs || {})
       }
     } catch {}
