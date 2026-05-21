@@ -398,11 +398,19 @@ export default function LeftPanel({
     }
   }, [])
 
-  const handleSendMessage = async (content) => {
+  const handleSendMessage = async (content, attachments) => {
     if (!content.trim() || isStreaming) return
     setSending(true)
     try {
-      await onSendMessage(content)
+      // Forward attachments through. Previously this handler only
+      // accepted `content` and silently dropped any attachments the
+      // composer produced — which is why drag-and-drop AND paperclip
+      // uploads both reached the server (200 on /upload) but never
+      // landed on the agent: ChatComposer called
+      // onSend(messageText, uploadedAttachments) and the second arg
+      // evaporated here. The agent then said "I don't see any
+      // attachments" while the user was sure they'd uploaded.
+      await onSendMessage(content, attachments)
     } finally {
       setSending(false)
     }
