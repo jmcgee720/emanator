@@ -304,19 +304,25 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   }
 
   const generatePromoCode = async () => {
-    if (!promoDescription.trim()) return
+    if (!promoDescription.trim() || !promoRecipientEmail.trim()) return
     setGenerating(true)
     try {
       const r = await authFetch('/api/admin/promo-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'unlimited', max_uses: 1, description: promoDescription })
+        body: JSON.stringify({ 
+          plan: 'unlimited', 
+          max_uses: 1, 
+          description: promoDescription,
+          recipient_email: promoRecipientEmail
+        })
       })
       if (!r.ok) throw new Error((await r.json()).error || 'Failed')
       const newCode = await r.json()
       setPromoCodes([newCode, ...promoCodes])
       setPromoDescription('')
-      toast({ title: 'Promo Code Generated', description: newCode.code })
+      setPromoRecipientEmail('')
+      toast({ title: 'Promo Code Sent!', description: `Code ${newCode.code} emailed to ${promoRecipientEmail}` })
     } catch (e) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' })
     } finally { setGenerating(false) }
