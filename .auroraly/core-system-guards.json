@@ -1,0 +1,70 @@
+{
+  "_comment_top": "Core System self-edit guardrails. Files / dependencies in this config block the v2 agent from editing them WITHOUT explicit user confirmation in the same conversation. The confirmation token is a literal user message containing 'CONFIRMED: <path>' or 'CONFIRMED: <package>'. This config is loaded by lib/ai/core-system-guards.js and enforced by writeFileTool / editFileTool in agent-tools-v2.js. Project-mode chats are unaffected — only self-edit (Core System) chats run through these gates.",
+  "_comment_why": "On 2026-05-21 Core System committed 19 NextAuth migration commits replacing Supabase auth (without env vars set), locking the owner out of the platform. The agent had no friction preventing it from touching auth/payment/middleware/dependency-list files. These guards add intentional friction so high-blast-radius changes require the user to literally type CONFIRMED:<path> before they happen.",
+
+  "forbidden_paths_without_confirmation": [
+    "components/auth/**",
+    "app/api/auth/**",
+    "app/auth/**",
+    "lib/auth/**",
+    "lib/auth-fetch.js",
+    "lib/auth-config.js",
+    "lib/supabase.js",
+    "lib/supabase-server.js",
+    "lib/supabase-admin.js",
+    "middleware.js",
+    "middleware.ts",
+    "supabase/migrations/**",
+    "supabase/config.toml",
+    "app/layout.js",
+    "app/layout.tsx",
+    "components/AppShell.jsx",
+    "components/auth/SessionProvider.jsx",
+
+    "lib/api/routes/stripe/**",
+    "lib/payments/**",
+    "lib/credits/**",
+    "app/api/stripe/**",
+    "app/api/credits/**",
+    "app/api/webhooks/**",
+
+    ".env",
+    ".env.local",
+    ".env.production",
+    "vercel.json",
+    "next.config.js",
+    "next.config.mjs"
+  ],
+
+  "forbidden_package_additions": [
+    "next-auth",
+    "@auth/core",
+    "@auth/nextjs",
+    "@auth/supabase-adapter",
+    "@auth/prisma-adapter",
+    "firebase-auth",
+    "@aws-amplify/auth",
+    "passport",
+    "passport-google-oauth20",
+    "oidc-client",
+    "openid-client",
+    "@clerk/nextjs",
+    "@clerk/clerk-sdk-node",
+    "lucia",
+    "lucia-auth",
+    "iron-session"
+  ],
+
+  "force_confirmation_when_diff_contains": [
+    "supabase.auth = ",
+    "delete supabase",
+    "throw new Error('AUTH_DISABLED",
+    "process.env.NEXTAUTH",
+    "process.env.AUTH_SECRET",
+    "from 'next-auth'",
+    "from \"next-auth\""
+  ],
+
+  "confirmation_token_pattern": "^CONFIRMED:\\s*",
+  "confirmation_token_documentation": "User must type 'CONFIRMED: <exact-path>' or 'CONFIRMED: <package-name>' as a literal message to authorize the protected change. Vague yes/sure/go-ahead are NOT accepted. The match is case-sensitive on CONFIRMED and the path is compared after trimming whitespace."
+}
