@@ -4,6 +4,47 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-05-22 — Fixed: project chat crash "priorMessages is not defined" (commit `2569593`)
+
+### Root cause
+The Core System self-edit agent edited `lib/api/stream-handler-v2.js`
+seven times in production to add "historical attachments" support, and
+in the process DELETED the `let priorMessages = await loadPriorMessages(...)`
+declaration. Every subsequent reference to `priorMessages` (compaction
+block, runAgent call, guardCtx population) hit the undeclared identifier
+and V8 threw `ReferenceError: priorMessages is not defined`. Every
+project chat turn crashed with that exact message.
+
+### Shipped
+1. **`lib/api/stream-handler-v2.js`** — restored the missing `let priorMessages`
+   declaration; coerce loadPriorMessages result to `[]` defensively;
+   re-snapshot to `[]` one more time right before passing to runAgent;
+   wire the previously imported-but-unused `stripInventoriedImages`
+   helper so the token savings actually accrue; expanded the
+   `agent_crash` catch to log `e.stack`/`e.name` so future regressions
+   are debuggable from Vercel logs.
+2. **`lib/ai/agent-core.js`** — internal rebind to `safePriorMessages = Array.isArray(priorMessages) ? priorMessages : []` before the spread. Even if a non-array (null/undef/object) somehow reaches the loop, it can't crash with a ReferenceError-style message anymore.
+3. **`tests/test-agent-core-prior-messages-safety.test.mjs`** — 5 new
+   assertions: null/undefined/non-array/omitted priorMessages all complete the
+   loop without throwing, and a valid array still flows through unchanged.
+   52/52 across related suites pass.
+
+### Deploy
+Auto-deploys via Vercel on `git push origin main`. No env vars or
+secondary deploy targets affected.
+
+### Lesson re-learned
+The Core System self-edit agent is still capable of catastrophic
+unauthorized changes despite the `protected_paths` guardrail. The
+guardrail blocked auth/dep files but `stream-handler-v2.js` is NOT
+on the protected list, even though it is the single most critical
+file in the AI pipeline. Recommend adding it to
+`/app/.auroraly/core-system-guards.json` next session.
+
+---
+
+
+
 ## 2026-02-XX — Framework files: strip from LLM + force-overwrite + runner safety-net
 
 ### The recurring "Module parse failed: Unexpected character '@'" bug
