@@ -47,13 +47,23 @@ export async function POST(request) {
   const { plan, max_uses, description } = await request.json()
   const code = generatePromoCode()
 
-  const newCode = await db.promoCodes.create({
-    code,
-    plan: plan || 'unlimited',
-    max_uses: max_uses || 1,
-    created_by: dbUser.id,
-    description,
-  })
+  try {
+    const newCode = await db.promoCodes.create({
+      code,
+      plan: plan || 'unlimited',
+      max_uses: max_uses || 1,
+      created_by: dbUser.id,
+      description,
+    })
 
-  return NextResponse.json(newCode)
+    return NextResponse.json(newCode)
+  } catch (err) {
+    console.error('[POST /api/admin/promo-codes] Error:', err)
+    return NextResponse.json({ 
+      error: err.message || 'Failed to create promo code',
+      details: err.details || null,
+      hint: err.hint || null,
+      code: err.code || null
+    }, { status: 500 })
+  }
 }
