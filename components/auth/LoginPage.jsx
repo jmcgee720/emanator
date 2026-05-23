@@ -319,7 +319,7 @@ export default function LoginPage({ onAuthSuccess }) {
                 }}
               >
                 <TabsTrigger value="signin" data-testid="signin-tab"
-                  className="text-xs font-semibold rounded-lg transition-all duration-150 data-[state=active]:shadow-none"
+                  className="text-[11px] sm:text-xs font-semibold rounded-lg transition-all duration-150 data-[state=active]:shadow-none"
                   style={{
                     color: mode === 'signin' ? '#FFFFFF' : '#8A8EA6',
                     background: mode === 'signin' ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
@@ -327,7 +327,7 @@ export default function LoginPage({ onAuthSuccess }) {
                   }}
                 >Sign In</TabsTrigger>
                 <TabsTrigger value="signup" data-testid="signup-tab"
-                  className="text-xs font-semibold rounded-lg transition-all duration-150 data-[state=active]:shadow-none"
+                  className="text-[11px] sm:text-xs font-semibold rounded-lg transition-all duration-150 data-[state=active]:shadow-none"
                   style={{
                     color: mode === 'signup' ? '#FFFFFF' : '#8A8EA6',
                     background: mode === 'signup' ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
