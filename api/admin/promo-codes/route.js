@@ -44,16 +44,25 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { plan, max_uses, description } = await request.json()
+  const { 
+    plan, 
+    max_uses, 
+    description,
+    discount_type,
+    discount_value,
+  } = await request.json()
+  
   const code = generatePromoCode()
 
   try {
     const newCode = await db.promoCodes.create({
       code,
-      plan: plan || 'unlimited',
+      plan: plan || (discount_type === 'plan_upgrade' ? 'unlimited' : null),
       max_uses: max_uses || 1,
       created_by: dbUser.id,
       description,
+      discount_type: discount_type || 'plan_upgrade',
+      discount_value: discount_value || null,
     })
 
     return NextResponse.json(newCode)
