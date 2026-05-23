@@ -1306,18 +1306,23 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     const hashChanged = prevHash !== null && prevHash !== currentHash
     const forceRefresh = forceRefreshRef.current || forceRecompileRef.current
     if (hashChanged || forceRefresh) {
-      // Invalidate snapshot when files change (new build) or user forces refresh
-      // Files changed = snapshot is stale by definition — always clear it
-      setSnapshotHtml(null)
-      snapshotSavedHashRef.current = null
-      setRefreshKey(k => k + 1)
-      if (!forceRefresh) {
-        setIframeErrors([])
-        setConsoleLogs([])
-        setIframeLoaded(false)
-      }
-      forceRefreshRef.current = false
-      forceRecompileRef.current = false
+      // Debounce: wait 500ms before recompiling so rapid file changes don't thrash the preview
+      const timer = setTimeout(() => {
+        // Invalidate snapshot when files change (new build) or user forces refresh
+        // Files changed = snapshot is stale by definition — always clear it
+        setSnapshotHtml(null)
+        snapshotSavedHashRef.current = null
+        setRefreshKey(k => k + 1)
+        if (!forceRefresh) {
+          setIframeErrors([])
+          setConsoleLogs([])
+          setIframeLoaded(false)
+        }
+        forceRefreshRef.current = false
+        forceRecompileRef.current = false
+      }, forceRefresh ? 0 : 500)
+      prevFilesRef.current = currentHash
+      return () => clearTimeout(timer)
     }
     prevFilesRef.current = currentHash
   }, [files])
