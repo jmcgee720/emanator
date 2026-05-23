@@ -88,7 +88,8 @@ const ChatComposer = forwardRef(function ChatComposer({
   onUploadFiles,
   visualMode = 'stock',
   onVisualModeChange,
-  placeholder = 'Describe what you want to build...'
+  placeholder = 'Describe what you want to build...',
+  chatId = null,
 }, ref) {
   const [input, setInput] = useState('')
   const [attachedFiles, setAttachedFiles] = useState([])
