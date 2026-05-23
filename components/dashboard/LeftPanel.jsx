@@ -706,7 +706,33 @@ export default function LeftPanel({
 
                   {/* Message bubble */}
                   <div className={`flex-1 min-w-0 ${isUser ? 'flex flex-col items-end' : ''}`}>
-                    {isProviderError ? (
+                    {isForkWarning ? (
+                      <div className="rounded-lg border border-cyan-500/20 bg-cyan-950/10 px-3.5 py-2.5 max-w-full" data-testid="fork-warning-card">
+                        <div className="flex items-start gap-2 mb-2">
+                          <GitFork className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <MessageRenderer content={message.content} />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 pl-6">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1.5 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+                            onClick={async () => {
+                              setForkingChat(true)
+                              await onForkChat(selectedChat.id)
+                              setForkingChat(false)
+                            }}
+                            disabled={forkingChat}
+                            data-testid="fork-warning-btn"
+                          >
+                            {forkingChat ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitFork className="w-3 h-3" />}
+                            {forkingChat ? 'Forking...' : 'Fork Conversation'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : isProviderError ? (
                       <div className="rounded-lg border border-amber-500/12 bg-amber-950/10 px-3.5 py-2.5 max-w-full" data-testid="provider-error-card">
                         <div className="flex items-start gap-2 mb-2">
                           <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
