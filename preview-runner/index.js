@@ -161,8 +161,29 @@ async function ensureViteHostOverride(pkg, cwd) {
   const fs = await import('node:fs/promises')
   const candidates = ['vite.config.js', 'vite.config.mjs', 'vite.config.ts', 'vite.config.cjs']
   let userConfigImport = null
+  let userConfigPath = null
   for (const c of candidates) {
-    if (existsSync(join(dir, c))) { userConfigImport = `./${c}`; break }
+    const full = join(dir, c)
+    if (existsSync(full)) {
+      userConfigImport = `./${c}`
+      userConfigPath = full
+      break
+    }
+  }
+  // If we found a config, check if it's safe to import (doesn't use @/ aliases
+  // or other resolution-dependent imports at the top level). If it looks risky,
+  // skip the import and use a minimal fallback.
+  if (userConfigPath) {
+    try {
+      const content = await fs.readFile(userConfigPath, 'utf8')
+      // Common patterns that indicate the config needs Vite's resolver to be
+      // initialized before it can be imported (chicken-and-egg problem).
+      const hasRiskyImports = /@\/|#\/|~\//.test(content) || /import.*from\s+['"]@/.test(content)
+      if (hasRiskyImports) {
+        appendLog('runner', `[runner] user vite config uses path aliases — using minimal fallback to avoid import errors`)
+        userConfigImport = null
+      }
+    } catch {}
   }
   // ESM file that imports the user's config (if any) and merges in
   // `server.allowedHosts: true` so Vite's v5 host-check accepts our
