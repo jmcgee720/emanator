@@ -252,7 +252,20 @@ const ChatComposer = forwardRef(function ChatComposer({
       }
     }
 
-    const messageText = hasContent ? input.trim() : `[Uploaded ${uploadedAttachments.length} file(s)]`
+    let messageText = hasContent ? input.trim() : `[Uploaded ${uploadedAttachments.length} file(s)]`
+    
+    // Prepend attachment path info so AI knows files are already saved
+    if (uploadedAttachments.length > 0) {
+      const attachmentPaths = uploadedAttachments
+        .filter(a => a.path && a.public_url)
+        .map(a => `  • ${a.filename} → ${a.path} (use ${a.public_url} in code)`)
+        .join('\n')
+      
+      if (attachmentPaths) {
+        messageText = `[ATTACHED FILES - already saved to project:\n${attachmentPaths}]\n\n${messageText}`
+      }
+    }
+    
     onSend(messageText, uploadedAttachments.length > 0 ? uploadedAttachments : undefined)
     setInput('')
     setAttachedFiles([])
