@@ -662,64 +662,33 @@ export default function AdminPanel({ user, dbUser, onClose }) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="plan_upgrade">
-                            <div className="flex flex-col">
-                              <span className="font-medium">Unlimited Plan Upgrade</span>
-                              <span className="text-[10px] text-muted-foreground">Give user unlimited access</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="credits">
-                            <div className="flex flex-col">
-                              <span className="font-medium">Credit Bonus</span>
-                              <span className="text-[10px] text-muted-foreground">Add credits to user's balance</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="percentage">
-                            <div className="flex flex-col">
-                              <span className="font-medium">Percentage Discount</span>
-                              <span className="text-[10px] text-muted-foreground">% off next purchase</span>
-                            </div>
-                          </SelectItem>
+                          <SelectItem value="credits">Credit Bonus</SelectItem>
+                          <SelectItem value="percentage">Percentage Discount</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
-                    {promoDiscountType !== 'plan_upgrade' && (
-                      <div className="w-32">
-                        <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                          {promoDiscountType === 'credits' ? 'Credits' : 'Percent'}
-                        </label>
-                        <Input
-                          type="number"
-                          placeholder={promoDiscountType === 'credits' ? '50' : '20'}
-                          value={promoDiscountValue}
-                          onChange={(e) => setPromoDiscountValue(e.target.value)}
-                          className="h-9 text-sm"
-                          data-testid="promo-discount-value"
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="w-28">
-                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Max Uses</label>
+                    <div className="w-32">
+                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                        {promoDiscountType === 'credits' ? 'Credits' : 'Percent'}
+                      </label>
                       <Input
                         type="number"
-                        placeholder="1"
-                        value={promoMaxUses}
-                        onChange={(e) => setPromoMaxUses(e.target.value)}
+                        placeholder={promoDiscountType === 'credits' ? '50' : '20'}
+                        value={promoDiscountValue}
+                        onChange={(e) => setPromoDiscountValue(e.target.value)}
                         className="h-9 text-sm"
-                        data-testid="promo-max-uses"
+                        data-testid="promo-discount-value"
                       />
                     </div>
                   </div>
                   
                   <p className="text-[10px] text-muted-foreground -mt-1">
-                    {promoDiscountType === 'plan_upgrade' && 'Upgrades user to unlimited plan permanently'}
-                    {promoDiscountType === 'credits' && `Adds ${promoDiscountValue || '___'} credits to user's balance`}
-                    {promoDiscountType === 'percentage' && `Gives ${promoDiscountValue || '___'}% off their next credit purchase`}
+                    {promoDiscountType === 'credits' && `Adds ${promoDiscountValue || '?'} credits to user's balance`}
+                    {promoDiscountType === 'percentage' && `Gives ${promoDiscountValue || '?'}% off their next credit purchase`}
                     {' • '}
                     <span className="text-muted-foreground/70">
-                      {parseInt(promoMaxUses) === 1 ? 'Single-use (personalized)' : `Can be used ${promoMaxUses} times (public code)`}
+                      {promoRecipientEmail.trim() ? 'Single-use (personalized)' : 'Multi-use (public code)'}
                     </span>
                   </p>
                   
@@ -751,8 +720,8 @@ export default function AdminPanel({ user, dbUser, onClose }) {
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {promoRecipientEmail.trim() 
-                        ? '✉️ Code will be emailed with redemption instructions' 
-                        : '📢 Public code — you can share it on social media, blog posts, etc.'}
+                        ? '✉️ Single-use code — will be emailed to recipient' 
+                        : '📢 Public code (999 uses) — you copy and share it manually'}
                     </p>
                   </div>
                   
@@ -761,7 +730,7 @@ export default function AdminPanel({ user, dbUser, onClose }) {
                     size="sm" 
                     className="w-full h-9" 
                     onClick={generatePromoCode} 
-                    disabled={generating || !promoDescription.trim()} 
+                    disabled={generating || !promoDescription.trim() || !promoDiscountValue.trim()} 
                     data-testid="generate-promo-btn"
                   >
                     {generating ? (
