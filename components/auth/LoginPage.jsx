@@ -371,15 +371,15 @@ export default function LoginPage({ onAuthSuccess }) {
               </TabsContent>
 
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-3" data-testid="signup-form">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-email" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Email</Label>
+                <form onSubmit={handleSignUp} className="space-y-2.5 sm:space-y-3" data-testid="signup-form">
+                  <div className="space-y-1 sm:space-y-1.5">
+                    <Label htmlFor="signup-email" className="text-[11px] sm:text-xs font-medium" style={{ color: '#B0B4CC' }}>Email</Label>
                     <Input id="signup-email" type="email" placeholder="you@company.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} required
                       className={inputFocusClass} style={inputStyle} />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-password" className="text-xs font-medium" style={{ color: '#B0B4CC' }}>Password</Label>
+                  <div className="space-y-1 sm:space-y-1.5">
+                    <Label htmlFor="signup-password" className="text-[11px] sm:text-xs font-medium" style={{ color: '#B0B4CC' }}>Password</Label>
                     <Input id="signup-password" type="password" placeholder="••••••••" value={password}
                       onChange={(e) => setPassword(e.target.value)} required minLength={6}
                       className={inputFocusClass} style={inputStyle} />
@@ -387,17 +387,17 @@ export default function LoginPage({ onAuthSuccess }) {
                   <div className="flex items-center space-x-2">
                     <Checkbox id="stay-signed-in-signup" checked={staySignedIn} onCheckedChange={setStaySignedIn}
                       className="border-[rgba(124,58,237,0.3)] data-[state=checked]:bg-[#00E5FF] data-[state=checked]:border-[#00E5FF]" />
-                    <Label htmlFor="stay-signed-in-signup" className="text-xs font-normal cursor-pointer" style={{ color: '#8A8EA6' }}>Stay signed in</Label>
+                    <Label htmlFor="stay-signed-in-signup" className="text-[11px] sm:text-xs font-normal cursor-pointer" style={{ color: '#8A8EA6' }}>Stay signed in</Label>
                   </div>
                   <button type="submit" disabled={loading} data-testid="signup-btn"
-                    className="w-full h-11 rounded-2xl text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-1"
+                    className="w-full h-10 sm:h-11 rounded-2xl text-xs sm:text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.015] active:scale-[0.985] disabled:opacity-60 disabled:hover:scale-100 mt-1"
                     style={{
                       background: 'linear-gradient(135deg, #6D28D9 0%, #C026D3 60%, #E040FB 100%)',
                       boxShadow: '0 0 30px rgba(124, 58, 237, 0.3), 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
                     }}>
-                    {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Creating Account...</span> : 'Create Account'}
+                    {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />Creating Account...</span> : 'Create Account'}
                   </button>
-                  <p className="text-[11px] text-center" style={{ color: '#8A8EA6' }}>
+                  <p className="text-[10px] sm:text-[11px] text-center" style={{ color: '#8A8EA6' }}>
                     By signing up you agree to our terms of service.
                   </p>
                 </form>
