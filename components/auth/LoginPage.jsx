@@ -160,7 +160,7 @@ export default function LoginPage({ onAuthSuccess }) {
   const inputFocusClass = "h-11 rounded-xl text-sm transition-all duration-200 focus:border-[rgba(0,229,255,0.4)] focus:shadow-[0_0_16px_rgba(0,229,255,0.08)] focus:outline-none placeholder:text-[#7A7E98] autofill:shadow-[inset_0_0_0_1000px_rgba(5,5,26,0.9)] autofill:[-webkit-text-fill-color:#FFFFFF]"
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-6" data-testid="login-page">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-4 sm:py-6" data-testid="login-page">
 
       {/* ── CANVAS AURORA BACKGROUND ── */}
       <AuroraBackground activityLevel={0} />
