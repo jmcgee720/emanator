@@ -168,19 +168,32 @@ async function ensureViteHostOverride(pkg, cwd) {
   // `server.allowedHosts: true` so Vite's v5 host-check accepts our
   // wildcard preview subdomains. HMR over wss:443 because Fly's edge
   // upgrades to TLS even when the internal port is plain HTTP.
+  //
+  // CRITICAL: wrap user config import in try/catch. If the user's config
+  // uses path aliases (@/...) or other imports that depend on Vite's
+  // resolver being initialized, those will throw before Vite even starts.
+  // We fall back to a minimal working config so the preview boots.
   const body = userConfigImport
-    ? `import userConfig from '${userConfigImport}'
-import { defineConfig } from 'vite'
-const cfg = typeof userConfig === 'function' ? await userConfig({ command: 'serve', mode: 'development' }) : userConfig
+    ? `import { defineConfig } from 'vite'
+let userConfig = {}
+try {
+  const imported = await import('${userConfigImport}')
+  userConfig = imported.default || imported
+  if (typeof userConfig === 'function') {
+    userConfig = await userConfig({ command: 'serve', mode: 'development' })
+  }
+} catch (err) {
+  console.warn('[runner] user vite config import failed (using fallback):', err.message)
+}
 export default defineConfig({
-  ...cfg,
+  ...userConfig,
   server: {
-    ...(cfg?.server || {}),
+    ...(userConfig?.server || {}),
     host: '0.0.0.0',
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
-    hmr: { ...(cfg?.server?.hmr || {}), clientPort: 443, protocol: 'wss' },
+    hmr: { ...(userConfig?.server?.hmr || {}), clientPort: 443, protocol: 'wss' },
   },
 })
 `
