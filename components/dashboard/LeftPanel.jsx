@@ -678,6 +678,7 @@ export default function LeftPanel({
               const isTemp = String(message.id).startsWith('temp-')
               const isMessageStreaming = message.streaming === true
               const isProviderError = message.metadata?.providerError === true
+              const isForkWarning = message.metadata?.fork_warning === true
               const errorType = message.metadata?.error_type
               const errorProvider = message.metadata?.provider
               const messageIntent = message.metadata?.intent
