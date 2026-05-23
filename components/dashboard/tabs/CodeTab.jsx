@@ -365,7 +365,8 @@ export default function CodeTab({ project, files, setFiles, addLog, livePromoteS
     )
   }
 
-  const fileTree = buildFileTree()
+  // Memoize file tree to prevent constant rebuilds that block clicks
+  const fileTree = React.useMemo(() => buildFileTree(), [files])
 
   return (
     <div className="h-full flex">
