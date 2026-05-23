@@ -408,7 +408,7 @@ export default function LoginPage({ onAuthSuccess }) {
       </div>
 
       {/* Footer */}
-      <p className="relative z-10 text-center text-[11px] mt-4 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
+      <p className="relative z-10 text-center text-[10px] sm:text-[11px] mt-3 sm:mt-4 px-4 em-panel-enter" style={{ color: '#6E7290', animationDelay: '120ms' }}>
         Auroraly — AI Builder Platform · <span style={{ color: '#4B5178' }}>An Aetherly Studio product</span>
       </p>
     </div>
