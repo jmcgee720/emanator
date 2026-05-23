@@ -183,12 +183,12 @@ export default function LoginPage({ onAuthSuccess }) {
       </div>
 
       {/* ── SUBTITLE + TAGLINE ── */}
-      <div className="relative z-10 text-center mb-6 mt-2 em-panel-enter" style={{ animationDelay: '0ms' }}>
-        <p className="text-[11px] font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
+      <div className="relative z-10 text-center mb-4 sm:mb-6 mt-1 sm:mt-2 em-panel-enter px-4" style={{ animationDelay: '0ms' }}>
+        <p className="text-[10px] sm:text-[11px] font-medium tracking-[0.2em] uppercase" style={{ color: '#9498BE' }}>
           AI Builder Platform
         </p>
 
-        <p className="mt-1.5 text-xs" style={{ color: '#6B7094' }} data-testid="landing-time-metric">
+        <p className="mt-1 sm:mt-1.5 text-[11px] sm:text-xs" style={{ color: '#6B7094' }} data-testid="landing-time-metric">
           From blank page to working app in{' '}
           {buildStats?.p50_seconds ? (
             <>
