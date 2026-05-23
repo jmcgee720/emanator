@@ -307,25 +307,42 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   }
 
   const generatePromoCode = async () => {
-    if (!promoDescription.trim() || !promoRecipientEmail.trim()) return
+    if (!promoDescription.trim()) return
+    if (promoDiscountType !== 'plan_upgrade' && !promoDiscountValue.trim()) {
+      toast({ title: 'Error', description: 'Please enter a discount value', variant: 'destructive' })
+      return
+    }
     setGenerating(true)
     try {
+      const payload = {
+        description: promoDescription,
+        discount_type: promoDiscountType,
+        discount_value: promoDiscountValue ? parseInt(promoDiscountValue, 10) : null,
+        max_uses: parseInt(promoMaxUses, 10) || 1,
+      }
+      
+      // Only include recipient_email if it's provided (for emailing)
+      if (promoRecipientEmail.trim()) {
+        payload.recipient_email = promoRecipientEmail
+      }
+
       const r = await authFetch('/api/admin/promo-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          plan: 'unlimited', 
-          max_uses: 1, 
-          description: promoDescription,
-          recipient_email: promoRecipientEmail
-        })
+        body: JSON.stringify(payload)
       })
       if (!r.ok) throw new Error((await r.json()).error || 'Failed')
       const newCode = await r.json()
       setPromoCodes([newCode, ...promoCodes])
       setPromoDescription('')
       setPromoRecipientEmail('')
-      toast({ title: 'Promo Code Sent!', description: `Code ${newCode.code} emailed to ${promoRecipientEmail}` })
+      setPromoDiscountValue('')
+      setPromoMaxUses('1')
+      
+      const successMsg = promoRecipientEmail.trim() 
+        ? `Code ${newCode.code} emailed to ${promoRecipientEmail}` 
+        : `Code ${newCode.code} created`
+      toast({ title: 'Promo Code Created!', description: successMsg })
     } catch (e) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' })
     } finally { setGenerating(false) }
