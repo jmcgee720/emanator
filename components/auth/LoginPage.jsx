@@ -302,9 +302,9 @@ export default function LoginPage({ onAuthSuccess }) {
               Continue with Google
             </button>
 
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3">
               <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-              <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#8A8EA6' }}>or</span>
+              <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider" style={{ color: '#8A8EA6' }}>or</span>
               <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
             </div>
 
