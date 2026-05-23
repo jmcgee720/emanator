@@ -306,22 +306,28 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   }
 
   const generatePromoCode = async () => {
-    if (!promoDescription.trim()) return
-    if (promoDiscountType !== 'plan_upgrade' && !promoDiscountValue.trim()) {
+    if (!promoDescription.trim()) {
+      toast({ title: 'Error', description: 'Please enter a description', variant: 'destructive' })
+      return
+    }
+    if (!promoDiscountValue.trim()) {
       toast({ title: 'Error', description: 'Please enter a discount value', variant: 'destructive' })
       return
     }
+    
     setGenerating(true)
     try {
+      const isPersonalized = promoRecipientEmail.trim().length > 0
+      
       const payload = {
         description: promoDescription,
         discount_type: promoDiscountType,
-        discount_value: promoDiscountValue ? parseInt(promoDiscountValue, 10) : null,
-        max_uses: parseInt(promoMaxUses, 10) || 1,
+        discount_value: parseInt(promoDiscountValue, 10),
+        max_uses: isPersonalized ? 1 : 999, // Auto-set based on email presence
       }
       
       // Only include recipient_email if it's provided (for emailing)
-      if (promoRecipientEmail.trim()) {
+      if (isPersonalized) {
         payload.recipient_email = promoRecipientEmail
       }
 
@@ -336,11 +342,10 @@ export default function AdminPanel({ user, dbUser, onClose }) {
       setPromoDescription('')
       setPromoRecipientEmail('')
       setPromoDiscountValue('')
-      setPromoMaxUses('1')
       
-      const successMsg = promoRecipientEmail.trim() 
+      const successMsg = isPersonalized
         ? `Code ${newCode.code} emailed to ${promoRecipientEmail}` 
-        : `Code ${newCode.code} created`
+        : `Public code ${newCode.code} created — copy it to share`
       toast({ title: 'Promo Code Created!', description: successMsg })
     } catch (e) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' })
