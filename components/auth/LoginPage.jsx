@@ -204,7 +204,7 @@ export default function LoginPage({ onAuthSuccess }) {
 
       {/* ── AUTH CARD ── */}
       <div
-        className="relative z-10 w-full max-w-[420px] mx-4 em-panel-enter"
+        className="relative z-10 w-full max-w-[420px] mx-3 sm:mx-4 em-panel-enter"
         style={{ animationDelay: '60ms' }}
       >
         {/* Card outer glow — soft halo around glass */}
