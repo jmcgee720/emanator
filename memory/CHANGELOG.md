@@ -4,6 +4,51 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-05-22 (cont'd) — Stream-timeout fix + self-edit hardening (commits `c52c5ad`, `4174e8c`)
+
+### Stream timeout toast eliminated
+**Symptom**: Users seeing "Build completed but the connection timed out. Your files were saved — click Refresh to see them." on chats that had completed successfully server-side. The recovery polling at `lib/stream-client.js:135-161` runs when the SSE stream closes without a terminal `done` event, then surfaces this toast even when the message was saved.
+
+**Root cause**: `lib/api/stream-handler-v2.js#finish()` called `controller.close()` unconditionally without guaranteeing a `done` event had been emitted. Three code paths bypassed `send('done', ...)`:
+1. The persist-failed catch (lines 1022-1025) only emitted `error`, no `done`.
+2. agent_crash + empty content + persist skip — theoretical but possible.
+3. Any future early-return without the discipline to `send('done')` first.
+
+**Shipped**:
+- Track `doneSent` inside the `send()` wrapper; `finish()` synthesizes a terminal `done` event with `{ _synthetic_terminal: true }` if none was sent before close.
+- Persist-failed catch also now explicitly emits `send('done', { _persist_failed: true, content: fullContent })` so the client receives the partial response.
+- +5 regression tests in `tests/test-stream-handler-v2-done-guarantee.test.mjs` that parse the actual SSE wire bytes.
+
+### Self-edit pipeline hardening
+**Symptom**: The Core System agent edited `lib/api/stream-handler-v2.js` 7 times in production to add a "historical attachments" feature and accidentally deleted the `let priorMessages = await loadPriorMessages(...)` declaration. Five downstream references became `ReferenceError: priorMessages is not defined`, crashing every project chat for ~12 hours. Before this incident, `syntaxLintBeforeCommit()` only checked PARSE-level errors, so the broken commit landed cleanly.
+
+**Shipped**:
+1. **`.auroraly/core-system-guards.json`** — added 11 AI pipeline files to `forbidden_paths_without_confirmation`, including `lib/api/stream-handler-v2.js`, `lib/ai/agent-core.js`, `lib/ai/providers/*.js`, and the guards config itself (self-protection). Edits now require literal `CONFIRMED: <path>` from the user.
+
+2. **`lib/ai/syntax-lint.js`** — extended with AST-based undeclared-identifier scope check using `@babel/traverse` (0 new deps; already a transitive Next.js dependency):
+   - Walks every `ReferencedIdentifier` via `babelTraverse`
+   - Checks `path.scope.hasBinding(name)`; if no binding AND not in `KNOWN_GLOBALS` allow-list, the commit is blocked with a clear error naming the orphan.
+   - Conservative: skips TypeScript (.ts/.tsx) because proper resolution requires tsc; skips JSX component names; caps error report at 5 distinct names.
+   - The fix would have caught the 2026-05-22 outage at commit time.
+
+3. **`lib/api/stream-handler-v2.js`** — fixed a latent bug the new check caught: `historicalAttachments` was declared inside `if (isSelfEdit)` block but referenced in diagnostic logging outside it. Project-mode turns would have thrown the same ReferenceError pattern. Hoisted the declaration.
+
+4. **Tests**:
+   - +12 assertions in `tests/test-syntax-lint-no-undef.test.mjs` pinning the no-undef behaviour.
+   - +1 assertion in `tests/test-core-system-guards.test.mjs` pinning the 8 newly-protected paths.
+
+### Latent bugs surfaced (not fixed — left for the gate to catch on next edit)
+A sweep across `lib/ai/*` revealed 3 pre-existing files with orphan references:
+- `lib/ai/message-helpers.js` — `verifyPatchResult`, `generateInteractionTests`, `generateRuntimeTestScript`, `buildVerifiedPatchResponse`
+- `lib/ai/message-processor.js` — `getIntentSystemAddendum`, `getLayoutPatternForPrompt`, `getComponentPatternsForPrompt`, `formatPlanResponse`, `formatSummaryResponse`
+- `lib/ai/phased-pipeline/phase-5-compose.js` — `withOverloadedRetry`
+
+Left in place — they're in legacy v1 code paths. The new gate will force-fix them next time the Core System tries to edit those files. Test status: 54/54 across the four touched suites.
+
+---
+
+
+
 ## 2026-05-22 — Fixed: project chat crash "priorMessages is not defined" (commit `2569593`)
 
 ### Root cause
