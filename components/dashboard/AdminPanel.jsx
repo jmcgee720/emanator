@@ -648,69 +648,124 @@ export default function AdminPanel({ user, dbUser, onClose }) {
             <div className="h-full flex flex-col">
               {/* Generate promo code form */}
               {canManage && (
-                <div className="p-4 border-b border-border" data-testid="generate-promo-form">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2 items-center">
+                <div className="p-4 border-b border-border space-y-3" data-testid="generate-promo-form">
+                  {/* Row 1: Discount Type + Value */}
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Discount Type</label>
                       <Select value={promoDiscountType} onValueChange={setPromoDiscountType}>
-                        <SelectTrigger className="w-36 h-8 text-xs" data-testid="promo-discount-type">
+                        <SelectTrigger className="h-9 text-sm" data-testid="promo-discount-type">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="plan_upgrade">Plan Upgrade</SelectItem>
-                          <SelectItem value="credits">Credits</SelectItem>
-                          <SelectItem value="percentage">Percentage Off</SelectItem>
+                          <SelectItem value="plan_upgrade">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Unlimited Plan Upgrade</span>
+                              <span className="text-[10px] text-muted-foreground">Give user unlimited access</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="credits">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Credit Bonus</span>
+                              <span className="text-[10px] text-muted-foreground">Add credits to user's balance</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="percentage">
+                            <div className="flex flex-col">
+                              <span className="font-medium">Percentage Discount</span>
+                              <span className="text-[10px] text-muted-foreground">% off next purchase</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      {promoDiscountType !== 'plan_upgrade' && (
-                        <Input
-                          type="number"
-                          placeholder={promoDiscountType === 'credits' ? 'Amount (e.g., 50)' : 'Percent (e.g., 20)'}
-                          value={promoDiscountValue}
-                          onChange={(e) => setPromoDiscountValue(e.target.value)}
-                          className="w-32 h-8 text-sm"
-                          data-testid="promo-discount-value"
-                        />
-                      )}
-                      
-                      <Input
-                        type="number"
-                        placeholder="Max uses"
-                        value={promoMaxUses}
-                        onChange={(e) => setPromoMaxUses(e.target.value)}
-                        className="w-24 h-8 text-sm"
-                        data-testid="promo-max-uses"
-                      />
-                      
-                      <Input
-                        type="text"
-                        placeholder="Description (e.g., 'Memorial Day Sale')"
-                        value={promoDescription}
-                        onChange={(e) => setPromoDescription(e.target.value)}
-                        className="flex-1 h-8 text-sm"
-                        data-testid="promo-description"
-                      />
-                      
-                      <Button size="sm" className="h-8 whitespace-nowrap" onClick={generatePromoCode} disabled={generating || !promoDescription.trim()} data-testid="generate-promo-btn">
-                        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3 mr-1" /> Create</>}
-                      </Button>
                     </div>
                     
+                    {promoDiscountType !== 'plan_upgrade' && (
+                      <div className="w-32">
+                        <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                          {promoDiscountType === 'credits' ? 'Credits' : 'Percent'}
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder={promoDiscountType === 'credits' ? '50' : '20'}
+                          value={promoDiscountValue}
+                          onChange={(e) => setPromoDiscountValue(e.target.value)}
+                          className="h-9 text-sm"
+                          data-testid="promo-discount-value"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="w-28">
+                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Max Uses</label>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        value={promoMaxUses}
+                        onChange={(e) => setPromoMaxUses(e.target.value)}
+                        className="h-9 text-sm"
+                        data-testid="promo-max-uses"
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="text-[10px] text-muted-foreground -mt-1">
+                    {promoDiscountType === 'plan_upgrade' && 'Upgrades user to unlimited plan permanently'}
+                    {promoDiscountType === 'credits' && `Adds ${promoDiscountValue || '___'} credits to user's balance`}
+                    {promoDiscountType === 'percentage' && `Gives ${promoDiscountValue || '___'}% off their next credit purchase`}
+                    {' • '}
+                    <span className="text-muted-foreground/70">
+                      {parseInt(promoMaxUses) === 1 ? 'Single-use (personalized)' : `Can be used ${promoMaxUses} times (public code)`}
+                    </span>
+                  </p>
+                  
+                  {/* Row 2: Description */}
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Description</label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., 'Memorial Day Sale' or 'For John'"
+                      value={promoDescription}
+                      onChange={(e) => setPromoDescription(e.target.value)}
+                      className="h-9 text-sm"
+                      data-testid="promo-description"
+                    />
+                  </div>
+                  
+                  {/* Row 3: Email (optional) */}
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                      Email Recipient <span className="text-[10px] font-normal opacity-60">(optional — leave blank for public codes)</span>
+                    </label>
                     <Input
                       type="email"
-                      placeholder="Optional: Email to recipient (leave blank for public codes like AURORALY20)"
+                      placeholder="friend@example.com"
                       value={promoRecipientEmail}
                       onChange={(e) => setPromoRecipientEmail(e.target.value)}
-                      className="h-8 text-sm"
+                      className="h-9 text-sm"
                       data-testid="promo-recipient-email"
                     />
-                    
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       {promoRecipientEmail.trim() 
-                        ? 'Code will be emailed to the recipient with redemption instructions' 
-                        : 'Public code — you can share it manually (e.g., social media, blog posts)'}
+                        ? '✉️ Code will be emailed with redemption instructions' 
+                        : '📢 Public code — you can share it on social media, blog posts, etc.'}
                     </p>
                   </div>
+                  
+                  {/* Create Button */}
+                  <Button 
+                    size="sm" 
+                    className="w-full h-9" 
+                    onClick={generatePromoCode} 
+                    disabled={generating || !promoDescription.trim()} 
+                    data-testid="generate-promo-btn"
+                  >
+                    {generating ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> Creating...</>
+                    ) : (
+                      <><Plus className="w-3.5 h-3.5 mr-2" /> Create Promo Code</>
+                    )}
+                  </Button>
                 </div>
               )}
 
