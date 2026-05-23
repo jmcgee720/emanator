@@ -784,6 +784,24 @@ export function useDashboardStream(ctx) {
         onCreditsUpdate: (data) => {
           setCreditsBalance(data.balance)
         },
+        onForkSuggested: (data) => {
+          // Soft warning: conversation is getting long (70-85%)
+          toast({ 
+            title: 'Conversation Getting Long', 
+            description: `${Math.round(data.percentage)}% of context used. Consider forking soon to avoid hitting limits.`,
+            variant: 'default'
+          })
+        },
+        onForkRequired: (data) => {
+          // Hard block: conversation is critical (>85%) — fork button already in message
+          toast({ 
+            title: 'Fork Required', 
+            description: `This conversation is too long (${Math.round(data.percentage)}%). Click Fork to continue.`,
+            variant: 'destructive'
+          })
+          setStreamingMessageId(null)
+          setStreamingStatus(null)
+        },
         onFallbackNotice: (data) => {
           toast({ title: 'Model Fallback', description: `Used ${data.model} for this request.` })
         },
