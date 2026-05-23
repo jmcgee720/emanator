@@ -168,7 +168,7 @@ export default function LoginPage({ onAuthSuccess }) {
       {/* ── LOGO ── */}
       <div className="relative z-10 text-center em-panel-enter" style={{ animationDelay: '0ms' }}>
         {/* Logo glow halo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[100px] pointer-events-none" style={{
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] sm:w-[260px] h-[70px] sm:h-[100px] pointer-events-none" style={{
           background: 'radial-gradient(ellipse at center, rgba(0, 229, 255, 0.1) 0%, rgba(124, 58, 237, 0.05) 40%, transparent 70%)',
           filter: 'blur(30px)',
         }} />
@@ -176,8 +176,8 @@ export default function LoginPage({ onAuthSuccess }) {
         <img
           src="/auroraly-logo.png"
           alt="Auroraly"
-          className="relative mx-auto drop-shadow-[0_0_24px_rgba(0,229,255,0.18)]"
-          style={{ width: '300px', height: 'auto' }}
+          className="relative mx-auto drop-shadow-[0_0_24px_rgba(0,229,255,0.18)] w-[200px] sm:w-[300px]"
+          style={{ height: 'auto' }}
           draggable={false}
         />
       </div>
