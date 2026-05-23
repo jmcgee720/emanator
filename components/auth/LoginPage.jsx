@@ -311,7 +311,7 @@ export default function LoginPage({ onAuthSuccess }) {
             {/* Tabs */}
             <Tabs value={mode} onValueChange={setMode} className="w-full">
               <TabsList
-                className="grid w-full grid-cols-2 mb-4 h-9 rounded-xl p-1"
+                className="grid w-full grid-cols-2 mb-3 sm:mb-4 h-8 sm:h-9 rounded-xl p-0.5 sm:p-1"
                 style={{
                   background: 'rgba(5, 5, 26, 0.5)',
                   border: '1px solid rgba(124, 58, 237, 0.1)',
