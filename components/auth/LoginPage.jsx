@@ -256,20 +256,20 @@ export default function LoginPage({ onAuthSuccess }) {
             borderRadius: 'inherit',
           }} />
 
-          <div className="relative p-6">
+          <div className="relative p-4 sm:p-6">
             {/* Card header */}
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Lock className="w-3.5 h-3.5" style={{ color: '#00E5FF', opacity: 0.5 }} />
-                <span className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: '#00E5FF', opacity: 0.5 }}>
+            <div className="mb-3 sm:mb-4">
+              <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: '#00E5FF', opacity: 0.5 }} />
+                <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: '#00E5FF', opacity: 0.5 }}>
                   Secure Login
                 </span>
               </div>
-              <h2 className="text-xl font-semibold" style={{ color: '#FFFFFF' }}>Welcome</h2>
-              <p className="text-sm mt-1" style={{ color: '#B0B4CC' }}>Sign in to your account</p>
+              <h2 className="text-lg sm:text-xl font-semibold" style={{ color: '#FFFFFF' }}>Welcome</h2>
+              <p className="text-xs sm:text-sm mt-0.5 sm:mt-1" style={{ color: '#B0B4CC' }}>Sign in to your account</p>
               <a
                 href="/gallery"
-                className="inline-flex items-center gap-1 mt-2 text-[11px] font-medium transition-colors"
+                className="inline-flex items-center gap-1 mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] font-medium transition-colors"
                 style={{ color: '#00E5FF' }}
                 data-testid="landing-gallery-link"
               >
