@@ -208,7 +208,26 @@ const ChatComposer = forwardRef(function ChatComposer({
           content: f.content || null,
         }))
 
-        const result = await onUploadFiles?.(uploadPayload)
+        // Try new endpoint first if chatId is available
+        let result = null
+        if (chatId) {
+          try {
+            const res = await fetch(`/api/chats/${chatId}/upload`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ files: uploadPayload }),
+            })
+            if (res.ok) {
+              result = await res.json()
+            }
+          } catch {}
+        }
+        
+        // Fallback to legacy onUploadFiles if available
+        if (!result && onUploadFiles) {
+          result = await onUploadFiles(uploadPayload)
+        }
+
         if (result?.uploads) {
           // Merge upload server results with local file data (content, preview)
           const serverUploads = result.uploads.filter(u => u.success)
@@ -223,6 +242,11 @@ const ChatComposer = forwardRef(function ChatComposer({
         }
       } catch (err) {
         console.error('Upload failed:', err)
+        toast({ 
+          title: 'Upload Failed', 
+          description: err.message || 'Could not save attachments',
+          variant: 'destructive' 
+        })
       } finally {
         setUploading(false)
       }
