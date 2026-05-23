@@ -651,27 +651,65 @@ export default function AdminPanel({ user, dbUser, onClose }) {
                 <div className="p-4 border-b border-border" data-testid="generate-promo-form">
                   <div className="flex flex-col gap-2">
                     <div className="flex gap-2 items-center">
+                      <Select value={promoDiscountType} onValueChange={setPromoDiscountType}>
+                        <SelectTrigger className="w-36 h-8 text-xs" data-testid="promo-discount-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="plan_upgrade">Plan Upgrade</SelectItem>
+                          <SelectItem value="credits">Credits</SelectItem>
+                          <SelectItem value="percentage">Percentage Off</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {promoDiscountType !== 'plan_upgrade' && (
+                        <Input
+                          type="number"
+                          placeholder={promoDiscountType === 'credits' ? 'Amount (e.g., 50)' : 'Percent (e.g., 20)'}
+                          value={promoDiscountValue}
+                          onChange={(e) => setPromoDiscountValue(e.target.value)}
+                          className="w-32 h-8 text-sm"
+                          data-testid="promo-discount-value"
+                        />
+                      )}
+                      
                       <Input
-                        type="email"
-                        placeholder="Recipient email (e.g., friend@example.com)"
-                        value={promoRecipientEmail}
-                        onChange={(e) => setPromoRecipientEmail(e.target.value)}
-                        className="flex-1 h-8 text-sm"
-                        data-testid="promo-recipient-email"
+                        type="number"
+                        placeholder="Max uses"
+                        value={promoMaxUses}
+                        onChange={(e) => setPromoMaxUses(e.target.value)}
+                        className="w-24 h-8 text-sm"
+                        data-testid="promo-max-uses"
                       />
+                      
                       <Input
                         type="text"
-                        placeholder="Description (e.g., 'For John')"
+                        placeholder="Description (e.g., 'Memorial Day Sale')"
                         value={promoDescription}
                         onChange={(e) => setPromoDescription(e.target.value)}
                         className="flex-1 h-8 text-sm"
                         data-testid="promo-description"
                       />
-                      <Button size="sm" className="h-8 whitespace-nowrap" onClick={generatePromoCode} disabled={generating || !promoDescription.trim() || !promoRecipientEmail.trim()} data-testid="generate-promo-btn">
-                        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Generate & Email'}
+                      
+                      <Button size="sm" className="h-8 whitespace-nowrap" onClick={generatePromoCode} disabled={generating || !promoDescription.trim()} data-testid="generate-promo-btn">
+                        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3 mr-1" /> Create</>}
                       </Button>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">Code will be emailed to the recipient with redemption instructions</p>
+                    
+                    <Input
+                      type="email"
+                      placeholder="Optional: Email to recipient (leave blank for public codes like AURORALY20)"
+                      value={promoRecipientEmail}
+                      onChange={(e) => setPromoRecipientEmail(e.target.value)}
+                      className="h-8 text-sm"
+                      data-testid="promo-recipient-email"
+                    />
+                    
+                    <p className="text-[10px] text-muted-foreground">
+                      {promoRecipientEmail.trim() 
+                        ? 'Code will be emailed to the recipient with redemption instructions' 
+                        : 'Public code — you can share it manually (e.g., social media, blog posts)'}
+                    </p>
                   </div>
                 </div>
               )}
