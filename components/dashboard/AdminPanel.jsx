@@ -749,14 +749,37 @@ export default function AdminPanel({ user, dbUser, onClose }) {
                               {isUsed && (
                                 <Badge variant="secondary" className="text-[9px] h-4 px-1">used</Badge>
                               )}
+                              {code.discount_type === 'credits' && (
+                                <Badge className="text-[9px] h-4 px-1 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                                  {code.discount_value} credits
+                                </Badge>
+                              )}
+                              {code.discount_type === 'percentage' && (
+                                <Badge className="text-[9px] h-4 px-1 bg-blue-500/15 text-blue-400 border-blue-500/30">
+                                  {code.discount_value}% off
+                                </Badge>
+                              )}
+                              {code.discount_type === 'plan_upgrade' && (
+                                <Badge className="text-[9px] h-4 px-1 bg-amber-500/15 text-amber-400 border-amber-500/30">
+                                  unlimited plan
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                              <span>{code.description || 'Unlimited credits'}</span>
+                              <span>{code.description || 'No description'}</span>
+                              <span>•</span>
+                              <span>{code.uses_count || 0} / {code.max_uses} uses</span>
                               {isUsed && code.redeemed_at && (
-                                <span>Redeemed {relativeTime(code.redeemed_at)}</span>
+                                <>
+                                  <span>•</span>
+                                  <span>Redeemed {relativeTime(code.redeemed_at)}</span>
+                                </>
                               )}
                               {isUsed && code.redeemed_by_email && (
-                                <span>by {code.redeemed_by_email}</span>
+                                <>
+                                  <span>•</span>
+                                  <span>by {code.redeemed_by_email}</span>
+                                </>
                               )}
                             </div>
                           </div>
