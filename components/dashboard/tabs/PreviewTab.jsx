@@ -1302,9 +1302,21 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
 
   useEffect(() => {
     const prevHash = prevFilesRef.current
-    const currentHash = files?.map(f => `${f.path}:${f.version || 0}:${f.updated_at || ''}:${typeof f.content === 'string' ? f.content.length : 0}`).join('|') || ''
+    // ONLY trigger refresh when files are actually WRITTEN (updated_at changes)
+    // This prevents preview thrashing when AI responds with text but doesn't change files
+    const currentHash = files?.map(f => `${f.path}:${f.updated_at || ''}`).join('|') || ''
     const hashChanged = prevHash !== null && prevHash !== currentHash
     const forceRefresh = forceRefreshRef.current || forceRecompileRef.current
+    
+    // Log for debugging
+    if (hashChanged) {
+      console.log('[PreviewTab] Files changed — preview will refresh', { 
+        fileCount: files?.length, 
+        prevHash: prevHash?.slice(0, 100), 
+        currentHash: currentHash?.slice(0, 100) 
+      })
+    }
+    
     if (hashChanged || forceRefresh) {
       // Debounce: wait 500ms before recompiling so rapid file changes don't thrash the preview
       const timer = setTimeout(() => {
