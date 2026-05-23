@@ -691,10 +691,12 @@ export default function LeftPanel({
                 >
                   {/* Avatar */}
                   <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-1 ${
-                    isUser ? 'bg-[rgba(0,229,255,0.1)]' : isProviderError ? 'bg-amber-900/20' : `bg-[rgba(124,58,237,0.1)] ${isMessageStreaming ? 'em-streaming-breathe em-streaming-glow' : ''}`
+                    isUser ? 'bg-[rgba(0,229,255,0.1)]' : isForkWarning ? 'bg-cyan-500/15' : isProviderError ? 'bg-amber-900/20' : `bg-[rgba(124,58,237,0.1)] ${isMessageStreaming ? 'em-streaming-breathe em-streaming-glow' : ''}`
                   }`}>
                     {isUser ? (
                       <User className="w-2.5 h-2.5 text-[#00E5FF]/70" />
+                    ) : isForkWarning ? (
+                      <GitFork className="w-2.5 h-2.5 text-cyan-400" />
                     ) : isProviderError ? (
                       <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
                     ) : (
