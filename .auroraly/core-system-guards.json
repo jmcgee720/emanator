@@ -33,7 +33,20 @@
     ".env.production",
     "vercel.json",
     "next.config.js",
-    "next.config.mjs"
+    "next.config.mjs",
+
+    "lib/api/stream-handler-v2.js",
+    "lib/api/stream-handler.js",
+    "lib/ai/agent-core.js",
+    "lib/ai/agent-tools-v2.js",
+    "lib/ai/context-compactor.js",
+    "lib/ai/image-replay-stripper.js",
+    "lib/ai/providers/anthropic.js",
+    "lib/ai/providers/openai.js",
+    "lib/ai/providers/gemini.js",
+    "lib/ai/providers/index.js",
+    "lib/ai/core-system-guards.js",
+    ".auroraly/core-system-guards.json"
   ],
 
   "forbidden_package_additions": [

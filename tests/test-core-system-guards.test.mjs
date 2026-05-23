@@ -77,13 +77,32 @@ test('isPathGuarded: NORMAL files are not guarded', () => {
   for (const safe of [
     'components/dashboard/Dashboard.jsx',
     'components/dashboard/ChatComposer.jsx',
-    'lib/ai/agent-core.js',
     'app/api/projects/[id]/route.js',
     'README.md',
     'tests/test-foo.test.mjs',
   ]) {
     const r = isPathGuarded(safe)
     assert.equal(r.guarded, false, `expected ${safe} to be unguarded`)
+  }
+})
+
+test('isPathGuarded: AI pipeline files are guarded (added 2026-05-22)', () => {
+  // After the Core System deleted `let priorMessages = ...` from
+  // stream-handler-v2.js and crashed every project chat, we added
+  // the core AI pipeline files to the protected list. Pinning here
+  // so a future config edit can't silently re-expose them.
+  for (const protectedPath of [
+    'lib/api/stream-handler-v2.js',
+    'lib/api/stream-handler.js',
+    'lib/ai/agent-core.js',
+    'lib/ai/agent-tools-v2.js',
+    'lib/ai/context-compactor.js',
+    'lib/ai/providers/anthropic.js',
+    'lib/ai/core-system-guards.js',
+    '.auroraly/core-system-guards.json',
+  ]) {
+    const r = isPathGuarded(protectedPath)
+    assert.equal(r.guarded, true, `expected ${protectedPath} to be guarded`)
   }
 })
 
