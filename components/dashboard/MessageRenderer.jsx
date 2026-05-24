@@ -67,7 +67,25 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   if (!content) return null
 
   // Strip any leftover Apply to Live markers
-  const cleanContent = content.replace(/\{\{APPLY_TO_LIVE_BUTTON\}\}/g, '')
+  let cleanContent = content.replace(/\{\{APPLY_TO_LIVE_BUTTON\}\}/g, '')
+
+  // Strip tool call information blocks (the black boxes users don't need to see)
+  // These appear as code blocks with tool names and results
+  cleanContent = cleanContent.replace(/```[^\n]*\n🔧\s+\w+.*?\n.*?```/gs, '')
+  cleanContent = cleanContent.replace(/>\s*🔧\s+\*\*(\w+)\*\*.*?\n.*?(?=\n\n|$)/gs, '')
+  cleanContent = cleanContent.replace(/🔧\s+\*\*(\w+)\*\*.*?\n.*?(?:\[\.\.\..*?\])?(?=\n\n|$)/gs, '')
+  
+  // Strip lines that start with tool emoji and contain "tool result content stripped"
+  cleanContent = cleanContent.replace(/^.*?🔧.*?tool result content stripped.*?$/gm, '')
+  
+  // Strip lines with just the tool wrench emoji and tool names
+  cleanContent = cleanContent.replace(/^🔧\s+\w+.*$/gm, '')
+  
+  // Strip lines that look like "↳ Found X match" or "↳ components/..."
+  cleanContent = cleanContent.replace(/^↳.*$/gm, '')
+  
+  // Clean up excessive blank lines left behind
+  cleanContent = cleanContent.replace(/\n{3,}/g, '\n\n')
 
   return <MessagePart content={cleanContent} hideCodeBlocks={hideCodeBlocks} />
 }
