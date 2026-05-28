@@ -283,9 +283,25 @@ export default function LeftPanel({
   const [convoCollapsed, setConvoCollapsed] = useState(() => {
     try { return localStorage.getItem('mymergent_convo_collapsed') === 'true' } catch { return false }
   })
-  // v2 Emergent-style agent toggle (self-edit only, Phase 1)
+  // v2 Emergent-style agent toggle.
+  //
+  // Default flipped to ON on 2026-05-28 after a user discovered their
+  // project chat had been fabricating screenshot contents for days
+  // because the v2 anti-fabrication stack (submit_screenshot_inventory
+  // gate + AST-validator + Tavily web_search + read_file binary
+  // short-circuit) only runs in stream-handler-v2.js. v1
+  // (stream-handler.js) bypasses all four. v2 has been the de-facto
+  // production agent since the inventory gate landed; v1 is now
+  // strictly the manual-opt-OUT escape hatch for users hitting
+  // unrelated regressions.
+  //
+  // Persisted localStorage value of '0' is honoured (explicit opt-out).
+  // Missing key or '1' both yield true.
   const [useV2Agent, setUseV2Agent] = useState(() => {
-    try { return localStorage.getItem('auroraly_use_v2_agent') === '1' } catch { return false }
+    try {
+      const stored = localStorage.getItem('auroraly_use_v2_agent')
+      return stored === null ? true : stored !== '0'
+    } catch { return true }
   })
   const toggleV2Agent = () => {
     setUseV2Agent((prev) => {

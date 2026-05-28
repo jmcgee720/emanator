@@ -19,6 +19,103 @@ function makeTool() {
   return submitScreenshotInventoryTool([{ filename: 'test.png' }])
 }
 
+test('REJECTS quoted on-screen text fabrication (2026-05-28 Nexsara case)', async () => {
+  // The 2026-05-28 fabrication: model wrote
+  //   visible_elements: ["error popup showing 'User already registered'"]
+  //   text_quotes: ["Element type is invalid", "Check the render method"]
+  // No capitalized proper-noun is invented (User is a stopword), but
+  // the QUOTED text 'User already registered' must appear in
+  // text_quotes for the citation to be honest. The Layer-2 check
+  // catches this.
+  const tool = makeTool()
+  const result = await tool.execute({
+    inventory_per_image: [
+      {
+        attachment_label: 'attachment 1: nexsara-runtime-error.png',
+        visible_elements: [
+          "error popup showing 'User already registered' message",
+          'red banner at top of preview iframe',
+        ],
+        text_quotes: [
+          'Unhandled Runtime Error',
+          'Element type is invalid',
+          'Check the render method of ProjectsPage',
+        ],
+        cropped_or_hidden: [],
+        colors_and_states: [],
+      },
+    ],
+    comparison_to_user_expectation: {
+      user_stated_expectation: 'user has not stated an expectation on this turn',
+      matches: [],
+      mismatches: [],
+    },
+    layout_notes: 'Runtime error overlay.',
+    verdict: 'problems_present',
+    forbidden_positive_phrases_acknowledged: true,
+  })
+  assert.match(result, /INVENTORY REJECTED/i, 'must reject quoted-text fabrication')
+  assert.match(result, /User already registered/, 'must name the specific fabricated quote')
+})
+
+test('accepts properly quoted text that IS in text_quotes', async () => {
+  const tool = makeTool()
+  const result = await tool.execute({
+    inventory_per_image: [
+      {
+        attachment_label: 'attachment 1: real.png',
+        visible_elements: [
+          "error banner with text 'Element type is invalid'",
+          "subtitle 'Check the render method of ProjectsPage'",
+        ],
+        text_quotes: [
+          'Element type is invalid',
+          'Check the render method of ProjectsPage',
+        ],
+        cropped_or_hidden: [],
+        colors_and_states: [],
+      },
+    ],
+    comparison_to_user_expectation: {
+      user_stated_expectation: 'fix the error',
+      matches: [],
+      mismatches: [],
+    },
+    layout_notes: 'Runtime error overlay.',
+    verdict: 'problems_present',
+    forbidden_positive_phrases_acknowledged: true,
+  })
+  assert.match(result, /Inventory recorded/i)
+})
+
+test('allows generic UI button labels in quotes (OK, Cancel etc.) only if quoted in text_quotes', async () => {
+  // If the model quotes 'OK' or 'Cancel', it MUST appear in text_quotes
+  // — these aren't get-out-of-jail-free words. The strictness is
+  // intentional: if you didn't quote it, don't cite it.
+  const tool = makeTool()
+  const result = await tool.execute({
+    inventory_per_image: [
+      {
+        attachment_label: 'attachment 1: dialog.png',
+        visible_elements: ["dialog with 'Confirm Delete' button"],
+        text_quotes: ['Save', 'Cancel'], // 'Confirm Delete' NOT here
+        cropped_or_hidden: [],
+        colors_and_states: [],
+      },
+    ],
+    comparison_to_user_expectation: {
+      user_stated_expectation: 'user has not stated an expectation on this turn',
+      matches: [],
+      mismatches: [],
+    },
+    layout_notes: 'Dialog with buttons',
+    verdict: 'no_problems_visible',
+    forbidden_positive_phrases_acknowledged: true,
+  })
+  assert.match(result, /INVENTORY REJECTED/i)
+  assert.match(result, /Confirm Delete/i)
+})
+
 test('accepts honest inventory: labels claimed all appear in text_quotes', async () => {
   const tool = makeTool()
   const result = await tool.execute({
