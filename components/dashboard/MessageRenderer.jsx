@@ -101,10 +101,11 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   
   // Remove code blocks with line-numbered content (e.g., "1| 'use client'" or "  1| 'use client'")
   // These are file dumps from read_file tool
-  cleanContent = cleanContent.replace(/```[a-z]*\n(?:\s*\d+\|[^\n]*\n)+```/g, '')
+  // Match any code block (with or without language) that contains line numbers followed by pipe
+  cleanContent = cleanContent.replace(/```[\w]*\s*\n[\s\S]*?\d+\|[\s\S]*?```/g, '')
   
-  // Also catch them without language specifier
-  cleanContent = cleanContent.replace(/```\n(?:\s*\d+\|[^\n]*\n)+```/g, '')
+  // Also catch blocks where the line numbers start immediately
+  cleanContent = cleanContent.replace(/```[\s\S]*?\n\s*\d+\s*\|[\s\S]*?```/g, '')
   
   // Clean up excessive blank lines left behind (collapse 3+ newlines to 2)
   cleanContent = cleanContent.replace(/\n{3,}/g, '\n\n')
