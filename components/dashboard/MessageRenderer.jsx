@@ -70,7 +70,16 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   let cleanContent = content.replace(/\{\{APPLY_TO_LIVE_BUTTON\}\}/g, '')
 
   // Strip tool call information blocks (the black boxes users don't need to see)
-  // Format: "> 🔧 **tool_name** args" followed by "> ↳ result"
+  // These appear as markdown code blocks with tool invocations
+  
+  // Remove entire code blocks that contain tool calls (```xml with antml:function_calls)
+  cleanContent = cleanContent.replace(/```xml[\s\S]*?<function_calls>[\s\S]*?<\/antml:function_calls>[\s\S]*?```/g, '')
+  
+  // Remove code blocks with antml:invoke
+  cleanContent = cleanContent.replace(/```xml[\s\S]*?<invoke[\s\S]*?<\/antml:invoke>[\s\S]*?```/g, '')
+  
+  // Remove any remaining antml blocks
+  cleanContent = cleanContent.replace(/```[\s\S]*?antml:[\s\S]*?```/g, '')
   
   // Remove blockquote-style tool calls: "> 🔧 **tool_name**..."
   cleanContent = cleanContent.replace(/^>\s*🔧\s+\*\*[^*]+\*\*[^\n]*$/gm, '')
@@ -86,6 +95,9 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   
   // Remove lines that contain "tool result content stripped"
   cleanContent = cleanContent.replace(/^.*?tool result content stripped.*$/gm, '')
+  
+  // Remove function_results blocks
+  cleanContent = cleanContent.replace(/<function_results>[\s\S]*?<\/function_results>/g, '')
   
   // Clean up excessive blank lines left behind (collapse 3+ newlines to 2)
   cleanContent = cleanContent.replace(/\n{3,}/g, '\n\n')
