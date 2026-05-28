@@ -99,12 +99,12 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   // Remove function_results blocks
   cleanContent = cleanContent.replace(/<function_results>[\s\S]*?<\/function_results>/g, '')
   
-  // Remove code blocks with line-numbered content (e.g., "  1| 'use client'")
+  // Remove code blocks with line-numbered content (e.g., "1| 'use client'" or "  1| 'use client'")
   // These are file dumps from read_file tool
-  cleanContent = cleanContent.replace(/```[a-z]*\n(?:\s+\d+\|[^\n]*\n)+```/g, '')
+  cleanContent = cleanContent.replace(/```[a-z]*\n(?:\s*\d+\|[^\n]*\n)+```/g, '')
   
   // Also catch them without language specifier
-  cleanContent = cleanContent.replace(/```\n(?:\s+\d+\|[^\n]*\n)+```/g, '')
+  cleanContent = cleanContent.replace(/```\n(?:\s*\d+\|[^\n]*\n)+```/g, '')
   
   // Clean up excessive blank lines left behind (collapse 3+ newlines to 2)
   cleanContent = cleanContent.replace(/\n{3,}/g, '\n\n')
