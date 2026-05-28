@@ -70,22 +70,28 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   let cleanContent = content.replace(/\{\{APPLY_TO_LIVE_BUTTON\}\}/g, '')
 
   // Strip tool call information blocks (the black boxes users don't need to see)
-  // These appear as code blocks with tool names and results
-  cleanContent = cleanContent.replace(/```[^\n]*\n🔧\s+\w+.*?\n.*?```/gs, '')
-  cleanContent = cleanContent.replace(/>\s*🔧\s+\*\*(\w+)\*\*.*?\n.*?(?=\n\n|$)/gs, '')
-  cleanContent = cleanContent.replace(/🔧\s+\*\*(\w+)\*\*.*?\n.*?(?:\[\.\.\..*?\])?(?=\n\n|$)/gs, '')
+  // Format: "> 🔧 **tool_name** args" followed by "> ↳ result"
   
-  // Strip lines that start with tool emoji and contain "tool result content stripped"
-  cleanContent = cleanContent.replace(/^.*?🔧.*?tool result content stripped.*?$/gm, '')
+  // Remove blockquote-style tool calls: "> 🔧 **tool_name**..."
+  cleanContent = cleanContent.replace(/^>\s*🔧\s+\*\*[^*]+\*\*[^\n]*$/gm, '')
   
-  // Strip lines with just the tool wrench emoji and tool names
-  cleanContent = cleanContent.replace(/^🔧\s+\w+.*$/gm, '')
+  // Remove blockquote-style tool results: "> ↳ ..."
+  cleanContent = cleanContent.replace(/^>\s*↳[^\n]*$/gm, '')
   
-  // Strip lines that look like "↳ Found X match" or "↳ components/..."
-  cleanContent = cleanContent.replace(/^↳.*$/gm, '')
+  // Remove any remaining tool emoji lines
+  cleanContent = cleanContent.replace(/^.*?🔧.*$/gm, '')
   
-  // Clean up excessive blank lines left behind
+  // Remove any remaining arrow lines (tool results)
+  cleanContent = cleanContent.replace(/^.*?↳.*$/gm, '')
+  
+  // Remove lines that contain "tool result content stripped"
+  cleanContent = cleanContent.replace(/^.*?tool result content stripped.*$/gm, '')
+  
+  // Clean up excessive blank lines left behind (collapse 3+ newlines to 2)
   cleanContent = cleanContent.replace(/\n{3,}/g, '\n\n')
+  
+  // Clean up leading/trailing whitespace
+  cleanContent = cleanContent.trim()
 
   return <MessagePart content={cleanContent} hideCodeBlocks={hideCodeBlocks} />
 }
