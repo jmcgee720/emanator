@@ -1310,7 +1310,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     
     // Log for debugging
     if (hashChanged) {
-      console.log('[PreviewTab] Files changed — preview will refresh', { 
+      console.log('[PreviewTab] Files changed — auto-refreshing preview', { 
         fileCount: files?.length, 
         prevHash: prevHash?.slice(0, 100), 
         currentHash: currentHash?.slice(0, 100) 
@@ -1319,6 +1319,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     
     if (hashChanged || forceRefresh) {
       // Debounce: wait 500ms before recompiling so rapid file changes don't thrash the preview
+      // Auto-refresh happens after agent file changes are complete
       const timer = setTimeout(() => {
         // Invalidate snapshot when files change (new build) or user forces refresh
         // Files changed = snapshot is stale by definition — always clear it
@@ -1332,12 +1333,16 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
         }
         forceRefreshRef.current = false
         forceRecompileRef.current = false
+        // Log auto-refresh for user visibility
+        if (hashChanged && onLog) {
+          onLog('info', 'Preview auto-refreshed after file changes')
+        }
       }, forceRefresh ? 0 : 500)
       prevFilesRef.current = currentHash
       return () => clearTimeout(timer)
     }
     prevFilesRef.current = currentHash
-  }, [files])
+  }, [files, onLog])
 
   useEffect(() => {
     const handler = (e) => {
