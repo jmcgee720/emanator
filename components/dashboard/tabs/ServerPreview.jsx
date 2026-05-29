@@ -184,54 +184,6 @@ export default function ServerPreview({ projectId, projectName }) {
 
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
-      {/* status bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-white/5 bg-black/30 px-3 py-1 text-xs">
-        <div className="flex items-center gap-2">
-          <StatusDot status={status} />
-          <span className="text-white/70" data-testid="server-preview-status">
-            {statusLabel(status, projectName)}
-          </span>
-          {previewUrl && status === 'ready' && (
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="ml-1 truncate text-white/40 hover:text-white/80"
-              data-testid="server-preview-url"
-            >
-              {previewUrl.replace(/^https?:\/\//, '')}
-            </a>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {status === 'error' && (
-            <Button size="sm" variant="ghost" onClick={start} data-testid="server-preview-retry">
-              Retry
-            </Button>
-          )}
-          {(status === 'ready' || status === 'starting') && (
-            <Button size="sm" variant="ghost" onClick={stop} data-testid="server-preview-stop">
-              Stop
-            </Button>
-          )}
-          {(status === 'idle' || status === 'stopped' || status === 'error') && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={hardReset}
-              title="Destroy the Fly machine so the next Start provisions a fresh one. Use if the preview is stuck on a stale file from a previous run."
-              data-testid="server-preview-hard-reset"
-            >
-              Hard Reset
-            </Button>
-          )}
-          {(status === 'idle' || status === 'stopped' || status === 'error') && (
-            <Button size="sm" onClick={start} data-testid="server-preview-start">
-              Start
-            </Button>
-          )}
-        </div>
-      </div>
 
       {/* main area — iframe + collapsed log drawer */}
       <div className="relative min-h-0 flex-1">
