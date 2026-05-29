@@ -1838,29 +1838,6 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
             className="h-7 w-7 p-0" onClick={() => setViewportSize('desktop')} data-testid="preview-viewport-desktop">
             <Monitor className="w-3.5 h-3.5" />
           </Button>
-          <span className="ml-2 text-[10px] font-mono text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded" data-testid="preview-mode-label">
-            {modeLabel}{projectInfo.usesTailwind ? ' + Tailwind' : ''}
-          </span>
-          {/* Server is the only supported engine — Babel and WebContainer
-              were dropped Feb 2026. The badge below is informational only. */}
-          <span
-            className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded border border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-            data-testid="preview-engine-server"
-          >
-            <Zap className="w-3 h-3" /> Server
-          </span>
-          {isWebContainerEnabled() && ['cra', 'next', 'vite'].includes(detectedFramework) && (
-            <span
-              className="ml-1 text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20"
-              title={detectedFramework === 'cra'
-                ? 'Detected Create React App — auto-converted to Vite for WebContainer execution'
-                : `Detected ${detectedFramework.toUpperCase()} — running in WebContainer`}
-              data-testid="preview-framework-badge"
-            >
-              {detectedFramework === 'cra' ? 'CRA → Vite' : detectedFramework}
-            </span>
-          )}
-          <span className="ml-1"><ImageryGeneratedPill project={project} /></span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -1910,11 +1887,6 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
           </Button>
         </div>
       </div>
-
-      <ImageryDeferredBanner
-        project={project}
-        onDone={() => { if (typeof onRefreshFiles === 'function') onRefreshFiles() }}
-      />
 
       {iframeErrors.length > 0 && (
         <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/40 text-red-300 text-[11px] font-mono max-h-24 overflow-auto" data-testid="preview-error-banner">
