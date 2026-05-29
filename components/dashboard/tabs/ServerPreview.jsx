@@ -185,7 +185,7 @@ export default function ServerPreview({ projectId, projectName }) {
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
       {/* status bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-white/5 bg-black/30 px-3 py-1.5 text-xs">
+      <div className="flex items-center justify-between gap-3 border-b border-white/5 bg-black/30 px-3 py-1 text-xs">
         <div className="flex items-center gap-2">
           <StatusDot status={status} />
           <span className="text-white/70" data-testid="server-preview-status">
