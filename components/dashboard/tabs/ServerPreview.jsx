@@ -244,44 +244,7 @@ export default function ServerPreview({ projectId, projectName }) {
         )}
       </div>
 
-      {/* log drawer
-          • Auto-open while the preview is `starting` so users can SEE
-            npm install progressing instead of staring at a spinner.
-          • Pulsing amber dot + line counter when active so the panel
-            collapse state still draws the eye.
-          • After first `ready` we let the user collapse it — toggle is
-            controlled below, but the autoOpen ref locks the open state
-            during the install grind. */}
-      <details
-        className="border-t border-white/5 bg-black/40 text-xs"
-        data-testid="server-preview-logs-drawer"
-        open={status === 'starting' || drawerOpenOverride}
-        onToggle={(e) => setDrawerOpenOverride(e.target.open)}
-      >
-        <summary className="cursor-pointer select-none px-3 py-1.5 flex items-center gap-2 text-white/60 hover:text-white/90">
-          {status === 'starting' && (
-            <span
-              className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse"
-              aria-label="install in progress"
-            />
-          )}
-          <span>Terminal &middot; {logs.length} lines</span>
-          {status === 'starting' && logs.length > 0 && (
-            <span className="text-amber-300/70 text-[10px] tabular-nums">
-              ({lastInstallActivity || 'installing...'})
-            </span>
-          )}
-        </summary>
-        <pre className="max-h-64 overflow-auto bg-black/70 p-3 font-mono text-[11px] leading-snug text-white/70" data-testid="server-preview-logs" ref={logsScrollRef}>
-          {logs.length === 0
-            ? '(no output yet — npm install will appear here once Fly machine is up)'
-            : logs.map((l, i) => (
-                <div key={i} className={l.stream === 'dev' ? 'text-emerald-300/80' : l.stream === 'install' ? 'text-amber-300/70' : 'text-white/50'}>
-                  {l.line}
-                </div>
-              ))}
-        </pre>
-      </details>
+      {/* Terminal drawer removed to maximize preview vertical space */}
     </div>
   )
 }
