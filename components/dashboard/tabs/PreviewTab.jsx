@@ -1829,68 +1829,12 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
 
   return (
     <div className="h-full flex flex-col bg-background min-h-0" data-testid="preview-tab">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40">
-        <div className="flex items-center gap-1">
-          <Button size="sm" variant={viewportSize === 'mobile' ? 'secondary' : 'ghost'}
-            className="h-7 w-7 p-0" onClick={() => setViewportSize('mobile')} data-testid="preview-viewport-mobile">
-            <MonitorSmartphone className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="sm" variant={viewportSize === 'tablet' ? 'secondary' : 'ghost'}
-            className="h-7 w-7 p-0" onClick={() => setViewportSize('tablet')} data-testid="preview-viewport-tablet">
-            <Tablet className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="sm" variant={viewportSize === 'desktop' ? 'secondary' : 'ghost'}
-            className="h-7 w-7 p-0" onClick={() => setViewportSize('desktop')} data-testid="preview-viewport-desktop">
-            <Monitor className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {runtimeResults && (
-            <span className={`text-[10px] mr-1 px-1.5 py-0.5 rounded font-mono ${runtimeResults.allPassed ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/40'}`} data-testid="runtime-verification-badge">
-              {runtimeResults.allPassed ? 'VERIFIED' : `${runtimeResults.passed}/${runtimeResults.total} passed`}
-            </span>
-          )}
-          {iframeErrors.length > 0 && (
-            <span className="text-[10px] text-red-400 mr-1" data-testid="preview-error-count">
-              {iframeErrors.length} error{iframeErrors.length > 1 ? 's' : ''}
-            </span>
-          )}
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
-            onClick={() => setShowConsole(v => !v)} data-testid="preview-toggle-console">
-            <Terminal className={`w-3.5 h-3.5 ${consoleLogs.length > 0 ? 'text-blue-400' : ''}`} />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1.5"
-            onClick={() => {
-              if (!iframeRef.current?.contentWindow) return
-              setA11y({ status: 'running' })
-              setShowA11y(true)
-              iframeRef.current.contentWindow.postMessage({ type: '__RUN_A11Y_AUDIT__' }, '*')
-            }}
-            disabled={!iframeLoaded || a11y?.status === 'running'}
-            data-testid="preview-audit-a11y"
-            aria-label="Run accessibility audit"
-          >
-            {a11y?.status === 'running' ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Accessibility className={`w-3.5 h-3.5 ${a11y?.violations?.length ? 'text-red-400' : a11y?.status === 'done' ? 'text-emerald-400' : ''}`} />
-            )}
-            <span className="text-[11px]">Audit</span>
-            {a11y?.status === 'done' && a11y?.violations?.length > 0 ? (
-              <span className="ml-0.5 px-1 rounded-full bg-red-500/20 text-red-300 text-[9px] font-semibold" data-testid="preview-audit-count">
-                {a11y.violations.length}
-              </span>
-            ) : null}
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 gap-1.5"
-            onClick={handleRefresh} data-testid="preview-refresh">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
-        </div>
+      {/* Minimal control bar — just refresh button */}
+      <div className="flex items-center justify-end px-3 py-1 border-b border-border/40">
+        <Button size="sm" variant="ghost" className="h-6 gap-1.5 text-xs"
+          onClick={handleRefresh} data-testid="preview-refresh">
+          <RefreshCw className="w-3 h-3" /> Refresh
+        </Button>
       </div>
 
       {iframeErrors.length > 0 && (
