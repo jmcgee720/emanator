@@ -210,11 +210,6 @@ export default function ServerPreview({ projectId, projectName }) {
             </Button>
           )}
           {(status === 'ready' || status === 'starting') && (
-            <Button size="sm" variant="ghost" onClick={() => setIframeKey(k => k + 1)} data-testid="server-preview-refresh">
-              Refresh
-            </Button>
-          )}
-          {(status === 'ready' || status === 'starting') && (
             <Button size="sm" variant="ghost" onClick={stop} data-testid="server-preview-stop">
               Stop
             </Button>
