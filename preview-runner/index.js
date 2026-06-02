@@ -618,6 +618,7 @@ app.post('/sync-from-supabase', async (req, res) => {
   const ms = Date.now() - t0
   const skipped = allRows.length - written - failures.length
   appendLog('runner', `[sync] wrote ${written} changed, skipped ${skipped} identical, removed ${removed} stale (${decodedAssets} binary, ${storageDownloads} storage, ${failures.length} failures) in ${ms}ms`)
+  appendLog('runner', `[sync] node_modules excluded from sync (ephemeral build artifacts, not source files)`)
 
   // Loud failure: if ANY required file is missing, return a non-OK status
   // so the orchestrator stops the boot and surfaces a real error to the
