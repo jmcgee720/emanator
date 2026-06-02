@@ -332,11 +332,43 @@ async function runInstallIfNeeded(workCwd) {
     return
   }
 
+  // ── Defensive nuke on cache miss (added 2026-05-28) ─────────────────
+  // If the hash changed but a node_modules dir is sitting on disk,
+  // it's from a PRIOR install of a DIFFERENT lockfile state. Mixing
+  // those produces Vite-style chunk errors:
+  //   "Cannot find module '/project/frontend/node_modules/vite/dist/
+  //    node/chunks/dep-D-7KCb9p.js' imported from .../dep-BK3b2jBa.js"
+  // (the new Vite binary expects the new chunk hash; the old chunk
+  // from a partially-overwritten install is loaded instead). Same
+  // pattern bites Next.js, esbuild, and any tool that ships internal
+  // chunk-hashed JS. Nuking before reinstall guarantees a clean tree.
+  //
+  // We also nuke .vite / .cache / .turbo / .next caches that
+  // reference internal chunk hashes — these can persist across
+  // installs and pin a build to a stale chunk graph.
+  const node_modules_path = join(cwd, 'node_modules')
+  if (existsSync(node_modules_path)) {
+    appendLog('runner', '[runner] cache miss — nuking stale node_modules to prevent chunk-hash drift…')
+    try {
+      await fs.rm(node_modules_path, { recursive: true, force: true })
+    } catch (e) {
+      appendLog('runner', `[runner] ⚠ failed to remove node_modules: ${e?.message} — proceeding anyway, npm install will likely overwrite`)
+    }
+  }
+  // Also clear build caches that pin internal chunk references.
+  for (const cacheDir of ['.vite', '.cache', '.turbo', '.next/cache']) {
+    const fullCache = join(cwd, cacheDir)
+    if (existsSync(fullCache)) {
+      try { await fs.rm(fullCache, { recursive: true, force: true }) } catch {}
+    }
+  }
+
   appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
   
-  // Retry logic: if npm install fails (exit code 1), it's often because
-  // node_modules is corrupted from a previous failed install or sync bug.
-  // Delete the entire directory and retry once from scratch.
+  // Retry logic: even after the cache-miss nuke above, npm install can
+  // fail transiently (network blip, registry hiccup, OOM mid-extract).
+  // Retry once after nuking node_modules so we don't surface a flaky
+  // failure to the user. lastInstallHash is only updated on success.
   let attempt = 0
   const maxAttempts = 2
   while (attempt < maxAttempts) {
@@ -362,7 +394,6 @@ async function runInstallIfNeeded(workCwd) {
         })
         installProc.on('error', rej)
       })
-      // Success — break out of retry loop
       break
     } catch (err) {
       if (attempt < maxAttempts) {
@@ -370,16 +401,17 @@ async function runInstallIfNeeded(workCwd) {
         appendLog('runner', `[runner] deleting corrupted node_modules and retrying from scratch…`)
         const nmPath = join(cwd, 'node_modules')
         try {
-          await rm(nmPath, { recursive: true, force: true })
+          await fs.rm(nmPath, { recursive: true, force: true })
           appendLog('runner', `[runner] deleted ${nmPath}`)
         } catch (rmErr) {
           appendLog('runner', `[runner] failed to delete node_modules: ${rmErr.message}`)
         }
-        // Brief pause before retry to let filesystem settle
         await new Promise(r => setTimeout(r, 500))
       } else {
-        // Final attempt failed — surface the error
+        // Final attempt failed — also nuke node_modules so the next
+        // /start sees cache miss → fresh nuke + retry from clean slate.
         appendLog('runner', `[runner] npm install failed after ${maxAttempts} attempts: ${err.message}`)
+        try { await fs.rm(node_modules_path, { recursive: true, force: true }) } catch {}
         throw err
       }
     }
