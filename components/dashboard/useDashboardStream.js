@@ -67,6 +67,9 @@ export function useDashboardStream(ctx) {
   const [diffPlanData, setDiffPlanData] = useState(null)
   const [imageGenProgress, setImageGenProgress] = useState(null)
 
+  // Helper to check if current chat is self-edit (used across multiple functions)
+  const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
+
   const sendMessage = async (content, attachments, opts = {}) => {
     if (!selectedChat) { console.log('[sendMessage] blocked: no selectedChat'); return }
     if (!opts.silent && !(content || '').trim()) return
@@ -109,8 +112,6 @@ export function useDashboardStream(ctx) {
 
     // If there's a hidden instruction (from creative brief), send that to the AI instead of the display message
     const aiContent = opts.hiddenInstruction || content
-
-    const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
     const streamOpts = { provider: aiProvider, model: aiModel, scope, designPrefs, attachments, visualMode }
     if (opts.hiddenInstruction) {
       streamOpts.displayContent = content // Save this as the visible user message
