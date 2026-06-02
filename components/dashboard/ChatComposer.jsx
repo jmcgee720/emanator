@@ -171,6 +171,7 @@ const ChatComposer = forwardRef(function ChatComposer({
           content = await readFileAsText(file)
           data = null // text sent as content, not base64
         } else {
+          // For images, documents, archives - send as base64
           data = await readFileAsDataUrl(file)
           if (validation.category === 'image') {
             preview = data
@@ -183,14 +184,14 @@ const ChatComposer = forwardRef(function ChatComposer({
           size: file.size,
           ext: validation.ext,
           category: validation.category,
-          mime_type: file.type,
+          mime_type: file.type || 'application/octet-stream',
           data,
           content,
           preview,
           error: null,
         })
-      } catch {
-        newFiles.push({ file, name: file.name, size: file.size, error: 'Failed to read file' })
+      } catch (err) {
+        newFiles.push({ file, name: file.name, size: file.size, error: err.message || 'Failed to read file' })
       }
     }
     setAttachedFiles(prev => [...prev, ...newFiles])
