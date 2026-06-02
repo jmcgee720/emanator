@@ -1221,6 +1221,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   const [showA11y, setShowA11y] = useState(false)
   const iframeRef = useRef(null)
   const prevFilesRef = useRef(null)
+  const serverPreviewRefreshRef = useRef(null)
 
   // ── Preview Snapshot: persist compiled HTML so re-entry shows exact same preview ──
   const [snapshotHtml, setSnapshotHtml] = useState(null)
