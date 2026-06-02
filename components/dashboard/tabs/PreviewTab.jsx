@@ -1873,7 +1873,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       <div className="flex-1 min-h-0 overflow-hidden bg-white flex justify-center relative">
         {previewEngine === 'server' ? (
           <div className="absolute inset-0">
-            <ServerPreview projectId={project?.id} projectName={project?.name} />
+            <ServerPreview 
+              projectId={project?.id} 
+              projectName={project?.name}
+              onRefreshReady={(refreshFn) => { serverPreviewRefreshRef.current = refreshFn }}
+            />
           </div>
         ) : previewEngine === 'webcontainer' ? (
           <div className="absolute inset-0">
