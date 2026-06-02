@@ -73,6 +73,24 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   // These appear as <system_warning>Token usage: X/Y; Z remaining</system_warning>
   cleanContent = cleanContent.replace(/<system_warning>[\s\S]*?<\/system_warning>/g, '')
 
+  // ── PRESERVE screenshot-inventory disclosures (added 2026-05-28) ────
+  // The stream handler now emits a <details data-tool="screenshot-inventory">
+  // block when the model submits its screenshot inventory. This is the
+  // user's only way to fact-check fabrications — extract these blocks
+  // BEFORE the strip-everything regexes run, then re-insert them after.
+  // Without this guard the existing "remove function_results" and
+  // "remove tool emoji" regexes would eat the inventory along with
+  // everything else.
+  const inventoryBlocks = []
+  cleanContent = cleanContent.replace(
+    /<details data-tool="screenshot-inventory">[\s\S]*?<\/details>/g,
+    (match) => {
+      const placeholder = `\u0000INVENTORY_DISCLOSURE_${inventoryBlocks.length}\u0000`
+      inventoryBlocks.push(match)
+      return placeholder
+    },
+  )
+
   // Strip tool call information blocks (the black boxes users don't need to see)
   // These appear as markdown code blocks with tool invocations
   
@@ -117,6 +135,18 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   
   // Clean up leading/trailing whitespace
   cleanContent = cleanContent.trim()
+
+  // ── Re-insert preserved screenshot-inventory disclosures ─────────
+  // Now that the strip-everything regexes have run, swap the
+  // placeholders back for the real <details data-tool> blocks. ReactMarkdown
+  // (used downstream) renders <details>/<summary> natively as a
+  // collapsible disclosure — exactly what we want.
+  if (inventoryBlocks.length > 0) {
+    cleanContent = cleanContent.replace(
+      /\u0000INVENTORY_DISCLOSURE_(\d+)\u0000/g,
+      (_m, idx) => inventoryBlocks[Number(idx)] || '',
+    )
+  }
 
   return <MessagePart content={cleanContent} hideCodeBlocks={hideCodeBlocks} />
 }
