@@ -333,26 +333,57 @@ async function runInstallIfNeeded(workCwd) {
   }
 
   appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
-  await new Promise((res, rej) => {
-    installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], {
-      cwd,
-      // Force NODE_ENV=development so npm installs `devDependencies`.
-      // Fly auto-sets NODE_ENV=production on Node containers, which
-      // makes npm silently skip devDeps even when --production is not
-      // passed. Without this override we'd see `next` install fine but
-      // tailwindcss/postcss/autoprefixer go missing → PostCSS chain
-      // dies at boot with `require.resolve('tailwindcss')` throwing.
-      env: { ...process.env, CI: '1', NODE_ENV: 'development' },
-    })
-    installProc.stdout.on('data', d => appendLog('install', d))
-    installProc.stderr.on('data', d => appendLog('install', d))
-    installProc.on('exit', code => {
-      installProc = null
-      if (code === 0) { lastInstallHash = key; res() }
-      else rej(new Error('npm install exited ' + code))
-    })
-    installProc.on('error', rej)
-  })
+  
+  // Retry logic: if npm install fails (exit code 1), it's often because
+  // node_modules is corrupted from a previous failed install or sync bug.
+  // Delete the entire directory and retry once from scratch.
+  let attempt = 0
+  const maxAttempts = 2
+  while (attempt < maxAttempts) {
+    attempt++
+    try {
+      await new Promise((res, rej) => {
+        installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], {
+          cwd,
+          // Force NODE_ENV=development so npm installs `devDependencies`.
+          // Fly auto-sets NODE_ENV=production on Node containers, which
+          // makes npm silently skip devDeps even when --production is not
+          // passed. Without this override we'd see `next` install fine but
+          // tailwindcss/postcss/autoprefixer go missing → PostCSS chain
+          // dies at boot with `require.resolve('tailwindcss')` throwing.
+          env: { ...process.env, CI: '1', NODE_ENV: 'development' },
+        })
+        installProc.stdout.on('data', d => appendLog('install', d))
+        installProc.stderr.on('data', d => appendLog('install', d))
+        installProc.on('exit', code => {
+          installProc = null
+          if (code === 0) { lastInstallHash = key; res() }
+          else rej(new Error('npm install exited ' + code))
+        })
+        installProc.on('error', rej)
+      })
+      // Success — break out of retry loop
+      break
+    } catch (err) {
+      if (attempt < maxAttempts) {
+        appendLog('runner', `[runner] npm install failed (attempt ${attempt}/${maxAttempts}): ${err.message}`)
+        appendLog('runner', `[runner] deleting corrupted node_modules and retrying from scratch…`)
+        const nmPath = join(cwd, 'node_modules')
+        try {
+          await rm(nmPath, { recursive: true, force: true })
+          appendLog('runner', `[runner] deleted ${nmPath}`)
+        } catch (rmErr) {
+          appendLog('runner', `[runner] failed to delete node_modules: ${rmErr.message}`)
+        }
+        // Brief pause before retry to let filesystem settle
+        await new Promise(r => setTimeout(r, 500))
+      } else {
+        // Final attempt failed — surface the error
+        appendLog('runner', `[runner] npm install failed after ${maxAttempts} attempts: ${err.message}`)
+        throw err
+      }
+    }
+  }
 
   // ─── Tailwind safety-net ──────────────────────────────────────────
   // npm install --legacy-peer-deps occasionally completes with exit 0
