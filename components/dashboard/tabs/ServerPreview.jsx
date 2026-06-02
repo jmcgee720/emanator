@@ -180,8 +180,14 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
     return () => { try { es.close() } catch {} }
   }, [projectId, status, iframeKey])
 
-  // Auto-start on mount.
+  // Auto-start on mount. Clear stale preview URL when switching projects.
   useEffect(() => {
+    // Reset state immediately when projectId changes to prevent showing
+    // stale iframe from previous project while new one boots.
+    setPreviewUrl(null)
+    setMachineId(null)
+    setError(null)
+    setLogs([])
     start()
     return () => { cancelledRef.current = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
