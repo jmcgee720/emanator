@@ -75,20 +75,36 @@ node scripts/cleanup-node-modules-from-db.js e5e4f1f4-3b5e-4c55-b2dc-655f483ef3e
 
 **Project ID:** `e5e4f1f4-3b5e-4c55-b2dc-655f483ef3ed`
 
-1. Call the cleanup endpoint:
-   ```bash
-   POST /api/previews/e5e4f1f4-3b5e-4c55-b2dc-655f483ef3ed/cleanup-node-modules
-   ```
+### Option 1: Via API endpoint (recommended)
 
-2. The endpoint will:
-   - Delete all `node_modules` rows from the database
-   - Stop the preview machine
-   - Return success
+```bash
+# Call the cleanup endpoint (requires auth token)
+curl -X POST https://auroraly.co/api/previews/e5e4f1f4-3b5e-4c55-b2dc-655f483ef3ed/cleanup-node-modules \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -H "Content-Type: application/json"
+```
 
-3. Next time you start the preview:
-   - The runner will do a fresh `npm install` in `/project/frontend/`
-   - No corrupted files will be present
-   - Binary dependencies will install correctly
+The endpoint will:
+- Delete all `node_modules` rows from the database
+- Stop the preview machine
+- Return success
+
+### Option 2: Via direct script (requires env vars)
+
+```bash
+# Run the cleanup script directly
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+node scripts/cleanup-mangia-mama-now.js
+```
+
+### After cleanup:
+
+1. Refresh the preview window or click "Start Preview"
+2. The runner will do a fresh `npm install` in `/project/frontend/`
+3. No corrupted files will be present
+4. Binary dependencies (vite, esbuild, etc.) will install correctly
+5. The error "Cannot find module '/project/frontend/node_modules/vite/dist/node/chunks/dep-D-7KCb9p.js'" should be gone
 
 ## Verification Checklist
 
