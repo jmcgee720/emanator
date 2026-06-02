@@ -17,17 +17,30 @@ import CompareProvidersDialog from './CompareProvidersDialog'
 const modeIcons = { app: Layers, website: Globe, image: ImageIcon, document: FileText }
 const modeLabels = { app: 'App', website: 'Web', image: 'Image', document: 'Doc' }
 
-const ALLOWED_EXTENSIONS = ['txt','md','json','csv','html','css','js','jsx','ts','tsx','py','sql','pdf','png','jpg','jpeg','webp','svg']
-const TEXT_EXTENSIONS = ['txt','md','json','csv','html','css','js','jsx','ts','tsx','py','sql']
-const IMAGE_EXTENSIONS = ['png','jpg','jpeg','webp','svg']
+const ALLOWED_EXTENSIONS = [
+  // Text / code
+  'txt','md','json','csv','html','css','js','jsx','ts','tsx','py','sql','xml','yaml','yml',
+  // Documents
+  'pdf','doc','docx','xls','xlsx','ppt','pptx','odt','ods','odp','rtf',
+  // Images
+  'png','jpg','jpeg','webp','svg','gif','bmp','ico',
+  // Other
+  'zip','tar','gz'
+]
+const TEXT_EXTENSIONS = ['txt','md','json','csv','html','css','js','jsx','ts','tsx','py','sql','xml','yaml','yml','rtf']
+const IMAGE_EXTENSIONS = ['png','jpg','jpeg','webp','svg','gif','bmp','ico']
+const DOCUMENT_EXTENSIONS = ['pdf','doc','docx','xls','xlsx','ppt','pptx','odt','ods','odp']
+const ARCHIVE_EXTENSIONS = ['zip','tar','gz']
 const MAX_TEXT_SIZE = 512 * 1024
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
-const MAX_PDF_SIZE = 10 * 1024 * 1024
+const MAX_DOCUMENT_SIZE = 25 * 1024 * 1024
+const MAX_ARCHIVE_SIZE = 50 * 1024 * 1024
 
 function getFileCategory(ext) {
   if (TEXT_EXTENSIONS.includes(ext)) return 'text'
   if (IMAGE_EXTENSIONS.includes(ext)) return 'image'
-  if (ext === 'pdf') return 'pdf'
+  if (DOCUMENT_EXTENSIONS.includes(ext)) return 'document'
+  if (ARCHIVE_EXTENSIONS.includes(ext)) return 'archive'
   return 'binary'
 }
 
@@ -48,7 +61,11 @@ function validateFile(file) {
   if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
     return { valid: false, error: `Unsupported file type: .${ext}` }
   }
-  const maxSize = ext === 'pdf' ? MAX_PDF_SIZE : IMAGE_EXTENSIONS.includes(ext) ? MAX_IMAGE_SIZE : MAX_TEXT_SIZE
+  let maxSize = MAX_TEXT_SIZE
+  if (IMAGE_EXTENSIONS.includes(ext)) maxSize = MAX_IMAGE_SIZE
+  else if (DOCUMENT_EXTENSIONS.includes(ext)) maxSize = MAX_DOCUMENT_SIZE
+  else if (ARCHIVE_EXTENSIONS.includes(ext)) maxSize = MAX_ARCHIVE_SIZE
+  
   if (file.size > maxSize) {
     return { valid: false, error: `File too large (${formatSize(file.size)}, max ${formatSize(maxSize)})` }
   }
