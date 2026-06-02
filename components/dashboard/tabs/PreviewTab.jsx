@@ -1654,6 +1654,12 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [runtimeTestScript, iframeLoaded, refreshKey])
 
   const handleRefresh = useCallback(() => {
+    // If we're in server preview mode, delegate to ServerPreview's refresh
+    if (previewEngine === 'server' && serverPreviewRefreshRef.current) {
+      serverPreviewRefreshRef.current()
+      return
+    }
+    
     setIframeErrors([])
     setConsoleLogs([])
     setIframeLoaded(false)
@@ -1667,7 +1673,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     } else {
       setRefreshKey(k => k + 1)
     }
-  }, [onRefreshFiles])
+  }, [onRefreshFiles, previewEngine])
 
   const isCoreSystemProject =
     project?.name === 'Auroraly Backend' ||
