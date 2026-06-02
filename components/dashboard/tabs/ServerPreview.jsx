@@ -20,7 +20,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { authFetch } from '@/lib/auth-fetch'
 
-export default function ServerPreview({ projectId, projectName }) {
+export default function ServerPreview({ projectId, projectName, onRefreshReady }) {
   const [status, setStatus] = useState('idle') // idle | starting | ready | error | stopped
   const [previewUrl, setPreviewUrl] = useState(null)
   const [machineId, setMachineId] = useState(null)
@@ -31,6 +31,11 @@ export default function ServerPreview({ projectId, projectName }) {
   const eventSourceRef = useRef(null)
   const cancelledRef = useRef(false)
   const logsScrollRef = useRef(null)
+
+  // Expose refresh handler to parent via callback
+  const handleRefresh = useCallback(() => {
+    setIframeKey(k => k + 1)
+  }, [])
 
   // Pull a friendly "currently installing X" hint out of the npm install
   // log stream so the collapsed drawer summary still reflects activity.
