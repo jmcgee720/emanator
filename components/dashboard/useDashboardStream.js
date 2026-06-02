@@ -1219,13 +1219,13 @@ export function useDashboardStream(ctx) {
   return {
     sendMessage, executePlan, retryWithFallback,
     applyDiffs, cancelDiffs, cancelPlan,
-    streamingMessageId, streamingStatus,
+    streamingMessageId, streamingStatus, setStreamingMessageId, setStreamingStatus,
     pendingPlan, setPendingPlan,
     executingPlan,
     pendingDiffs, setPendingDiffs,
     applyingDiffs,
     diffMessageId,
     diffPlanData,
-    imageGenProgress,
+    imageGenProgress, setImageGenProgress,
   }
 }
