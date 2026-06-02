@@ -69,6 +69,10 @@ export default function MessageRenderer({ content, hideCodeBlocks }) {
   // Strip any leftover Apply to Live markers
   let cleanContent = content.replace(/\{\{APPLY_TO_LIVE_BUTTON\}\}/g, '')
 
+  // Strip Anthropic system warnings (token budget tracking, internal metadata)
+  // These appear as <system_warning>Token usage: X/Y; Z remaining</system_warning>
+  cleanContent = cleanContent.replace(/<system_warning>[\s\S]*?<\/system_warning>/g, '')
+
   // Strip tool call information blocks (the black boxes users don't need to see)
   // These appear as markdown code blocks with tool invocations
   
