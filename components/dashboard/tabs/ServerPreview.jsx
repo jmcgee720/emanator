@@ -187,6 +187,13 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
 
+  // Expose refresh handler to parent
+  useEffect(() => {
+    if (onRefreshReady) {
+      onRefreshReady(handleRefresh)
+    }
+  }, [onRefreshReady, handleRefresh])
+
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
 
