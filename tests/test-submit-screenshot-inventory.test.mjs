@@ -192,7 +192,13 @@ test('inventory execute: ACCEPTS no_problems_visible verdict only when inventory
 test('stream-handler: wires forceFirstToolCall when ≥1 image attached', async () => {
   const src = await readFile(join(ROOT, 'lib/api/stream-handler-v2.js'), 'utf8')
   assert.match(src, /forceFirstToolCall = 'submit_screenshot_inventory'/, 'stream handler must force the inventory tool call on image turns')
-  assert.match(src, /hasImage = metadata\.attachments\.some/, 'must detect images before forcing')
+  // Detection: either the original `metadata.attachments.some(...)` form or the
+  // refactored `.filter(...)` form (post-2026-05 diagnostic logging refactor)
+  assert.match(
+    src,
+    /(hasImage = metadata\.attachments\.some|imageAttachments = metadata\.attachments\.filter)/,
+    'must detect images before forcing',
+  )
   assert.match(src, /forceFirstToolCall,/, 'must pass the option into runAgent')
 })
 
