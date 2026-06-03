@@ -203,6 +203,57 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
 
+      {/* Control bar */}
+      {status === 'ready' && (
+        <div className="flex items-center justify-between border-b border-border/40 bg-background px-3 py-1.5">
+          <div className="flex items-center gap-2">
+            <StatusDot status={status} />
+            <span className="text-xs text-muted-foreground">
+              {statusLabel(status, projectName)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-xs"
+              onClick={handleRefresh}
+              data-testid="server-preview-refresh"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-xs text-amber-400 hover:text-amber-300"
+              onClick={hardReset}
+              data-testid="server-preview-hard-reset"
+              title="Destroy the machine and start fresh (fixes corrupted node_modules)"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Hard Reset
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-xs text-red-400 hover:text-red-300"
+              onClick={stop}
+              data-testid="server-preview-stop"
+            >
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+              Stop
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* main area — iframe + collapsed log drawer */}
       <div className="relative min-h-0 flex-1">
         {previewUrl && status === 'ready' && (
@@ -234,7 +285,18 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
                 <div className="text-xs text-white/40">
                   First boot installs dependencies — usually 1–2 minutes for landing pages,<br />
                   but <strong>5–10 minutes for large imported projects</strong> (CRA, Next.js).<br />
-                  Subsequent starts are usually under 10 seconds. Open the terminal drawer to watch progress.
+                  Subsequent starts are usually under 10 seconds.
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={stop}
+                    data-testid="server-preview-cancel"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}
@@ -244,18 +306,43 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
                 <pre className="whitespace-pre-wrap rounded bg-black/40 p-3 text-left text-xs text-white/60">
                   {error}
                 </pre>
+                <div className="mt-4 flex gap-2 justify-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={start}
+                    data-testid="server-preview-retry"
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs text-amber-400 hover:text-amber-300"
+                    onClick={hardReset}
+                    data-testid="server-preview-hard-reset-error"
+                  >
+                    Hard Reset
+                  </Button>
+                </div>
               </div>
             )}
             {(status === 'idle' || status === 'stopped') && (
-              <div className="text-white/60">
-                Preview stopped.{' '}
-                <button
+              <div>
+                <div className="text-white/60 mb-4">Preview stopped.</div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5 text-xs"
                   onClick={start}
-                  className="text-white/90 underline hover:text-white"
-                  data-testid="server-preview-start-link"
+                  data-testid="server-preview-start-btn"
                 >
-                  Start it
-                </button>
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Start Preview
+                </Button>
               </div>
             )}
           </div>
