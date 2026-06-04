@@ -1372,7 +1372,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   <span className="truncate max-w-[180px]">{selectedChat.title || 'Chat'}</span>
                   <button
                     onClick={() => {
-                      const newTitle = prompt('Rename conversation:', selectedChat.title)
+                      const newTitle = window.prompt('Rename conversation:', selectedChat.title)
                       if (newTitle?.trim()) renameChat(selectedChat.id, newTitle.trim())
                     }}
                     className="ml-1 opacity-40 hover:opacity-100 transition-opacity"
