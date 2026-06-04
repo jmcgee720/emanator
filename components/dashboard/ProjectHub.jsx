@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History, Globe } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History, Globe, Settings } from 'lucide-react'
+import { SELF_EDIT_PREFIX } from '@/lib/constants'
 import BackendConfigModal from './BackendConfigModal'
 import VersionsPanel from './VersionsPanel'
 import PublishModal from './PublishModal'
