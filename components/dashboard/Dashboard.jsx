@@ -1383,34 +1383,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                 </div>
               )}
             </div>
-
-            {/* Right: Preview toolbar */}
-            <div className="flex items-center gap-1.5">
-              {[
-                { label: 'New Tab', icon: 'ExternalLink', testid: 'preview-open-tab', action: () => { if (selectedProject?.id) window.open(`/api/projects/${selectedProject.id}/preview`, '_blank') } },
-                { label: 'Refresh', icon: 'RefreshCw', testid: 'preview-refresh', action: () => { setActiveTab('preview') } },
-              ].map(btn => (
-                <button
-                  key={btn.testid}
-                  onClick={btn.action}
-                  className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors backdrop-blur-sm"
-                  data-testid={btn.testid}
-                  title={btn.label}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    {btn.icon === 'ExternalLink' && <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>}
-                    {btn.icon === 'RefreshCw' && <><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>}
-                  </svg>
-                </button>
-              ))}
-              <button
-                onClick={() => setActiveTab('deploy')}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold bg-white text-black hover:bg-gray-200 transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                data-testid="preview-deploy-btn"
-              >
-                Deploy
-              </button>
-            </div>
           </div>
 
           {/* ── Main Workspace: Chat + Preview glass panels ── */}
