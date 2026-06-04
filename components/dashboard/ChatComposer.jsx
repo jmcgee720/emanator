@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Send, Paperclip, Loader2, Layers, Globe, Image as ImageIcon, FileText,
-  X, File, FileCode, FileImage, Sparkles, Camera, GitCompare
+  X, File, FileCode, FileImage, Sparkles, Camera, GitCompare, Zap
 } from 'lucide-react'
 import ModelSelector from './ModelSelector'
 import RecipeSelector from './RecipeSelector'
@@ -99,6 +99,8 @@ const ChatComposer = forwardRef(function ChatComposer({
   aiModel,
   onAiProviderChange,
   onAiModelChange,
+  fastMode = false,
+  onToggleFastMode,
   providerStatus,
   scope,
   onScopeChange,
@@ -368,6 +370,27 @@ const ChatComposer = forwardRef(function ChatComposer({
           onModelChange={onAiModelChange}
           providerStatus={providerStatus}
         />
+
+        {onToggleFastMode && (
+          <button
+            onClick={onToggleFastMode}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+              fastMode
+                ? 'bg-green-500/15 text-green-400 border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.18)]'
+                : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50 hover:text-foreground'
+            }`}
+            title={
+              fastMode
+                ? 'Fast mode ON — Claude Haiku 4.5 (~0.3 credits/turn, fastest). Click to restore your previous model.'
+                : 'Fast mode OFF — click to swap to Claude Haiku 4.5 for cheap quick edits.'
+            }
+            data-testid="fast-mode-toggle"
+            aria-pressed={fastMode}
+          >
+            <Zap className="w-3 h-3" />
+            {fastMode ? 'Fast: ON' : 'Fast'}
+          </button>
+        )}
 
         <button
           onClick={() => setCompareOpen(true)}

@@ -365,16 +365,37 @@ export default function AdminPanel({ user, dbUser, onClose }) {
   if (!mounted) return null
 
   return createPortal(
-    <div 
+    <div
       ref={overlayRef}
-      className="fixed top-0 left-0 w-full h-full bg-black/60 flex items-center justify-center p-8" 
-      style={{ zIndex: 99999 }}
-      onClick={onClose} 
+      // Defensive positioning: inline styles bypass any Tailwind purge or
+      // CSS specificity issues that previously made `fixed inset-0` fail
+      // to anchor to the viewport. Combined with the createPortal mount
+      // onto document.body (no transformed ancestor), this guarantees
+      // viewport-centered rendering.
+      className="bg-black/60 flex items-center justify-center p-8"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        // Belt-and-suspenders: even if `inset:0` is overridden somewhere,
+        // these absolute coords still anchor the overlay.
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+      }}
+      onClick={onClose}
       data-testid="admin-panel-overlay"
     >
-      <div 
-        className="w-full max-w-5xl h-[85vh] flex flex-col bg-[#0D0D2B] rounded-2xl border border-[rgba(255,255,255,0.15)] shadow-[0_16px_70px_rgba(0,0,0,0.30)]" 
-        onClick={(e) => e.stopPropagation()} 
+      <div
+        className="w-full max-w-5xl flex flex-col bg-[#0D0D2B] rounded-2xl border border-[rgba(255,255,255,0.15)] shadow-[0_16px_70px_rgba(0,0,0,0.30)]"
+        // Use `auto` margins as a hard-fallback in case `justify-content`
+        // is ever broken by an unrelated CSS shift; max-height keeps the
+        // modal contained inside the viewport with the overlay padding.
+        style={{ height: '85vh', maxHeight: 'calc(100vh - 64px)', margin: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
         data-testid="admin-panel"
       >
         {/* Header */}

@@ -101,6 +101,30 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
   const [builderMode, setBuilderMode] = useState('app')
   const [aiProvider, setAiProvider] = useState('anthropic')
   const [aiModel, setAiModel] = useState('claude-sonnet-4-5-20250929')
+  // Haiku Fast Mode: one-click swap to a cheap fast model. We snapshot the
+  // user's previous (provider, model) so toggling back restores the exact
+  // selection — not whatever the default happens to be.
+  // `prevModel` is set when fast mode is enabled and cleared on disable.
+  const [fastMode, setFastMode] = useState(false)
+  const [prevModel, setPrevModel] = useState(null) // { provider, model } | null
+  const toggleFastMode = () => {
+    if (fastMode) {
+      // Restore previous selection
+      if (prevModel) {
+        setAiProvider(prevModel.provider)
+        setAiModel(prevModel.model)
+      }
+      setPrevModel(null)
+      setFastMode(false)
+      try { localStorage.setItem('auroraly_fast_mode', '0') } catch {}
+    } else {
+      setPrevModel({ provider: aiProvider, model: aiModel })
+      setAiProvider('anthropic')
+      setAiModel('claude-haiku-4-5-20251001')
+      setFastMode(true)
+      try { localStorage.setItem('auroraly_fast_mode', '1') } catch {}
+    }
+  }
   const [providerStatus, setProviderStatus] = useState({})
   const [scope, setScope] = useState('project')
   const [visualMode, setVisualMode] = useState('stock')
@@ -1420,6 +1444,8 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   aiModel={aiModel}
                   onAiProviderChange={setAiProvider}
                   onAiModelChange={setAiModel}
+                  fastMode={fastMode}
+                  onToggleFastMode={toggleFastMode}
                   onImportProject={importProject}
                   providerStatus={providerStatus}
                   onRetryWithFallback={retryWithFallback}

@@ -242,7 +242,8 @@ export default function LeftPanel({
   aiModel,
   onAiProviderChange,
   onAiModelChange,
-  onImportProject,
+  fastMode,
+  onToggleFastMode,
   providerStatus,
   onRetryWithFallback,
   scope,
@@ -1055,6 +1056,8 @@ export default function LeftPanel({
         aiModel={aiModel}
         onAiProviderChange={onAiProviderChange}
         onAiModelChange={onAiModelChange}
+        fastMode={fastMode}
+        onToggleFastMode={onToggleFastMode}
         providerStatus={providerStatus}
         scope={scope}
         onScopeChange={onScopeChange}
