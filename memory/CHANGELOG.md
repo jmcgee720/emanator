@@ -4,6 +4,42 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-02 — Haiku Fast Mode + AdminPanel centering defense + Gemini direct-only (commit `f90f946`)
+
+### (b) Haiku Fast Mode toggle — UI + state
+**What**: One-click pill next to the model selector that swaps to Claude Haiku 4.5 (~0.3 credits/turn) for cheap/fast edits, then restores your previous (provider, model) when toggled off.
+
+**Files**: `components/dashboard/Dashboard.jsx` (state + `toggleFastMode`), `components/dashboard/LeftPanel.jsx` (prop forwarding), `components/dashboard/ChatComposer.jsx` (the pill itself with `data-testid="fast-mode-toggle"` + `aria-pressed`).
+
+**Why it matters**: Lets you scope cost on minor turns without manually digging through the model selector dropdown each time.
+
+### (d) AdminPanel modal centering — defensive fix (3rd attempt)
+**Symptom**: Modal kept regressing to top-cut-off positioning. Previous fixes via Tailwind utilities + portal kept getting beaten by either Tailwind's purge or by an ancestor creating a containing block.
+
+**Shipped**: Promoted the critical positioning to **inline styles** (immune to Tailwind purge): `position:fixed, inset:0, zIndex:99999, width:100vw, height:100vh`. Added auto-margin fallback on the inner modal in case flex centering breaks. Kept the existing `createPortal(..., document.body)` so we always mount outside transformed ancestors. The diagnostic logging from the previous session is preserved so future regressions are debuggable.
+
+### (e) Gemini decoupled from Emergent Universal Key (direct-only mode)
+**Why**: Previously, Gemini calls with no direct `GEMINI_API_KEY` set would silently fall through to the Emergent Universal Key proxy — meaning Gemini usage was shared across all Auroraly tenants on a single proxy budget. That's now removed.
+
+**Behavior change**: If a user has `GEMINI_API_KEY` (or `GOOGLE_API_KEY`), Gemini calls go direct to Google. If they don't, the AIService logs a loud reason line and explicitly falls back to OpenAI — never to the shared proxy.
+
+**Files**: `lib/ai/service.js#_apiKey` + `_buildProvider` cleanup, `lib/ai/providers/gemini.js` header doc, new `docs/UNIVERSAL_KEY_DECOUPLING.md`.
+
+### Tests added (19 new, all green)
+- `test-fast-mode-toggle.test.mjs` (3 tests — wiring + snapshot/restore + test-id)
+- `test-admin-panel-modal-centering.test.mjs` (4 tests — portal + inline styles + flex+margin fallback + test-ids)
+- `test-gemini-decoupling.test.mjs` (5 tests — no proxy env reads + explicit fallback log + class doc)
+- `test-inventory-disclosure-rendering.test.mjs` (7 tests — `<details>` preservation, stream + renderer integration)
+
+Plus 62-test regression suite (anti-fabrication, attachment metadata, surrogate sanitizer, done-guarantee, Gemini message converter, prompt caching, context compaction) all still green.
+
+### Also pushed in this session
+- `MessageRenderer.jsx` + `stream-handler-v2.js`: surfaces `submit_screenshot_inventory` output as a collapsible `<details>` block in chat so users can verify exactly what the model claims it saw
+- `.github/workflows/preview-runner-deploy.yml`: auto-deploys preview-runner to Fly.io on every push to `preview-runner/**` (one-time setup: add `FLY_API_TOKEN` repo secret)
+
+---
+
+
 ## 2026-05-22 (cont'd) — Stream-timeout fix + self-edit hardening (commits `c52c5ad`, `4174e8c`)
 
 ### Stream timeout toast eliminated
