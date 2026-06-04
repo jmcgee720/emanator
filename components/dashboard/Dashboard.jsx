@@ -882,7 +882,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
       setStreamingMessageId(tempId)
       setImageGenProgress({ stage: 'preparing', progress: 5, label: 'Preparing request', mode: stateLabel, startTime: Date.now() })
 
-      const prompt = sourceImage?.prompt
+      const promptText = sourceImage?.prompt
         ? `${sourceImage.prompt}${stateName ? ` — State: ${stateName}` : ''}${customPrompt ? `\n${customPrompt}` : ''}`
         : customPrompt || `Generate a ${variationType.replace(/_/g, ' ')}${stateName ? ` — state: ${stateName}` : ''}`
 
@@ -891,7 +891,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
           method: 'POST',
           headers: JSON_HEADERS,
           body: JSON.stringify({
-            prompt,
+            prompt: promptText,
             mode: sourceImage?.mode || 'image',
             size: '1024x1024',
             chatId: selectedChat.id,
@@ -967,7 +967,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
           characterName: asset.characterName,
         }
 
-        const content = `## ${stateName ? `${stateName} State` : 'Variation'} Generated\n\n**Type:** ${variationType.replace(/_/g, ' ')}\n**Prompt:** ${prompt.slice(0, 200)}\n**File:** \`${asset.path}\`\n${asset.revisedPrompt ? `**Revised:** ${asset.revisedPrompt}\n` : ''}\n*Generated in ${(asset.duration / 1000).toFixed(1)}s*`
+        const content = `## ${stateName ? `${stateName} State` : 'Variation'} Generated\n\n**Type:** ${variationType.replace(/_/g, ' ')}\n**Prompt:** ${promptText.slice(0, 200)}\n**File:** \`${asset.path}\`\n${asset.revisedPrompt ? `**Revised:** ${asset.revisedPrompt}\n` : ''}\n*Generated in ${(asset.duration / 1000).toFixed(1)}s*`
 
         try {
           const { recordGenerationDuration } = await import('./ImageGenerationProgress')
