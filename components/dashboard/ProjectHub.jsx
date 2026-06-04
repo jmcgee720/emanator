@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History, Globe } from 'lucide-react'
+import { MessageSquare, Plus, FileText, Clock, ArrowLeft, ChevronRight, Hash, Calendar, Code2, Activity, Trash2, Pencil, GitBranch, Upload, Image, File, BookOpen, Database, History, Globe, Settings } from 'lucide-react'
+import { SELF_EDIT_PREFIX } from '@/lib/constants'
 import BackendConfigModal from './BackendConfigModal'
 import VersionsPanel from './VersionsPanel'
 import PublishModal from './PublishModal'
@@ -267,8 +268,16 @@ export default function ProjectHub({
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[rgba(255,255,255,0.05)] transition-all duration-150 group"
                   data-testid={`hub-chat-item-${chat.id}`}
                 >
-                  <div className="w-6 h-6 rounded-md bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center shrink-0 group-hover:border-[rgba(0,229,255,0.20)] group-hover:bg-[rgba(0,229,255,0.06)] transition-all">
-                    <MessageSquare className="w-3 h-3 em-text-muted group-hover:text-[var(--em-cyan)] transition-colors" />
+                  <div className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 transition-all ${
+                    chat.title?.startsWith(SELF_EDIT_PREFIX)
+                      ? 'bg-amber-500/8 border-amber-500/20 group-hover:border-amber-400/40 group-hover:bg-amber-500/12'
+                      : 'bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.08)] group-hover:border-[rgba(0,229,255,0.20)] group-hover:bg-[rgba(0,229,255,0.06)]'
+                  }`}>
+                    {chat.title?.startsWith(SELF_EDIT_PREFIX) ? (
+                      <Settings className="w-3 h-3 text-amber-400/70 group-hover:text-amber-400 transition-colors" />
+                    ) : (
+                      <MessageSquare className="w-3 h-3 em-text-muted group-hover:text-[var(--em-cyan)] transition-colors" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium em-text-primary truncate">{chat.title || 'Untitled'}</div>

@@ -697,13 +697,14 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     sendMessage, executePlan, retryWithFallback,
     applyDiffs, cancelDiffs, cancelPlan,
     streamingMessageId, streamingStatus,
+    setStreamingMessageId, setStreamingStatus,
     pendingPlan, setPendingPlan,
     executingPlan,
     pendingDiffs, setPendingDiffs,
     applyingDiffs,
     diffMessageId,
     diffPlanData,
-    imageGenProgress,
+    imageGenProgress, setImageGenProgress,
   } = useDashboardStream({
     selectedChat, selectedProject, files, setFiles,
     messages, setMessages, canvas, setCanvas,
@@ -881,7 +882,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
       setStreamingMessageId(tempId)
       setImageGenProgress({ stage: 'preparing', progress: 5, label: 'Preparing request', mode: stateLabel, startTime: Date.now() })
 
-      const prompt = sourceImage?.prompt
+      const promptText = sourceImage?.prompt
         ? `${sourceImage.prompt}${stateName ? ` — State: ${stateName}` : ''}${customPrompt ? `\n${customPrompt}` : ''}`
         : customPrompt || `Generate a ${variationType.replace(/_/g, ' ')}${stateName ? ` — state: ${stateName}` : ''}`
 
@@ -890,7 +891,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
           method: 'POST',
           headers: JSON_HEADERS,
           body: JSON.stringify({
-            prompt,
+            prompt: promptText,
             mode: sourceImage?.mode || 'image',
             size: '1024x1024',
             chatId: selectedChat.id,
@@ -966,7 +967,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
           characterName: asset.characterName,
         }
 
-        const content = `## ${stateName ? `${stateName} State` : 'Variation'} Generated\n\n**Type:** ${variationType.replace(/_/g, ' ')}\n**Prompt:** ${prompt.slice(0, 200)}\n**File:** \`${asset.path}\`\n${asset.revisedPrompt ? `**Revised:** ${asset.revisedPrompt}\n` : ''}\n*Generated in ${(asset.duration / 1000).toFixed(1)}s*`
+        const content = `## ${stateName ? `${stateName} State` : 'Variation'} Generated\n\n**Type:** ${variationType.replace(/_/g, ' ')}\n**Prompt:** ${promptText.slice(0, 200)}\n**File:** \`${asset.path}\`\n${asset.revisedPrompt ? `**Revised:** ${asset.revisedPrompt}\n` : ''}\n*Generated in ${(asset.duration / 1000).toFixed(1)}s*`
 
         try {
           const { recordGenerationDuration } = await import('./ImageGenerationProgress')
@@ -1371,7 +1372,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   <span className="truncate max-w-[180px]">{selectedChat.title || 'Chat'}</span>
                   <button
                     onClick={() => {
-                      const newTitle = prompt('Rename conversation:', selectedChat.title)
+                      const newTitle = window.prompt('Rename conversation:', selectedChat.title)
                       if (newTitle?.trim()) renameChat(selectedChat.id, newTitle.trim())
                     }}
                     className="ml-1 opacity-40 hover:opacity-100 transition-opacity"
@@ -1381,34 +1382,6 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Right: Preview toolbar */}
-            <div className="flex items-center gap-1.5">
-              {[
-                { label: 'New Tab', icon: 'ExternalLink', testid: 'preview-open-tab', action: () => { if (selectedProject?.id) window.open(`/api/projects/${selectedProject.id}/preview`, '_blank') } },
-                { label: 'Refresh', icon: 'RefreshCw', testid: 'preview-refresh', action: () => { setActiveTab('preview') } },
-              ].map(btn => (
-                <button
-                  key={btn.testid}
-                  onClick={btn.action}
-                  className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors backdrop-blur-sm"
-                  data-testid={btn.testid}
-                  title={btn.label}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    {btn.icon === 'ExternalLink' && <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>}
-                    {btn.icon === 'RefreshCw' && <><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>}
-                  </svg>
-                </button>
-              ))}
-              <button
-                onClick={() => setActiveTab('deploy')}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold bg-white text-black hover:bg-gray-200 transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                data-testid="preview-deploy-btn"
-              >
-                Deploy
-              </button>
             </div>
           </div>
 

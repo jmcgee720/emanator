@@ -121,29 +121,17 @@ export default function RightPanel({
             ))}
           </TabsList>
 
-          {/* Toolbar: Refresh, Open Tab, Deploy, Share */}
+          {/* Consolidated Toolbar: Refresh, Deploy, Share */}
           <div className="flex items-center gap-1.5 shrink-0 pb-1 relative">
             {/* Refresh */}
             <button
               onClick={() => onTabChange('preview')}
               className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
               data-testid="preview-refresh"
-              title="Refresh"
+              title="Refresh preview"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-            </button>
-
-            {/* Open Tab */}
-            <button
-              onClick={() => { if (selectedProject?.id) window.open(`/api/projects/${selectedProject.id}/preview`, '_blank') }}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-              data-testid="preview-open-tab"
-              title="Open in new tab"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
             </button>
 
