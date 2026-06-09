@@ -28,6 +28,9 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
   const [logs, setLogs] = useState([])
   const [iframeKey, setIframeKey] = useState(0)
   const [drawerOpenOverride, setDrawerOpenOverride] = useState(false)
+  // Transient state for the "Copy" button so users see a confirmation
+  // flash instead of wondering if the click registered.
+  const [copyState, setCopyState] = useState('idle') // idle | copied | failed
   const eventSourceRef = useRef(null)
   const cancelledRef = useRef(false)
   const logsScrollRef = useRef(null)
@@ -305,13 +308,33 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
                   <div className="mb-4 rounded-lg border border-white/10 bg-black/60 text-left" data-testid="server-preview-inline-logs">
                     <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40">
                       <span>Build output · {logs.length} lines</span>
-                      <button
-                        onClick={() => setDrawerOpenOverride(o => !o)}
-                        className="text-cyan-400 hover:text-cyan-300 normal-case tracking-normal"
-                        data-testid="server-preview-toggle-logs"
-                      >
-                        {drawerOpenOverride ? 'Collapse' : 'Expand'}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            // Copy the FULL log buffer (not just what's
+                            // visible) so users can paste into a chat / issue
+                            // without scrolling. Clipboard API requires a
+                            // secure context (https) which the dashboard is.
+                            const text = logs.map(e => e.line || e.message || '').join('\n')
+                            navigator.clipboard?.writeText(text).then(
+                              () => { setCopyState('copied'); setTimeout(() => setCopyState('idle'), 1500) },
+                              () => { setCopyState('failed'); setTimeout(() => setCopyState('idle'), 1500) },
+                            )
+                          }}
+                          className="text-white/50 hover:text-white normal-case tracking-normal"
+                          data-testid="server-preview-copy-logs"
+                          title="Copy all build output to clipboard"
+                        >
+                          {copyState === 'copied' ? '✓ Copied' : copyState === 'failed' ? '✗ Failed' : 'Copy'}
+                        </button>
+                        <button
+                          onClick={() => setDrawerOpenOverride(o => !o)}
+                          className="text-cyan-400 hover:text-cyan-300 normal-case tracking-normal"
+                          data-testid="server-preview-toggle-logs"
+                        >
+                          {drawerOpenOverride ? 'Collapse' : 'Expand'}
+                        </button>
+                      </div>
                     </div>
                     <div
                       ref={logsScrollRef}

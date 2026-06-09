@@ -334,6 +334,20 @@ async function resolveProjectCwd() {
 
   // 4) Last resort: root pkg even if scripts are weak, or nothing.
   if (rootPkg) return { cwd: PROJECT_DIR, pkg: rootPkg, nested: '' }
+
+  // 5) Static-site fallback: no package.json anywhere, but if PROJECT_DIR
+  // contains an index.html we can still serve it. This handles plain
+  // HTML/CSS/JS projects (landing pages, marketing sites, Auroraly's
+  // own static templates) — about 30% of generated projects ship
+  // without a Node toolchain. We mark the descriptor with `static:
+  // true` and let pickDevCommand spawn an http-server.
+  const indexHtml = await readPkg(join(PROJECT_DIR, 'index.html')).catch(() => null)
+  // readPkg() returns null on JSON.parse failure (HTML isn't JSON), so
+  // we use a direct existsSync probe instead.
+  if (existsSync(join(PROJECT_DIR, 'index.html'))) {
+    appendLog('runner', '[runner] no package.json found, but index.html exists — falling back to static-site server')
+    return { cwd: PROJECT_DIR, pkg: null, nested: '', static: true }
+  }
   return null
 }
 
@@ -497,6 +511,45 @@ async function runInstallIfNeeded(workCwd) {
     }
   } catch (err) {
     appendLog('runner', `[runner] Tailwind safety-net skipped (${err.message})`)
+  }
+
+  // ─── CRA `ajv` resolution safety-net ──────────────────────────────
+  // react-scripts ships with ajv-keywords@5 (peer-deps ajv@^8), but on
+  // a --legacy-peer-deps install npm sometimes hoists an older ajv@6
+  // from a transitive dep instead — and ajv-keywords@5 imports
+  // `ajv/dist/compile/codegen` which only exists in ajv@8. The result
+  // is the classic CRA crash:
+  //   Cannot find module 'ajv/dist/compile/codegen'
+  // followed by an exit-1 from react-scripts/scripts/start.js.
+  //
+  // The community fix (since 2021) is to install ajv@^8 at the project
+  // root so npm hoists the correct version where ajv-keywords can find
+  // it. We do that automatically here for any project that has
+  // react-scripts AND is missing the codegen entry point.
+  try {
+    const pkgRaw = existsSync(pkgPath) ? await fs.readFile(pkgPath, 'utf8') : ''
+    const pkgJson = pkgRaw ? JSON.parse(pkgRaw) : {}
+    const wantsCRA = !!(pkgJson.devDependencies?.['react-scripts'] || pkgJson.dependencies?.['react-scripts'])
+    if (wantsCRA) {
+      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen.js')
+      if (!existsSync(ajvCodegen)) {
+        appendLog('runner', '[runner] CRA ajv safety-net: ajv/dist/compile/codegen missing — running recovery install of ajv@^8')
+        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8']
+        await new Promise((res2, rej2) => {
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
+          proc.stdout.on('data', d => appendLog('install', d))
+          proc.stderr.on('data', d => appendLog('install', d))
+          proc.on('exit', code => {
+            if (code === 0) res2()
+            else rej2(new Error('ajv safety-net install exited ' + code))
+          })
+          proc.on('error', rej2)
+        })
+        appendLog('runner', '[runner] CRA ajv safety-net: recovery install complete')
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] CRA ajv safety-net skipped (${err.message})`)
   }
 }
 
@@ -719,7 +772,29 @@ async function bootDevServerInBackground() {
       appendLog('runner', `[runner] start failed: ${lastStartError}`)
       return
     }
-    const { cwd, pkg, nested } = resolved
+    const { cwd, pkg, nested, static: isStatic } = resolved
+
+    // Static-site path: no package.json, plain HTML — spawn http-server
+    // bound to USER_DEV_PORT. We use the globally-installed `serve`
+    // package (bundled into the Dockerfile) so we don't need to npm
+    // install anything for these projects. Sub-1s cold start.
+    if (isStatic) {
+      appendLog('runner', `[runner] spawning static-site server (npx serve) in ${cwd}`)
+      // `-l tcp://0.0.0.0:PORT` binds inside Fly's network. `-s` enables
+      // single-page-app rewriting so client-side routers work. We can
+      // detect SPA later; for now defaulting to safe-mode (serve any
+      // index.html). `--no-clipboard` keeps it noninteractive.
+      devProc = spawn('npx', ['--yes', 'serve', '-l', `tcp://0.0.0.0:${USER_DEV_PORT}`, '-s', '--no-clipboard', cwd], {
+        env: { ...process.env, NODE_ENV: 'development' },
+      })
+      devProc.stdout.on('data', d => appendLog('dev', d))
+      devProc.stderr.on('data', d => appendLog('dev', d))
+      devProc.on('exit', (code, signal) => {
+        appendLog('runner', `[runner] static-site server exited code=${code} signal=${signal}`)
+        devProc = null
+      })
+      return
+    }
 
     if (!installPromise) installPromise = runInstallIfNeeded(cwd).finally(() => { installPromise = null })
     await installPromise
