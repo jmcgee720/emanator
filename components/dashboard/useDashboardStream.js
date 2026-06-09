@@ -745,37 +745,29 @@ export function useDashboardStream(ctx) {
           }
           await refreshCanvas()
 
-          // Auto-refresh preview after AI edits (Feb 2026):
-          // If files changed, push them to the Fly preview-runner so
-          // the user's dev server picks up the new content. Vite/CRA
-          // do HMR automatically once the runner writes new mtimes;
-          // for static sites the dashboard force-reloads the iframe.
-          // This is the "Emergent-style" auto-refresh — no more
-          // manual Refresh after every AI turn.
-          const filesChanged = data.generatedFiles?.length > 0 || data.directEditMode
-          if (filesChanged && selectedProject?.id) {
-            try {
-              const syncRes = await authFetch(`/api/previews/${selectedProject.id}/sync`, { method: 'POST' })
-              const syncBody = await syncRes.json().catch(() => ({}))
-              if (syncBody?.ok && !syncBody.skipped && serverPreviewRefreshRef?.current) {
-                // Bump iframe key after a brief HMR-settling delay.
-                // 800ms lets Vite/CRA finish recompiling so the
-                // reload picks up the new bundle, not the old one.
-                setTimeout(() => {
-                  try { serverPreviewRefreshRef.current() } catch {}
-                }, 800)
-              }
-              // If skipped (no machine, or machine stopped), we just
-              // do nothing — the user will hit Start Preview on their
-              // own and get the fresh files at that point.
-            } catch {
-              // Best-effort. Surfaces in next /sync if it matters.
-            }
-          }
-
           // PM auto-continue disabled — was causing cascading multi-stream failures
           if (briefBuildActiveRef.current) {
             briefBuildActiveRef.current = false
+          }
+        },
+
+        // Auto-refresh preview after AI file-write/edit/delete (Feb 2026):
+        // The V2 server already hits the runner's /sync-from-supabase
+        // via notifyPreviewOfFileChange when these tools succeed, so the
+        // RUNNER has the new bytes. All we need to do here is bump the
+        // iframe key after a short HMR-settling delay so the user sees
+        // the change. Vite typically reloads in <500ms, CRA ~1-2s,
+        // static-site (npx serve) needs the hard reload because there's
+        // no HMR. 800ms is the safe middle ground.
+        onFilesSaved: (data) => {
+          // Visible breadcrumb so users can see the auto-sync happened
+          // even when the preview doesn't visibly change (e.g. they were
+          // on the Code tab, or the iframe was off-screen).
+          addBuildLogEntry(`Synced ${data.action || 'change'} → preview reloading`)
+          if (serverPreviewRefreshRef?.current) {
+            setTimeout(() => {
+              try { serverPreviewRefreshRef.current() } catch {}
+            }, 800)
           }
         },
 
