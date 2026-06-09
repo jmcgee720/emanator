@@ -716,6 +716,12 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     coreProjectIdRef, importChatTitleRef,
   })
 
+  // Ref passed down to PreviewTab so it can register its refresh function
+  // AND consumed by useDashboardStream so the post-AI-edit auto-refresh
+  // can call it directly. Lives at Dashboard scope so both children
+  // share the same instance.
+  const serverPreviewRefreshRef = useRef(null)
+
   // ── Streaming/Plan/Diff operations (extracted to useDashboardStream) ──
   const {
     sendMessage, executePlan, retryWithFallback,
@@ -743,6 +749,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     setAiProvider, setAiModel,
     sendMessageRef,
     setBuildLog, setBuildMilestones, setAssetsRefreshKey, briefBuildActiveRef,
+    serverPreviewRefreshRef,
   })
 
   // Keep ref updated so event handlers always have latest sendMessage
@@ -1551,6 +1558,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   isBuilding={!!streamingMessageId}
                   runtimeTestScript={runtimeTestScript}
                   generatedImageMap={generatedImageMap}
+                  serverPreviewRefreshRef={serverPreviewRefreshRef}
                   onApplySuccess={null}
                   projectLoading={projectLoading}
                 />

@@ -37,6 +37,7 @@ export default function RightPanel({
   isBuilding,
   runtimeTestScript,
   generatedImageMap,
+  serverPreviewRefreshRef,
   onApplySuccess,
   projectLoading,
 }) {
@@ -222,7 +223,7 @@ export default function RightPanel({
               <CoreCanvas project={selectedProject} onLog={addLog} />
             ) : (
               <>
-                <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} />
+                <PreviewTab project={selectedProject} files={files} onLog={addLog} livePreviewData={livePreviewData} isBuilding={isBuilding} onRefreshFiles={handleRefreshFiles} runtimeTestScript={runtimeTestScript} generatedImageMap={generatedImageMap} serverPreviewRefreshRef={serverPreviewRefreshRef} />
                 {/* Loading overlay shown while project files are still
                     fetching from the server. PreviewTab itself handles
                     the in-browser compile, but the brief gap before

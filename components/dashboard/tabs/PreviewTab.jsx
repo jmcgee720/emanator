@@ -1195,7 +1195,7 @@ function NodePreviewRunner({ project, files, onLog }) {
 // ═══════════════════════════════════════════════════════════════════
 // Main PreviewTab Component
 // ═══════════════════════════════════════════════════════════════════
-export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap }) {
+export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap, serverPreviewRefreshRef: externalServerPreviewRefreshRef }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   // Server is the only supported preview engine (Feb 2026 standardization).
@@ -1213,7 +1213,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   const [showA11y, setShowA11y] = useState(false)
   const iframeRef = useRef(null)
   const prevFilesRef = useRef(null)
-  const serverPreviewRefreshRef = useRef(null)
+  // Use the parent-provided ref if available (so useDashboardStream's
+  // auto-refresh-after-AI-edit can call refresh directly), else fall back
+  // to a local ref for older mounts/tests.
+  const localServerPreviewRefreshRef = useRef(null)
+  const serverPreviewRefreshRef = externalServerPreviewRefreshRef || localServerPreviewRefreshRef
 
   // ── Preview Snapshot: persist compiled HTML so re-entry shows exact same preview ──
   const [snapshotHtml, setSnapshotHtml] = useState(null)
