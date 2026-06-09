@@ -16,6 +16,8 @@ import {
   machineControlUrl,
   isMachineConfigStale,
   destroyMachine,
+  updateMachineEnv,
+  freshMachineEnv,
 } from '@/lib/fly/machines'
 
 export const dynamic = 'force-dynamic'
@@ -80,16 +82,35 @@ export async function POST(request, { params }) {
     let createdNew = false
     // A machine spawned with an OLDER orchestrator config (e.g. before
     // SUPABASE_URL was injected for the /sync-from-supabase fast path)
-    // can't serve our current API surface. Destroy + recreate instead
-    // of failing every sync forever.
+    // can't serve our current API surface. PRIOR behavior was to destroy
+    // + recreate, but that wipes node_modules + .auroraly-install-hash
+    // and forces a full 5-10 min reinstall. NEW behavior (Feb 2026):
+    // try an in-place env update first — Fly's Machine Update API
+    // stops the machine, rewrites config, restarts. Disk is preserved.
+    // Only fall back to destroy/recreate if the in-place update fails
+    // (e.g. image is also stale, not just env).
     if (machine && isMachineConfigStale(machine)) {
-      console.log(`[start] machine ${machine.id} for project ${projectId} is stale — recreating with fresh env`)
-      await destroyMachine(machine.id).catch((err) => {
-        // Best-effort: if destroy fails, the new machine creation below
-        // will surface a "machine name conflict" we can't recover from.
-        console.warn(`[start] destroy failed: ${err.message}`)
-      })
-      machine = null
+      console.log(`[start] machine ${machine.id} for project ${projectId} has stale env — attempting in-place update`)
+      try {
+        await updateMachineEnv(machine.id, machine, freshMachineEnv(projectId, secret))
+        // Wait for the machine to settle into 'started' after the
+        // update-induced restart. 30s is enough — env updates are
+        // fast because the rootfs is untouched.
+        const settled = await waitForMachineState(machine.id, 'started', 30_000).catch(() => null)
+        if (settled?.ok) {
+          machine.state = settled.state || 'started'
+          machine.config = { ...machine.config, env: { ...machine.config.env, ...freshMachineEnv(projectId, secret) } }
+          console.log(`[start] in-place env update succeeded — preserving node_modules cache`)
+        } else {
+          throw new Error(`machine did not reach 'started' after env update (state=${settled?.state || 'unknown'})`)
+        }
+      } catch (err) {
+        console.warn(`[start] in-place env update failed (${err.message}) — falling back to destroy/recreate`)
+        await destroyMachine(machine.id).catch((destroyErr) => {
+          console.warn(`[start] destroy failed: ${destroyErr.message}`)
+        })
+        machine = null
+      }
     }
     if (!machine) {
       machine = await createMachineForProject(projectId, secret)

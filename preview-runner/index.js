@@ -586,17 +586,70 @@ function probeDevPortListening() {
   })
 }
 
+// HTTP-level readiness probe. Even AFTER the port opens, frameworks
+// like react-scripts and webpack-dev-server take 30-90 seconds to
+// finish compiling — during that window the port is open but every
+// request gets either a 502, a "Compiling..." shell page, or hangs.
+// If we report `running: true` the instant the port binds, the
+// dashboard flips to Ready and the user sees a blank/error iframe.
+// Bumping to "first HTTP request to / returns a 2xx/3xx" is the right
+// readiness contract for a dev server.
+// Cached for 1.5s — slower than the TCP probe because each call costs
+// a full HTTP roundtrip.
+let devHttpReady = false
+let devHttpLastProbe = 0
+function probeDevHttpReady() {
+  const now = Date.now()
+  if (now - devHttpLastProbe < 1500) return Promise.resolve(devHttpReady)
+  devHttpLastProbe = now
+  return new Promise((resolveHttp) => {
+    const req = net.connect({ host: '127.0.0.1', port: USER_DEV_PORT }, () => {
+      req.write('GET / HTTP/1.0\r\nHost: localhost\r\nUser-Agent: auroraly-runner-probe\r\n\r\n')
+    })
+    let buffer = ''
+    let done = false
+    const finish = (ready) => {
+      if (done) return
+      done = true
+      devHttpReady = ready
+      try { req.destroy() } catch {}
+      resolveHttp(ready)
+    }
+    req.on('data', (chunk) => {
+      buffer += chunk.toString('utf8', 0, Math.min(chunk.length, 256))
+      // Accept any 2xx or 3xx response. 5xx during compile + 404 from
+      // a router that hasn't mounted yet both signal NOT ready.
+      const match = buffer.match(/^HTTP\/1\.[01]\s+(\d{3})/)
+      if (match) {
+        const code = parseInt(match[1], 10)
+        finish(code >= 200 && code < 400)
+      }
+    })
+    req.on('end', () => finish(false))
+    req.on('error', () => finish(false))
+    // 2s timeout — generous because dev servers under load can be slow
+    // to respond mid-compile but should never take more than that to
+    // produce SOME response.
+    setTimeout(() => finish(false), 2000)
+  })
+}
+
 app.get('/health', (_req, res) => res.json({ ok: true, running: !!devProc, pid: devProc?.pid || null }))
 
 app.get('/status', async (_req, res) => {
-  // `running` now requires BOTH a live process AND the dev port to be
-  // accepting connections. This single change is what stops the
-  // "Ready ✅ + ECONNREFUSED 3001" UI state.
+  // `running` now requires THREE conditions:
+  //   1. The dev process is alive (devProc !== null)
+  //   2. The dev port is accepting TCP connections
+  //   3. The dev server responds to HTTP with a 2xx/3xx
+  // (3) is what stops the "Ready badge + Compiling page" state for
+  // react-scripts and any framework that binds early then compiles.
   const portOpen = devProc ? await probeDevPortListening() : false
+  const httpReady = portOpen ? await probeDevHttpReady() : false
   res.json({
-    running: !!devProc && portOpen,
+    running: !!devProc && portOpen && httpReady,
     processAlive: !!devProc,
     portListening: portOpen,
+    httpReady,
     pid: devProc?.pid || null,
     port: USER_DEV_PORT,
     installing: !!installProc,
