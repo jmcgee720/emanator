@@ -280,14 +280,61 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
         {status !== 'ready' && (
           <div className="flex h-full w-full items-center justify-center bg-black/20 p-6 text-center text-sm text-white/60">
             {status === 'starting' && (
-              <div data-testid="server-preview-spinner">
-                <div className="mb-2 text-base text-white/80">Starting your preview…</div>
-                <div className="text-xs text-white/40">
+              <div data-testid="server-preview-spinner" className="w-full max-w-2xl">
+                <div className="mb-2 text-base text-white/80 flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4 animate-spin text-cyan-400" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
+                  </svg>
+                  Starting your preview…
+                </div>
+                {lastInstallActivity && (
+                  <div className="text-[11px] font-mono text-cyan-300/80 mb-3 truncate" data-testid="server-preview-activity">
+                    ▸ {lastInstallActivity}
+                  </div>
+                )}
+                <div className="text-xs text-white/40 mb-4">
                   First boot installs dependencies — usually 1–2 minutes for landing pages,<br />
                   but <strong>5–10 minutes for large imported projects</strong> (CRA, Next.js).<br />
                   Subsequent starts are usually under 10 seconds.
                 </div>
-                <div className="mt-4 flex gap-2">
+
+                {/* Inline log stream — gives the loading screen a heartbeat so
+                    users can see real activity instead of a static message. */}
+                {logs.length > 0 && (
+                  <div className="mb-4 rounded-lg border border-white/10 bg-black/60 text-left" data-testid="server-preview-inline-logs">
+                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40">
+                      <span>Build output · {logs.length} lines</span>
+                      <button
+                        onClick={() => setDrawerOpenOverride(o => !o)}
+                        className="text-cyan-400 hover:text-cyan-300 normal-case tracking-normal"
+                        data-testid="server-preview-toggle-logs"
+                      >
+                        {drawerOpenOverride ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+                    <div
+                      ref={logsScrollRef}
+                      className={`px-3 py-2 font-mono text-[10px] leading-snug text-white/70 overflow-auto ${drawerOpenOverride ? 'max-h-80' : 'max-h-32'}`}
+                    >
+                      {logs.slice(drawerOpenOverride ? -300 : -8).map((entry, i) => (
+                        <div key={i} className={
+                          entry.level === 'error' || /error|ERR!|failed/i.test(entry.line || entry.message || '')
+                            ? 'text-red-400'
+                            : entry.level === 'warn' || /warn/i.test(entry.line || entry.message || '')
+                              ? 'text-amber-400'
+                              : (entry.line || entry.message || '').startsWith('[runner]') || (entry.line || entry.message || '').startsWith('[dashboard]') || (entry.line || entry.message || '').startsWith('[sync]')
+                                ? 'text-cyan-400/80'
+                                : 'text-white/60'
+                        }>
+                          {entry.line || entry.message || ''}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-4 flex gap-2 justify-center">
                   <Button
                     size="sm"
                     variant="outline"

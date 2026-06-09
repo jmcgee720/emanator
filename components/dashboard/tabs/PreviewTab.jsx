@@ -8,10 +8,7 @@ import {
   Loader2, FileCode, AlertCircle, Terminal, Play, Square, RotateCcw,
   Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, Zap
 } from 'lucide-react'
-import WebContainerPreview from './WebContainerPreview'
 import ServerPreview from './ServerPreview'
-import { isWebContainerEnabled } from '../../../lib/webcontainer/sandbox.js'
-import { detectProjectLayout, toWebContainerTree } from '../../../lib/webcontainer/file-tree.js'
 import { ImageryDeferredBanner, ImageryGeneratedPill } from '../ImageryDeferredBanner.jsx'
 
 // ─── Parse VFS entries out of a components/assets.js module ────────
@@ -1201,18 +1198,13 @@ function NodePreviewRunner({ project, files, onLog }) {
 export default function PreviewTab({ project, files, onLog, livePreviewData, isBuilding, onRefreshFiles, runtimeTestScript: externalRuntimeTestScript, generatedImageMap }) {
   const [viewportSize, setViewportSize] = useState('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
-  // Server is the only supported preview engine (Feb 2026 rewrite).
-  // The setter still exists so older callsites don't blow up, but any
-  // attempt to change to 'babel'/'webcontainer' is intercepted and
-  // forced back to 'server'. This keeps the surface tiny while we
-  // delete the old engines for good in a follow-up.
-  const [previewEngineRaw, setPreviewEngineRaw] = useState('server')
-  const previewEngine = 'server'
-  const setPreviewEngine = useCallback((next) => {
-    if (next !== 'server') return
-    setPreviewEngineRaw('server')
-  }, [])
-  void previewEngineRaw // intentional: silence unused-var lint
+  // Server is the only supported preview engine (Feb 2026 standardization).
+  // The previous multi-engine state machine (Babel srcDoc / WebContainer /
+  // server) has been removed — server-only via Fly Machines, see
+  // docs/PREVIEW_ENGINE_STANDARDIZATION.md.
+  // The Babel srcDoc fallback below is retained ONLY for live-streaming
+  // build previews (before files are persisted), not as a switchable
+  // engine.
   const [iframeErrors, setIframeErrors] = useState([])
   const [consoleLogs, setConsoleLogs] = useState([])
   const [showConsole, setShowConsole] = useState(false)
@@ -1263,43 +1255,11 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     desktop: { width: '100%', label: 'Desktop' }
   }
 
-  // Detect the imported project's framework (cra/next/vite/auroraly) so we
-  // can auto-pick the right preview engine. Memoized on the file list so
-  // we don't re-scan on every render.
-  const detectedFramework = useMemo(() => {
-    if (!Array.isArray(files) || files.length === 0) return 'auroraly'
-    try {
-      const layout = detectProjectLayout(toWebContainerTree(files))
-      return layout.framework
-    } catch {
-      return 'auroraly'
-    }
-  }, [files])
-
-  // Auto-engine: framework projects (CRA, Next.js, Vite) default to the
-  // server-side preview ('server') because client-side WebContainers can't
-  // reliably run Emergent-imported projects (architectural mismatch — see
-  // PRD note 2026-05-07). The user can still flip to WebContainer or
-  // Babel manually if they want. We only auto-select once per project so
-  // we don't override their explicit choice on subsequent re-renders.
-  const autoEngineRef = useRef(null)
-  useEffect(() => {
-    if (autoEngineRef.current === project?.id) return
-    // Lever 5 (fullstack archetype): respect the project's saved hint
-    // BEFORE the framework heuristic. fullstack_app projects need real
-    // Next.js runtime to execute their API routes — Babel mode would
-    // 404 on /api/* and the dashboard would render with mock data only.
-    const hint = project?.settings?.preview_engine_hint
-    if (hint === 'server') {
-      setPreviewEngine('server')
-      autoEngineRef.current = project?.id
-      return
-    }
-    if (['cra', 'next', 'vite'].includes(detectedFramework)) {
-      setPreviewEngine('server')
-      autoEngineRef.current = project?.id
-    }
-  }, [detectedFramework, project?.id, project?.settings?.preview_engine_hint])
+  // Framework detection + auto-engine selection removed (Feb 2026
+  // standardization on Fly server preview). When there was a choice
+  // between Babel / WebContainer / server, this code routed framework
+  // projects (CRA/Next/Vite) to the server engine. Now everything that
+  // has a project ID goes through ServerPreview unconditionally.
 
   useEffect(() => {
     const prevHash = prevFilesRef.current
@@ -1654,16 +1614,16 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   }, [runtimeTestScript, iframeLoaded, refreshKey])
 
   const handleRefresh = useCallback(() => {
-    // If we're in server preview mode, delegate to ServerPreview's refresh
-    if (previewEngine === 'server' && serverPreviewRefreshRef.current) {
+    // Server preview is the only engine — delegate to its refresh handler.
+    if (serverPreviewRefreshRef.current) {
       serverPreviewRefreshRef.current()
       return
     }
-    
+    // Fallback: live-streaming Babel srcDoc preview path (no project ID
+    // yet, files arriving over SSE). Recompile from source.
     setIframeErrors([])
     setConsoleLogs([])
     setIframeLoaded(false)
-    // Clear snapshot to force a fresh recompile from source files
     setSnapshotHtml(null)
     snapshotSavedHashRef.current = null
     forceRecompileRef.current = true
@@ -1673,7 +1633,7 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     } else {
       setRefreshKey(k => k + 1)
     }
-  }, [onRefreshFiles, previewEngine])
+  }, [onRefreshFiles])
 
   const isCoreSystemProject =
     project?.name === 'Auroraly Backend' ||
@@ -1871,17 +1831,18 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
       )}
 
       <div className="flex-1 min-h-0 overflow-hidden bg-white flex justify-center relative">
-        {previewEngine === 'server' ? (
+        {/* Server preview (Fly Machines) is the standardized engine for all
+            projects with persisted files. The Babel srcDoc fallback below
+            handles the live-streaming preview during a fresh build BEFORE
+            the project has a saved ID — once persistence kicks in, control
+            transfers to ServerPreview. See docs/PREVIEW_ENGINE_STANDARDIZATION.md */}
+        {project?.id ? (
           <div className="absolute inset-0">
             <ServerPreview 
               projectId={project?.id} 
               projectName={project?.name}
               onRefreshReady={(refreshFn) => { serverPreviewRefreshRef.current = refreshFn }}
             />
-          </div>
-        ) : previewEngine === 'webcontainer' ? (
-          <div className="absolute inset-0">
-            <WebContainerPreview files={files} viewport={viewports[viewportSize].width} projectId={project?.id} />
           </div>
         ) : (
           <>
