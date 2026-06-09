@@ -26,6 +26,7 @@ import { mkdir, writeFile, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { EventEmitter } from 'node:events'
+import net from 'node:net'
 
 const RUNNER_PORT = parseInt(process.env.RUNNER_PORT || '8080', 10)
 // USER_DEV_PORT is what the user's framework dev server binds to internally.
@@ -554,11 +555,48 @@ async function runInstallIfNeeded(workCwd) {
 }
 
 // ─── routes ──────────────────────────────────────────────────────────
+// Cached TCP-probe state for the user dev server (USER_DEV_PORT).
+// `devProc !== null` only means the process was spawned — not that it
+// has bound to its listening port. CRA/Next/Vite all have a 30-90s
+// compile window between spawn and port-bind, and during that window
+// `/status` was lying with `running: true`. That lie caused the
+// dashboard to flip to "ready" prematurely and hide the BUILD OUTPUT
+// box, leaving the user to debug a blank ECONNREFUSED iframe.
+// We now TCP-probe USER_DEV_PORT and cache the result for 500ms so a
+// hot-loop of /status calls doesn't open thousands of sockets.
+let devPortListening = false
+let devPortLastProbe = 0
+function probeDevPortListening() {
+  const now = Date.now()
+  if (now - devPortLastProbe < 500) return devPortListening
+  devPortLastProbe = now
+  return new Promise((resolveProbe) => {
+    const sock = net.connect({ host: '127.0.0.1', port: USER_DEV_PORT })
+    let done = false
+    const finish = (open) => {
+      if (done) return
+      done = true
+      devPortListening = open
+      try { sock.destroy() } catch {}
+      resolveProbe(open)
+    }
+    sock.on('connect', () => finish(true))
+    sock.on('error', () => finish(false))
+    setTimeout(() => finish(false), 250)
+  })
+}
+
 app.get('/health', (_req, res) => res.json({ ok: true, running: !!devProc, pid: devProc?.pid || null }))
 
-app.get('/status', (_req, res) => {
+app.get('/status', async (_req, res) => {
+  // `running` now requires BOTH a live process AND the dev port to be
+  // accepting connections. This single change is what stops the
+  // "Ready ✅ + ECONNREFUSED 3001" UI state.
+  const portOpen = devProc ? await probeDevPortListening() : false
   res.json({
-    running: !!devProc,
+    running: !!devProc && portOpen,
+    processAlive: !!devProc,
+    portListening: portOpen,
     pid: devProc?.pid || null,
     port: USER_DEV_PORT,
     installing: !!installProc,

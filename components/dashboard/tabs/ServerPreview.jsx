@@ -419,7 +419,79 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
         )}
       </div>
 
+      {/* Floating logs panel — visible in the 'ready' state so users
+          can debug post-boot issues (e.g. dev server crashed AFTER
+          startup, or proxy ECONNREFUSED because port-bind is racing
+          the iframe load). Without this, the BUILD OUTPUT box vanishes
+          the moment status flips to ready, leaving the user blind.
+          Closed by default; click the button to expand. */}
+      {status === 'ready' && logs.length > 0 && (
+        <FloatingLogsPanel logs={logs} />
+      )}
+
       {/* Terminal drawer removed to maximize preview vertical space */}
+    </div>
+  )
+}
+
+function FloatingLogsPanel({ logs }) {
+  const [open, setOpen] = useState(false)
+  const [copyState, setCopyState] = useState('idle')
+  return (
+    <div className="absolute bottom-3 right-3 z-20" data-testid="server-preview-floating-logs">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="px-3 py-1.5 rounded-md bg-black/60 hover:bg-black/80 border border-white/10 text-[11px] text-white/70 hover:text-white font-mono backdrop-blur-md transition-colors"
+          data-testid="server-preview-floating-logs-open"
+          title="View runner logs (debug if preview shows ECONNREFUSED or blank)"
+        >
+          ▸ Logs · {logs.length}
+        </button>
+      ) : (
+        <div className="w-[480px] max-w-[calc(100vw-24px)] rounded-lg border border-white/10 bg-black/85 backdrop-blur-md shadow-2xl">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40">
+            <span>Build output · {logs.length} lines</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const text = logs.map(e => e.line || e.message || '').join('\n')
+                  navigator.clipboard?.writeText(text).then(
+                    () => { setCopyState('copied'); setTimeout(() => setCopyState('idle'), 1500) },
+                    () => { setCopyState('failed'); setTimeout(() => setCopyState('idle'), 1500) },
+                  )
+                }}
+                className="text-white/50 hover:text-white normal-case tracking-normal"
+                data-testid="server-preview-floating-logs-copy"
+              >
+                {copyState === 'copied' ? '✓' : copyState === 'failed' ? '✗' : 'Copy'}
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-white/50 hover:text-white normal-case tracking-normal"
+                data-testid="server-preview-floating-logs-close"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+          <div className="px-3 py-2 font-mono text-[10px] leading-snug text-white/70 overflow-auto max-h-80">
+            {logs.slice(-300).map((entry, i) => (
+              <div key={i} className={
+                /error|ERR!|failed/i.test(entry.line || entry.message || '')
+                  ? 'text-red-400'
+                  : /warn/i.test(entry.line || entry.message || '')
+                    ? 'text-amber-400'
+                    : (entry.line || entry.message || '').startsWith('[runner]') || (entry.line || entry.message || '').startsWith('[sync]')
+                      ? 'text-cyan-400/80'
+                      : 'text-white/60'
+              }>
+                {entry.line || entry.message || ''}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
