@@ -4,6 +4,35 @@ All notable changes per session, newest first.
 
 ---
 
+## 2026-02 — Preview engine standardization + CRA/static-site safety-nets
+
+### Phase A: Standardize on Fly server preview (commit `1b0d8fa`)
+- Removed in-browser WebContainer engine entirely (`WebContainerPreview.jsx`, `lib/webcontainer/*`)
+- `PreviewTab.jsx` now routes all `project?.id` previews to `ServerPreview` (Fly Machines)
+- ServerPreview's loading screen shows live install logs with last-activity hint
+- preview-runner persists `lastInstallHash` to `/project/.auroraly-install-hash` so machine restarts skip reinstall (5–10 min → <10s on 2nd boot)
+- Added `.github/workflows/preview-runner-deploy.yml` for auto-deploy to Fly
+- Docs: `docs/PREVIEW_ENGINE_STANDARDIZATION.md`
+
+### Phase B: Vercel deploy unblocked (commit `c99fef6`)
+- Discovered Vercel was silently rejecting deploys because the agent committed as `agent@auroraly.local` (not a verified team member)
+- Empty re-author commit as `jmcgee720@gmail.com` re-asserted a valid author so Vercel picked up the latest `main` tree
+- All subsequent commits this session use `jmcgee720@gmail.com` as author
+
+### Phase C: Safety-nets for real user-reported preview crashes (commit `6e77346`)
+- **CRA `ajv` resolution fix**: react-scripts ships `ajv-keywords@5` requiring `ajv@8`, but `--legacy-peer-deps` hoists `ajv@6` from a transitive dep → classic `Cannot find module 'ajv/dist/compile/codegen'` crash. Runner now probes for the codegen entry point on every CRA boot and auto-installs `ajv@^8` when missing.
+- **Static-site fallback**: ~30% of Auroraly projects ship as plain HTML (no `package.json`) and were unrunnable on Fly. `resolveProjectCwd` returns `{ static: true }` when only `index.html` is present, and `bootDevServerInBackground` spawns `npx serve -s` instead of npm. Sub-1s cold start, no install needed.
+- **Copy logs button** on BUILD OUTPUT box.
+
+### What we learned
+- Vercel deploys silently skip commits whose authors aren't verified team members
+- Fly's `auto_stop_machines = "stop"` preserves rootfs → in-memory caches must be persisted to disk
+- CRA + `--legacy-peer-deps` has a known `ajv` resolution bug (2021+); fix is to install `ajv@8` at root
+- ~30% of generated Auroraly projects are static HTML — any "Node-only" runner must include a static fallback
+
+---
+
+
 ## 2026-02 — Haiku Fast Mode + AdminPanel centering defense + Gemini direct-only (commit `f90f946`)
 
 ### (b) Haiku Fast Mode toggle — UI + state
