@@ -89,28 +89,37 @@ export async function POST(request, { params }) {
     // stops the machine, rewrites config, restarts. Disk is preserved.
     // Only fall back to destroy/recreate if the in-place update fails
     // (e.g. image is also stale, not just env).
-    if (machine && isMachineConfigStale(machine)) {
-      console.log(`[start] machine ${machine.id} for project ${projectId} has stale env — attempting in-place update`)
-      try {
-        await updateMachineEnv(machine.id, machine, freshMachineEnv(projectId, secret))
-        // Wait for the machine to settle into 'started' after the
-        // update-induced restart. 30s is enough — env updates are
-        // fast because the rootfs is untouched.
-        const settled = await waitForMachineState(machine.id, 'started', 30_000).catch(() => null)
-        if (settled?.ok) {
-          machine.state = settled.state || 'started'
-          machine.config = { ...machine.config, env: { ...machine.config.env, ...freshMachineEnv(projectId, secret) } }
-          console.log(`[start] in-place env update succeeded — preserving node_modules cache`)
-        } else {
-          throw new Error(`machine did not reach 'started' after env update (state=${settled?.state || 'unknown'})`)
+    //
+    // Wrapped in an outer try so any throw from isMachineConfigStale,
+    // updateMachineEnv, or destroyMachine cannot escape and produce
+    // an unhandled 500 — the worst case here is "this machine had a
+    // problem we couldn't recover, fall through to createMachineForProject".
+    try {
+      if (machine && isMachineConfigStale(machine)) {
+        console.log(`[start] machine ${machine.id} for project ${projectId} has stale env — attempting in-place update`)
+        try {
+          await updateMachineEnv(machine.id, machine, freshMachineEnv(projectId, secret))
+          const settled = await waitForMachineState(machine.id, 'started', 30_000).catch(() => null)
+          if (settled?.ok) {
+            machine.state = settled.state || 'started'
+            machine.config = { ...machine.config, env: { ...machine.config.env, ...freshMachineEnv(projectId, secret) } }
+            console.log(`[start] in-place env update succeeded — preserving node_modules cache`)
+          } else {
+            throw new Error(`machine did not reach 'started' after env update (state=${settled?.state || 'unknown'})`)
+          }
+        } catch (err) {
+          console.warn(`[start] in-place env update failed (${err.message}) — falling back to destroy/recreate`)
+          await destroyMachine(machine.id).catch((destroyErr) => {
+            console.warn(`[start] destroy failed: ${destroyErr.message}`)
+          })
+          machine = null
         }
-      } catch (err) {
-        console.warn(`[start] in-place env update failed (${err.message}) — falling back to destroy/recreate`)
-        await destroyMachine(machine.id).catch((destroyErr) => {
-          console.warn(`[start] destroy failed: ${destroyErr.message}`)
-        })
-        machine = null
       }
+    } catch (staleCheckErr) {
+      // isMachineConfigStale itself threw (unexpected — it's pure).
+      // Log and continue as if the machine wasn't stale; downstream
+      // code will surface any real issues.
+      console.warn(`[start] stale-check itself threw: ${staleCheckErr.message} — proceeding with existing machine`)
     }
     if (!machine) {
       machine = await createMachineForProject(projectId, secret)
@@ -282,6 +291,18 @@ export async function GET(request, { params }) {
       previewUrl: publicDevUrl(projectId, machine.id),
     }))
   } catch (err) {
-    return handleCORS(NextResponse.json({ error: err.message }, { status: 500 }))
+    // Log the full stack trace to Vercel function logs so future
+    // 500s show up with line numbers instead of just `err.message`.
+    // The user-facing JSON still gets the short message.
+    console.error('[start] route 500:', {
+      message: err?.message,
+      name: err?.name,
+      stack: err?.stack,
+      cause: err?.cause,
+    })
+    return handleCORS(NextResponse.json({
+      error: err?.message || 'start failed',
+      errorType: err?.name || 'Error',
+    }, { status: 500 }))
   }
 }
