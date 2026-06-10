@@ -223,6 +223,33 @@ async function ensureViteHostOverride(pkg, cwd) {
       }
     } catch {}
   }
+  // Detect a `src/` directory so we can auto-inject the conventional
+  // `@` → `./src` alias. Most React/CRA-to-Vite imports rely on this
+  // (e.g. `import "@/index.css"`, `import App from "@/App"`). Without
+  // it, Vite's import-analysis plugin throws "Failed to resolve import"
+  // and the preview iframe shows the red Vite error overlay.
+  let srcAliasPath = null
+  try {
+    const srcDir = join(dir, 'src')
+    if (existsSync(srcDir)) {
+      srcAliasPath = srcDir
+    }
+  } catch {}
+  const aliasBlock = srcAliasPath
+    ? `  resolve: {
+    alias: {
+      ...(userConfig?.resolve?.alias || {}),
+      '@': ${JSON.stringify(srcAliasPath)},
+    },
+  },\n`
+    : ''
+  const aliasBlockMinimal = srcAliasPath
+    ? `  resolve: {
+    alias: {
+      '@': ${JSON.stringify(srcAliasPath)},
+    },
+  },\n`
+    : ''
   // ESM file that imports the user's config (if any) and merges in
   // `server.allowedHosts: true` so Vite's v5 host-check accepts our
   // wildcard preview subdomains. HMR over wss:443 because Fly's edge
@@ -246,7 +273,7 @@ try {
 }
 export default defineConfig({
   ...userConfig,
-  server: {
+${aliasBlock}  server: {
     ...(userConfig?.server || {}),
     host: '0.0.0.0',
     port: ${USER_DEV_PORT},
@@ -258,7 +285,7 @@ export default defineConfig({
 `
     : `import { defineConfig } from 'vite'
 export default defineConfig({
-  server: {
+${aliasBlockMinimal}  server: {
     host: '0.0.0.0',
     port: ${USER_DEV_PORT},
     strictPort: false,
@@ -269,6 +296,7 @@ export default defineConfig({
 `
   await fs.writeFile(join(dir, 'vite.config.runner.mjs'), body, 'utf8')
   appendLog('runner', `[runner] vite host-check override written (allowedHosts: true)`)
+  if (srcAliasPath) appendLog('runner', `[runner] vite alias injected: @ → ${srcAliasPath}`)
   return true
 }
 
