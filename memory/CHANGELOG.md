@@ -3,6 +3,34 @@
 All notable changes per session, newest first.
 
 ---
+## 2026-02-XX — Vite `@` alias auto-injection + CRA compile-ready log probe (commit `b4f4533`)
+
+Two recurring preview bugs fixed at the runner level so neither requires
+the AI inside Auroraly to patch user code:
+
+- **Mangia Mama (`@/index.css` Vite alias)** — `/app/preview-runner/index.js`
+  `ensureViteHostOverride()` now detects a `src/` dir in the project cwd and
+  bakes a `resolve.alias['@']` → absolute-`src`-path entry into both the
+  user-config-merge branch and the minimal-fallback branch of the generated
+  `vite.config.runner.mjs`. Imports like `@/index.css`, `@/App`, `@/components/*`
+  resolve out of the box.
+- **MyNexus / CRA blank iframe** — added log-pattern readiness probe.
+  `devProc.stdout`/`stderr` are scanned (case-insensitive) for
+  `compiled successfully` / `compiled with warnings` — the canonical
+  webpack-dev-server ready signals. `/status.running` for CRA now requires
+  4 conditions: process alive + TCP port open + HTTP 2xx/3xx + compile-log
+  ready. Defeats react-scripts' premature 200 OK loading shell that
+  previously caused the dashboard to flip to "Ready" 30–90s before the
+  bundle was actually compiled. Non-CRA frameworks (Vite/Next/static)
+  unaffected.
+- New `/status` response fields: `compileLogReady`, `isCRA`.
+- Tests: `/app/tests/test-runner-vite-alias-injection.test.mjs` (5 cases) and
+  `/app/tests/test-runner-cra-compile-ready-probe.test.mjs` (11 cases). Full
+  10-file runner regression suite (70+ tests) stays green.
+
+---
+
+
 
 ## 2026-02 — Preview engine standardization + CRA/static-site safety-nets
 
