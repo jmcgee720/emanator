@@ -665,19 +665,24 @@ function probeDevHttpReady() {
 app.get('/health', (_req, res) => res.json({ ok: true, running: !!devProc, pid: devProc?.pid || null }))
 
 app.get('/status', async (_req, res) => {
-  // `running` now requires THREE conditions:
+  // `running` now requires up to FOUR conditions:
   //   1. The dev process is alive (devProc !== null)
   //   2. The dev port is accepting TCP connections
   //   3. The dev server responds to HTTP with a 2xx/3xx
-  // (3) is what stops the "Ready badge + Compiling page" state for
-  // react-scripts and any framework that binds early then compiles.
+  //   4. (CRA only) webpack has emitted "Compiled successfully" on stdout
+  // (4) defeats react-scripts' premature 200 OK loading-shell which used
+  // to flip the dashboard to Ready while the user still stared at a
+  // blank iframe waiting for the JS bundle to compile.
   const portOpen = devProc ? await probeDevPortListening() : false
   const httpReady = portOpen ? await probeDevHttpReady() : false
+  const craGate = isCRADevServer ? compileLogReady : true
   res.json({
-    running: !!devProc && portOpen && httpReady,
+    running: !!devProc && portOpen && httpReady && craGate,
     processAlive: !!devProc,
     portListening: portOpen,
     httpReady,
+    compileLogReady: isCRADevServer ? compileLogReady : null,
+    isCRA: isCRADevServer,
     pid: devProc?.pid || null,
     port: USER_DEV_PORT,
     installing: !!installProc,
@@ -880,6 +885,38 @@ app.post('/sync-from-supabase', async (req, res) => {
 let lastStartError = null
 let startInFlight = false
 
+// ─── log-pattern readiness for CRA (webpack-dev-server) ──────────────
+// `react-scripts` (CRA) binds its HTTP port and serves a "Compiling..."
+// loading shell with a 2xx response code LONG before the JS bundle has
+// actually compiled. Our TCP+HTTP probes both flip to "ready" the moment
+// that shell answers, but the user's iframe is blank because no JS has
+// been built yet. The only reliable signal is the literal string
+// "Compiled successfully" / "webpack X.Y.Z compiled successfully" /
+// "Compiled with warnings" emitted by webpack on stdout/stderr after
+// the first successful compile. We scan the dev process output for it
+// and gate /status on `compileLogReady` when the project looks like CRA.
+let compileLogReady = false
+let isCRADevServer = false
+// Case-insensitive substring patterns. Webpack 5 emits messages like
+// "webpack 5.91.0 compiled successfully in 12345 ms" with a version
+// in the middle, so we match on the stable phrase rather than the
+// CRA-specific "Compiled successfully!" prefix.
+const COMPILE_READY_PATTERNS = [
+  'compiled successfully',
+  'compiled with warnings',
+]
+function scanForCompileReady(chunk) {
+  if (compileLogReady) return
+  const text = (chunk?.toString?.('utf8') || '').toLowerCase()
+  for (const pat of COMPILE_READY_PATTERNS) {
+    if (text.includes(pat)) {
+      compileLogReady = true
+      appendLog('runner', `[runner] CRA/webpack compile-ready signal detected: "${pat}"`)
+      return
+    }
+  }
+}
+
 async function bootDevServerInBackground() {
   if (startInFlight || devProc) return
   startInFlight = true
@@ -926,6 +963,15 @@ async function bootDevServerInBackground() {
       return
     }
 
+    // Detect CRA so the readiness probe waits for "Compiled successfully"
+    // in stdout instead of trusting react-scripts' premature 200 OK shell.
+    const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) }
+    isCRADevServer = !!deps['react-scripts']
+    compileLogReady = false
+    if (isCRADevServer) {
+      appendLog('runner', `[runner] CRA detected — gating readiness on "Compiled successfully" log pattern`)
+    }
+
     // Compute the public preview URL so Next.js / framework apps can
     // generate correct absolute URLs (for <Link> hover, OG tags, etc).
     const projectId = process.env.AURORALY_PROJECT_ID || 'unknown'
@@ -965,12 +1011,14 @@ async function bootDevServerInBackground() {
         VITE_PUBLIC_URL: previewUrl,
       },
     })
-    devProc.stdout.on('data', d => appendLog('dev', d))
-    devProc.stderr.on('data', d => appendLog('dev', d))
+    devProc.stdout.on('data', d => { appendLog('dev', d); scanForCompileReady(d) })
+    devProc.stderr.on('data', d => { appendLog('dev', d); scanForCompileReady(d) })
     devProc.on('exit', (code, signal) => {
       appendLog('runner', `[runner] dev server exited code=${code} signal=${signal}`)
       if (code !== 0 && code !== null) lastStartError = `dev server exited ${code}`
       devProc = null
+      compileLogReady = false
+      isCRADevServer = false
     })
     devProc.on('error', err => {
       lastStartError = `dev spawn error: ${err.message}`
