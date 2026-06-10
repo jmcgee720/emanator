@@ -15,6 +15,8 @@ import {
   publicDevUrl,
   machineControlUrl,
   isMachineConfigStale,
+  isMachineImageStale,
+  resolveDeployedImage,
   destroyMachine,
   updateMachineEnv,
   freshMachineEnv,
@@ -95,6 +97,29 @@ export async function POST(request, { params }) {
     // an unhandled 500 — the worst case here is "this machine had a
     // problem we couldn't recover, fall through to createMachineForProject".
     try {
+      // Image-staleness has to be checked FIRST. If a new runner image
+      // was deployed (e.g. we just shipped the Vite-alias / CRA-compile-ready
+      // fixes), no amount of in-place env updating will pull the new code —
+      // Fly Machines pin to an image at create time. Only destroy+recreate
+      // picks up the new image. Image is a stronger staleness signal than
+      // env, so it short-circuits the env path.
+      if (machine) {
+        try {
+          const deployedImage = await resolveDeployedImage()
+          if (isMachineImageStale(machine, deployedImage)) {
+            console.log(`[start] machine ${machine.id} runs stale image ${machine.config?.image} (deployed: ${deployedImage}) — destroying to pick up new runner code`)
+            await destroyMachine(machine.id).catch((err) => {
+              console.warn(`[start] destroy of stale-image machine failed: ${err.message}`)
+            })
+            machine = null
+          }
+        } catch (imgErr) {
+          // resolveDeployedImage hit the Fly API and failed. Don't recycle
+          // on a transient failure — fall through and let the existing
+          // machine serve.
+          console.warn(`[start] image-staleness check failed: ${imgErr.message} — leaving existing machine in place`)
+        }
+      }
       if (machine && isMachineConfigStale(machine)) {
         console.log(`[start] machine ${machine.id} for project ${projectId} has stale env — attempting in-place update`)
         try {
