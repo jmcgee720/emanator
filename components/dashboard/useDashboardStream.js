@@ -809,6 +809,13 @@ export function useDashboardStream(ctx) {
         },
         onForkSuggested: (data) => {
           // Soft warning: conversation is getting long (70-85%)
+          setForkWarning({
+            severity: 'warning',
+            tokensUsed: data.tokensUsed,
+            limit: data.limit,
+            percentage: data.percentage,
+            message: data.message,
+          })
           toast({ 
             title: 'Conversation Getting Long', 
             description: `${Math.round(data.percentage)}% of context used. Consider forking soon to avoid hitting limits.`,
@@ -817,6 +824,13 @@ export function useDashboardStream(ctx) {
         },
         onForkRequired: (data) => {
           // Hard block: conversation is critical (>85%) — fork button already in message
+          setForkWarning({
+            severity: 'critical',
+            tokensUsed: data.tokensUsed,
+            limit: data.limit,
+            percentage: data.percentage,
+            message: data.message,
+          })
           toast({ 
             title: 'Fork Required', 
             description: `This conversation is too long (${Math.round(data.percentage)}%). Click Fork to continue.`,
