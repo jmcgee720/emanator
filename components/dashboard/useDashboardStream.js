@@ -808,7 +808,7 @@ export function useDashboardStream(ctx) {
           setCreditsBalance(data.balance)
         },
         onForkSuggested: (data) => {
-          // Soft warning: conversation is getting long (70-85%)
+          // Soft warning: conversation is getting long (65-75%)
           setForkWarning({
             severity: 'warning',
             tokensUsed: data.tokensUsed,
