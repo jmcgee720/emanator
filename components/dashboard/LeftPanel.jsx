@@ -277,7 +277,9 @@ export default function LeftPanel({
   buildWizardConfig,
   projectLoading,
   onBuildWizardComplete,
-  onBuildWizardCancel
+  onBuildWizardCancel,
+  forkWarning,
+  onForkWarningDismiss,
 }) {
   const [sending, setSending] = useState(false)
   const [forkingChat, setForkingChat] = useState(false)
