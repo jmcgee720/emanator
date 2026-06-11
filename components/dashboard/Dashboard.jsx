@@ -1429,8 +1429,8 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   onCreateProject={createProject}
                   onDeleteProject={deleteProject}
                   chats={builderMode === 'core' && isOwner
-                    ? chats.filter(chat => getChatType(chat) === CHAT_TYPES.SELF_EDIT)
-                    : chats.filter(chat => getChatType(chat) !== CHAT_TYPES.SELF_EDIT)
+                    ? chats.filter(chat => getChatType(chat, selectedProject) === CHAT_TYPES.SELF_EDIT)
+                    : chats.filter(chat => getChatType(chat, selectedProject) !== CHAT_TYPES.SELF_EDIT)
                   }
                   selectedChat={selectedChat}
                   onSelectChat={handleSelectChat}
