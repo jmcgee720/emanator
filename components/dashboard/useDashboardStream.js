@@ -67,6 +67,7 @@ export function useDashboardStream(ctx) {
   const [diffMessageId, setDiffMessageId] = useState(null)
   const [diffPlanData, setDiffPlanData] = useState(null)
   const [imageGenProgress, setImageGenProgress] = useState(null)
+  const [forkWarning, setForkWarning] = useState(null)
 
   // Helper to check if current chat is self-edit (used across multiple functions)
   const isSelfEditChat = selectedChat && getChatType(selectedChat) === CHAT_TYPES.SELF_EDIT
