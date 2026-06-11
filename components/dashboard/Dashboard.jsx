@@ -578,7 +578,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
   // Clear selfEditTarget when switching to a non-self-edit chat
   const handleSelectChat = (chat) => {
     setSelectedChat(chat)
-    if (!chat || getChatType(chat) !== CHAT_TYPES.SELF_EDIT) {
+    if (!chat || getChatType(chat, selectedProject) !== CHAT_TYPES.SELF_EDIT) {
       setSelfEditTarget(null)
     }
   }
