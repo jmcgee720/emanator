@@ -3,6 +3,39 @@
 All notable changes per session, newest first.
 
 ---
+## 2026-02-XX — JSX-in-.js esbuild loader for CRA-style Vite imports (commit `6fac1e8`)
+
+After rotating the banned Fly token and shipping the @-alias fix, Mangia
+Mama surfaced its NEXT layered bug: `App.js` contains JSX (`<></>`)
+which CRA's Babel pipeline tolerated but Vite's esbuild rejected with:
+
+  "Failed to parse source for import analysis because the content contains
+  invalid JS syntax. If you are using JSX, make sure to name the file with
+  the .jsx or .tsx extension."
+
+We don't rename user files — `ensureViteHostOverride` now configures
+esbuild's loader to treat every `.js` file as JSX:
+
+  esbuild: { loader: 'jsx', include: /\.(jsx?|tsx?)$/, exclude: [] }
+  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } }
+
+Applied in BOTH config branches (user-merge with `userConfig.esbuild`
+spread first so user overrides win, and minimal-fallback standalone).
+The jsx loader is a superset of the js loader — pure-JS .js files still
+work. Logs `[runner] vite esbuild JSX-in-.js loader enabled` for
+Floating Logs visibility.
+
+Tests: +6 cases in `tests/test-runner-jsx-in-js-loader.test.mjs`. Full
+runner regression suite stays green.
+
+**Verified live**: Mangia Mama machine recreated explicitly on the
+6fac1e8 image, App.js now transforms cleanly through Vite (response
+shows `__vite__cjsImport0_react` rewrite output). Public preview URL
+returns HTTP 200 with real index.html.
+
+---
+
+
 ## 2026-02-XX — Fly Machine image-staleness + runner BUILD_SHA stamp + ⚠️ Fly token banned
 
 **🚨 USER ACTION REQUIRED:** The runtime `FLY_API_TOKEN` (in `.env.local`
