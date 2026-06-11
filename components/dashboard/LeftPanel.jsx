@@ -641,6 +641,27 @@ export default function LeftPanel({
         </div>
       )}
 
+      {/* Fork Warning Banner — shown when conversation is approaching context limits */}
+      {forkWarning && selectedChat && (
+        <div className="px-3 pt-3">
+          <ForkWarningBanner
+            severity={forkWarning.severity}
+            tokensUsed={forkWarning.tokensUsed}
+            limit={forkWarning.limit}
+            percentage={forkWarning.percentage}
+            message={forkWarning.message}
+            chatId={selectedChat.id}
+            projectId={selectedProject?.id}
+            onForked={(forkedChat) => {
+              onForkWarningDismiss?.()
+              if (forkedChat) {
+                onSelectChat(forkedChat)
+              }
+            }}
+          />
+        </div>
+      )}
+
       {/* Messages Area — plain div, NOT Radix ScrollArea (its display:table wrapper inflates width) */}
       <div
         ref={messagesContainerRef}
