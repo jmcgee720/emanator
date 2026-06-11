@@ -31,8 +31,9 @@ const PROVIDERS = [
     name: 'Anthropic',
     icon: Brain,
     models: [
-      { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', badge: 'Balanced', badgeColor: 'text-amber-400 border-amber-400/30' },
+      { id: 'claude-fable-5',             name: 'Claude Fable 5',    badge: 'Ultra',    badgeColor: 'text-rose-400 border-rose-400/30' },
       { id: 'claude-opus-4-5-20251101',   name: 'Claude Opus 4.5',   badge: 'Powerful', badgeColor: 'text-purple-400 border-purple-400/30' },
+      { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', badge: 'Balanced', badgeColor: 'text-amber-400 border-amber-400/30' },
       { id: 'claude-haiku-4-5-20251001',  name: 'Claude Haiku 4.5',  badge: 'Fast',     badgeColor: 'text-green-400 border-green-400/30' },
     ],
   },
