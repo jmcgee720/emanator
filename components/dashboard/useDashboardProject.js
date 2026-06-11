@@ -315,7 +315,7 @@ export function useDashboardProject(ctx) {
       if (!response.ok) throw new Error('Failed to fork chat')
       const text = await response.text()
       const data = JSON.parse(text)
-      const newChat = { id: data.id, title: data.title, project_id: data.project_id, chat_type: getChatType({ title: data.title }) }
+      const newChat = { id: data.id, title: data.title, project_id: data.project_id, chat_type: getChatType({ title: data.title }, selectedProject) }
       setChats(prev => [newChat, ...prev])
       setSelectedChat(newChat)
       try {
