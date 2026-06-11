@@ -93,6 +93,7 @@ const COST_COLORS = {
   Standard: 'text-emerald-400/70',
   High:     'text-amber-400/70',
   Premium:  'text-rose-400/70',
+  Ultra:    'text-fuchsia-400/70',
 }
 
 export default function ModelSelector({ provider, model, onProviderChange, onModelChange, providerStatus }) {
