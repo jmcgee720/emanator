@@ -977,17 +977,19 @@ export default function LeftPanel({
                     )}
 
                     {/* Timestamp */}
-                    {message.created_at && (
-                      <div className={`text-[9px] text-muted-foreground/40 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>
-                        {new Date(message.created_at).toLocaleString('en-US', {
+                    <div className={`text-[10px] text-muted-foreground/50 mt-1.5 ${isUser ? 'text-right' : 'text-left'}`} data-testid={`message-timestamp-${message.id}`}>
+                      {message.created_at ? (
+                        new Date(message.created_at).toLocaleString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           hour: 'numeric',
                           minute: '2-digit',
                           hour12: true
-                        })}
-                      </div>
-                    )}
+                        })
+                      ) : (
+                        'Just now'
+                      )}
+                    </div>
 
                     {/* Actions */}
                     {!isTemp && !isProviderError && !isMessageStreaming && (
