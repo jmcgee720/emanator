@@ -1263,5 +1263,6 @@ export function useDashboardStream(ctx) {
     diffMessageId,
     diffPlanData,
     imageGenProgress, setImageGenProgress,
+    forkWarning, setForkWarning,
   }
 }
