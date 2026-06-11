@@ -823,7 +823,7 @@ export function useDashboardStream(ctx) {
           })
         },
         onForkRequired: (data) => {
-          // Hard block: conversation is critical (>85%) — fork button already in message
+          // Hard block: conversation is critical (>75%) — fork button already in message
           setForkWarning({
             severity: 'critical',
             tokensUsed: data.tokensUsed,
