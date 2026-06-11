@@ -80,6 +80,7 @@ const SMALL_MODELS_FOR_BUILD = new Set([
 ])
 
 const MODEL_NOTES = {
+  'claude-fable-5': 'Premium model for complex autonomous work, large migrations, and high-value tasks.',
   'gpt-4o-mini': 'Best for quick edits — may struggle with initial app builds.',
   'claude-haiku-4-5-20251001': 'Best for quick edits — may struggle with initial app builds.',
   'gemini-2.5-flash': 'Best for quick edits — may struggle with initial app builds.',
