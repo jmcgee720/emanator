@@ -3,6 +3,45 @@
 All notable changes per session, newest first.
 
 ---
+## 2026-02-XX — Fly Machine image-staleness + runner BUILD_SHA stamp + ⚠️ Fly token banned
+
+**🚨 USER ACTION REQUIRED:** The runtime `FLY_API_TOKEN` (in `.env.local`
+and presumably in Vercel) is **banned by Fly** — direct error from
+Fly's API: `"root banned: 0a497271-2041-567a-a09f-24545a507fed"`. This
+is the actual reason recent runner-side fixes appear to "not take
+effect" on existing previews — the orchestrator's image-staleness
+check (commit `d53a678`) cannot call the Machines API to destroy stale
+machines, so they keep serving the old image forever. User must:
+1. Run `fly tokens create deploy -a auroraly-preview-runner --expiry 999999h`
+2. Update FLY_API_TOKEN in Vercel env + `.env.local` + GH Actions secret
+3. Investigate Fly account for the cause of the ban (abuse detector, leak, manual revoke)
+
+### Orchestrator fix (commit `d53a678`)
+- New `isMachineImageStale(machine, deployedImage)` in `lib/fly/machines.js`
+  compares each machine's image vs. `resolveDeployedImage()`.
+- Start route now checks image-staleness BEFORE env-staleness; recycles
+  via destroy+recreate when stale (image cannot be updated in-place).
+- Wrapped in try/catch so transient Fly API failures don't kill the
+  user's machine. Today this catch is masking the banned-token 401 —
+  intentional defensive behavior, but the visible symptom is "nothing
+  is changing despite fixes being pushed."
+- 9 new test cases in `tests/test-machine-image-staleness.test.mjs`.
+
+### Diagnostic backstop (commit `5459b16`, LOCAL ONLY — awaiting next push)
+- Dockerfile now declares `ARG BUILD_SHA=dev` + `ENV BUILD_SHA=${BUILD_SHA}`.
+- `.github/workflows/preview-runner-deploy.yml` passes
+  `--build-arg BUILD_SHA=${{ github.sha }}` to `flyctl deploy`.
+- Runner exposes `GET /version` → `{ buildSha, startedAt, pid }` and
+  surfaces `buildSha` in `/status`. Boot log line is now
+  `[runner v5.clean] build=<sha> listening on…` so the Floating Logs
+  panel surfaces the SHA at first paint. Lets us definitively answer
+  "is my fix actually deployed on this preview's machine?" without
+  guessing.
+- 7 new test cases in `tests/test-runner-build-sha-stamp.test.mjs`.
+
+---
+
+
 ## 2026-02-XX — Vite `@` alias auto-injection + CRA compile-ready log probe (commit `b4f4533`)
 
 Two recurring preview bugs fixed at the runner level so neither requires

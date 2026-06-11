@@ -664,6 +664,18 @@ function probeDevHttpReady() {
 
 app.get('/health', (_req, res) => res.json({ ok: true, running: !!devProc, pid: devProc?.pid || null }))
 
+// `/version` — definitive answer to "which runner image is this machine
+// actually serving?". The BUILD_SHA env is baked into the Docker image
+// at build time via --build-arg from the GitHub Actions deploy workflow.
+// If two machines for the same app report different SHAs here, the older
+// one is running stale code and the orchestrator's
+// isMachineImageStale() should recycle it on next /start.
+app.get('/version', (_req, res) => res.json({
+  buildSha: process.env.BUILD_SHA || 'dev',
+  startedAt: process.env.RUNNER_STARTED_AT,
+  pid: process.pid,
+}))
+
 app.get('/status', async (_req, res) => {
   // `running` now requires up to FOUR conditions:
   //   1. The dev process is alive (devProc !== null)
@@ -683,6 +695,7 @@ app.get('/status', async (_req, res) => {
     httpReady,
     compileLogReady: isCRADevServer ? compileLogReady : null,
     isCRA: isCRADevServer,
+    buildSha: process.env.BUILD_SHA || 'dev',
     pid: devProc?.pid || null,
     port: USER_DEV_PORT,
     installing: !!installProc,
@@ -1122,7 +1135,9 @@ app.get('/logs', (req, res) => {
 })
 
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
-  appendLog('runner', `[runner v5.clean] listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT}, proxy on :${USER_DEV_PROXY_PORT})`)
+  process.env.RUNNER_STARTED_AT = new Date().toISOString()
+  const buildSha = process.env.BUILD_SHA || 'dev'
+  appendLog('runner', `[runner v5.clean] build=${buildSha} listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT}, proxy on :${USER_DEV_PROXY_PORT})`)
   appendLog('runner', `[runner v5.clean] single-source-of-truth files (DB content), loud-fail sync, no config injection`)
   appendLog('runner', `[runner v5.clean] project pinning: AURORALY_PROJECT_ID=${AURORALY_PROJECT_ID || '(template)'}`)
   // Hydrate the install-hash cache from disk on boot. This is the key

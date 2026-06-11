@@ -36,6 +36,18 @@ RUN npm install --omit=dev --no-audit --no-fund
 
 COPY index.js host-parser.js ./
 
+# Bake the current git SHA into the image at build time so a running
+# preview machine can definitively report which runner version it's
+# serving. `flyctl deploy --remote-only` passes ARGs through to the
+# remote builder. The GitHub Actions workflow passes
+# `--build-arg BUILD_SHA=$GITHUB_SHA` so this lands as an env var that
+# the runner exposes on /status and /version. Critical for "is my fix
+# actually deployed?" debugging — the old way (trust the deploy log)
+# misses the case where Fly's dynamically-created user machines never
+# pick up the new image at all.
+ARG BUILD_SHA=dev
+ENV BUILD_SHA=${BUILD_SHA}
+
 # /project is where each preview's user files get synced. Empty in the
 # image — populated by POST /sync at runtime.
 RUN mkdir -p /project
