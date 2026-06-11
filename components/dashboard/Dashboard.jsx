@@ -735,6 +735,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
     diffMessageId,
     diffPlanData,
     imageGenProgress, setImageGenProgress,
+    forkWarning, setForkWarning,
   } = useDashboardStream({
     selectedChat, selectedProject, files, setFiles,
     messages, setMessages, canvas, setCanvas,
