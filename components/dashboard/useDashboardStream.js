@@ -755,21 +755,15 @@ export function useDashboardStream(ctx) {
         // Auto-refresh preview after AI file-write/edit/delete (Feb 2026):
         // The V2 server already hits the runner's /sync-from-supabase
         // via notifyPreviewOfFileChange when these tools succeed, so the
-        // RUNNER has the new bytes. All we need to do here is bump the
-        // iframe key after a short HMR-settling delay so the user sees
-        // the change. Vite typically reloads in <500ms, CRA ~1-2s,
-        // static-site (npx serve) needs the hard reload because there's
-        // no HMR. 800ms is the safe middle ground.
+        // RUNNER has the new bytes. We DON'T refresh during streaming —
+        // the agent works silently, then we refresh ONCE after the full
+        // response is done (see onMessageSaved below).
         onFilesSaved: (data) => {
           // Visible breadcrumb so users can see the auto-sync happened
           // even when the preview doesn't visibly change (e.g. they were
           // on the Code tab, or the iframe was off-screen).
-          addBuildLogEntry(`Synced ${data.action || 'change'} → preview reloading`)
-          if (serverPreviewRefreshRef?.current) {
-            setTimeout(() => {
-              try { serverPreviewRefreshRef.current() } catch {}
-            }, 800)
-          }
+          addBuildLogEntry(`Synced ${data.action || 'change'}`)
+          // Preview refresh happens in onMessageSaved after streaming completes
         },
 
         onError: (data) => {
