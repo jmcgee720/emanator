@@ -19,8 +19,8 @@ export default function ForkWarningBanner({
   projectId,
   onForked,
 }) {
-  const isCritical = severity === 'critical' || percentage >= 85
-  const isWarning = severity === 'warning' || (percentage >= 70 && percentage < 85)
+  const isCritical = severity === 'critical' || percentage >= 75
+  const isWarning = severity === 'warning' || (percentage >= 65 && percentage < 75)
   
   if (!isWarning && !isCritical) return null
 
