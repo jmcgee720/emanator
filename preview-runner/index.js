@@ -250,6 +250,45 @@ async function ensureViteHostOverride(pkg, cwd) {
     },
   },\n`
     : ''
+  // ─── CRA-in-Vite JSX compatibility ─────────────────────────────────
+  // Create React App tolerates JSX inside `.js` files (e.g. App.js
+  // returns `<div>…</div>`). Vite's esbuild only treats `.jsx`/`.tsx`
+  // as JSX by default, so Mangia-Mama and similar CRA imports trip the
+  // "Failed to parse source for import analysis because the content
+  // contains invalid JS syntax" error at first compile.
+  //
+  // We don't rename user files — instead we instruct esbuild to use
+  // the `jsx` loader for every `.js` file under the project. This
+  // matches CRA's behavior exactly: `.js` containing JSX compiles
+  // cleanly while pure-JS `.js` files still work because the JSX
+  // loader is a superset of the JS loader.
+  //
+  // `optimizeDeps.esbuildOptions.loader` covers the pre-bundle pass
+  // (cold start dependency optimization) and `esbuild.loader` covers
+  // the per-module transform pass during dev. We set both.
+  const jsxLoaderBlock = `  esbuild: {
+    ...(userConfig?.esbuild || {}),
+    loader: 'jsx',
+    include: /\\.(jsx?|tsx?)$/,
+    exclude: [],
+  },
+  optimizeDeps: {
+    ...(userConfig?.optimizeDeps || {}),
+    esbuildOptions: {
+      ...(userConfig?.optimizeDeps?.esbuildOptions || {}),
+      loader: { ...(userConfig?.optimizeDeps?.esbuildOptions?.loader || {}), '.js': 'jsx' },
+    },
+  },\n`
+  const jsxLoaderBlockMinimal = `  esbuild: {
+    loader: 'jsx',
+    include: /\\.(jsx?|tsx?)$/,
+    exclude: [],
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: { '.js': 'jsx' },
+    },
+  },\n`
   // ESM file that imports the user's config (if any) and merges in
   // `server.allowedHosts: true` so Vite's v5 host-check accepts our
   // wildcard preview subdomains. HMR over wss:443 because Fly's edge
@@ -273,7 +312,7 @@ try {
 }
 export default defineConfig({
   ...userConfig,
-${aliasBlock}  server: {
+${aliasBlock}${jsxLoaderBlock}  server: {
     ...(userConfig?.server || {}),
     host: '0.0.0.0',
     port: ${USER_DEV_PORT},
@@ -285,7 +324,7 @@ ${aliasBlock}  server: {
 `
     : `import { defineConfig } from 'vite'
 export default defineConfig({
-${aliasBlockMinimal}  server: {
+${aliasBlockMinimal}${jsxLoaderBlockMinimal}  server: {
     host: '0.0.0.0',
     port: ${USER_DEV_PORT},
     strictPort: false,
@@ -297,6 +336,7 @@ ${aliasBlockMinimal}  server: {
   await fs.writeFile(join(dir, 'vite.config.runner.mjs'), body, 'utf8')
   appendLog('runner', `[runner] vite host-check override written (allowedHosts: true)`)
   if (srcAliasPath) appendLog('runner', `[runner] vite alias injected: @ → ${srcAliasPath}`)
+  appendLog('runner', `[runner] vite esbuild JSX-in-.js loader enabled (CRA compatibility)`)
   return true
 }
 
