@@ -269,11 +269,11 @@ export default function ProjectHub({
                   data-testid={`hub-chat-item-${chat.id}`}
                 >
                   <div className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 transition-all ${
-                    chat.title?.startsWith(SELF_EDIT_PREFIX)
+                    getChatType(chat, project) === CHAT_TYPES.SELF_EDIT
                       ? 'bg-amber-500/8 border-amber-500/20 group-hover:border-amber-400/40 group-hover:bg-amber-500/12'
                       : 'bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.08)] group-hover:border-[rgba(0,229,255,0.20)] group-hover:bg-[rgba(0,229,255,0.06)]'
                   }`}>
-                    {chat.title?.startsWith(SELF_EDIT_PREFIX) ? (
+                    {getChatType(chat, project) === CHAT_TYPES.SELF_EDIT ? (
                       <Settings className="w-3 h-3 text-amber-400/70 group-hover:text-amber-400 transition-colors" />
                     ) : (
                       <MessageSquare className="w-3 h-3 em-text-muted group-hover:text-[var(--em-cyan)] transition-colors" />
