@@ -166,7 +166,7 @@ function MessagePart({ content, hideCodeBlocks }) {
   }
 
   return (
-    <div className="em-prose max-w-full min-w-0 break-words [overflow-wrap:anywhere]" data-testid="message-renderer">
+    <div className="em-prose max-w-full min-w-0 break-words [overflow-wrap:anywhere] overflow-hidden" data-testid="message-renderer">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
