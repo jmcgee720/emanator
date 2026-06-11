@@ -1492,6 +1492,8 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
                   buildLog={buildLog}
                   buildWizardConfig={buildWizardConfig}
                   projectLoading={projectLoading}
+                  forkWarning={forkWarning}
+                  onForkWarningDismiss={() => setForkWarning(null)}
                   onBuildWizardComplete={async (resp) => {
                     console.log('[Dashboard] BuildWizard complete:', resp)
                     toast({ title: 'Build complete', description: `${resp.fileCount || 0} files created. Refreshing preview...` })
