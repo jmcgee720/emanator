@@ -824,8 +824,8 @@ export default function LeftPanel({
                         </div>
                       </div>
                     ) : (
-                    <div className="w-full min-w-0">
-                    <div className={`rounded-xl min-w-0 overflow-hidden ${
+                    <div className="w-full min-w-0 max-w-full">
+                    <div className={`rounded-xl min-w-0 max-w-full overflow-hidden ${
                       isUser
                         ? 'bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.10)] px-3.5 py-2.5 text-[var(--em-text-primary)] max-w-[85%]'
                         : 'w-full px-1 py-0.5'
