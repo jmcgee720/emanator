@@ -746,6 +746,19 @@ export function useDashboardStream(ctx) {
           }
           await refreshCanvas()
 
+          // Auto-refresh preview ONCE after agent finishes (not during streaming)
+          // Vite typically reloads in <500ms, CRA ~1-2s, static-site (npx serve)
+          // needs the hard reload because there's no HMR. 800ms is the safe middle ground.
+          if (serverPreviewRefreshRef?.current && (data.generatedFiles?.length > 0 || data.directEditMode)) {
+            addBuildLogEntry('Preview refreshing...')
+            setTimeout(() => {
+              try { 
+                serverPreviewRefreshRef.current()
+                addLog('success', 'Preview updated')
+              } catch {}
+            }, 800)
+          }
+
           // PM auto-continue disabled — was causing cascading multi-stream failures
           if (briefBuildActiveRef.current) {
             briefBuildActiveRef.current = false
