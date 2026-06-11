@@ -60,6 +60,7 @@ import ImageGenerationProgress from './ImageGenerationProgress'
 import { AttachmentChips } from './AttachmentPreview'
 import SuggestionChips, { parseSuggestions } from './SuggestionChips'
 import BuildWizard from './BuildWizard'
+import ForkWarningBanner from './ForkWarningBanner'
 
 
 const WHIMSICAL_MAP = {
