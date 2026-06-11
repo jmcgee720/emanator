@@ -1088,7 +1088,7 @@ export default function LeftPanel({
       <ChatComposer
         ref={composerRef}
         onSend={handleSendMessage}
-        disabled={!selectedChat}
+        disabled={!selectedChat || (forkWarning?.severity === 'critical')}
         sending={isStreaming || sending}
         builderMode={builderMode}
         aiProvider={aiProvider}
