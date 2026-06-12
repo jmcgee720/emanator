@@ -358,11 +358,6 @@ const ChatComposer = forwardRef(function ChatComposer({
 
       {/* Pills bar */}
       <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <Badge variant="secondary" className="text-xs gap-1 px-2 py-0.5">
-          <ModeIcon className="w-3 h-3" />
-          {modeLabels[builderMode] || 'App'}
-        </Badge>
-
         <ModelSelector
           provider={aiProvider}
           model={aiModel}
@@ -370,54 +365,6 @@ const ChatComposer = forwardRef(function ChatComposer({
           onModelChange={onAiModelChange}
           providerStatus={providerStatus}
         />
-
-        {onToggleFastMode && (
-          <button
-            onClick={onToggleFastMode}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-              fastMode
-                ? 'bg-green-500/15 text-green-400 border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.18)]'
-                : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50 hover:text-foreground'
-            }`}
-            title={
-              fastMode
-                ? 'Fast mode ON — Claude Haiku 4.5 (~0.3 credits/turn, fastest). Click to restore your previous model.'
-                : 'Fast mode OFF — click to swap to Claude Haiku 4.5 for cheap quick edits.'
-            }
-            data-testid="fast-mode-toggle"
-            aria-pressed={fastMode}
-          >
-            <Zap className="w-3 h-3" />
-            {fastMode ? 'Fast: ON' : 'Fast'}
-          </button>
-        )}
-
-        <button
-          onClick={() => setCompareOpen(true)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50 hover:text-foreground transition-all cursor-pointer"
-          title="Compare providers side-by-side on the same prompt"
-          data-testid="ab-compare-trigger"
-        >
-          <GitCompare className="w-3 h-3" /> Compare
-        </button>
-
-        <RecipeSelector onSelectRecipe={handleRecipeSelect} />
-        <ScopeSelector scope={scope} onScopeChange={onScopeChange} />
-
-        {/* Visual Mode Toggle */}
-        <button
-          onClick={() => onVisualModeChange?.(visualMode === 'stock' ? 'custom' : 'stock')}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-            visualMode === 'custom'
-              ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.15)]'
-              : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50 hover:text-foreground'
-          }`}
-          title={visualMode === 'custom' ? 'Custom AI images (3x credits)' : 'Stock photos (included)'}
-          data-testid="visual-mode-toggle"
-        >
-          {visualMode === 'custom' ? <Sparkles className="w-3 h-3" /> : <Camera className="w-3 h-3" />}
-          {visualMode === 'custom' ? 'Custom' : 'Stock'}
-        </button>
 
         {(sending || uploading) && (
           <Badge variant="outline" className="text-xs gap-1 px-2 py-0.5 text-amber-400 border-amber-400/30">
