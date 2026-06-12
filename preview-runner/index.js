@@ -109,6 +109,8 @@ function appendLog(stream, chunk) {
     logs.push(entry)
     if (logs.length > MAX_LOG_LINES) logs.shift()
     logEvents.emit('line', entry)
+    // Also write to stdout so Fly's log collector sees it
+    console.log(`[${stream}] ${line}`)
   }
 }
 
