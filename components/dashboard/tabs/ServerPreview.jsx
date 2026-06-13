@@ -206,8 +206,8 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
 
-      {/* Control bar */}
-      {status === 'ready' && (
+      {/* Control bar — always visible so Hard Reset is accessible when stuck */}
+      {(status === 'ready' || status === 'starting' || status === 'error') && (
         <div className="flex items-center justify-between border-b border-border/40 bg-background px-3 py-1.5">
           <div className="flex items-center gap-2">
             <StatusDot status={status} />
@@ -216,18 +216,20 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1.5 text-xs"
-              onClick={handleRefresh}
-              data-testid="server-preview-refresh"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh
-            </Button>
+            {status === 'ready' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1.5 text-xs"
+                onClick={handleRefresh}
+                data-testid="server-preview-refresh"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"
@@ -241,18 +243,20 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
               </svg>
               Hard Reset
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1.5 text-xs text-red-400 hover:text-red-300"
-              onClick={stop}
-              data-testid="server-preview-stop"
-            >
-              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-              </svg>
-              Stop
-            </Button>
+            {(status === 'ready' || status === 'starting') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1.5 text-xs text-red-400 hover:text-red-300"
+                onClick={stop}
+                data-testid="server-preview-stop"
+              >
+                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+                Stop
+              </Button>
+            )}
           </div>
         </div>
       )}
