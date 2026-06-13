@@ -36,9 +36,16 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
   const logsScrollRef = useRef(null)
 
   // Expose refresh handler to parent via callback
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
+    // Sync files from Supabase to the Fly machine first, THEN refresh iframe
+    try {
+      await authFetch(`/api/previews/${projectId}/sync`, { method: 'POST' })
+    } catch (err) {
+      console.warn('[ServerPreview] sync failed before refresh:', err)
+      // Continue with iframe refresh anyway — user can manually retry
+    }
     setIframeKey(k => k + 1)
-  }, [])
+  }, [projectId])
 
   // Pull a friendly "currently installing X" hint out of the npm install
   // log stream so the collapsed drawer summary still reflects activity.
