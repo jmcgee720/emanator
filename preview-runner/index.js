@@ -756,8 +756,23 @@ app.post('/sync-from-supabase', async (req, res) => {
   // (image data URIs from image-extractor). That eliminates the whole
   // class of "Storage download timed out → file silently dropped from
   // the synced project" bugs that plagued the previous design.
-  const projectId = req.body?.projectId || process.env.AURORALY_PROJECT_ID
-  if (!projectId) return res.status(400).json({ error: 'projectId required' })
+  const projectId = req.body?.projectId
+  if (!projectId) return res.status(400).json({ error: 'projectId required in request body' })
+  
+  // CRITICAL: reject cross-project sync attempts. If this machine was
+  // created for project A and the orchestrator tries to sync project B,
+  // that's a routing bug upstream — fail loudly instead of silently
+  // syncing the wrong project's files.
+  const myProjectId = process.env.AURORALY_PROJECT_ID
+  if (myProjectId && projectId !== myProjectId) {
+    appendLog('runner', `[sync] REJECTED: this machine serves "${myProjectId}", request was for "${projectId}"`)
+    return res.status(400).json({
+      error: 'project_mismatch',
+      message: `This machine serves project "${myProjectId}", cannot sync "${projectId}"`,
+      machine_project: myProjectId,
+      requested_project: projectId,
+    })
+  }
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const bucket = process.env.SUPABASE_BUCKET || 'project-files'
