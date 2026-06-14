@@ -12,6 +12,37 @@ When the agent modifies code in **any** of these targets it MUST tell the user u
 
 Common Fly token gotcha: SSO-locked personal accounts cannot create personal tokens via the UI. Use `flyctl tokens create org <orgname>` from terminal instead.
 
+
+## Implemented (2026-06-14 — ONE FLY APP PER PROJECT — architectural fix)
+
+### 🛠 Eliminated cross-project ECONNREFUSED + CSS bleed permanently (P0)
+
+**Symptom (the recurring class of bug)**: MyNexus iframe loaded `[proxy] internal GPN proxy error: connect ECONNREFUSED fdaa:73:ee9a:…`; Mangia Mama loaded with no CSS or rendered a different project's compiled output. After multiple failed `fly-replay` variants (header-based, 6PN-based) the architectural root cause was confirmed: Fly's edge load-balancer routes `<app>.fly.dev` to ANY machine in a Fly App, and `fly-replay` headers are unreliable in production.
+
+**Architectural fix** (commits `a9884e9` + `ea824ad`):
+
+1. **New `lib/fly/apps.js`** — `ensurePreviewApp(projectId)` idempotently provisions a per-project Fly App named `auroraly-prv-<16-hex>`. Deterministic + DNS-safe + ≤30 chars. Race-safe (concurrent first-calls converge). `destroyPreviewApp(projectId)` for permanent deletes. `previewAppPublicUrl(projectId)` returns the deterministic `<app>.fly.dev`.
+2. **Refactored `lib/fly/machines.js`** — every function (`findMachineForProject`, `destroyMachine`, `startMachine`, `stopMachine`, `waitForMachineState`, `updateMachineEnv`) is scoped to a per-project Fly app via a `_appName` annotation on machine objects. `publicDevUrl(projectId)` now returns `<dedicated-app>.fly.dev` unconditionally — no `--<machineId>` suffix, no fly-replay. `resolveDeployedImage()` reads from `FLY_PREVIEW_APP_NAME` (the template app that holds the canonical `flyctl deploy` image).
+3. **Lazy migration** — `findMachineForProject` falls back to the legacy shared app and flags found machines with `_isLegacy = true`. The start route destroys these on first hit; subsequent starts create the project's dedicated app + a fresh machine inside. Zero-downtime, one-time per project.
+4. **Updated all 7 caller routes** — `start`, `stop`, `reset`, `sync`, `logs`, `force-install`, `cleanup-node-modules`, `diagnose`. Plus `lib/ai/tools/preview-diagnostics.js`.
+5. **Stripped project-routing proxy from `preview-runner/index.js`** — the entire 90-line Host-inspection + `fly-replay`-emit block is gone. Replaced with a thin pass-through `:3000 → :3001`. Deleted `preview-runner/host-parser.js`. Single-machine-per-app means there's nothing to misroute.
+6. **Tests**: 14 new in `tests/test-fly-apps.test.mjs` (app-name determinism, DNS safety, ≤30 chars, race outcomes 200/404/422/409/500, idempotent destroy). 15 new in `tests/test-fly-machines-per-project-app.test.mjs` (per-app routing for every machine fn, lazy-migration legacy fallback, `_appName` annotation, deterministic `publicDevUrl`). **29/29 passing**. Deleted obsolete `test-fly-machines.test.mjs` + `test-preview-runner-host-parser.test.mjs`.
+
+**Deploy**: Vercel auto-deployed the orchestrator. GH Actions ran `flyctl deploy --remote-only --strategy rolling` for the runner. Both green.
+
+**What happens on next "Start Preview"** for any existing project:
+- `findMachineForProject` looks in `auroraly-prv-<hash>` (404 → not found) → falls back to `auroraly-preview-runner` (legacy) → finds old machine → flags `_isLegacy`
+- Start route destroys legacy machine
+- `createMachineForProject` → `ensurePreviewApp` creates the dedicated app → fresh machine inside it
+- Iframe loads `https://auroraly-prv-<hash>.fly.dev` → deterministic 1:1 routing
+- ECONNREFUSED + cross-project CSS bleed eliminated by construction
+
+**Required env (already set in Vercel)**: `FLY_API_TOKEN`, `FLY_ORG_SLUG`, `FLY_REGION`, `FLY_PREVIEW_APP_NAME` (still needed as the template app for image resolution + lazy migration).
+
+**Known follow-up**: previews currently use `<app>.fly.dev` URLs. Custom domain wiring (`*.preview.auroraly.co`) is a follow-up polish item — requires per-app cert provisioning + DNS coordination. User explicitly approved the cutover to `.fly.dev` URLs for reliability over branding.
+
+---
+
 ## Implemented (2026-02-XX — Chat attachment UX + vision-aware system prompt)
 
 ### 🐛 Fixed: "I don't see any attachments" agent response after drag-and-drop
