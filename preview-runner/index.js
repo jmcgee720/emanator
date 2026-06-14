@@ -1288,6 +1288,36 @@ devProxy.on('error', (err, _req, res) => {
 // projectIdFromHost is imported from ./host-parser.js above — single
 // source of truth shared with the unit tests.
 
+// Internal 6PN proxy for misrouted requests. Fly's wildcard subdomain
+// edge routes `<projectId>--<machineId>.preview.auroraly.co` to ANY
+// machine in this app — it does NOT honor the `--<machineId>` suffix
+// and does NOT reliably act on our `fly-replay` headers (Fly's edge
+// surfaces the response body to the browser instead of replaying).
+// Result: half the page loads hit the wrong machine and the user sees
+// "auroraly-routing: this machine serves X, request was for Y" as page
+// content.
+//
+// Fix: when we detect a misroute AND the Host embeds the target
+// machineId, we proxy the request OVER 6PN to that machine directly.
+// `<machineId>.vm.<app>.internal:3000` is reachable by every machine
+// in the same Fly app — no DNS, no Fly edge, no replay lottery. The
+// browser gets the correct response on the first hop.
+const internalProxy = httpProxy.createProxyServer({ ws: true, xfwd: true, changeOrigin: false })
+internalProxy.on('error', (err, _req, res) => {
+  appendLog('runner', `[proxy] internal 6PN proxy error: ${err.message}`)
+  try {
+    if (res && !res.headersSent) {
+      res.writeHead(502, { 'content-type': 'text/plain' })
+      res.end(`internal proxy error: ${err.message}`)
+    }
+  } catch {}
+})
+const FLY_APP_NAME = process.env.FLY_APP_NAME || 'auroraly-preview-runner'
+function internalTargetFor(machineId, scheme = 'http') {
+  // 6PN hostname format. Fly resolves these via internal DNS.
+  return `${scheme}://${machineId}.vm.${FLY_APP_NAME}.internal:3000`
+}
+
 const proxyServer = http.createServer((req, res) => {
   const { projectId: reqProject, machineId: reqMachine } = projectIdFromHost(req.headers.host)
   const myProject = AURORALY_PROJECT_ID
@@ -1298,37 +1328,44 @@ const proxyServer = http.createServer((req, res) => {
     return res.end('ok')
   }
   if (!myProject || reqProject !== myProject) {
-    // Wrong machine for this project. Prefer a targeted replay when
-    // the iframe URL embeds the machineId (single hop). Otherwise fall
-    // back to `elsewhere=true` (Fly picks a random sibling; may take
-    // several hops to find the right one).
-    const replayHeader = reqMachine
-      ? `instance=${reqMachine}`
-      : 'elsewhere=true'
+    // Misroute. Two recovery paths:
+    //  (a) The Host has the target machineId embedded (orchestrator-
+    //      generated URLs always do) → proxy directly over 6PN. ONE
+    //      hop, deterministic, no replay needed.
+    //  (b) No machineId in Host (legacy/bare URL) → fall back to the
+    //      old fly-replay header (Fly may or may not honor it).
+    if (reqMachine && reqMachine !== process.env.FLY_MACHINE_ID) {
+      const target = internalTargetFor(reqMachine)
+      // Don't log every asset request — only the document fetch.
+      if (req.url === '/' || req.url?.startsWith('/index')) {
+        appendLog('runner', `[proxy] 6PN misroute-fix: forwarding ${reqProject} → ${reqMachine}`)
+      }
+      return internalProxy.web(req, res, { target })
+    }
+    // Last-resort fly-replay (kept for unscoped URLs).
     res.writeHead(200, {
       'content-type': 'text/plain',
-      'fly-replay': replayHeader,
+      'fly-replay': 'elsewhere=true',
     })
-    return res.end(`auroraly-routing: this machine serves "${myProject || '(none)'}", request was for "${reqProject}" — replaying via ${replayHeader}`)
+    return res.end(`auroraly-routing: this machine serves "${myProject || '(none)'}", request was for "${reqProject}" — no target machineId in Host, replaying via elsewhere=true`)
   }
   devProxy.web(req, res)
 })
 proxyServer.on('upgrade', (req, socket, head) => {
-  const { projectId: reqProject } = projectIdFromHost(req.headers.host)
-  // Log every WS upgrade attempt so we can debug why HMR is broken in
-  // production. The previous "Empty reply from server" / curl (52)
-  // failure mode was indistinguishable from a network error without
-  // this. Cost: one extra log line per HMR connect — cheap.
+  const { projectId: reqProject, machineId: reqMachine } = projectIdFromHost(req.headers.host)
   appendLog('runner', `[proxy] WS upgrade: host=${req.headers.host} url=${req.url} reqProject=${reqProject} myProject=${AURORALY_PROJECT_ID || '(none)'}`)
   if (!AURORALY_PROJECT_ID || reqProject !== AURORALY_PROJECT_ID) {
-    // Can't fly-replay a WS handshake. Close cleanly so the browser
-    // can re-issue after the HTTP-level replay puts it on the right
-    // machine.
-    appendLog('runner', `[proxy] WS upgrade REJECTED (project mismatch) — closing socket`)
+    // Same 6PN escape hatch as the HTTP path.
+    if (reqMachine && reqMachine !== process.env.FLY_MACHINE_ID) {
+      const target = internalTargetFor(reqMachine, 'ws')
+      appendLog('runner', `[proxy] WS 6PN misroute-fix: forwarding to ${reqMachine}`)
+      return internalProxy.ws(req, socket, head, { target })
+    }
+    appendLog('runner', `[proxy] WS upgrade REJECTED (project mismatch, no machineId) — closing socket`)
     socket.destroy()
     return
   }
-  appendLog('runner', `[proxy] WS upgrade forwarding to dev server :${USER_DEV_PORT}`)
+  appendLog('runner', `[proxy] WS upgrade forwarding to local dev server :${USER_DEV_PORT}`)
   devProxy.ws(req, socket, head)
 })
 proxyServer.listen(USER_DEV_PROXY_PORT, '0.0.0.0', () => {
