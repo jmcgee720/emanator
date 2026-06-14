@@ -34,7 +34,7 @@ WORKDIR /runner
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --no-audit --no-fund
 
-COPY index.js host-parser.js ./
+COPY index.js ./
 
 # Bake the current git SHA into the image at build time so a running
 # preview machine can definitively report which runner version it's
