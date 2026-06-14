@@ -1303,13 +1303,20 @@ const proxyServer = http.createServer((req, res) => {
 })
 proxyServer.on('upgrade', (req, socket, head) => {
   const { projectId: reqProject } = projectIdFromHost(req.headers.host)
+  // Log every WS upgrade attempt so we can debug why HMR is broken in
+  // production. The previous "Empty reply from server" / curl (52)
+  // failure mode was indistinguishable from a network error without
+  // this. Cost: one extra log line per HMR connect — cheap.
+  appendLog('runner', `[proxy] WS upgrade: host=${req.headers.host} url=${req.url} reqProject=${reqProject} myProject=${AURORALY_PROJECT_ID || '(none)'}`)
   if (!AURORALY_PROJECT_ID || reqProject !== AURORALY_PROJECT_ID) {
     // Can't fly-replay a WS handshake. Close cleanly so the browser
     // can re-issue after the HTTP-level replay puts it on the right
     // machine.
+    appendLog('runner', `[proxy] WS upgrade REJECTED (project mismatch) — closing socket`)
     socket.destroy()
     return
   }
+  appendLog('runner', `[proxy] WS upgrade forwarding to dev server :${USER_DEV_PORT}`)
   devProxy.ws(req, socket, head)
 })
 proxyServer.listen(USER_DEV_PROXY_PORT, '0.0.0.0', () => {
