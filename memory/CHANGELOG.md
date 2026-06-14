@@ -3,6 +3,64 @@
 All notable changes per session, newest first.
 
 ---
+## 2026-02-XX — preview_diagnostics AI tool + Vite HMR disabled (commits `55bc0a8` … `dd6c389`)
+
+### NEW: `preview_diagnostics` AI tool — gives Auroraly the same diagnostic visibility as E1
+Closes a major capability gap. The project AI used to be blind: it could
+edit files and Hard Reset, but couldn't see whether the dev server
+compiled, whether the public URL served real content, whether the runner
+image was stale, or whether Vite's WSS upgrade was 502'ing at Fly's edge.
+
+- **Route**: `GET /api/previews/[projectId]/diagnose` (new) — one-shot
+  deep diagnostic. Returns machine state, image-staleness, runner
+  `/status` (running, installing, compileLogReady, isCRA, error, buildSha),
+  public HTTP probe, WebSocket-upgrade probe, plus a `verdict` string
+  the LLM pattern-matches on:
+    `no-machine` | `machine-<state>` | `stale-runner-image` |
+    `stale-machine-config` | `runner-unreachable` | `still-installing` |
+    `dev-server-error` | `dev-server-not-running` |
+    `ws-blocked-at-fly-edge` | `public-url-<status>` | `healthy`
+  …and a concrete `suggestedFix` action string.
+- **Tool**: `previewDiagnosticsTool(projectId)` registered FIRST in the
+  project tool list (before `get_preview_logs`, `get_browser_console`,
+  `get_network_log`) so the model reaches for it first. Description
+  teaches: "CALL THIS FIRST when the user reports preview is blank /
+  won't start / shows error. Do not guess and edit code blindly."
+- **Runner endpoint**: `POST /api/diagnostics/logs` on the preview
+  runner (the existing `get_preview_logs` tool was calling this
+  endpoint but it didn't exist). Now returns the last N lines of the
+  in-memory log buffer formatted `[stream] line`.
+
+### WSS root-cause diagnosis (Mangia Mama "blank screen" → reload loop)
+Through direct curl + machine introspection we found Vite HMR's WSS
+connection 502s at Fly's edge regardless of handler chain
+(`['tls','http']` returned 502, `['tls']` only returned "Empty reply
+from server" — neither produced a `[proxy] WS upgrade` log line in the
+runner, confirming the upgrade event never reached our Node HTTP
+server). Mitigation: `hmr: false` in the runner-generated
+`vite.config.runner.mjs` so Vite serves the bundle once without
+starting the HMR loop. Code changes still auto-propagate via the
+dashboard's existing `files_saved` SSE pipeline.
+
+Permanent re-enable requires routing Vite HMR over a Fly service port
+that DOES forward WebSocket upgrades (e.g. a separate raw-TCP service
+with `proxy_proto` handler), or Fly fixing wildcard-subdomain WSS
+forwarding.
+
+### Other fixes shipped this session
+- `lib/fly/machines.js`: `isMachineConfigStale()` now also flags
+  machines whose port-443 service still has the broken `['tls','http']`
+  handler so the orchestrator auto-recycles them on next `/start`.
+- Diagnostic log line at the proxy WS upgrade handler: every attempt
+  now logs `host`, `url`, `reqProject`, `myProject` for future
+  forensic debugging.
+- Tests: +6 (Fly WS handler) + 10 (preview_diagnostics tool) — all
+  passing alongside the existing 12-file preview-runner regression
+  suite.
+
+---
+
+
 ## 2026-02-XX — JSX-in-.js esbuild loader for CRA-style Vite imports (commit `6fac1e8`)
 
 After rotating the banned Fly token and shipping the @-alias fix, Mangia
