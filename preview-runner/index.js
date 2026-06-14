@@ -1194,6 +1194,25 @@ app.get('/logs', (req, res) => {
   req.on('close', () => logEvents.off('line', onLine))
 })
 
+// ─── /api/diagnostics/logs ───────────────────────────────────────────
+// JSON snapshot of the most recent log lines. Used by the
+// `get_preview_logs` AI tool so the project agent can see real-time
+// runner / dev-server output (npm install warnings, webpack compile
+// errors, Vite "ready in 252ms" messages, etc.) without subscribing
+// to the SSE stream. Returns the last N lines so a "preview not
+// working" debugging session doesn't have to copy-paste from the
+// floating logs panel.
+//
+// POST body: { lines?: number }   (default 100, max 1000)
+// Response:  { logs: string[] }   (one line per array element,
+//                                  formatted as "[stream] text")
+app.post('/api/diagnostics/logs', (req, res) => {
+  const requested = Number(req.body?.lines)
+  const lines = Number.isFinite(requested) ? Math.max(1, Math.min(1000, requested)) : 100
+  const tail = logs.slice(-lines).map(e => `[${e.stream}] ${e.line}`)
+  res.json({ logs: tail, total: logs.length, returned: tail.length })
+})
+
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
   process.env.RUNNER_STARTED_AT = new Date().toISOString()
   const buildSha = process.env.BUILD_SHA || 'dev'
