@@ -45,8 +45,8 @@ function projectRunnerSecret(projectId) {
   return `runner-${projectId}-${(h >>> 0).toString(36)}`
 }
 
-async function callRunner(machineId, path, init = {}) {
-  const { url, headers } = machineControlUrl(machineId)
+async function callRunner(machine, path, init = {}) {
+  const { url, headers } = machineControlUrl(machine)
   const res = await fetch(`${url}${path}`, {
     ...init,
     headers: {
@@ -79,52 +79,47 @@ export async function POST(request, { params }) {
 
   try {
     // 1) Find or create the machine for this project.
+    //    Post-One-App-Per-Project: findMachineForProject looks in the
+    //    project's dedicated Fly app first, falls back to the legacy
+    //    shared app (with `_isLegacy = true`) for lazy migration.
     const secret = projectRunnerSecret(projectId)
     let machine = await findMachineForProject(projectId)
     let createdNew = false
-    // A machine spawned with an OLDER orchestrator config (e.g. before
-    // SUPABASE_URL was injected for the /sync-from-supabase fast path)
-    // can't serve our current API surface. PRIOR behavior was to destroy
-    // + recreate, but that wipes node_modules + .auroraly-install-hash
-    // and forces a full 5-10 min reinstall. NEW behavior (Feb 2026):
-    // try an in-place env update first — Fly's Machine Update API
-    // stops the machine, rewrites config, restarts. Disk is preserved.
-    // Only fall back to destroy/recreate if the in-place update fails
-    // (e.g. image is also stale, not just env).
-    //
-    // Wrapped in an outer try so any throw from isMachineConfigStale,
-    // updateMachineEnv, or destroyMachine cannot escape and produce
-    // an unhandled 500 — the worst case here is "this machine had a
-    // problem we couldn't recover, fall through to createMachineForProject".
+
+    // Lazy migration: if we found a machine in the legacy shared app,
+    // destroy it. The next-line "if (!machine)" block then provisions a
+    // fresh machine in the project's dedicated app. One-time cost per
+    // project; subsequent starts hit the dedicated app directly.
+    if (machine?._isLegacy) {
+      console.log(`[start] project ${projectId} has a legacy machine ${machine.id} in shared app ${machine._appName} — destroying for migration to dedicated app`)
+      await destroyMachine(machine).catch((err) => {
+        console.warn(`[start] legacy destroy failed (non-fatal): ${err.message}`)
+      })
+      machine = null
+    }
+
+    // Stale-image check: if a new runner image was deployed, the
+    // existing machine still pins the old image. Destroy + recreate.
     try {
-      // Image-staleness has to be checked FIRST. If a new runner image
-      // was deployed (e.g. we just shipped the Vite-alias / CRA-compile-ready
-      // fixes), no amount of in-place env updating will pull the new code —
-      // Fly Machines pin to an image at create time. Only destroy+recreate
-      // picks up the new image. Image is a stronger staleness signal than
-      // env, so it short-circuits the env path.
       if (machine) {
         try {
           const deployedImage = await resolveDeployedImage()
           if (isMachineImageStale(machine, deployedImage)) {
             console.log(`[start] machine ${machine.id} runs stale image ${machine.config?.image} (deployed: ${deployedImage}) — destroying to pick up new runner code`)
-            await destroyMachine(machine.id).catch((err) => {
+            await destroyMachine(machine).catch((err) => {
               console.warn(`[start] destroy of stale-image machine failed: ${err.message}`)
             })
             machine = null
           }
         } catch (imgErr) {
-          // resolveDeployedImage hit the Fly API and failed. Don't recycle
-          // on a transient failure — fall through and let the existing
-          // machine serve.
           console.warn(`[start] image-staleness check failed: ${imgErr.message} — leaving existing machine in place`)
         }
       }
       if (machine && isMachineConfigStale(machine)) {
         console.log(`[start] machine ${machine.id} for project ${projectId} has stale env — attempting in-place update`)
         try {
-          await updateMachineEnv(machine.id, machine, freshMachineEnv(projectId, secret))
-          const settled = await waitForMachineState(machine.id, 'started', 30_000).catch(() => null)
+          await updateMachineEnv(machine, freshMachineEnv(projectId, secret))
+          const settled = await waitForMachineState(machine, 'started', 30_000).catch(() => null)
           if (settled?.ok) {
             machine.state = settled.state || 'started'
             machine.config = { ...machine.config, env: { ...machine.config.env, ...freshMachineEnv(projectId, secret) } }
@@ -134,48 +129,32 @@ export async function POST(request, { params }) {
           }
         } catch (err) {
           console.warn(`[start] in-place env update failed (${err.message}) — falling back to destroy/recreate`)
-          await destroyMachine(machine.id).catch((destroyErr) => {
+          await destroyMachine(machine).catch((destroyErr) => {
             console.warn(`[start] destroy failed: ${destroyErr.message}`)
           })
           machine = null
         }
       }
     } catch (staleCheckErr) {
-      // isMachineConfigStale itself threw (unexpected — it's pure).
-      // Log and continue as if the machine wasn't stale; downstream
-      // code will surface any real issues.
       console.warn(`[start] stale-check itself threw: ${staleCheckErr.message} — proceeding with existing machine`)
     }
     if (!machine) {
       machine = await createMachineForProject(projectId, secret)
       createdNew = true
     } else if (machine.state !== 'started') {
-      // Fly refuses to start a machine that's mid-transition or in
-      // `created` (just-spawned, auto-starting) with a `412
-      // failed_precondition: unable to start machine from current state`.
-      // Wait for the machine to finish its current transition (up to 30s)
-      // before attempting start. Covers: rapid Stop → Start clicks, and
-      // a polling Start that lands on a machine we just created on a
-      // prior call but Fly hasn't finished auto-starting yet.
       const transitional = ['stopping', 'starting', 'created']
       if (transitional.includes(machine.state)) {
         const target = machine.state === 'stopping' ? 'stopped' : 'started'
-        const settled = await waitForMachineState(machine.id, target, 30_000).catch(() => null)
+        const settled = await waitForMachineState(machine, target, 30_000).catch(() => null)
         if (settled?.ok && settled.state) machine.state = settled.state
       }
-      // Only call startMachine if the machine genuinely landed in a
-      // startable state (stopped). Calling start on 'created' / 'starting'
-      // is the original 412 trigger.
       if (machine.state === 'stopped') {
-        await startMachine(machine.id)
+        await startMachine(machine)
       }
     }
 
-    // 2) Wait briefly for the machine to be `started` (cold-start ~5-10s).
-    //    Bound the wait at 30s so we're well clear of Vercel's 60s function
-    //    cap. If the machine isn't ready in 30s, the frontend will keep
-    //    polling GET /start until it is.
-    const waitRes = await waitForMachineState(machine.id, 'started', 30_000).catch(() => null)
+    // 2) Wait briefly for the machine to be `started`.
+    const waitRes = await waitForMachineState(machine, 'started', 30_000).catch(() => null)
     const machineStarted = waitRes?.ok || (machine.state === 'started' && !createdNew)
 
     if (!machineStarted) {
@@ -192,7 +171,7 @@ export async function POST(request, { params }) {
     let healthy = false
     for (let i = 0; i < 15; i++) {
       try {
-        await callRunner(machine.id, '/health', { method: 'GET', secret })
+        await callRunner(machine, '/health', { method: 'GET', secret })
         healthy = true
         break
       } catch { await new Promise(r => setTimeout(r, 1000)) }
@@ -215,7 +194,7 @@ export async function POST(request, { params }) {
     //    function ceiling on big projects (Mangia-Mama: 130 files,
     //    ~13MB JSON payload after binary asset resolution).
     try {
-      await callRunner(machine.id, '/sync-from-supabase', {
+      await callRunner(machine, '/sync-from-supabase', {
         method: 'POST',
         body: JSON.stringify({ projectId }),
         secret,
@@ -227,7 +206,7 @@ export async function POST(request, { params }) {
       console.warn(`[start] /sync-from-supabase unavailable, falling back to /sync: ${err.message}`)
       const files = await db.projectFiles.findByProjectId(projectId)
       const payload = { files: files.map(f => ({ path: f.path, content: f.content || '' })) }
-      await callRunner(machine.id, '/sync', {
+      await callRunner(machine, '/sync', {
         method: 'POST',
         body: JSON.stringify(payload),
         secret,
@@ -238,7 +217,7 @@ export async function POST(request, { params }) {
     //    it spawns npm install + dev server in its own background task,
     //    so this call never blocks. Frontend polls GET /start (which hits
     //    runner /status) until runner.running === true.
-    await callRunner(machine.id, '/start', {
+    await callRunner(machine, '/start', {
       method: 'POST',
       body: '{}',
       secret,
@@ -283,7 +262,7 @@ export async function GET(request, { params }) {
     const secret = projectRunnerSecret(projectId)
     let runnerStatus = null
     try {
-      runnerStatus = await callRunner(machine.id, '/status', { method: 'GET', secret })
+      runnerStatus = await callRunner(machine, '/status', { method: 'GET', secret })
     } catch { /* runner not bound yet */ }
 
     // If the runner is reachable but nothing is in progress, drive the
@@ -294,14 +273,14 @@ export async function GET(request, { params }) {
     if (runnerStatus && !runnerStatus.running && !runnerStatus.installing && !runnerStatus.starting) {
       try {
         const files = await db.projectFiles.findByProjectId(projectId)
-        await callRunner(machine.id, '/sync', {
+        await callRunner(machine, '/sync', {
           method: 'POST',
           body: JSON.stringify({ files: files.map(f => ({ path: f.path, content: f.content || '' })) }),
           secret,
         })
-        await callRunner(machine.id, '/start', { method: 'POST', body: '{}', secret })
+        await callRunner(machine, '/start', { method: 'POST', body: '{}', secret })
         // Re-poll status so the response reflects the freshly-kicked state.
-        try { runnerStatus = await callRunner(machine.id, '/status', { method: 'GET', secret }) } catch {}
+        try { runnerStatus = await callRunner(machine, '/status', { method: 'GET', secret }) } catch {}
       } catch (err) {
         runnerStatus = { ...(runnerStatus || {}), error: err.message }
       }

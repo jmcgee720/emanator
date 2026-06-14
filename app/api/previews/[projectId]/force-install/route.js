@@ -51,7 +51,7 @@ export async function POST(request, { params }) {
   }
 
   try {
-    const { url, headers } = machineControlUrl(machine.id)
+    const { url, headers } = machineControlUrl(machine)
     const upstream = await fetch(`${url}/force-install`, {
       method: 'POST',
       headers: {

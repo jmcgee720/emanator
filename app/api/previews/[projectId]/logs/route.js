@@ -50,7 +50,7 @@ export async function GET(request, { params }) {
     })
   }
 
-  const { url, headers } = machineControlUrl(machine.id)
+  const { url, headers } = machineControlUrl(machine)
   const upstream = await fetch(`${url}/logs`, {
     method: 'GET',
     headers: {

@@ -84,7 +84,7 @@ export async function POST(request, { params }) {
     try {
       const machine = await findMachineForProject(projectId)
       if (machine) {
-        await stopMachine(machine.id)
+        await stopMachine(machine)
       }
     } catch (stopErr) {
       // Non-fatal — the cleanup succeeded, stopping is just a courtesy

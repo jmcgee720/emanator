@@ -40,7 +40,7 @@ export async function POST(request, { params }) {
       return handleCORS(NextResponse.json({ ok: true, alreadyClean: true }))
     }
 
-    await destroyMachine(machine.id)
+    await destroyMachine(machine)
     return handleCORS(NextResponse.json({
       ok: true,
       destroyed: machine.id,

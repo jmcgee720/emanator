@@ -37,7 +37,7 @@ export async function POST(request, { params }) {
 
     // Best-effort SIGTERM the user's dev server first so it can clean up.
     if (machine.state === 'started') {
-      const { url, headers } = machineControlUrl(machine.id)
+      const { url, headers } = machineControlUrl(machine)
       try {
         await fetch(`${url}/stop`, {
           method: 'POST',
@@ -51,7 +51,7 @@ export async function POST(request, { params }) {
       } catch { /* runner already gone — fine */ }
     }
     // Then ask Fly to stop the machine itself (frees the billable slot).
-    await stopMachine(machine.id).catch(() => {})
+    await stopMachine(machine).catch(() => {})
     return handleCORS(NextResponse.json({ ok: true, machineId: machine.id }))
   } catch (err) {
     return handleCORS(NextResponse.json({ error: err.message }, { status: 500 }))

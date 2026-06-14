@@ -68,7 +68,7 @@ export async function POST(request, context) {
   }
 
   const secret = projectRunnerSecret(projectId)
-  const { url, headers } = machineControlUrl(machine.id)
+  const { url, headers } = machineControlUrl(machine)
   const t0 = Date.now()
   try {
     const res = await fetch(`${url}/sync-from-supabase`, {

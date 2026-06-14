@@ -167,11 +167,10 @@ export async function GET(_req, ctx) {
 
   // 3) If we have a started machine, gather runtime evidence
   if (machine && machine.state === 'started') {
-    const ctrlUrl = machineControlUrl(machine.id)
+    const ctrlUrl = machineControlUrl(machine)
     const ctrlBase = typeof ctrlUrl === 'string' ? ctrlUrl : ctrlUrl.url
     const ctrlHeaders = typeof ctrlUrl === 'string' ? {} : (ctrlUrl.headers || {})
     const headers = {
-      'Fly-Force-Instance-Id': machine.id,
       'X-Auroraly-Secret': projectRunnerSecret(projectId),
       ...ctrlHeaders,
     }
