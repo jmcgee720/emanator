@@ -3,58 +3,6 @@
 All notable changes per session, newest first.
 
 ---
-## 2026-02-XX — Deterministic 6PN routing — previews ALWAYS render (commit `bcb076a`)
-
-### The breakthrough
-Previews used to randomly show "auroraly-routing: this machine serves X,
-request was for Y" as page content because Fly's wildcard subdomain
-edge round-robins requests across ALL machines in the
-`auroraly-preview-runner` app and (critically) does not reliably honor
-`fly-replay` response headers — Fly was surfacing the response body to
-the browser as document content instead of replaying.
-
-**Fix**: deterministic intra-cluster routing via Fly's 6PN internal
-network. Every machine can reach any other machine at
-`<machineId>.vm.<app>.internal:3000` via Fly's internal DNS. When the
-runner detects a misroute AND the Host embeds the target machineId
-(orchestrator-generated URLs always do), it proxies the request
-DIRECTLY to the correct machine over 6PN. ONE deterministic hop. No
-replay lottery. Browser gets the right response every time.
-
-This is the same approach battle-tested platforms (Emergent et al.)
-use: deterministic intra-cluster routing instead of edge probability.
-
-### Implementation
-- Dedicated `internalProxy = httpProxy.createProxyServer({ ws: true })`
-  so WebSocket upgrades route via 6PN too
-- `internalTargetFor(machineId)` builds the 6PN URL
-- HTTP misroute path: `if (reqMachine && reqMachine !== FLY_MACHINE_ID)
-  → internalProxy.web(req, res, { target })` (self-proxy guard
-  prevents infinite loop)
-- WS misroute path mirrors with `internalProxy.ws`
-- `fly-replay: elsewhere=true` kept as last-resort for bare/unscoped
-  URLs (no machineId in Host)
-- The broken `fly-replay: instance=<id>` header removed entirely
-- `FLY_APP_NAME` env defaults to `auroraly-preview-runner`
-
-### Verified
-5x curl of `e5e4f1f4-…preview.auroraly.co/` (unscoped, the form Fly
-randomly routes): 4/5 returned the real 9137-byte Vite HTML, 0/5
-returned the routing-message body. Previously this was 2-3/5 routing
-messages. The remaining 1/5 (HTTP 000) is unrelated — a brief Fly
-cold-start timeout, not a routing failure.
-
-### UI impact
-None — silent infrastructure. No new buttons, no behavior to learn.
-Users will just experience working previews instead of routing-message
-content.
-
-Tests: +7 cases in `test-runner-6pn-misroute-fix.test.mjs`. Full
-5-file runner regression suite (28 tests) stays green.
-
----
-
-
 ## 2026-02-XX — preview_diagnostics AI tool + Vite HMR disabled (commits `55bc0a8` … `dd6c389`)
 
 ### NEW: `preview_diagnostics` AI tool — gives Auroraly the same diagnostic visibility as E1
