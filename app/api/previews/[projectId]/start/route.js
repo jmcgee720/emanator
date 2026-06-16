@@ -21,6 +21,7 @@ import {
   updateMachineEnv,
   freshMachineEnv,
 } from '@/lib/fly/machines'
+import { ensurePreviewApp } from '@/lib/fly/apps'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 800 // npm install + Fly boot can take a while on cold start (Vercel Fluid Compute max)
@@ -78,6 +79,15 @@ export async function POST(request, { params }) {
   }
 
   try {
+    // 0) Always heal the dedicated app's networking BEFORE touching machines.
+    //    ensurePreviewApp() creates the app on first call AND idempotently
+    //    re-allocates shared IPv4 + IPv6 every time — so existing apps that
+    //    were created during the brief window when we weren't allocating IPs
+    //    automatically pick up their public DNS on the next /start call.
+    //    Without this, machines in those apps run fine internally but
+    //    <app>.fly.dev returns 'Could not resolve host' to every fetch.
+    await ensurePreviewApp(projectId)
+
     // 1) Find or create the machine for this project.
     //    Post-One-App-Per-Project: findMachineForProject looks in the
     //    project's dedicated Fly app first, falls back to the legacy
