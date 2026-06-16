@@ -1279,20 +1279,51 @@ devProxy.on('error', (err, _req, res) => {
   } catch {}
 })
 
+// Control-plane proxy: forwards `/__runner__/*` → :8080 (the runner's
+// Express control plane). This way the orchestrator only needs to talk
+// to <app>.fly.dev:443/__runner__/<route> — no second port (:8443).
+// Eliminates a class of port-related routing/firewall edge cases
+// (Vercel's serverless network ACLs, intermediate proxies that strip
+// non-standard ports, IPv6-only routes that don't expose :8443, etc).
+const ctrlProxy = httpProxy.createProxyServer({
+  target: `http://127.0.0.1:${RUNNER_PORT}`,
+  changeOrigin: false,
+  ws: false,
+  xfwd: true,
+})
+ctrlProxy.on('error', (err, _req, res) => {
+  try {
+    if (res && !res.headersSent) {
+      res.writeHead(502, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ error: `control plane not ready: ${err.message}` }))
+    }
+  } catch {}
+})
+
 const proxyServer = http.createServer((req, res) => {
-  // Health probe bypass so Fly TCP checks pass before the dev server binds.
+  // Health probe bypass so Fly TCP checks pass before anything else binds.
   if (req.url === '/__runner_health') {
     res.writeHead(200, { 'content-type': 'text/plain' })
     return res.end('ok')
   }
+  // Control-plane carve-out: strip the `/__runner__` prefix and forward
+  // to the Express app on :8080 so all its existing routes (/health,
+  // /status, /logs, /start, /sync, /sync-from-supabase, /force-install,
+  // etc.) keep working unchanged. The prefix is unlikely to conflict
+  // with any real user-app path.
+  if (req.url === '/__runner__' || req.url.startsWith('/__runner__/')) {
+    req.url = req.url.slice('/__runner__'.length) || '/'
+    return ctrlProxy.web(req, res)
+  }
   devProxy.web(req, res)
 })
 proxyServer.on('upgrade', (req, socket, head) => {
-  // No project pinning — single-machine app, always forward.
+  // No project pinning — single-machine app, always forward to dev server.
+  // (Control plane has no WS endpoints; user dev server is the only WS consumer.)
   devProxy.ws(req, socket, head)
 })
 proxyServer.listen(USER_DEV_PROXY_PORT, '0.0.0.0', () => {
-  appendLog('runner', `[proxy] listening on :${USER_DEV_PROXY_PORT} → :${USER_DEV_PORT} (single-machine app, no project routing)`)
+  appendLog('runner', `[proxy] listening on :${USER_DEV_PROXY_PORT} → :${USER_DEV_PORT} (dev) + /__runner__/* → :${RUNNER_PORT} (control)`)
 })
 
 // Graceful shutdown so Fly's machine-stop doesn't leave zombies.

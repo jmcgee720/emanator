@@ -58,9 +58,9 @@ test('publicDevUrl: works without machineId arg', () => {
 })
 
 // ─── machineControlUrl ───────────────────────────────────────────────
-test('machineControlUrl: builds <dedicated-app>.fly.dev:8443 with no Fly-Force-Instance-Id', () => {
+test('machineControlUrl: builds <dedicated-app>.fly.dev/__runner__ (no port, no Fly-Force-Instance-Id)', () => {
   const { url, headers } = machineControlUrl({ id: 'mach-1', _appName: DEDICATED })
-  assert.equal(url, `https://${DEDICATED}.fly.dev:8443`)
+  assert.equal(url, `https://${DEDICATED}.fly.dev/__runner__`)
   // No Fly-Force-Instance-Id needed: each app has exactly one machine.
   assert.equal(headers['Fly-Force-Instance-Id'], undefined)
 })
