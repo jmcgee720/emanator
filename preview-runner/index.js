@@ -282,22 +282,32 @@ async function ensureViteHostOverride(pkg, cwd) {
     loader: 'jsx',
     include: /\\.(jsx?|tsx?)$/,
     exclude: [],
+    // 'automatic' (React 17+ new JSX runtime) so files like shadcn's
+    // sonner.jsx don't need an explicit \`import React from 'react'\` —
+    // <Sonner /> compiles to \`jsx(Sonner, ...)\` from 'react/jsx-runtime'
+    // instead of \`React.createElement(...)\`. Classic runtime is what
+    // CRA defaults to, but shadcn/ui ships components written for the
+    // automatic runtime, so we match that.
+    jsx: 'automatic',
   },
   optimizeDeps: {
     ...(userConfig?.optimizeDeps || {}),
     esbuildOptions: {
       ...(userConfig?.optimizeDeps?.esbuildOptions || {}),
       loader: { ...(userConfig?.optimizeDeps?.esbuildOptions?.loader || {}), '.js': 'jsx' },
+      jsx: 'automatic',
     },
   },\n`
   const jsxLoaderBlockMinimal = `  esbuild: {
     loader: 'jsx',
     include: /\\.(jsx?|tsx?)$/,
     exclude: [],
+    jsx: 'automatic',
   },
   optimizeDeps: {
     esbuildOptions: {
       loader: { '.js': 'jsx' },
+      jsx: 'automatic',
     },
   },\n`
   // ESM file that imports the user's config (if any) and merges in
