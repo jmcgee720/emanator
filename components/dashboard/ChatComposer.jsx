@@ -228,19 +228,49 @@ const ChatComposer = forwardRef(function ChatComposer({
           content: f.content || null,
         }))
 
-        // Try new endpoint first if chatId is available
+        // ── Per-file upload (CRITICAL fix, 2026-06-16) ──
+        // Vercel serverless functions cap request bodies at ~4MB.
+        // Uploading N images as a SINGLE JSON body with all data URLs
+        // inlined easily exceeds that for game assets — Vercel returns
+        // a 413 BEFORE our route handler runs, the client sees !res.ok,
+        // silently falls through to "no uploads", and the AI sees ZERO
+        // attachments this turn. User-visible symptom: "the AI can't
+        // see my images" even though the file picker registered them.
+        //
+        // Fix: send each file in its own POST. Each request stays well
+        // under the 4MB limit. Run them in parallel so total wall time
+        // doesn't suffer. Any individual file's failure is reported
+        // back as a per-file toast — the others still go through.
         let result = null
         if (chatId) {
           try {
-            const res = await fetch(`/api/chats/${chatId}/upload`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ files: uploadPayload }),
-            })
-            if (res.ok) {
-              result = await res.json()
-            }
-          } catch {}
+            const perFileResults = await Promise.all(
+              uploadPayload.map(async (file) => {
+                try {
+                  const res = await fetch(`/api/chats/${chatId}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: [file] }),
+                  })
+                  if (!res.ok) {
+                    return {
+                      filename: file.filename,
+                      success: false,
+                      error: `HTTP ${res.status}${res.status === 413 ? ' — file too large for a single upload' : ''}`,
+                    }
+                  }
+                  const json = await res.json()
+                  const upload = json?.uploads?.[0]
+                  return upload || { filename: file.filename, success: false, error: 'no upload returned' }
+                } catch (err) {
+                  return { filename: file.filename, success: false, error: err.message || 'network error' }
+                }
+              })
+            )
+            result = { uploads: perFileResults }
+          } catch (err) {
+            console.error('Per-file upload pipeline failed:', err)
+          }
         }
         
         // Fallback to legacy onUploadFiles if available
@@ -249,6 +279,16 @@ const ChatComposer = forwardRef(function ChatComposer({
         }
 
         if (result?.uploads) {
+          // Surface any per-file failures to the user — silent drops are
+          // the original bug this whole block is fixing.
+          const failed = result.uploads.filter(u => !u.success)
+          if (failed.length > 0) {
+            toast({
+              title: `${failed.length} attachment${failed.length === 1 ? '' : 's'} failed to upload`,
+              description: failed.map(f => `${f.filename}: ${f.error || 'unknown error'}`).join('; '),
+              variant: 'destructive',
+            })
+          }
           // Merge upload server results with local file data (content, preview)
           const serverUploads = result.uploads.filter(u => u.success)
           uploadedAttachments = serverUploads.map(serverAtt => {
