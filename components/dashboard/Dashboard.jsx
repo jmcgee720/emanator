@@ -1730,6 +1730,15 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         data-testid="media-bin-file-input"
       />
 
+      {/* ── Aurora Customizer Modal ── */}
+      {showAuroraCustomizer && (
+        <AuroraCustomizer
+          isOpen={showAuroraCustomizer}
+          onClose={() => setShowAuroraCustomizer(false)}
+          projectId={selectedProject?.id}
+        />
+      )}
+
       {/* ── Import Modal (top-level so it works in all views) ── */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
