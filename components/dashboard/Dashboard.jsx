@@ -95,6 +95,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
   const [showCanvas, setShowCanvas] = useState(false)
   const [showDesign, setShowDesign] = useState(false)
   const [showGrowth, setShowGrowth] = useState(false)
+  const [showAuroraCustomizer, setShowAuroraCustomizer] = useState(false)
 
   const [designPrefs, setDesignPrefs] = useState(getDefaultDesignPrefs())
   const [loading, setLoading] = useState(true)
