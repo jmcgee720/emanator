@@ -1021,45 +1021,10 @@ function scanForCompileReady(chunk) {
   }
 }
 
-// ── Port collision detector ─────────────────────────────────────────
-// Many user projects (especially full-stack scaffolds using `concurrently`
-// to run backend + frontend) accidentally bind both processes to the same
-// port. Node emits a cryptic EADDRINUSE error and the dev server dies
-// silently from the user's POV — but the AI agent reading these logs
-// can't tell what went wrong without a clear signal.
-//
-// MyNexus hit this exactly: `concurrently \"npm run server\" \"npm start\"`
-// where both `server` and `start` defaulted to port 3001.
-//
-// We scan each dev-server stderr chunk for EADDRINUSE patterns and, if
-// found, emit ONE clean diagnostic line that the AI can quote back to
-// the user verbatim along with a one-line fix.
-let portCollisionEmitted = false
-function scanForPortCollision(chunk) {
-  if (portCollisionEmitted) return
-  const text = chunk?.toString?.('utf8') || ''
-  // Common forms: "Error: listen EADDRINUSE: address already in use 0.0.0.0:3001"
-  //               "Error: listen EADDRINUSE :::3001"
-  //               "port 3001 is already in use"
-  const m = text.match(/EADDRINUSE[^0-9]*(?::|0\.0\.0\.0:)?(\d{2,5})\b/i)
-    || text.match(/port\s+(\d{2,5})\s+is\s+already\s+in\s+use/i)
-  if (!m) return
-  portCollisionEmitted = true
-  const port = m[1]
-  // Structured, AI-readable. Three lines: what happened, why, the fix.
-  // The AI's preview-diagnostics tool surfaces these verbatim — keep the
-  // wording stable so the agent's pattern matching stays predictable.
-  appendLog('runner', `[runner] ❌ PORT COLLISION on :${port}`)
-  appendLog('runner', `[runner]   Likely cause: a 'concurrently' / multi-process script in package.json is binding two services to the same port. Common with full-stack scaffolds where backend + frontend both default to ${port}.`)
-  appendLog('runner', `[runner]   Fix: open package.json, find the script that runs two processes (look for 'concurrently' or '&&'), and assign the backend a different port (e.g. ${Number(port) + 1}) via env var (PORT=${Number(port) + 1}) or in its own start command.`)
-  lastStartError = `Port :${port} collision — two processes are binding to the same port. See logs for the suggested fix.`
-}
-
 async function bootDevServerInBackground() {
   if (startInFlight || devProc) return
   startInFlight = true
   lastStartError = null
-  portCollisionEmitted = false
   try {
     const resolved = await resolveProjectCwd()
     if (!resolved) {
@@ -1150,8 +1115,8 @@ async function bootDevServerInBackground() {
         VITE_PUBLIC_URL: previewUrl,
       },
     })
-    devProc.stdout.on('data', d => { appendLog('dev', d); scanForCompileReady(d); scanForPortCollision(d) })
-    devProc.stderr.on('data', d => { appendLog('dev', d); scanForCompileReady(d); scanForPortCollision(d) })
+    devProc.stdout.on('data', d => { appendLog('dev', d); scanForCompileReady(d) })
+    devProc.stderr.on('data', d => { appendLog('dev', d); scanForCompileReady(d) })
     devProc.on('exit', (code, signal) => {
       appendLog('runner', `[runner] dev server exited code=${code} signal=${signal}`)
       if (code !== 0 && code !== null) lastStartError = `dev server exited ${code}`
