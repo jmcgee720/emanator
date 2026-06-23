@@ -40,6 +40,7 @@ import * as livePromoteRoutes from '@/lib/api/routes/live-promote'
 import * as diffsRoutes from '@/lib/api/routes/diffs'
 import * as assetsRoutes from '@/lib/api/routes/assets'
 import * as chatsRoutes from '@/lib/api/routes/chats'
+import * as screenshotsRoutes from '@/lib/api/routes/screenshots'
 import * as projectsRoutes from '@/lib/api/routes/projects'
 
 // App Router handles request bodies via Web Request streaming — no config needed.
@@ -92,6 +93,7 @@ const phase2Modules = [
   diffsRoutes,
   assetsRoutes,
   chatsRoutes,
+  screenshotsRoutes,
   projectsRoutes,      // MUST be last
 ]
 
