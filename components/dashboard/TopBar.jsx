@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity, Sparkles } from 'lucide-react'
+import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity, Sparkles, Palette } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import CollaboratorsModal from './CollaboratorsModal'
