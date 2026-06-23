@@ -74,6 +74,7 @@ const AuroraBackground = ({
   hueShift = 0,
   streakDensity = 1,
   glowStrength = 1,
+  projectId = null, // NEW: optional project ID to load custom prefs
 }) => {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
@@ -81,6 +82,13 @@ const AuroraBackground = ({
     w: typeof window !== 'undefined' ? window.innerWidth  : REF_W,
     h: typeof window !== 'undefined' ? window.innerHeight : REF_H,
   }));
+
+  // Load project-specific preferences
+  const [customPrefs, setCustomPrefs] = useState(() => {
+    if (!projectId || typeof window === 'undefined') return null;
+    const saved = localStorage.getItem(`aurora-${projectId}`);
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const handleResize = useCallback(() => {
     if (!canvasRef.current || !engineRef.current) return;
