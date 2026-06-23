@@ -114,18 +114,34 @@ const AuroraBackground = ({
     canvasRef.current.style.width  = `${width}px`;
     canvasRef.current.style.height = `${height}px`;
 
+    // Apply custom prefs if available, otherwise use props
+    const finalIntensity = customPrefs?.intensity ?? intensity;
+    const finalSpeed = customPrefs?.speed ?? speed;
+    const finalHueShift = customPrefs?.hueShift ?? hueShift;
+
     engineRef.current = new AuroraEngine(canvasRef.current, {
       conversationState,
-      intensity,
-      speed,
-      hueShift,
+      intensity: finalIntensity,
+      speed: finalSpeed,
+      hueShift: finalHueShift,
       streakDensity,
       glowStrength,
     });
     // Activity is permanently locked at 0 — calm and identical on every page.
     engineRef.current.updateActivityLevel(0);
     engineRef.current.updateLayerConfig(resolveLayers(width, height));
-    engineRef.current.updateEffects(LOCKED_EFFECTS);
+    
+    // Apply custom effects if available
+    const finalEffects = customPrefs ? {
+      sway: { enabled: true, intensity: customPrefs.sway },
+      gradientWave: { enabled: true, intensity: customPrefs.gradientWave },
+      brightnessRipple: { enabled: true, intensity: customPrefs.brightnessRipple },
+      twinklePulse: { enabled: true, intensity: customPrefs.twinklePulse },
+      colorBreathing: { enabled: true, intensity: customPrefs.colorBreathing },
+      verticalDrift: { enabled: true, intensity: customPrefs.verticalDrift },
+    } : LOCKED_EFFECTS;
+    
+    engineRef.current.updateEffects(finalEffects);
     engineRef.current.start();
     setViewport({ w: width, h: height });
     window.addEventListener('resize', handleResize);
