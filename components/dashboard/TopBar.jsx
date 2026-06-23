@@ -38,6 +38,7 @@ export default function TopBar({
   onOpenCredits,
   onOpenImport,
   onOpenGrowth,
+  onOpenAuroraCustomizer,
   isOwner,
   isMonitored,
   auroraIntensity = 'medium',
