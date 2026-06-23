@@ -1072,7 +1072,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
   return (
     <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)', zIndex: 1 }} data-testid="dashboard">
       {/* Canvas aurora background — full energy on Project Bin, chat-driven otherwise */}
-      <AuroraBackground activityLevel={0} />
+      <AuroraBackground activityLevel={0} projectId={selectedProject?.id} />
       {selectedProject?.settings?.is_sandbox && (() => {
         const testResult = sandboxTestResult || selectedProject.settings.last_test_result
         const canPromote = isOwner && testResult?.passed && selectedProject.settings.sandbox_status === 'active'
