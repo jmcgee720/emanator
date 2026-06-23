@@ -117,16 +117,17 @@ export default function TopBar({
         
         {/* Aurora Customizer button - only show when a project is selected */}
         {selectedProject && (
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={onOpenAuroraCustomizer}
-            className="h-7 w-7 em-text-muted hover:text-[var(--em-cyan)] hover:bg-[rgba(255,255,255,0.07)] rounded-lg transition-colors duration-200"
+            className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
             title="Personalize Aurora"
             data-testid="aurora-customizer-btn"
           >
-            <Palette className="w-3.5 h-3.5" />
-          </Button>
+            <span className="flex items-center gap-1.5">
+              <Palette className="w-3 h-3" />
+              Personalize
+            </span>
+          </button>
         )}
         
         <DropdownMenu>
