@@ -1,5 +1,64 @@
 # Emanator — Agent Platform PRD
 
+## Implemented (2026-02 — Cross-Message Loop Detection + Direct-to-Supabase Large File Uploads + Port Collision Detector)
+
+### 🔌 Port Collision Detector for User Projects (P2 platform-side helper)
+
+**Symptom**: User projects using `concurrently` to run backend + frontend in parallel often accidentally bind both processes to the same port (MyNexus canonical case: both `node server.js` and `next dev` defaulted to 3001). Node emits a cryptic EADDRINUSE stack trace, the dev server exits, and the user has no idea what happened. The Auroraly AI agent reading `/logs` via `preview-diagnostics` saw raw stack noise too — couldn't reliably surface a fix.
+
+**Shipped**:
+1. **`preview-runner/index.js`** — new `scanForPortCollision(chunk)` runs on every dev-server stdout/stderr chunk. Matches three forms:
+   - `EADDRINUSE: address already in use 0.0.0.0:<port>` (Node IPv4)
+   - `EADDRINUSE :::<port>` (IPv6 dual-stack)
+   - `Port <N> is already in use` (Next.js / Vite prose)
+   On first match, emits 3 structured log lines: ❌ headline, root-cause hint (`concurrently` / multi-process), one-line fix with suggested next port. Sets `lastStartError` so `/status` reports the collision instead of a generic "exited code 1". Fires once per boot (resets in `bootDevServerInBackground`).
+2. **`tests/test-port-collision-detector.test.mjs`** — 9 tests covering Node IPv4/IPv6, Next.js prose, Vite prose, unrelated errors, missing port edge cases, MyNexus canonical concurrent-launch log, multi-event sequencing, and the port+1 suggestion math.
+
+**Why this matters**: This is platform-side helpfulness that benefits ANY user project hitting port conflicts, not just MyNexus. The AI agent's `preview-diagnostics` tool now reads the structured log lines and surfaces them verbatim to the user with the suggested fix — proving the AI self-debug workflow end-to-end. Deployment: `flyctl deploy --remote-only` from `preview-runner/`.
+
+### 🛡️ Cross-Message Loop Detection (P0)
+
+**Symptom**: Users reported the AI agent getting stuck repeating the same response across multiple turns ("can you re-upload that screenshot?" → user replies → "can you re-upload that screenshot?" → ...). The intra-message detector (3 identical tool calls in one loop) doesn't catch this — it requires the same response to be emitted multiple times within a single `runAgent` invocation. Cross-turn repetition slipped through.
+
+**Shipped**:
+1. **`lib/ai/agent-core.js`**:
+   - New exported `normalizeAssistantText()` — single source of truth for fingerprint normalization (lowercase, collapse whitespace, strip drift-prone punctuation, 500-char fingerprint).
+   - `runAgent()` now accepts `priorAssistantFingerprints` param (array of normalized strings from the last N assistant DB rows).
+   - When the loop terminates with a text response, compares the current turn's normalized text against `priorAssistantFingerprints`. If ≥2 matches (exact OR 100-char prefix overlap), yields `done` event with `reason: 'cross_message_loop_detected'` + actionable warning.
+2. **`lib/api/stream-handler-v2.js`**:
+   - Builds fingerprints from the last 5 assistant messages in `priorMessages` BEFORE calling `runAgent` (length-filtered ≥30 chars to avoid false positives on short replies like "ok" / "yes").
+   - On `cross_message_loop_detected`, prepends `⚠️ Repetition detected — <warning>` to `fullContent` so the user sees an actionable message instead of yet another identical reply.
+3. **`tests/test-cross-message-loop-detection.test.mjs`** — 5 tests: normalize idempotency, fires on 2+ matches, does NOT fire on 1 match, respects caller length-filtering, back-compat when param omitted.
+
+**Architecture decision (mimicking Emergent)**: Hard-stop with actionable warning, not a silent nudge. Emergent's intra-loop detector also surfaces the bail to the user with explicit guidance — we mirror that pattern for cross-turn detection so the user always knows when the agent stopped on purpose vs froze.
+
+### 📤 Direct-to-Supabase Large File Uploads via Signed URLs (P1)
+
+**Symptom**: 7MB+ ZIPs and large game assets failed to upload — Vercel's 4.5MB serverless body cap intercepted the request before our handler ran. The previous direct-Supabase path used the anon key + private bucket (RLS rejected writes), and even when uploads succeeded the file was never registered in `project_files`, so the agent couldn't rehydrate the bytes.
+
+**Shipped**:
+1. **`lib/supabase/db.js`** — new `db.projectFiles.upsertWithStoragePath(projectId, filePath, storagePath, options)`:
+   - Inserts/updates a row with `content: null` and `storage_path` set.
+   - Idempotent: replaces existing storage object via `deleteStorageObject` on path change.
+   - Returns `{ action: 'created'|'updated', file, size }` for analytics.
+2. **`lib/api/routes/chats.js`** — new `POST /chats/:chatId/upload-url`:
+   - Issues a server-minted signed upload URL via `supabase.storage.createSignedUploadUrl()` (uses service-role key — no RLS limitation).
+   - Returns `{ bucket, storage_path, project_path, signed_url, token, mime_type }`.
+   - Storage path namespaced by `projectId/` to prevent cross-project collisions.
+   - 75MB hard cap with 413 + clear error message.
+   - Smart project-tree path heuristic mirrors the existing multipart `/upload` route so the agent finds files at predictable paths regardless of upload size.
+3. **`lib/api/routes/chats.js`** — existing `POST /chats/:chatId/upload` `storage_path` branch now actually registers files in `project_files` via `upsertWithStoragePath` (was just a no-op echo before).
+4. **`components/dashboard/ChatComposer.jsx`** — for files >4MB:
+   - Step 1: client requests signed URL from API
+   - Step 2: client calls `supabase.storage.uploadToSignedUrl()` directly (bypasses Vercel entirely)
+   - Step 3: client POSTs `/upload` with `{ storage_path, project_path, public_url }` to register
+   - Replaces the broken anon-key upload + bare `getPublicUrl()` path.
+5. **`tests/test-signed-upload-url-flow.test.mjs`** — 6 tests covering storage-path namespacing, image route convention, 75MB cap, upsert return shape, 4MB client threshold.
+
+**Why this matters**: The agent's `attachmentToContentBlock()` rehydration falls back to reading `project_files.content` by path when the client strips inline image data URLs. Without registration, large uploads were invisible to the agent on subsequent turns. Now every uploaded file (regardless of size) has a queryable row, and the bytes live in Supabase Storage where they belong.
+
+---
+
 ## 🛑 Deploy Chain Awareness (rule for the agent — pin this)
 Every infra-side change MUST start with a "what deploys where + what credentials are needed?" audit BEFORE touching code:
 - **Vercel**: orchestrator (Next.js app, AI pipeline, BuildWizard, PreviewTab) — auto-deploys on `git push origin main` ✅ no manual step.
