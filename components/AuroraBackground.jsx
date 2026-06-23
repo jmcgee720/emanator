@@ -163,18 +163,46 @@ const AuroraBackground = ({
     }
   }, [viewport.w, viewport.h]);
 
+  // Listen for preference changes from the customizer
+  useEffect(() => {
+    const handlePrefsChanged = (e) => {
+      if (e.detail.projectId === projectId) {
+        setCustomPrefs(e.detail.prefs);
+      }
+    };
+    
+    window.addEventListener('aurora-prefs-changed', handlePrefsChanged);
+    return () => window.removeEventListener('aurora-prefs-changed', handlePrefsChanged);
+  }, [projectId]);
+
   useEffect(() => {
     if (engineRef.current) {
+      const finalIntensity = customPrefs?.intensity ?? intensity;
+      const finalSpeed = customPrefs?.speed ?? speed;
+      const finalHueShift = customPrefs?.hueShift ?? hueShift;
+
       engineRef.current.updateProps({
         conversationState,
-        intensity,
-        speed,
-        hueShift,
+        intensity: finalIntensity,
+        speed: finalSpeed,
+        hueShift: finalHueShift,
         streakDensity,
         glowStrength,
       });
+
+      // Update effects if custom prefs exist
+      if (customPrefs) {
+        engineRef.current.updateEffects({
+          sway: { enabled: true, intensity: customPrefs.sway },
+          gradientWave: { enabled: true, intensity: customPrefs.gradientWave },
+          brightnessRipple: { enabled: true, intensity: customPrefs.brightnessRipple },
+          twinklePulse: { enabled: true, intensity: customPrefs.twinklePulse },
+          colorBreathing: { enabled: true, intensity: customPrefs.colorBreathing },
+          verticalDrift: { enabled: true, intensity: customPrefs.verticalDrift },
+        });
+      }
     }
-  }, [conversationState, intensity, speed, hueShift, streakDensity, glowStrength]);
+  }, [conversationState, intensity, speed, hueShift, streakDensity, glowStrength, customPrefs]);
 
   return (
     <div
