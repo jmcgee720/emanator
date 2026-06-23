@@ -31,6 +31,7 @@ import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib
 import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus, Sparkles, Camera } from 'lucide-react'
 import { useAuroraState } from '@/hooks/useAuroraState'
 import AuroraBackground from '@/components/AuroraBackground'
+import AuroraCustomizer from './AuroraCustomizer'
 
 const EMANATOR_HEADLINES = [
   "What wants to be built through you today?",
