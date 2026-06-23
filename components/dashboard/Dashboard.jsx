@@ -1274,6 +1274,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         onOpenCredits={() => setShowCreditsModal(true)}
         onOpenImport={() => setShowImportModal(true)}
         onOpenGrowth={() => setShowGrowth(true)}
+        onOpenAuroraCustomizer={() => setShowAuroraCustomizer(true)}
         isOwner={isOwner}
         isMonitored={isMonitored}
         auroraIntensity={aurora.intensity}
