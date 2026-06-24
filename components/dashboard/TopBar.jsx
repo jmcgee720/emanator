@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity, Sparkles } from 'lucide-react'
+import { Search, Paintbrush, Settings, LogOut, Users, Shield, AlertTriangle, Plus, Zap, Upload, Sun, BarChart3, Activity, Sparkles, Palette } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import CollaboratorsModal from './CollaboratorsModal'
@@ -38,6 +38,7 @@ export default function TopBar({
   onOpenCredits,
   onOpenImport,
   onOpenGrowth,
+  onOpenAuroraCustomizer,
   isOwner,
   isMonitored,
   auroraIntensity = 'medium',
@@ -113,6 +114,22 @@ export default function TopBar({
         </button>
 
         <div className="w-px h-4 bg-[rgba(255,255,255,0.10)] mx-1" />
+        
+        {/* Aurora Customizer button - only show when a project is selected */}
+        {selectedProject && (
+          <button
+            onClick={onOpenAuroraCustomizer}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[rgba(255,255,255,0.12)] text-[var(--em-text-secondary)] hover:bg-[rgba(255,255,255,0.07)] hover:text-[var(--em-text-primary)] hover:border-[rgba(255,255,255,0.20)] transition-all duration-200"
+            title="Personalize Aurora"
+            data-testid="aurora-customizer-btn"
+          >
+            <span className="flex items-center gap-1.5">
+              <Palette className="w-3 h-3" />
+              Personalize
+            </span>
+          </button>
+        )}
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

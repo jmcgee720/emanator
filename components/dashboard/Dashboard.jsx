@@ -31,6 +31,7 @@ import { selfEditTitle, getChatType, CHAT_TYPES, SELF_EDIT_TARGETS } from '@/lib
 import { Monitor, Smartphone, FileText, Mic, ChevronDown, ArrowUp, Upload, FolderArchive, GitBranch, X, CreditCard, Zap, Trash2, AlertTriangle, LayoutGrid, Plus, Sparkles, Camera } from 'lucide-react'
 import { useAuroraState } from '@/hooks/useAuroraState'
 import AuroraBackground from '@/components/AuroraBackground'
+import AuroraCustomizer from './AuroraCustomizer'
 
 const EMANATOR_HEADLINES = [
   "What wants to be built through you today?",
@@ -94,6 +95,7 @@ export default function Dashboard({ user, dbUser, onSignOut, initialProjectId = 
   const [showCanvas, setShowCanvas] = useState(false)
   const [showDesign, setShowDesign] = useState(false)
   const [showGrowth, setShowGrowth] = useState(false)
+  const [showAuroraCustomizer, setShowAuroraCustomizer] = useState(false)
 
   const [designPrefs, setDesignPrefs] = useState(getDefaultDesignPrefs())
   const [loading, setLoading] = useState(true)
@@ -1070,7 +1072,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
   return (
     <div className={`h-screen flex flex-col relative ${aurora.auroraClassName}`} style={{ color: 'var(--em-text-primary)', zIndex: 1 }} data-testid="dashboard">
       {/* Canvas aurora background — full energy on Project Bin, chat-driven otherwise */}
-      <AuroraBackground activityLevel={0} />
+      <AuroraBackground activityLevel={0} projectId={selectedProject?.id} />
       {selectedProject?.settings?.is_sandbox && (() => {
         const testResult = sandboxTestResult || selectedProject.settings.last_test_result
         const canPromote = isOwner && testResult?.passed && selectedProject.settings.sandbox_status === 'active'
@@ -1272,6 +1274,7 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         onOpenCredits={() => setShowCreditsModal(true)}
         onOpenImport={() => setShowImportModal(true)}
         onOpenGrowth={() => setShowGrowth(true)}
+        onOpenAuroraCustomizer={() => setShowAuroraCustomizer(true)}
         isOwner={isOwner}
         isMonitored={isMonitored}
         auroraIntensity={aurora.intensity}
@@ -1726,6 +1729,15 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
         onChange={(e) => { handleMediaBinUpload(e.target.files); e.target.value = '' }}
         data-testid="media-bin-file-input"
       />
+
+      {/* ── Aurora Customizer Modal ── */}
+      {showAuroraCustomizer && (
+        <AuroraCustomizer
+          isOpen={showAuroraCustomizer}
+          onClose={() => setShowAuroraCustomizer(false)}
+          projectId={selectedProject?.id}
+        />
+      )}
 
       {/* ── Import Modal (top-level so it works in all views) ── */}
       {showImportModal && (

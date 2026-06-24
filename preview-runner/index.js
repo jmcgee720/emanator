@@ -1212,6 +1212,59 @@ app.post('/force-install', async (_req, res) => {
   }
 })
 
+// POST /api/control/refresh — agent-triggered preview refresh
+// Allows the AI agent to trigger a preview reload after making changes
+// that require it (package.json edits, major structural changes, etc.).
+// Two modes:
+//   • "soft" — just signal the frontend to reload the iframe (no server restart)
+//   • "hard" — restart the dev server + reload iframe (equivalent to Hard Reset)
+app.post('/api/control/refresh', async (req, res) => {
+  const type = req.body?.type || 'soft'
+  const reason = req.body?.reason || 'agent-triggered'
+  
+  appendLog('runner', `[refresh] ${type} refresh requested: ${reason}`)
+  
+  if (type === 'hard') {
+    // Hard reset: kill dev server, clear install hash, respawn
+    if (devProc) {
+      try { devProc.kill('SIGTERM') } catch {}
+      await new Promise(r => setTimeout(r, 500))
+      try { devProc?.kill('SIGKILL') } catch {}
+      devProc = null
+    }
+    
+    // Clear install hash so next boot runs npm install if package.json changed
+    lastInstallHash = ''
+    await savePersistedInstallHash('').catch(() => {})
+    
+    // Check if we need to install new dependencies
+    const resolved = await resolveProjectCwd().catch(() => null)
+    const installingDeps = resolved && resolved.pkg && 
+      (resolved.pkg.dependencies || resolved.pkg.devDependencies)
+    
+    // Respawn in background
+    bootDevServerInBackground().catch(err => 
+      appendLog('runner', `[refresh] hard reset respawn failed: ${err.message}`)
+    )
+    
+    res.json({ 
+      ok: true, 
+      type: 'hard',
+      installingDeps: !!installingDeps,
+      message: 'Dev server restarting'
+    })
+  } else {
+    // Soft refresh: just signal the frontend to reload the iframe
+    // The actual iframe reload happens client-side via the dashboard's
+    // ServerPreview component listening for this event
+    res.json({ 
+      ok: true, 
+      type: 'soft',
+      message: 'Soft refresh triggered — iframe will reload'
+    })
+  }
+})
+
 app.get('/logs', (req, res) => {
   // SSE stream. Replays the buffer first, then tails live.
   res.setHeader('Content-Type', 'text/event-stream')

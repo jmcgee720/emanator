@@ -74,6 +74,7 @@ const AuroraBackground = ({
   hueShift = 0,
   streakDensity = 1,
   glowStrength = 1,
+  projectId = null, // NEW: optional project ID to load custom prefs
 }) => {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
@@ -81,6 +82,13 @@ const AuroraBackground = ({
     w: typeof window !== 'undefined' ? window.innerWidth  : REF_W,
     h: typeof window !== 'undefined' ? window.innerHeight : REF_H,
   }));
+
+  // Load project-specific preferences
+  const [customPrefs, setCustomPrefs] = useState(() => {
+    if (!projectId || typeof window === 'undefined') return null;
+    const saved = localStorage.getItem(`aurora-${projectId}`);
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const handleResize = useCallback(() => {
     if (!canvasRef.current || !engineRef.current) return;
@@ -106,18 +114,34 @@ const AuroraBackground = ({
     canvasRef.current.style.width  = `${width}px`;
     canvasRef.current.style.height = `${height}px`;
 
+    // Apply custom prefs if available, otherwise use props
+    const finalIntensity = customPrefs?.intensity ?? intensity;
+    const finalSpeed = customPrefs?.speed ?? speed;
+    const finalHueShift = customPrefs?.hueShift ?? hueShift;
+
     engineRef.current = new AuroraEngine(canvasRef.current, {
       conversationState,
-      intensity,
-      speed,
-      hueShift,
+      intensity: finalIntensity,
+      speed: finalSpeed,
+      hueShift: finalHueShift,
       streakDensity,
       glowStrength,
     });
     // Activity is permanently locked at 0 — calm and identical on every page.
     engineRef.current.updateActivityLevel(0);
     engineRef.current.updateLayerConfig(resolveLayers(width, height));
-    engineRef.current.updateEffects(LOCKED_EFFECTS);
+    
+    // Apply custom effects if available
+    const finalEffects = customPrefs ? {
+      sway: { enabled: true, intensity: customPrefs.sway },
+      gradientWave: { enabled: true, intensity: customPrefs.gradientWave },
+      brightnessRipple: { enabled: true, intensity: customPrefs.brightnessRipple },
+      twinklePulse: { enabled: true, intensity: customPrefs.twinklePulse },
+      colorBreathing: { enabled: true, intensity: customPrefs.colorBreathing },
+      verticalDrift: { enabled: true, intensity: customPrefs.verticalDrift },
+    } : LOCKED_EFFECTS;
+    
+    engineRef.current.updateEffects(finalEffects);
     engineRef.current.start();
     setViewport({ w: width, h: height });
     window.addEventListener('resize', handleResize);
@@ -139,18 +163,46 @@ const AuroraBackground = ({
     }
   }, [viewport.w, viewport.h]);
 
+  // Listen for preference changes from the customizer
+  useEffect(() => {
+    const handlePrefsChanged = (e) => {
+      if (e.detail.projectId === projectId) {
+        setCustomPrefs(e.detail.prefs);
+      }
+    };
+    
+    window.addEventListener('aurora-prefs-changed', handlePrefsChanged);
+    return () => window.removeEventListener('aurora-prefs-changed', handlePrefsChanged);
+  }, [projectId]);
+
   useEffect(() => {
     if (engineRef.current) {
+      const finalIntensity = customPrefs?.intensity ?? intensity;
+      const finalSpeed = customPrefs?.speed ?? speed;
+      const finalHueShift = customPrefs?.hueShift ?? hueShift;
+
       engineRef.current.updateProps({
         conversationState,
-        intensity,
-        speed,
-        hueShift,
+        intensity: finalIntensity,
+        speed: finalSpeed,
+        hueShift: finalHueShift,
         streakDensity,
         glowStrength,
       });
+
+      // Update effects if custom prefs exist
+      if (customPrefs) {
+        engineRef.current.updateEffects({
+          sway: { enabled: true, intensity: customPrefs.sway },
+          gradientWave: { enabled: true, intensity: customPrefs.gradientWave },
+          brightnessRipple: { enabled: true, intensity: customPrefs.brightnessRipple },
+          twinklePulse: { enabled: true, intensity: customPrefs.twinklePulse },
+          colorBreathing: { enabled: true, intensity: customPrefs.colorBreathing },
+          verticalDrift: { enabled: true, intensity: customPrefs.verticalDrift },
+        });
+      }
     }
-  }, [conversationState, intensity, speed, hueShift, streakDensity, glowStrength]);
+  }, [conversationState, intensity, speed, hueShift, streakDensity, glowStrength, customPrefs]);
 
   return (
     <div
