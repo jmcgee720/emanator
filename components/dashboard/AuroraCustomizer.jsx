@@ -186,9 +186,9 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
             </label>
             <input
               type="range"
-              min="0.3"
-              max="2"
-              step="0.1"
+              min="0.1"
+              max="3.0"
+              step="0.05"
               value={prefs.intensity}
               onChange={e => handleChange('intensity', parseFloat(e.target.value))}
               className="w-full h-2 bg-purple-900/30 rounded-lg appearance-none cursor-pointer accent-purple-500"
