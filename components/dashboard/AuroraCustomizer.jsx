@@ -108,7 +108,7 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
 
   const handleSave = () => {
     if (projectId) {
-      localStorage.setItem(`aurora-${projectId}`, JSON.stringify(prefs));
+      localStorage.setItem(`aurora-v2-${projectId}`, JSON.stringify(prefs));
     }
     // Trigger a custom event so AuroraBackground can pick up the change
     window.dispatchEvent(new CustomEvent('aurora-prefs-changed', { 
