@@ -86,7 +86,7 @@ const AuroraBackground = ({
   // Load project-specific preferences
   const [customPrefs, setCustomPrefs] = useState(() => {
     if (!projectId || typeof window === 'undefined') return null;
-    const saved = localStorage.getItem(`aurora-${projectId}`);
+    const saved = localStorage.getItem(`aurora-v2-${projectId}`);
     return saved ? JSON.parse(saved) : null;
   });
 
