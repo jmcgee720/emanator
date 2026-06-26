@@ -9,7 +9,7 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
   // Load saved preferences or use defaults
   const loadPreferences = () => {
     if (!projectId) return getDefaults();
-    const saved = localStorage.getItem(`aurora-${projectId}`);
+    const saved = localStorage.getItem(`aurora-v2-${projectId}`);
     return saved ? JSON.parse(saved) : getDefaults();
   };
 
