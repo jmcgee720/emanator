@@ -186,6 +186,11 @@ const AuroraBackground = ({
       const finalIntensity = customPrefs?.intensity ?? intensity;
       const finalSpeed = customPrefs?.speed ?? speed;
       const finalHueShift = customPrefs?.hueShift ?? hueShift;
+      const finalCustomColors = customPrefs?.colorTop ? {
+        top: customPrefs.colorTop,
+        mid: customPrefs.colorMid,
+        bottom: customPrefs.colorBottom,
+      } : null;
 
       engineRef.current.updateProps({
         conversationState,
@@ -194,17 +199,18 @@ const AuroraBackground = ({
         hueShift: finalHueShift,
         streakDensity,
         glowStrength,
+        customColors: finalCustomColors,
       });
 
       // Update effects if custom prefs exist
       if (customPrefs) {
         engineRef.current.updateEffects({
-          sway: { enabled: true, intensity: customPrefs.sway },
-          gradientWave: { enabled: true, intensity: customPrefs.gradientWave },
-          brightnessRipple: { enabled: true, intensity: customPrefs.brightnessRipple },
-          twinklePulse: { enabled: true, intensity: customPrefs.twinklePulse },
-          colorBreathing: { enabled: true, intensity: customPrefs.colorBreathing },
-          verticalDrift: { enabled: true, intensity: customPrefs.verticalDrift },
+          sway: { enabled: customPrefs.sway > 0, intensity: customPrefs.sway },
+          gradientWave: { enabled: customPrefs.gradientWave > 0, intensity: customPrefs.gradientWave },
+          brightnessRipple: { enabled: customPrefs.brightnessRipple > 0, intensity: customPrefs.brightnessRipple },
+          twinklePulse: { enabled: customPrefs.twinklePulse > 0, intensity: customPrefs.twinklePulse },
+          colorBreathing: { enabled: customPrefs.colorBreathing > 0, intensity: customPrefs.colorBreathing },
+          verticalDrift: { enabled: customPrefs.verticalDrift > 0, intensity: customPrefs.verticalDrift },
         });
       }
     }
