@@ -118,6 +118,11 @@ const AuroraBackground = ({
     const finalIntensity = customPrefs?.intensity ?? intensity;
     const finalSpeed = customPrefs?.speed ?? speed;
     const finalHueShift = customPrefs?.hueShift ?? hueShift;
+    const finalCustomColors = customPrefs?.colorTop ? {
+      top: customPrefs.colorTop,
+      mid: customPrefs.colorMid,
+      bottom: customPrefs.colorBottom,
+    } : null;
 
     engineRef.current = new AuroraEngine(canvasRef.current, {
       conversationState,
@@ -126,6 +131,7 @@ const AuroraBackground = ({
       hueShift: finalHueShift,
       streakDensity,
       glowStrength,
+      customColors: finalCustomColors,
     });
     // Activity is permanently locked at 0 — calm and identical on every page.
     engineRef.current.updateActivityLevel(0);
