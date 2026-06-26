@@ -85,15 +85,20 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
       intensity: prefs.intensity,
       speed: prefs.speed,
       hueShift: prefs.hueShift,
+      customColors: prefs.colorTop ? {
+        top: prefs.colorTop,
+        mid: prefs.colorMid,
+        bottom: prefs.colorBottom,
+      } : null,
     });
 
     engineRef.current.updateEffects({
-      sway: { enabled: true, intensity: prefs.sway },
-      gradientWave: { enabled: true, intensity: prefs.gradientWave },
-      brightnessRipple: { enabled: true, intensity: prefs.brightnessRipple },
-      twinklePulse: { enabled: true, intensity: prefs.twinklePulse },
-      colorBreathing: { enabled: true, intensity: prefs.colorBreathing },
-      verticalDrift: { enabled: true, intensity: prefs.verticalDrift },
+      sway: { enabled: prefs.sway > 0, intensity: prefs.sway },
+      gradientWave: { enabled: prefs.gradientWave > 0, intensity: prefs.gradientWave },
+      brightnessRipple: { enabled: prefs.brightnessRipple > 0, intensity: prefs.brightnessRipple },
+      twinklePulse: { enabled: prefs.twinklePulse > 0, intensity: prefs.twinklePulse },
+      colorBreathing: { enabled: prefs.colorBreathing > 0, intensity: prefs.colorBreathing },
+      verticalDrift: { enabled: prefs.verticalDrift > 0, intensity: prefs.verticalDrift },
     });
   }, [prefs]);
 
