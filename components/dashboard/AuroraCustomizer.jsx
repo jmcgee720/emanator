@@ -217,6 +217,29 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
             </div>
           </div>
 
+          {/* Color Customization */}
+          <div className="pt-2 border-t border-purple-500/20">
+            <h3 className="text-sm font-medium text-purple-300 mb-3">Custom Colors</h3>
+            
+            <div className="space-y-3">
+              <ColorPicker
+                label="Top Color (Purple)"
+                color={prefs.colorTop}
+                onChange={c => handleChange('colorTop', c)}
+              />
+              <ColorPicker
+                label="Middle Color (Blue)"
+                color={prefs.colorMid}
+                onChange={c => handleChange('colorMid', c)}
+              />
+              <ColorPicker
+                label="Bottom Color (Teal)"
+                color={prefs.colorBottom}
+                onChange={c => handleChange('colorBottom', c)}
+              />
+            </div>
+          </div>
+
           {/* Effects */}
           <div className="pt-2 border-t border-purple-500/20">
             <h3 className="text-sm font-medium text-purple-300 mb-3">Effects</h3>
@@ -226,31 +249,43 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
                 label="Sway"
                 value={prefs.sway}
                 onChange={v => handleChange('sway', v)}
+                min={0}
+                max={3}
               />
               <EffectSlider
                 label="Gradient Wave"
                 value={prefs.gradientWave}
                 onChange={v => handleChange('gradientWave', v)}
+                min={0}
+                max={3}
               />
               <EffectSlider
                 label="Brightness Ripple"
                 value={prefs.brightnessRipple}
                 onChange={v => handleChange('brightnessRipple', v)}
+                min={0}
+                max={2}
               />
               <EffectSlider
                 label="Twinkle Pulse"
                 value={prefs.twinklePulse}
                 onChange={v => handleChange('twinklePulse', v)}
+                min={0}
+                max={2}
               />
               <EffectSlider
                 label="Color Breathing"
                 value={prefs.colorBreathing}
                 onChange={v => handleChange('colorBreathing', v)}
+                min={0}
+                max={2}
               />
               <EffectSlider
                 label="Vertical Drift"
                 value={prefs.verticalDrift}
                 onChange={v => handleChange('verticalDrift', v)}
+                min={0}
+                max={3}
               />
             </div>
           </div>
