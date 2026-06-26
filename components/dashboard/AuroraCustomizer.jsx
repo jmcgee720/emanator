@@ -320,16 +320,16 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
   );
 };
 
-const EffectSlider = ({ label, value, onChange }) => (
+const EffectSlider = ({ label, value, onChange, min = 0, max = 3 }) => (
   <div>
     <div className="flex justify-between items-center mb-1">
       <span className="text-xs text-gray-400">{label}</span>
-      <span className="text-xs text-purple-400">{(value * 100).toFixed(0)}%</span>
+      <span className="text-xs text-purple-400">{value.toFixed(2)}</span>
     </div>
     <input
       type="range"
-      min="0"
-      max="1"
+      min={min}
+      max={max}
       step="0.01"
       value={value}
       onChange={e => onChange(parseFloat(e.target.value))}
@@ -337,5 +337,58 @@ const EffectSlider = ({ label, value, onChange }) => (
     />
   </div>
 );
+
+const ColorPicker = ({ label, color, onChange }) => {
+  const previewStyle = {
+    background: `hsl(${color.h}, ${color.s}%, ${color.l}%)`,
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-xs text-gray-400">{label}</span>
+        <div className="w-8 h-4 rounded border border-purple-500/30" style={previewStyle} />
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 w-8">Hue</span>
+          <input
+            type="range"
+            min="0"
+            max="360"
+            value={color.h}
+            onChange={e => onChange({ ...color, h: parseInt(e.target.value) })}
+            className="flex-1 h-1 bg-purple-900/30 rounded-lg appearance-none cursor-pointer accent-purple-500"
+          />
+          <span className="text-[10px] text-purple-400 w-8 text-right">{color.h}°</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 w-8">Sat</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={color.s}
+            onChange={e => onChange({ ...color, s: parseInt(e.target.value) })}
+            className="flex-1 h-1 bg-purple-900/30 rounded-lg appearance-none cursor-pointer accent-purple-500"
+          />
+          <span className="text-[10px] text-purple-400 w-8 text-right">{color.s}%</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 w-8">Light</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={color.l}
+            onChange={e => onChange({ ...color, l: parseInt(e.target.value) })}
+            className="flex-1 h-1 bg-purple-900/30 rounded-lg appearance-none cursor-pointer accent-purple-500"
+          />
+          <span className="text-[10px] text-purple-400 w-8 text-right">{color.l}%</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default AuroraCustomizer;
