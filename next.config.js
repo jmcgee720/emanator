@@ -36,6 +36,29 @@ const nextConfig = {
           // Access-Control-Allow-Origin since they're not CORS-relevant.
         ],
       },
+      // Aggressive cache-busting for client components (aurora customizer, etc.)
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/dashboard/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+        ],
+      },
+      {
+        source: "/projects/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+        ],
+      },
       // NOTE (Feb 2026 rewrite): COEP/COOP/CORP headers were removed
       // alongside WebContainers. The Fly preview iframe doesn't need
       // cross-origin isolation, and Firefox's "security configuration
