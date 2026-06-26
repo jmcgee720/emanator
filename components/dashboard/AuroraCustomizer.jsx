@@ -17,12 +17,16 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
     hueShift: 0,
     intensity: 1.0,
     speed: 1.0,
-    sway: 0.06,
-    gradientWave: 0,
-    brightnessRipple: 0.84,
-    twinklePulse: 0.62,
-    colorBreathing: 0.49,
-    verticalDrift: 0.16,
+    sway: 1.0,
+    gradientWave: 1.0,
+    brightnessRipple: 1.0,
+    twinklePulse: 1.0,
+    colorBreathing: 1.0,
+    verticalDrift: 1.0,
+    // Gradient color stops (HSL)
+    colorTop: { h: 275, s: 60, l: 50 },      // Purple
+    colorMid: { h: 220, s: 60, l: 50 },      // Blue-purple
+    colorBottom: { h: 172, s: 75, l: 52 },   // Teal
   });
 
   const [prefs, setPrefs] = useState(loadPreferences);
