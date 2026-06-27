@@ -69,8 +69,13 @@ primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
     soft_limit = 10
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "1gb"
+  size = "shared-cpu-2x"
+  memory = "2gb"
+  # 2GB minimum — CRA + workbox + babel + react-scripts installs peak
+  # at ~1.5-2GB during dep resolution. 1GB was OOM-killing on heavy
+  # projects (MyNexus 2026-06-22: 5 restart cycles before orchestrator
+  # gave up). 2GB gives headroom for the install AND the running Vite
+  # dev server + the user app + the file watcher.
   # Auto-shutdown when idle. Cuts cost ~80% for the typical dev session.
   # The orchestrator restarts the machine on the next preview request.
   auto_stop_machines = "stop"
