@@ -210,6 +210,45 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
     }
   }, [onRefreshReady, handleRefresh])
 
+  // ── Auto-refresh on agent file edits ──────────────────────────────
+  // The stream handler emits `preview_refresh_needed` (forwarded by
+  // stream-client as a window CustomEvent) whenever the agent writes
+  // a file AND the Fly machine has resynced from Supabase. We listen
+  // here and force-remount the iframe by bumping its `key` — React
+  // tears the iframe down + recreates it with a fresh DOM node, which
+  // forces the browser to refetch /index.html and the entire Vite
+  // bundle. No state preservation, no HMR ambiguity, guaranteed visual
+  // refresh.
+  //
+  // Debounced 500ms so a multi-file agent edit (5 writes in 2s)
+  // collapses to ONE iframe reload at the end, not 5 cascading reloads.
+  //
+  // Why a window event instead of prop drilling: ServerPreview lives
+  // in RightPanel, the chat stream lives in LeftPanel/ChatComposer.
+  // They share Dashboard as a parent but no convenient pub/sub. A
+  // CustomEvent on `window` is a 0-dependency cross-tree signal.
+  useEffect(() => {
+    if (status !== 'ready') return // no point reloading a not-yet-booted preview
+    let debounceTimer = null
+    const handler = (evt) => {
+      const eventProjectId = evt?.detail?.projectId
+      // Ignore events for OTHER projects (user could have multiple
+      // preview tabs open in different panes). Match strictly.
+      if (eventProjectId && eventProjectId !== projectId) return
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        console.log('[ServerPreview] auto-reload triggered by agent file edit:', evt?.detail)
+        setIframeKey(k => k + 1)
+        debounceTimer = null
+      }, 500)
+    }
+    window.addEventListener('auroraly:preview-refresh-needed', handler)
+    return () => {
+      window.removeEventListener('auroraly:preview-refresh-needed', handler)
+      if (debounceTimer) clearTimeout(debounceTimer)
+    }
+  }, [projectId, status])
+
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
 
