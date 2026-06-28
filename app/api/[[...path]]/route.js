@@ -94,6 +94,7 @@ const phase2Modules = [
   diffsRoutes,
   assetsRoutes,
   chatsRoutes,
+  chatMetadataRoutes,  // Chat organization endpoints
   screenshotsRoutes,
   projectsRoutes,      // MUST be last
 ]
