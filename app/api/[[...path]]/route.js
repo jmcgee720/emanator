@@ -40,6 +40,7 @@ import * as livePromoteRoutes from '@/lib/api/routes/live-promote'
 import * as diffsRoutes from '@/lib/api/routes/diffs'
 import * as assetsRoutes from '@/lib/api/routes/assets'
 import * as chatsRoutes from '@/lib/api/routes/chats'
+import * as chatMetadataRoutes from '@/lib/api/routes/chat-metadata'
 import * as screenshotsRoutes from '@/lib/api/routes/screenshots'
 import * as projectsRoutes from '@/lib/api/routes/projects'
 
