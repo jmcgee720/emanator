@@ -6,6 +6,7 @@ import { SELF_EDIT_PREFIX, getChatType, CHAT_TYPES } from '@/lib/constants'
 import BackendConfigModal from './BackendConfigModal'
 import VersionsPanel from './VersionsPanel'
 import PublishModal from './PublishModal'
+import CoreSystemChatList from './CoreSystemChatList'
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '—'
