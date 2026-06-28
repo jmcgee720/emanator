@@ -40,7 +40,7 @@ function parseBrandVfsFromAssetsModule(source) {
 // EXPORTED so other components (ProjectThumbnail) can build the same
 // preview HTML for purposes like Project Bin thumbnails without
 // duplicating the 540-line build pipeline.
-export function classifyProject(files) {
+export function classifyProject(files, options = {}) {
   if (!files?.length) return { type: 'empty', files: [] }
 
   const codeFiles = files.filter(f => {
@@ -60,9 +60,12 @@ export function classifyProject(files) {
     return { type: 'empty', files: [] }
   }
 
-  // Check for package.json → Node project requiring execution
+  // Check for package.json → Node project requiring execution.
+  // Callers that need a static in-browser preview (dashboard thumbnails) pass
+  // { skipNodeDetection: true } so the classifier falls through to react/html
+  // detection and the iframe can render an approximation of the project.
   const hasPackageJson = codeFiles.some(f => f.path === 'package.json' || f.path?.endsWith('/package.json'))
-  if (hasPackageJson) {
+  if (hasPackageJson && !options.skipNodeDetection) {
     return { type: 'node', files: codeFiles }
   }
 

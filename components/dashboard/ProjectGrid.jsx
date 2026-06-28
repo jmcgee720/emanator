@@ -54,21 +54,34 @@ function ProjectThumbnail({ projectId, projectName }) {
           console.log(`[ProjectThumbnail:${projectId}] no files — placeholder will show 'No files yet'`)
           return
         }
-        // Size cap: heavy imported projects (Mangia-Mama: 130 files +
-        // Phaser game; Dopples: 197 files) generate 50MB+ inline-HTML
-        // thumbnails, which choke the browser and bloat backend storage
-        // by ~50MB per dashboard view. Skip the lazy build for anything
-        // above the threshold and fall through to the gradient + initials
-        // placeholder. The full WebContainer preview is still available
-        // when the user clicks into the project.
-        const THUMBNAIL_FILE_LIMIT = 30
-        const THUMBNAIL_BYTE_LIMIT = 2_000_000  // 2 MB of input source
-        const totalBytes = files.reduce((acc, f) => acc + (f.content?.length || 0), 0)
-        if (files.length > THUMBNAIL_FILE_LIMIT || totalBytes > THUMBNAIL_BYTE_LIMIT) {
-          console.log(`[ProjectThumbnail:${projectId}] skipping lazy thumbnail (files=${files.length}, bytes=${totalBytes}) — too large, using placeholder`)
+        // Filter to code files BEFORE measuring size. Image assets, uploads,
+        // generated binaries etc. don't affect the in-browser Babel compile
+        // cost, so they should not push a real React project past the
+        // thumbnail cap.
+        const isCodeFile = (f) => {
+          if (!f?.path) return false
+          if (f.path.startsWith('_generated/') || f.path.startsWith('_uploads/') || f.path.startsWith('_assets/')) return false
+          if (f.file_type === 'image') return false
+          if (f.path.startsWith('node_modules/') || f.path.includes('/node_modules/')) return false
+          return /\.(jsx?|tsx?|css|scss|html?)$/i.test(f.path)
+        }
+        const codeFiles = files.filter(isCodeFile)
+        // Size cap based on code files only. Heavy imported projects (200+
+        // files including assets) used to trip the cap and fall through to
+        // the gradient placeholder. Now we measure what Babel will actually
+        // process.
+        const THUMBNAIL_CODE_FILE_LIMIT = 120
+        const THUMBNAIL_BYTE_LIMIT = 3_000_000  // 3 MB of source code
+        const totalBytes = codeFiles.reduce((acc, f) => acc + (f.content?.length || 0), 0)
+        if (codeFiles.length > THUMBNAIL_CODE_FILE_LIMIT || totalBytes > THUMBNAIL_BYTE_LIMIT) {
+          console.log(`[ProjectThumbnail:${projectId}] skipping lazy thumbnail (codeFiles=${codeFiles.length}, bytes=${totalBytes}) — too large, using placeholder`)
           return
         }
-        const info = classifyProject(files)
+        // skipNodeDetection: thumbnails always try a static React preview
+        // even when package.json is present. The real preview tab still
+        // switches to ServerPreview (Fly) for Node projects — this is a
+        // best-effort in-browser snapshot for the card grid.
+        const info = classifyProject(files, { skipNodeDetection: true })
         console.log(`[ProjectThumbnail:${projectId}] classified as ${info.type}, building...`)
         let html = null
         if (info.type === 'react') html = buildReactPreview({ ...info, imageAssets: [] })
