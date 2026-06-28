@@ -1370,6 +1370,10 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
           onDeleteMediaFile={handleMediaBinDelete}
           onOpenCanvas={() => setShowCanvas(true)}
           livePromoteState={livePromoteState}
+          onForkChat={forkChat}
+          onDeleteChat={deleteChat}
+          toast={toast}
+          dbUser={dbUser}
         />
       ) : (
         <>
