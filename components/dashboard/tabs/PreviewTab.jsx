@@ -243,7 +243,12 @@ export function buildReactPreview({ cssFiles, jsFiles, jsxFiles, tsFiles, usesTa
     '<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>',
     '<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>',
     '<script src="https://unpkg.com/react-router-dom@6.13.0/umd/react-router-dom.production.min.js" crossorigin><\/script>',
-    '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
+    // Pin Babel to v7. Babel 8 (auto-served from unpinned URL) removed the
+    // `isTSX` / `allExtensions` options from @babel/preset-typescript, which
+    // makes every .tsx file in every project fail to compile and surfaces a
+    // "Preview Compile Error" red screen in both the live preview and the
+    // dashboard thumbnail iframes.
+    '<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"><\/script>',
     '</head><body><div id="root"></div>',
     // Inject generated image asset mapping so placeholder URLs resolve to real data
     imageAssets && imageAssets.length > 0 ? [
