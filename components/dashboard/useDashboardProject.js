@@ -256,13 +256,28 @@ export function useDashboardProject(ctx) {
     }
   }
 
-  const createSelfEditChat = async (description = 'Internal Improvement') => {
+  const createSelfEditChat = async (description = null) => {
     if (!selectedProject || !isOwner) return
+    
+    // Prompt for descriptive title if not provided
+    let finalDescription = description
+    if (!finalDescription) {
+      finalDescription = window.prompt(
+        'What are you working on?\n\nExamples:\n• Fix login redirect bug\n• Add search to chat list\n• Refactor API error handling',
+        ''
+      )
+      if (!finalDescription || !finalDescription.trim()) {
+        // User cancelled or entered empty string
+        return
+      }
+      finalDescription = finalDescription.trim()
+    }
+    
     try {
       const response = await authFetch(`/api/projects/${selectedProject.id}/chats`, {
         method: 'POST',
         headers: JSON_HEADERS,
-        body: JSON.stringify({ title: selfEditTitle(description), is_self_edit: true })
+        body: JSON.stringify({ title: selfEditTitle(finalDescription), is_self_edit: true })
       })
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
