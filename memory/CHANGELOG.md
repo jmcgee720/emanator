@@ -3,6 +3,29 @@
 All notable changes per session, newest first.
 
 ---
+## 2026-06-28 — Babel v8 broke every preview thumbnail (commits `9f9ea99`, `68add85`)
+
+### CRITICAL: Project thumbnails + main preview all showed "Preview Compile Error"
+`@babel/standalone` auto-served v8.0.3 from its unpinned CDN URL. Babel 8
+removed the `isTSX` and `allExtensions` options from `@babel/preset-typescript`,
+so every project containing a `.tsx` file failed to compile inside the
+in-browser preview iframe and rendered the red error wall. The thumbnail
+grid filled with red because thumbnails ARE live iframes running the same
+buildReactPreview() output.
+
+### Fixes
+- Pin `@babel/standalone@7` in PreviewTab, share page, deployment zip.
+- Pin `cdn.tailwindcss.com/3.4.17` in all 3 call sites (was inconsistent).
+- New `__safeTransform` helper: only loads the typescript preset for `.ts/.tsx`
+  files, and if it ever fails again with a removed-option error, retries
+  without it so plain JSX still renders.
+- Server bumps `SNAPSHOT_VERSION = 'v2-babel7'` so cached thumbnail HTML
+  containing the broken URL is auto-invalidated and rebuilt on next visit.
+- Tests: `tests/test-thumbnail-babel-pin.test.mjs` (pin guard) +
+  `tests/test-preview-resilience.test.mjs` (fallback path coverage).
+
+---
+
 ## 2026-02-XX — preview_diagnostics AI tool + Vite HMR disabled (commits `55bc0a8` … `dd6c389`)
 
 ### NEW: `preview_diagnostics` AI tool — gives Auroraly the same diagnostic visibility as E1
