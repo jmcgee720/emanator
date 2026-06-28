@@ -157,7 +157,7 @@ const AuroraCustomizer = ({ isOpen, onClose, projectId }) => {
         </div>
 
         {/* Controls */}
-        <div className="px-6 py-4 max-h-[400px] overflow-y-auto space-y-4">
+        <div className="px-6 py-4 overflow-y-auto space-y-4" style={{ maxHeight: 'calc(90vh - 600px)' }}>
           {/* Color Gradient */}
           <div>
             <label className="block text-sm font-medium text-purple-300 mb-2">
