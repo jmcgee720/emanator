@@ -85,6 +85,10 @@ export default function ProjectHub({
   onDeleteMediaFile,
   onOpenCanvas,
   livePromoteState,
+  onForkChat,
+  onDeleteChat,
+  toast,
+  dbUser,
 }) {
   const [hoveredChat, setHoveredChat] = useState(null)
   const [renamingId, setRenamingId] = useState(null)
