@@ -363,9 +363,13 @@ ${aliasBlockMinimal}${jsxLoaderBlockMinimal}  server: {
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
-    // Same WS-through-Fly problem as above — disabled to break the
-    // reload-loop blank-screen failure mode.
-    hmr: false,
+    // HMR enabled (same as full config above)
+    hmr: {
+      protocol: 'wss',
+      host: process.env.VITE_HMR_HOST || window.location.hostname,
+      port: 443,
+      clientPort: 443,
+    },
   },
 })
 `
