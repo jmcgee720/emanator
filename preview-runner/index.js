@@ -339,17 +339,20 @@ ${aliasBlock}${jsxLoaderBlock}  server: {
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
-    // CRITICAL: HMR disabled. Vite HMR connects via WebSocket
-    // (wss://...preview.auroraly.co/?token=...) which Fly's edge does
-    // not currently proxy through to our app — neither ['tls','http']
-    // nor ['tls'] handler chains forward the WS upgrade. Result:
-    // Vite client enters an infinite "server connection lost. Polling
-    // for restart..." reload loop, the page reloads continuously, and
-    // the iframe goes blank. With hmr:false, Vite serves the bundle
-    // once and renders normally. Code changes still propagate via the
-    // dashboard's existing files_saved SSE auto-refresh path
-    // (useDashboardStream → iframe reload after AI edits).
-    hmr: false,
+    // HMR enabled via WebSocket proxy. Fly's edge now forwards WS
+    // upgrades (handlers: ["tls"] in fly.toml) and the http-proxy
+    // in preview-runner/index.js (line 1328, ws: true) relays them
+    // to the dev server. Vite HMR connects via wss:// and hot-reloads
+    // changes in <500ms. The dashboard's files_saved SSE auto-refresh
+    // still fires as a fallback for frameworks without HMR (Next.js,
+    // CRA) and for full-page structural changes.
+    hmr: {
+      protocol: 'wss',
+      // Use the public preview URL (injected via env vars below)
+      host: process.env.VITE_HMR_HOST || window.location.hostname,
+      port: 443,
+      clientPort: 443,
+    },
   },
 })
 `
