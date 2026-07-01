@@ -261,6 +261,15 @@ async function ensureViteHostOverride(pkg, cwd) {
     },
   },\n`
     : ''
+  
+  // Compute the public HMR URL for the client. The HMR *server* binds
+  // internally on 0.0.0.0:24678 (arbitrary high port), and the client
+  // connects via wss://<public-domain>:443/__vite_hmr which Fly's edge
+  // proxies through. This avoids EADDRNOTAVAIL from trying to bind the
+  // public IP:443 inside the container.
+  const projectId = process.env.AURORALY_PROJECT_ID || 'unknown'
+  const baseDomain = process.env.PREVIEW_BASE_DOMAIN || 'preview.auroraly.co'
+  const publicHmrHost = `${projectId}.${baseDomain}`
   // ─── CRA-in-Vite JSX compatibility ─────────────────────────────────
   // Create React App tolerates JSX inside `.js` files (e.g. App.js
   // returns `<div>…</div>`). Vite's esbuild only treats `.jsx`/`.tsx`
