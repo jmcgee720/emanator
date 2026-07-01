@@ -348,19 +348,19 @@ ${aliasBlock}${jsxLoaderBlock}  server: {
     port: ${USER_DEV_PORT},
     strictPort: false,
     allowedHosts: true,
-    // HMR enabled via WebSocket proxy. Fly's edge now forwards WS
-    // upgrades (handlers: ["tls"] in fly.toml) and the http-proxy
-    // in preview-runner/index.js (line 1328, ws: true) relays them
-    // to the dev server. Vite HMR connects via wss:// and hot-reloads
-    // changes in <500ms. The dashboard's files_saved SSE auto-refresh
-    // still fires as a fallback for frameworks without HMR (Next.js,
-    // CRA) and for full-page structural changes.
+    // HMR enabled via WebSocket proxy. The http-proxy in the runner
+    // (line 1350, ws: true) forwards WebSocket upgrades from the
+    // public :443 port to Vite's internal HMR server. Vite's client
+    // connects via wss://<public-domain>:443 and the proxy relays
+    // to the internal dev server. Changes hot-reload in <500ms.
     hmr: {
+      // Client connection details (public-facing)
       protocol: 'wss',
-      // Use the public preview URL (injected via env vars below)
-      host: process.env.VITE_HMR_HOST || window.location.hostname,
+      host: '${publicHmrHost}',
       port: 443,
       clientPort: 443,
+      // Server binds internally on the dev port (no separate HMR port)
+      server: undefined,
     },
   },
 })
