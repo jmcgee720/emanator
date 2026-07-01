@@ -1088,6 +1088,7 @@ async function bootDevServerInBackground() {
     const projectId = process.env.AURORALY_PROJECT_ID || 'unknown'
     const baseDomain = process.env.PREVIEW_BASE_DOMAIN || 'preview.auroraly.co'
     const previewUrl = `https://${projectId}.${baseDomain}`
+    const previewHost = `${projectId}.${baseDomain}`
 
     appendLog('runner', `[runner] spawning ${cmd[0]} ${cmd[1].join(' ')} in ${nested || '/project'}`)
     appendLog('runner', `[runner] injecting preview URL env vars: ${previewUrl}`)
@@ -1120,6 +1121,8 @@ async function bootDevServerInBackground() {
         // Also set generic PUBLIC_URL for CRA / Vite apps
         PUBLIC_URL: previewUrl,
         VITE_PUBLIC_URL: previewUrl,
+        // Vite HMR host — tells Vite's client where to connect the WebSocket
+        VITE_HMR_HOST: previewHost,
       },
     })
     devProc.stdout.on('data', d => { appendLog('dev', d); scanForCompileReady(d) })
