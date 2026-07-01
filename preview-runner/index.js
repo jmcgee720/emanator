@@ -375,9 +375,10 @@ ${aliasBlockMinimal}${jsxLoaderBlockMinimal}  server: {
     // HMR enabled (same as full config above)
     hmr: {
       protocol: 'wss',
-      host: process.env.VITE_HMR_HOST || window.location.hostname,
+      host: '${publicHmrHost}',
       port: 443,
       clientPort: 443,
+      server: undefined,
     },
   },
 })
