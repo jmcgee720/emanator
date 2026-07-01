@@ -44,6 +44,11 @@ primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
   [[services.ports]]
     port = 443
     handlers = ["tls", "http"]
+  
+  # WebSocket support for Vite HMR
+  [[services.ports]]
+    port = 443
+    handlers = ["tls"]
 
   [services.concurrency]
     type = "connections"
