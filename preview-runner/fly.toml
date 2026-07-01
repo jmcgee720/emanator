@@ -43,10 +43,7 @@ primary_region = "iad"   # Ashburn, low-latency to Vercel's us-east-1
 
   [[services.ports]]
     port = 443
-    # WebSocket support for Vite HMR — "tls" handler alone enables WS upgrades
-    # while still serving HTTP. The http-proxy in preview-runner/index.js
-    # (line 1328) has `ws: true` which forwards the upgrade to the dev server.
-    handlers = ["tls"]
+    handlers = ["tls", "http"]
 
   [services.concurrency]
     type = "connections"
