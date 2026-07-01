@@ -210,6 +210,17 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
     }
   }, [onRefreshReady, handleRefresh])
 
+  // Listen for task_complete from agent (refresh AFTER agent finishes)
+  useEffect(() => {
+    const handleTaskComplete = (event) => {
+      if (event.detail?.projectId === projectId) {
+        handleRefresh()
+      }
+    }
+    window.addEventListener('auroraly:task-complete', handleTaskComplete)
+    return () => window.removeEventListener('auroraly:task-complete', handleTaskComplete)
+  }, [projectId, handleRefresh])
+
   // ── Auto-refresh DISABLED — user must manually refresh after agent edits ──
   // The auto-refresh was causing the preview to reset while users were
   // interacting with it (forms, modals, navigation state lost). Now the
