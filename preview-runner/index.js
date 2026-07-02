@@ -802,6 +802,7 @@ app.get('/status', async (_req, res) => {
     pid: devProc?.pid || null,
     port: USER_DEV_PORT,
     installing: !!installProc,
+    installPid: installProc?.pid || null,
     starting: startInFlight,
     error: lastStartError,
     logCount: logs.length,
