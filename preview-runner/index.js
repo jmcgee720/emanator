@@ -533,7 +533,7 @@ async function runInstallIfNeeded(workCwd) {
     }
   }
 
-  appendLog('runner', `[runner] running npm install in ${cwd} (this may take 1-2 min on cold start)…`)
+  appendLog('runner', `[runner] running npm install in ${cwd} (this may take 3-6 min on cold start)…`)
   
   // Retry logic: even after the cache-miss nuke above, npm install can
   // fail transiently (network blip, registry hiccup, OOM mid-extract).
@@ -545,7 +545,20 @@ async function runInstallIfNeeded(workCwd) {
     attempt++
     try {
       await new Promise((res, rej) => {
-        installProc = spawn('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], {
+        // Use --prefer-offline to reduce network I/O and --no-optional to
+        // skip platform-specific binaries that often fail or bloat installs.
+        // --cache=/tmp/npm-cache persists across installs on the same machine
+        // (Fly's rootfs survives stop/start cycles with auto_stop_machines="stop").
+        installProc = spawn('npm', [
+          'install',
+          '--no-audit',
+          '--no-fund',
+          '--legacy-peer-deps',
+          '--prefer-offline',
+          '--no-optional',
+          '--cache=/tmp/npm-cache',
+          '--loglevel=error',
+        ], {
           cwd,
           // Force NODE_ENV=development so npm installs `devDependencies`.
           // Fly auto-sets NODE_ENV=production on Node containers, which
