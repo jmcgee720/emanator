@@ -31,6 +31,10 @@ RUN corepack enable \
  && corepack prepare yarn@1.22.22 --activate \
  && corepack prepare pnpm@9.12.0 --activate
 
+# Install Firebase CLI globally for deployment support
+# Version pinned to avoid breaking changes
+RUN npm install -g firebase-tools@13.24.1
+
 WORKDIR /runner
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --no-audit --no-fund
