@@ -1354,7 +1354,8 @@ app.post('/api/control/run-command', async (req, res) => {
     /\bscp\b/i,
     /\brsync\b.*::/i,
   ]
-  const isBlocked = BLOCKED_PATTERNS.some(pattern => pattern.test(command))
+  // Exception: Firebase deploy chain is pre-approved above, skip blocklist
+  const isBlocked = !isFirebaseDeployChain && BLOCKED_PATTERNS.some(pattern => pattern.test(command))
   
   if (!isAllowed) {
     appendLog('runner', `[run-command] REJECTED: command not in allowlist`)
