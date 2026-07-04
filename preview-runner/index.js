@@ -1335,7 +1335,7 @@ app.post('/api/control/run-command', async (req, res) => {
   // Special case: Firebase deployment chain (echo creds → deploy → cleanup)
   // This is the exact pattern from lib/ai/tools/firebase-deploy.js
   const isFirebaseDeployChain = /^echo\s+'.+'\s+>\s+\/tmp\/firebase-sa\.json\s+&&\s+export\s+GOOGLE_APPLICATION_CREDENTIALS=\/tmp\/firebase-sa\.json\s+&&\s+firebase\s+deploy\s+--only\s+functions\s+--non-interactive\s+--force\s+&&\s+rm\s+-f\s+\/tmp\/firebase-sa\.json$/.test(command)
-  const isAllowed = ALLOWED_PREFIXES.some(prefix => command.trim().startsWith(prefix))
+  const isAllowed = isFirebaseDeployChain || ALLOWED_PREFIXES.some(prefix => command.trim().startsWith(prefix))
   
   // Blocklist: patterns that are NEVER allowed, even if they start with an allowed prefix
   const BLOCKED_PATTERNS = [
