@@ -20,8 +20,9 @@ FROM node:20-bookworm-slim
 # git  = some user projects fetch deps from git urls
 # python3/build-essential = node-gyp fallbacks (sharp, sqlite3, etc.)
 # curl = healthchecks + the runner uses fetch internally
+# openjdk-17-jre-headless = Firebase CLI requires Java runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        tini git ca-certificates curl python3 build-essential \
+        tini git ca-certificates curl python3 build-essential openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 # Pre-install the canonical package managers so user projects don't have
