@@ -1322,7 +1322,8 @@ app.post('/api/control/run-command', async (req, res) => {
   appendLog('runner', `[run-command] executing: ${command} (reason: ${reason})`)
   
   // ── Security gates ──────────────────────────────────────────────────
-  // Allowlist: commands must start with a known-safe prefix
+  // Allowlist: commands must start with a known-safe prefix OR contain
+  // safe multi-command chains (e.g., echo ... && firebase deploy && rm -f)
   const ALLOWED_PREFIXES = [
     'npm ', 'npx ', 'yarn ', 'pnpm ',
     'firebase ', 'vercel ', 'netlify ',
@@ -1330,6 +1331,10 @@ app.post('/api/control/run-command', async (req, res) => {
     'node ', 'tsc ', 'eslint ', 'prettier ',
     'ls ', 'cat ', 'grep ', 'find ', 'pwd', 'echo ',
   ]
+  
+  // Special case: Firebase deployment chain (echo creds → deploy → cleanup)
+  // This is the exact pattern from lib/ai/tools/firebase-deploy.js
+  const isFirebaseDeployChain = /^echo\s+'.+'\s+>\s+\/tmp\/firebase-sa\.json\s+&&\s+export\s+GOOGLE_APPLICATION_CREDENTIALS=\/tmp\/firebase-sa\.json\s+&&\s+firebase\s+deploy\s+--only\s+functions\s+--non-interactive\s+--force\s+&&\s+rm\s+-f\s+\/tmp\/firebase-sa\.json$/.test(command)
   const isAllowed = ALLOWED_PREFIXES.some(prefix => command.trim().startsWith(prefix))
   
   // Blocklist: patterns that are NEVER allowed, even if they start with an allowed prefix
