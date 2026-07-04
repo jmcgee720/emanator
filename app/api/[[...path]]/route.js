@@ -80,6 +80,7 @@ const phase1Modules = [
   galleryRoutes,
   marketplaceRoutes,
   buildStepsRoutes,
+  firebaseDeployRoutes,
 ]
 
 // Phase 2 module dispatch order (CRITICAL: projectsRoutes MUST be last — its regex swallows /projects/:id)
