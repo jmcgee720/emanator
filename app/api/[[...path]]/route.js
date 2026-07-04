@@ -27,7 +27,6 @@ import * as shareRoutes from '@/lib/api/routes/share'
 import * as galleryRoutes from '@/lib/api/routes/gallery'
 import * as marketplaceRoutes from '@/lib/api/routes/marketplace'
 import * as buildStepsRoutes from '@/lib/api/routes/build-steps'
-import * as firebaseDeployRoutes from '@/lib/api/routes/firebase-deploy'
 
 // Phase 2 route modules
 import * as adminUsersRoutes from '@/lib/api/routes/admin-users'
