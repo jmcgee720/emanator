@@ -1328,7 +1328,7 @@ app.post('/api/control/run-command', async (req, res) => {
     'npm ', 'npx ', 'yarn ', 'pnpm ',
     'firebase ', 'vercel ', 'netlify ',
     'git status', 'git log', 'git diff', 'git branch', 'git show',
-    'node ', 'tsc ', 'eslint ', 'prettier ',
+    'node ', 'node.exe ', 'tsc ', 'eslint ', 'prettier ',
     'ls ', 'cat ', 'grep ', 'find ', 'pwd', 'echo ',
   ]
   
