@@ -1299,6 +1299,145 @@ app.post('/api/control/refresh', async (req, res) => {
   }
 })
 
+// POST /api/control/run-command — agent-triggered command execution
+// Allows the AI agent to run terminal commands in the project directory
+// for deployment, build, and other operations that are part of the normal
+// development workflow (firebase deploy, npm run build, git operations, etc.).
+//
+// Security model:
+//   • Allowlist of safe command prefixes (npm, firebase, git, node, vercel, etc.)
+//   • Blocklist of destructive patterns (rm -rf, curl to arbitrary URLs, etc.)
+//   • 10-minute hard timeout to prevent runaway processes
+//   • Commands run in the project working directory (same as dev server)
+//   • Output truncated to 100KB to prevent memory exhaustion
+app.post('/api/control/run-command', async (req, res) => {
+  const command = req.body?.command
+  const reason = req.body?.reason || 'agent-triggered'
+  const timeoutSeconds = Math.min(Number(req.body?.timeout) || 600, 600) // max 10 min
+  
+  if (!command || typeof command !== 'string') {
+    return res.status(400).json({ error: 'command (string) required in request body' })
+  }
+  
+  appendLog('runner', `[run-command] executing: ${command} (reason: ${reason})`)
+  
+  // ── Security gates ──────────────────────────────────────────────────
+  // Allowlist: commands must start with a known-safe prefix
+  const ALLOWED_PREFIXES = [
+    'npm ', 'npx ', 'yarn ', 'pnpm ',
+    'firebase ', 'vercel ', 'netlify ',
+    'git status', 'git log', 'git diff', 'git branch', 'git show',
+    'node ', 'tsc ', 'eslint ', 'prettier ',
+    'ls ', 'cat ', 'grep ', 'find ', 'pwd', 'echo ',
+  ]
+  const isAllowed = ALLOWED_PREFIXES.some(prefix => command.trim().startsWith(prefix))
+  
+  // Blocklist: patterns that are NEVER allowed, even if they start with an allowed prefix
+  const BLOCKED_PATTERNS = [
+    /\brm\s+-rf\b/i,
+    /\bdd\b.*\bif=/i,
+    /\bmkfs\b/i,
+    /\bcurl\b.*http/i,
+    /\bwget\b.*http/i,
+    /\bnc\b/i,
+    /\bsudo\b/i,
+    /\bsu\b/i,
+    /\bchmod\s+777\b/i,
+    /\beval\b/i,
+    /\bexec\b/i,
+    /\bssh\b/i,
+    /\bscp\b/i,
+    /\brsync\b.*::/i,
+  ]
+  const isBlocked = BLOCKED_PATTERNS.some(pattern => pattern.test(command))
+  
+  if (!isAllowed) {
+    appendLog('runner', `[run-command] REJECTED: command not in allowlist`)
+    return res.status(403).json({
+      error: 'command_not_allowed',
+      message: `Command "${command.split(' ')[0]}" is not in the allowlist. Allowed: ${ALLOWED_PREFIXES.join(', ')}`,
+      command: command.slice(0, 100),
+    })
+  }
+  
+  if (isBlocked) {
+    appendLog('runner', `[run-command] REJECTED: command matches blocklist pattern`)
+    return res.status(403).json({
+      error: 'command_blocked',
+      message: `Command contains a blocked pattern (destructive/network/privilege-escalation). Blocked patterns: rm -rf, curl/wget to URLs, sudo, eval, ssh, etc.`,
+      command: command.slice(0, 100),
+    })
+  }
+  
+  // ── Resolve working directory ──────────────────────────────────────
+  let cwd = PROJECT_DIR
+  try {
+    const resolved = await resolveProjectCwd()
+    if (resolved?.cwd) cwd = resolved.cwd
+  } catch (err) {
+    appendLog('runner', `[run-command] failed to resolve project cwd: ${err.message}, using ${PROJECT_DIR}`)
+  }
+  
+  // ── Execute command ────────────────────────────────────────────────
+  const t0 = Date.now()
+  try {
+    const proc = spawn('/bin/sh', ['-c', command], {
+      cwd,
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        PATH: process.env.PATH + ':' + join(cwd, 'node_modules', '.bin'),
+      },
+      timeout: timeoutSeconds * 1000,
+      maxBuffer: 100 * 1024, // 100KB
+    })
+    
+    let stdout = ''
+    let stderr = ''
+    
+    proc.stdout.on('data', chunk => {
+      const text = chunk.toString()
+      stdout += text
+      appendLog('cmd', text)
+      // Truncate in-memory buffer to prevent OOM on huge output
+      if (stdout.length > 100_000) stdout = stdout.slice(-100_000)
+    })
+    
+    proc.stderr.on('data', chunk => {
+      const text = chunk.toString()
+      stderr += text
+      appendLog('cmd', text)
+      if (stderr.length > 100_000) stderr = stderr.slice(-100_000)
+    })
+    
+    const exitCode = await new Promise((resolve, reject) => {
+      proc.on('exit', code => resolve(code))
+      proc.on('error', reject)
+    })
+    
+    const duration = Date.now() - t0
+    appendLog('runner', `[run-command] completed in ${duration}ms with exit code ${exitCode}`)
+    
+    res.json({
+      ok: true,
+      exitCode,
+      stdout: stdout.slice(-50_000), // return last 50KB
+      stderr: stderr.slice(-50_000),
+      duration,
+      command: command.slice(0, 200),
+    })
+  } catch (err) {
+    const duration = Date.now() - t0
+    appendLog('runner', `[run-command] FAILED after ${duration}ms: ${err.message}`)
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+      duration,
+      command: command.slice(0, 200),
+    })
+  }
+})
+
 app.get('/logs', (req, res) => {
   // SSE stream. Replays the buffer first, then tails live.
   res.setHeader('Content-Type', 'text/event-stream')
