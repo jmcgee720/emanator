@@ -99,6 +99,7 @@ const phase2Modules = [
   chatMetadataRoutes,  // Chat organization endpoints
   screenshotsRoutes,
   escalationsRoutes,   // Agent-to-agent escalation
+  sqlRoutes,           // SQL execution for Core System migrations
   projectsRoutes,      // MUST be last
 ]
 
