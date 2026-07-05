@@ -43,6 +43,7 @@ import * as chatsRoutes from '@/lib/api/routes/chats'
 import * as chatMetadataRoutes from '@/lib/api/routes/chat-metadata'
 import * as screenshotsRoutes from '@/lib/api/routes/screenshots'
 import * as escalationsRoutes from '@/lib/api/routes/escalations'
+import * as sqlRoutes from '@/lib/api/routes/sql'
 import * as projectsRoutes from '@/lib/api/routes/projects'
 
 // App Router handles request bodies via Web Request streaming — no config needed.
