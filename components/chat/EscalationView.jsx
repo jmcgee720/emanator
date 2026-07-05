@@ -1,16 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ChatInterface from '@/components/chat/ChatInterface'
 
 /**
- * EscalationView — Split-screen UI for agent-to-agent collaboration.
+ * EscalationView — Minimal UI for agent-to-agent collaboration.
  * 
  * Shows:
- *   • Left: Source project chat (read-only during escalation)
- *   • Right: Escalation chat (Core System + project agent collaborate)
- *   • Top: Banner explaining what's happening + "Exit Escalation" button
+ *   • Banner explaining what's happening
+ *   • "Exit Escalation" button
+ *   • Link back to source project chat
  * 
  * When user clicks "Exit Escalation":
  *   • Calls /api/escalations/:id/exit
@@ -51,76 +50,53 @@ export default function EscalationView({ escalationChat, sourceChat }) {
   const source = escalationChat?.metadata?.escalation_source
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Banner */}
-      <div className="bg-purple-600 text-white px-6 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold">
-              🤝 Agent Collaboration Mode
-            </h1>
-            <p className="text-sm text-purple-100 mt-1">
-              Project agent escalated a task to Core System. Both agents are working together to implement the missing capability.
-            </p>
-            {source?.task && (
-              <p className="text-xs text-purple-200 mt-2">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
+      <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-purple-600 mb-4">
+            🤝 Agent Collaboration Mode
+          </h1>
+          <p className="text-gray-700 mb-4">
+            Your project agent escalated a task to Core System. Both agents are working together in the dashboard to implement the missing capability.
+          </p>
+          {source?.task && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-purple-900">
                 <strong>Task:</strong> {source.task}
               </p>
-            )}
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800">
+              <strong>Error:</strong> {error}
+            </p>
           </div>
+        )}
+
+        <div className="space-y-4">
           <button
             onClick={handleExit}
             disabled={exiting}
-            className="px-4 py-2 bg-white text-purple-600 rounded-lg font-medium hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {exiting ? 'Exiting…' : 'Exit Escalation'}
+            {exiting ? 'Exiting…' : 'Exit Escalation & Return to Project'}
           </button>
-        </div>
-        {error && (
-          <div className="max-w-7xl mx-auto mt-3 p-3 bg-red-500 text-white rounded-lg text-sm">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-      </div>
 
-      {/* Split view */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Source project chat (read-only) */}
-        <div className="w-1/2 border-r border-gray-300 flex flex-col bg-white">
-          <div className="px-6 py-3 bg-gray-100 border-b border-gray-300">
-            <h2 className="text-sm font-semibold text-gray-700">
-              📁 Source Project Chat
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              Read-only while escalation is active
-            </p>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <ChatInterface
-              chatId={sourceChat.id}
-              projectId={sourceChat.project_id}
-              readOnly={true}
-            />
-          </div>
+          <a
+            href={`/project/${sourceChat.project_id}`}
+            className="block w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-center"
+          >
+            View Source Project Chat
+          </a>
         </div>
 
-        {/* Right: Escalation chat (active) */}
-        <div className="w-1/2 flex flex-col bg-white">
-          <div className="px-6 py-3 bg-purple-50 border-b border-purple-200">
-            <h2 className="text-sm font-semibold text-purple-700">
-              ⚙️ Core System Escalation
-            </h2>
-            <p className="text-xs text-purple-600 mt-1">
-              Project agent + Core System working together
-            </p>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <ChatInterface
-              chatId={escalationChat.id}
-              projectId={null}
-              readOnly={false}
-            />
-          </div>
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-sm text-gray-600 text-center">
+            The agents are collaborating in your main dashboard. You can watch their progress there, or wait here until they're done.
+          </p>
         </div>
       </div>
     </div>
