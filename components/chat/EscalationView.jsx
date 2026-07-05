@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import ChatInterface from './ChatInterface'
+import ChatInterface from '@/components/chat/ChatInterface'
 
 /**
  * EscalationView — Split-screen UI for agent-to-agent collaboration.
