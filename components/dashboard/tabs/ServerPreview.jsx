@@ -172,6 +172,36 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
     }
   }, [projectId])
 
+  // Reset the project's node_modules directory on the Fly machine.
+  // With the new persistent volume (Feb 2026), node_modules survives
+  // machine destroy — so Hard Reset alone can no longer heal a
+  // corrupted install. This endpoint calls the runner's
+  // /reset-node-modules which wipes the folder and starts a fresh
+  // install in the background.
+  const [resetting, setResetting] = useState(false)
+  const resetNodeModules = useCallback(async () => {
+    const ok = window.confirm(
+      'Reset node_modules?\n\nThis wipes the installed packages on the preview machine and runs a fresh `npm install`. Takes 2-6 minutes. Use this if the preview boots but the app is broken (missing packages, corrupted binaries, etc.).'
+    )
+    if (!ok) return
+    setResetting(true)
+    setLogs(prev => [...prev, { level: 'info', message: '[dashboard] Resetting node_modules — fresh install starting in the background.' }])
+    try {
+      const res = await authFetch(`/api/previews/${projectId}/reset-node-modules`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      setLogs(prev => [...prev, {
+        level: res.ok ? 'info' : 'error',
+        message: res.ok
+          ? `[dashboard] ${data.message || 'Fresh install running. Click Refresh in 2-6 minutes.'}`
+          : `[dashboard] Reset failed: ${data.error || res.status}`,
+      }])
+    } catch (err) {
+      setLogs(prev => [...prev, { level: 'error', message: `[dashboard] Reset error: ${err?.message || 'unknown'}` }])
+    } finally {
+      setResetting(false)
+    }
+  }, [projectId])
+
   // Tail the log stream while running. Reconnects on key bump.
   useEffect(() => {
     if (status !== 'ready' && status !== 'starting') return
@@ -232,6 +262,60 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
   // If we ever re-enable auto-refresh, it should ONLY fire when the
   // agent sends a FINAL "task complete" signal, not on every file write.
 
+  // ── Auto-capture thumbnail once per session ──────────────────────
+  // When the preview reaches 'ready' and the iframe has been loaded
+  // long enough for the app to render (~12s covers slow-boot Next.js),
+  // fire the thumbnail capture endpoint so the dashboard grid tile
+  // updates with a real screenshot instead of the Babel static compile.
+  // Guarded by capturedThisSessionRef so we only fire once per mount.
+  const capturedThisSessionRef = useRef(false)
+  useEffect(() => {
+    if (status !== 'ready') return
+    if (capturedThisSessionRef.current) return
+    // Wait 12s after iframe becomes ready — enough for React streaming,
+    // Next.js first-request compile, and Vite HMR bootstrap to settle.
+    const timer = setTimeout(async () => {
+      capturedThisSessionRef.current = true
+      try {
+        await authFetch(`/api/projects/${projectId}/thumbnail-refresh`, { method: 'POST' })
+        // Emit a window event so the dashboard grid can invalidate its
+        // cached screenshot state on the next mount.
+        window.dispatchEvent(new CustomEvent('auroraly:thumbnail-updated', { detail: { projectId } }))
+      } catch (err) {
+        // Silent failure — user's dashboard tile will just fall back to
+        // the Babel snapshot. No point disrupting the live preview UX
+        // for a background thumbnail capture.
+        console.debug('[ServerPreview] auto thumbnail capture failed:', err?.message)
+      }
+    }, 12000)
+    return () => clearTimeout(timer)
+  }, [status, projectId, iframeKey])
+
+  // Manual thumbnail refresh — fires the same endpoint on demand so
+  // users can force-update the tile after seeing a visual change land.
+  const [thumbnailing, setThumbnailing] = useState(false)
+  const captureThumbnail = useCallback(async () => {
+    if (status !== 'ready') return
+    setThumbnailing(true)
+    try {
+      const res = await authFetch(`/api/projects/${projectId}/thumbnail-refresh`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      setLogs(prev => [...prev, {
+        level: res.ok ? 'info' : 'error',
+        message: res.ok
+          ? `[dashboard] Thumbnail updated (${(data.bytes / 1024).toFixed(1)} KB)`
+          : `[dashboard] Thumbnail failed: ${data.action_required || data.error || res.status}`,
+      }])
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent('auroraly:thumbnail-updated', { detail: { projectId } }))
+      }
+    } catch (err) {
+      setLogs(prev => [...prev, { level: 'error', message: `[dashboard] Thumbnail error: ${err?.message || 'unknown'}` }])
+    } finally {
+      setThumbnailing(false)
+    }
+  }, [projectId, status])
+
   return (
     <div className="flex h-full w-full flex-col" data-testid="server-preview">
 
@@ -245,18 +329,62 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {status === 'ready' && (
+            {/* Refresh: manual re-sync + iframe reload. Always shown when
+                the machine is up so users can force a reload after
+                editing files. */}
+            {(status === 'ready' || status === 'starting') && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-7 gap-1.5 text-xs"
                 onClick={handleRefresh}
                 data-testid="server-preview-refresh"
+                title="Manually re-sync files and reload the preview iframe"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Refresh
+              </Button>
+            )}
+            {/* Reset node_modules: wipe the installed packages on the Fly
+                machine and run a fresh install. The persistent volume
+                means Hard Reset alone no longer wipes node_modules. */}
+            {status === 'ready' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1.5 text-xs text-orange-400 hover:text-orange-300 disabled:opacity-50"
+                onClick={resetNodeModules}
+                disabled={resetting}
+                data-testid="server-preview-reset-node-modules"
+                title="Wipe node_modules on the preview machine and run a fresh npm install (fixes corrupted installs, missing binaries, etc.)"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {resetting ? 'Resetting…' : 'Reset node_modules'}
+              </Button>
+            )}
+            {/* Capture Thumbnail: force-refresh the dashboard tile
+                screenshot. Auto-fires once ~12s after preview is ready
+                too — this button is for on-demand updates after visual
+                edits. */}
+            {status === 'ready' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1.5 text-xs text-sky-400 hover:text-sky-300 disabled:opacity-50"
+                onClick={captureThumbnail}
+                disabled={thumbnailing}
+                data-testid="server-preview-capture-thumbnail"
+                title="Update the dashboard thumbnail with the current preview state"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <circle cx="12" cy="13" r="3" strokeWidth={2} />
+                </svg>
+                {thumbnailing ? 'Capturing…' : 'Update Thumbnail'}
               </Button>
             )}
             <Button
@@ -265,7 +393,7 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
               className="h-7 gap-1.5 text-xs text-amber-400 hover:text-amber-300"
               onClick={hardReset}
               data-testid="server-preview-hard-reset"
-              title="Destroy the machine and start fresh (fixes corrupted node_modules)"
+              title="Destroy the Fly machine and start fresh (node_modules preserved via volume)"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

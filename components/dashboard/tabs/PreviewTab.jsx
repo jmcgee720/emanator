@@ -1839,13 +1839,9 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
 
   return (
     <div className="h-full flex flex-col bg-background min-h-0" data-testid="preview-tab">
-      {/* Minimal control bar — just refresh button */}
-      <div className="flex items-center justify-end px-3 py-1 border-b border-border/40">
-        <Button size="sm" variant="ghost" className="h-6 gap-1.5 text-xs"
-          onClick={handleRefresh} data-testid="preview-refresh">
-          <RefreshCw className="w-3 h-3" /> Refresh
-        </Button>
-      </div>
+      {/* Refresh + control buttons are owned by ServerPreview (see below).
+          The outer wrapper only handles error banners and runtime results
+          — no duplicate refresh button here. */}
 
       {iframeErrors.length > 0 && (
         <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/40 text-red-300 text-[11px] font-mono max-h-24 overflow-auto" data-testid="preview-error-banner">

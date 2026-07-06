@@ -33,10 +33,48 @@ function ProjectThumbnail({ projectId, projectName }) {
   const [snapshot, setSnapshot] = useState(null)
   const [snapshotLoaded, setSnapshotLoaded] = useState(false)
   const [buildingFromFiles, setBuildingFromFiles] = useState(false)
+  // Live screenshot of the actual running Fly preview (captured via
+  // ScreenshotOne). This is the real "current state of the project" —
+  // takes precedence over the Babel snapshot below when available.
+  const [screenshotUrl, setScreenshotUrl] = useState(null)
 
   useEffect(() => {
     if (!projectId) return
     let cancelled = false
+
+    // Fetch the stored screenshot separately from the snapshot. The
+    // screenshot endpoint is cheap (single JSON blob read) so we can
+    // do it in parallel with the Babel snapshot fetch — whichever
+    // resolves first with real data wins the render.
+    authFetch(`/api/projects/${projectId}/thumbnail`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled) return
+        const dataUrl = data?.screenshot?.data_url
+        if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+          setScreenshotUrl(dataUrl)
+        }
+      })
+      .catch(() => {})
+
+    // Live-refresh: when ServerPreview auto-captures a fresh thumbnail
+    // (or the user clicks "Capture Thumbnail" in the preview toolbar),
+    // it dispatches this window event. The grid tile picks it up and
+    // reloads its stored screenshot without a full page refresh.
+    const onThumbnailUpdated = (event) => {
+      if (event?.detail?.projectId !== projectId) return
+      authFetch(`/api/projects/${projectId}/thumbnail`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (cancelled) return
+          const dataUrl = data?.screenshot?.data_url
+          if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+            setScreenshotUrl(dataUrl)
+          }
+        })
+        .catch(() => {})
+    }
+    window.addEventListener('auroraly:thumbnail-updated', onThumbnailUpdated)
 
     const lazyBuildFromFiles = async () => {
       // No snapshot yet — fetch the project files, build a real preview
@@ -130,9 +168,33 @@ function ProjectThumbnail({ projectId, projectName }) {
         }
       })
       .catch(() => { if (!cancelled) setSnapshotLoaded(true) })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      window.removeEventListener('auroraly:thumbnail-updated', onThumbnailUpdated)
+    }
   }, [projectId])
 
+  // Priority 1: Real screenshot of the live Fly preview. This is the
+  // most accurate "what does the project actually look like" thumbnail.
+  if (screenshotUrl) {
+    return (
+      <div
+        className="aspect-[4/3] border-b border-[rgba(255,255,255,0.06)] relative overflow-hidden bg-black"
+        data-testid={`project-thumbnail-${projectId}`}
+      >
+        <img
+          src={screenshotUrl}
+          alt={`${projectName} preview`}
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover object-top"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+      </div>
+    )
+  }
+
+  // Priority 2: In-browser Babel snapshot (best-effort static render).
   if (snapshot) {
     return (
       <div

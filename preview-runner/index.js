@@ -1318,6 +1318,68 @@ app.post('/force-install', async (_req, res) => {
   }
 })
 
+// POST /reset-node-modules — user-triggered "Reset node_modules" button.
+// Wipes /project/node_modules and clears the install-hash so the next
+// /start (or the auto-respawn below) runs a full fresh `npm install`
+// with all our safety-nets. Used when a project's install is corrupted
+// beyond what the automatic safety-nets can heal — e.g. transitive
+// binary mismatches from a partial extraction, cross-platform lockfile
+// artifacts we don't yet handle, or user-reported "the preview boots
+// but keeps loading" states after unusual dep edits.
+app.post('/reset-node-modules', async (_req, res) => {
+  try {
+    const resolved = await resolveProjectCwd()
+    if (!resolved) return res.status(500).json({ error: 'no usable project cwd' })
+    const { cwd } = resolved
+    const fs = await import('node:fs/promises')
+
+    // Kill dev server first — deleting node_modules underneath a
+    // running Vite/Next process would leave it in an unrecoverable
+    // state (require() cache still points at now-missing files).
+    if (devProc) {
+      try { devProc.kill('SIGTERM') } catch {}
+      await new Promise(r => setTimeout(r, 500))
+      try { devProc?.kill('SIGKILL') } catch {}
+      devProc = null
+    }
+
+    const nmPath = join(cwd, 'node_modules')
+    if (existsSync(nmPath)) {
+      appendLog('runner', `[reset-node-modules] removing ${nmPath}…`)
+      await fs.rm(nmPath, { recursive: true, force: true })
+      appendLog('runner', `[reset-node-modules] removed`)
+    } else {
+      appendLog('runner', `[reset-node-modules] ${nmPath} already absent`)
+    }
+
+    // Also nuke package-lock.json so the fresh install can resolve
+    // platform-specific optional binaries correctly (npm/cli#4828).
+    const lockPath = join(cwd, 'package-lock.json')
+    if (existsSync(lockPath)) {
+      try { await fs.unlink(lockPath) } catch {}
+      appendLog('runner', `[reset-node-modules] removed package-lock.json`)
+    }
+
+    // Clear install-hash so runInstallIfNeeded triggers a real install.
+    lastInstallHash = ''
+    await savePersistedInstallHash('').catch(() => {})
+
+    // Kick a fresh install + dev-server spawn in the background. The
+    // client just waits ~2-6 min then refreshes.
+    bootDevServerInBackground().catch(err =>
+      appendLog('runner', `[reset-node-modules] respawn crashed: ${err.message}`)
+    )
+
+    res.json({
+      ok: true,
+      message: 'node_modules removed. Fresh install starting in the background — refresh the preview in 2-6 minutes.',
+    })
+  } catch (err) {
+    appendLog('runner', `[reset-node-modules] FAIL: ${err.message}`)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // POST /api/control/refresh — agent-triggered preview refresh
 // Allows the AI agent to trigger a preview reload after making changes
 // that require it (package.json edits, major structural changes, etc.).
