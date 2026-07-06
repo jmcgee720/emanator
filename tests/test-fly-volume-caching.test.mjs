@@ -37,18 +37,23 @@ assert.match(machinesSrc, /ensureProjectVolume/,
 )
 console.log('OK machines.js imports ensureProjectVolume')
 
-// 5. createMachineForProject calls it before the API POST
+// 5. createMachineForProject calls it before the API POST — but wrapped
+//    in try/catch so a Fly API glitch doesn't 500 the preview-start.
 const createFnBody = machinesSrc.match(/export async function createMachineForProject[\s\S]+?^}/m)
 assert.ok(createFnBody, 'createMachineForProject function body must be found')
-assert.match(createFnBody[0], /const volumeId = await ensureProjectVolume\(appName, region\)/,
-  'createMachineForProject must resolve volumeId before building the machine config'
+assert.match(createFnBody[0], /try\s*\{\s*volumeId = await ensureProjectVolume\(appName, region\)/,
+  'createMachineForProject must resolve volumeId inside a try/catch so volume-API glitches do not block preview boot'
 )
-console.log('OK createMachineForProject resolves volumeId before booting')
+assert.match(createFnBody[0], /booting WITHOUT persistent volume/,
+  'catch branch must log the fallback and continue (no throw)'
+)
+console.log('OK createMachineForProject resolves volumeId with defensive fallback')
 
-// 6. Machine config declares the mount at /project
-assert.match(createFnBody[0], /mounts:\s*\[\s*\{\s*volume:\s*volumeId,\s*path:\s*'\/project',/,
-  'machine config must mount the volume at /project'
+// 6. Machine config declares the mount at /project when volumeId resolved,
+//    OMITS the mounts field otherwise.
+assert.match(createFnBody[0], /\.\.\.\(volumeId \? \{\s*mounts:\s*\[\s*\{\s*volume:\s*volumeId,\s*path:\s*'\/project',/,
+  'machine config must conditionally spread the mounts field so a null volumeId yields a machine with no mounts (ephemeral rootfs fallback)'
 )
-console.log('OK machine config mounts volume at /project')
+console.log('OK machine config conditionally mounts volume at /project')
 
 console.log('\nAll Fly volume caching checks passed.')
