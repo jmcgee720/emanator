@@ -1613,9 +1613,10 @@ app.post('/api/diagnostics/logs', (req, res) => {
 app.listen(RUNNER_PORT, '0.0.0.0', () => {
   process.env.RUNNER_STARTED_AT = new Date().toISOString()
   const buildSha = process.env.BUILD_SHA || 'dev'
-  appendLog('runner', `[runner v5.clean] build=${buildSha} listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT}, proxy on :${USER_DEV_PROXY_PORT})`)
-  appendLog('runner', `[runner v5.clean] single-source-of-truth files (DB content), loud-fail sync, no config injection`)
-  appendLog('runner', `[runner v5.clean] project pinning: AURORALY_PROJECT_ID=${AURORALY_PROJECT_ID || '(template)'}`)
+  appendLog('runner', `[runner v6.rollup] build=${buildSha} listening on :${RUNNER_PORT} (user dev → :${USER_DEV_PORT}, proxy on :${USER_DEV_PROXY_PORT})`)
+  appendLog('runner', `[runner v6.rollup] safety-nets loaded: Tailwind + CRA-ajv + Rollup-linux-x64 + esbuild-linux-x64 (deletes package-lock.json pre-install)`)
+  appendLog('runner', `[runner v6.rollup] single-source-of-truth files (DB content), loud-fail sync, no config injection`)
+  appendLog('runner', `[runner v6.rollup] project pinning: AURORALY_PROJECT_ID=${AURORALY_PROJECT_ID || '(template)'}`)
   // Hydrate the install-hash cache from disk on boot. This is the key
   // change that makes machine restarts (auto_stop_machines = "stop")
   // fast: previously, the in-memory hash reset to null and we'd nuke
