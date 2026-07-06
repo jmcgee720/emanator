@@ -57,3 +57,29 @@ assert.match(createFnBody[0], /\.\.\.\(volumeId \? \{\s*mounts:\s*\[\s*\{\s*volu
 console.log('OK machine config conditionally mounts volume at /project')
 
 console.log('\nAll Fly volume caching checks passed.')
+
+// 7. Fly 412 "existing volume" recovery — the failure mode that just
+//    hit the user in production (StoryForge). Volume was placed in a
+//    zone with no machine capacity, machine POST returned 412. We
+//    delete the stuck volume and retry without mounts.
+assert.match(createFnBody[0], /created\.res\.status === 412/,
+  'createMachineForProject must detect the 412 status code'
+)
+assert.match(createFnBody[0], /existing volume/i,
+  'must match Flys "existing volume" error text'
+)
+assert.match(createFnBody[0], /await deleteProjectVolume\(appName, volumeId\)/,
+  'must delete the stuck volume before retrying'
+)
+assert.match(createFnBody[0], /delete bodyNoVol\.config\.mounts/,
+  'retry body must strip the mounts field'
+)
+console.log('OK 412 "existing volume" auto-recovery is wired')
+
+// 8. deleteProjectVolume exists and is exported
+assert.match(appsSrc, /export async function deleteProjectVolume\(appName, volumeId\)/,
+  'deleteProjectVolume must be exported from lib/fly/apps.js'
+)
+console.log('OK deleteProjectVolume is exported')
+
+console.log('\nAll Fly 412 recovery checks passed.')
