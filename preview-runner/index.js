@@ -470,6 +470,127 @@ async function resolveProjectCwd() {
   return null
 }
 
+async function runSafetyNets(cwd, pkgPath) {
+  const fs = await import('node:fs/promises')
+  // ─── Tailwind safety-net ──────────────────────────────────────────
+  // npm install --legacy-peer-deps occasionally completes with exit 0
+  // while silently dropping a transient dep — we have repro'd this with
+  // tailwindcss specifically on cold-starts. Without this recovery, the
+  // dev server boots but PostCSS fails to resolve `tailwindcss` →
+  // `globals.css` parses raw → "Unexpected character '@'" build error.
+  try {
+    const pkgRaw = existsSync(pkgPath) ? await fs.readFile(pkgPath, 'utf8') : ''
+    const pkgJson = pkgRaw ? JSON.parse(pkgRaw) : {}
+    const wantsTailwind = !!(pkgJson.devDependencies?.tailwindcss || pkgJson.dependencies?.tailwindcss)
+    if (wantsTailwind) {
+      const tailwindOnDisk = existsSync(join(cwd, 'node_modules', 'tailwindcss', 'package.json'))
+      const postcssOnDisk = existsSync(join(cwd, 'node_modules', 'postcss', 'package.json'))
+      const autoprefixerOnDisk = existsSync(join(cwd, 'node_modules', 'autoprefixer', 'package.json'))
+      if (!tailwindOnDisk || !postcssOnDisk || !autoprefixerOnDisk) {
+        const missing = [
+          tailwindOnDisk ? null : 'tailwindcss',
+          postcssOnDisk ? null : 'postcss',
+          autoprefixerOnDisk ? null : 'autoprefixer',
+        ].filter(Boolean)
+        appendLog('runner', `[runner] Tailwind safety-net: ${missing.join(', ')} listed in package.json but missing from node_modules — running recovery install`)
+        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps',
+          'tailwindcss@^3.4.10', 'postcss@^8.4.41', 'autoprefixer@^10.4.20']
+        await new Promise((res2, rej2) => {
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
+          proc.stdout.on('data', d => appendLog('install', d))
+          proc.stderr.on('data', d => appendLog('install', d))
+          proc.on('exit', code => {
+            if (code === 0) res2()
+            else rej2(new Error('tailwind safety-net install exited ' + code))
+          })
+          proc.on('error', rej2)
+        })
+        appendLog('runner', '[runner] Tailwind safety-net: recovery install complete')
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] Tailwind safety-net skipped (${err.message})`)
+  }
+
+  // ─── CRA `ajv` resolution safety-net ──────────────────────────────
+  try {
+    const pkgRaw = existsSync(pkgPath) ? await fs.readFile(pkgPath, 'utf8') : ''
+    const pkgJson = pkgRaw ? JSON.parse(pkgRaw) : {}
+    const wantsCRA = !!(pkgJson.devDependencies?.['react-scripts'] || pkgJson.dependencies?.['react-scripts'])
+    if (wantsCRA) {
+      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen.js')
+      if (!existsSync(ajvCodegen)) {
+        appendLog('runner', '[runner] CRA ajv safety-net: ajv/dist/compile/codegen missing — running recovery install of ajv@^8')
+        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8']
+        await new Promise((res2, rej2) => {
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
+          proc.stdout.on('data', d => appendLog('install', d))
+          proc.stderr.on('data', d => appendLog('install', d))
+          proc.on('exit', code => {
+            if (code === 0) res2()
+            else rej2(new Error('ajv safety-net install exited ' + code))
+          })
+          proc.on('error', rej2)
+        })
+        appendLog('runner', '[runner] CRA ajv safety-net: recovery install complete')
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] CRA ajv safety-net skipped (${err.message})`)
+  }
+
+  // ─── Vite / Rollup Linux-x64 binary safety-net ────────────────────
+  // Vite's Rollup and esbuild each depend on a *platform-specific*
+  // optional binary. When a project's lockfile was created on macOS or
+  // Windows, npm honours the lockfile and refuses to install the Linux
+  // binary — see npm/cli#4828. The dev server then crash-loops with:
+  //   Cannot find module @rollup/rollup-linux-x64-gnu
+  // We probe directly and force-install the missing binary. Same
+  // pattern for esbuild's linux-x64 sub-package.
+  try {
+    const rollupNative = join(cwd, 'node_modules', 'rollup', 'dist', 'native.js')
+    if (existsSync(rollupNative)) {
+      const rollupBin = join(cwd, 'node_modules', '@rollup', 'rollup-linux-x64-gnu')
+      if (!existsSync(rollupBin)) {
+        appendLog('runner', '[runner] Rollup safety-net: @rollup/rollup-linux-x64-gnu missing — running recovery install (npm/cli#4828)')
+        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', '--include=optional', '@rollup/rollup-linux-x64-gnu']
+        await new Promise((res2, rej2) => {
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
+          proc.stdout.on('data', d => appendLog('install', d))
+          proc.stderr.on('data', d => appendLog('install', d))
+          proc.on('exit', code => {
+            if (code === 0) res2()
+            else rej2(new Error('rollup safety-net install exited ' + code))
+          })
+          proc.on('error', rej2)
+        })
+        appendLog('runner', '[runner] Rollup safety-net: recovery install complete')
+      }
+    }
+    const esbuildPkg = join(cwd, 'node_modules', 'esbuild', 'package.json')
+    if (existsSync(esbuildPkg)) {
+      const esbuildBin = join(cwd, 'node_modules', '@esbuild', 'linux-x64')
+      if (!existsSync(esbuildBin)) {
+        appendLog('runner', '[runner] esbuild safety-net: @esbuild/linux-x64 missing — running recovery install')
+        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', '--include=optional', '@esbuild/linux-x64']
+        await new Promise((res2, rej2) => {
+          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
+          proc.stdout.on('data', d => appendLog('install', d))
+          proc.stderr.on('data', d => appendLog('install', d))
+          proc.on('exit', code => {
+            if (code === 0) res2()
+            else rej2(new Error('esbuild safety-net install exited ' + code))
+          })
+          proc.on('error', rej2)
+        })
+        appendLog('runner', '[runner] esbuild safety-net: recovery install complete')
+      }
+    }
+  } catch (err) {
+    appendLog('runner', `[runner] Rollup/esbuild safety-net skipped (${err.message})`)
+  }
+}
+
 async function runInstallIfNeeded(workCwd) {
   const cwd = workCwd || PROJECT_DIR
   const fs = await import('node:fs/promises')
@@ -498,7 +619,13 @@ async function runInstallIfNeeded(workCwd) {
   }
   if (existsSync(pkgPath)) { key += 'pkg:' + (await fs.readFile(pkgPath, 'utf8')) }
   if (key === lastInstallHash && existsSync(join(cwd, 'node_modules'))) {
-    appendLog('runner', '[runner] node_modules cache hit — skipping npm install')
+    appendLog('runner', '[runner] node_modules cache hit — skipping npm install (safety-nets still run)')
+    // Safety-nets still probe here: existing machines that installed
+    // BEFORE the Rollup fix landed have a stale (broken) node_modules
+    // matching the current hash, so without this the crash loop
+    // persists forever. Safety-nets are cheap (existsSync probes) when
+    // nothing is missing.
+    await runSafetyNets(cwd, pkgPath)
     return
   }
 
@@ -530,6 +657,29 @@ async function runInstallIfNeeded(workCwd) {
     const fullCache = join(cwd, cacheDir)
     if (existsSync(fullCache)) {
       try { await fs.rm(fullCache, { recursive: true, force: true }) } catch {}
+    }
+  }
+
+  // ─── Cross-platform lockfile safety: delete package-lock.json ─────
+  // Vite's Rollup and esbuild each depend on a *platform-specific*
+  // optional binary (@rollup/rollup-linux-x64-gnu, @esbuild/linux-x64).
+  // When a user imports a project whose lockfile was generated on macOS
+  // (darwin-arm64) or Windows, npm honours the lockfile and refuses to
+  // install the Linux binary because it treats the missing entry as
+  // "optional and satisfied elsewhere" — see npm/cli#4828.
+  // The dev server then crash-loops with:
+  //   Cannot find module @rollup/rollup-linux-x64-gnu
+  // We can't detect the mismatch cheaply from the lockfile itself, so
+  // we just remove the file before install. The tradeoff — losing exact
+  // reproducibility of transitive versions — is fine here because the
+  // Fly runner is an ephemeral sandbox, not a build server.
+  const lockPath = join(cwd, 'package-lock.json')
+  if (existsSync(lockPath)) {
+    try {
+      await fs.unlink(lockPath)
+      appendLog('runner', '[runner] removed package-lock.json to allow Linux-x64 optional binaries to resolve (npm/cli#4828)')
+    } catch (e) {
+      appendLog('runner', `[runner] ⚠ failed to remove package-lock.json: ${e?.message} — proceeding, may hit Rollup native-binary error`)
     }
   }
 
@@ -600,89 +750,11 @@ async function runInstallIfNeeded(workCwd) {
     }
   }
 
-  // ─── Tailwind safety-net ──────────────────────────────────────────
-  // npm install --legacy-peer-deps occasionally completes with exit 0
-  // while silently dropping a transient dep — we have repro'd this with
-  // tailwindcss specifically on cold-starts. Without this recovery, the
-  // dev server boots but PostCSS fails to resolve `tailwindcss` →
-  // `globals.css` parses raw → "Unexpected character '@'" build error.
-  //
-  // We detect by file probe (cheap) instead of `npm ls` (slow + flaky)
-  // and recover with a direct, non-saving install of just the trio.
-  // Idempotent: the next /start sees the modules + matching hash and
-  // skips this branch entirely.
-  try {
-    const pkgRaw = existsSync(pkgPath) ? await fs.readFile(pkgPath, 'utf8') : ''
-    const pkgJson = pkgRaw ? JSON.parse(pkgRaw) : {}
-    const wantsTailwind = !!(pkgJson.devDependencies?.tailwindcss || pkgJson.dependencies?.tailwindcss)
-    if (wantsTailwind) {
-      const tailwindOnDisk = existsSync(join(cwd, 'node_modules', 'tailwindcss', 'package.json'))
-      const postcssOnDisk = existsSync(join(cwd, 'node_modules', 'postcss', 'package.json'))
-      const autoprefixerOnDisk = existsSync(join(cwd, 'node_modules', 'autoprefixer', 'package.json'))
-      if (!tailwindOnDisk || !postcssOnDisk || !autoprefixerOnDisk) {
-        const missing = [
-          tailwindOnDisk ? null : 'tailwindcss',
-          postcssOnDisk ? null : 'postcss',
-          autoprefixerOnDisk ? null : 'autoprefixer',
-        ].filter(Boolean)
-        appendLog('runner', `[runner] Tailwind safety-net: ${missing.join(', ')} listed in package.json but missing from node_modules — running recovery install`)
-        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps',
-          'tailwindcss@^3.4.10', 'postcss@^8.4.41', 'autoprefixer@^10.4.20']
-        await new Promise((res2, rej2) => {
-          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
-          proc.stdout.on('data', d => appendLog('install', d))
-          proc.stderr.on('data', d => appendLog('install', d))
-          proc.on('exit', code => {
-            if (code === 0) res2()
-            else rej2(new Error('tailwind safety-net install exited ' + code))
-          })
-          proc.on('error', rej2)
-        })
-        appendLog('runner', '[runner] Tailwind safety-net: recovery install complete')
-      }
-    }
-  } catch (err) {
-    appendLog('runner', `[runner] Tailwind safety-net skipped (${err.message})`)
-  }
-
-  // ─── CRA `ajv` resolution safety-net ──────────────────────────────
-  // react-scripts ships with ajv-keywords@5 (peer-deps ajv@^8), but on
-  // a --legacy-peer-deps install npm sometimes hoists an older ajv@6
-  // from a transitive dep instead — and ajv-keywords@5 imports
-  // `ajv/dist/compile/codegen` which only exists in ajv@8. The result
-  // is the classic CRA crash:
-  //   Cannot find module 'ajv/dist/compile/codegen'
-  // followed by an exit-1 from react-scripts/scripts/start.js.
-  //
-  // The community fix (since 2021) is to install ajv@^8 at the project
-  // root so npm hoists the correct version where ajv-keywords can find
-  // it. We do that automatically here for any project that has
-  // react-scripts AND is missing the codegen entry point.
-  try {
-    const pkgRaw = existsSync(pkgPath) ? await fs.readFile(pkgPath, 'utf8') : ''
-    const pkgJson = pkgRaw ? JSON.parse(pkgRaw) : {}
-    const wantsCRA = !!(pkgJson.devDependencies?.['react-scripts'] || pkgJson.dependencies?.['react-scripts'])
-    if (wantsCRA) {
-      const ajvCodegen = join(cwd, 'node_modules', 'ajv', 'dist', 'compile', 'codegen.js')
-      if (!existsSync(ajvCodegen)) {
-        appendLog('runner', '[runner] CRA ajv safety-net: ajv/dist/compile/codegen missing — running recovery install of ajv@^8')
-        const recoverArgs = ['install', '--no-save', '--no-audit', '--no-fund', '--legacy-peer-deps', 'ajv@^8']
-        await new Promise((res2, rej2) => {
-          const proc = spawn('npm', recoverArgs, { cwd, env: { ...process.env, CI: '1', NODE_ENV: 'development' } })
-          proc.stdout.on('data', d => appendLog('install', d))
-          proc.stderr.on('data', d => appendLog('install', d))
-          proc.on('exit', code => {
-            if (code === 0) res2()
-            else rej2(new Error('ajv safety-net install exited ' + code))
-          })
-          proc.on('error', rej2)
-        })
-        appendLog('runner', '[runner] CRA ajv safety-net: recovery install complete')
-      }
-    }
-  } catch (err) {
-    appendLog('runner', `[runner] CRA ajv safety-net skipped (${err.message})`)
-  }
+  // ─── Safety-nets (Tailwind, CRA ajv, Rollup/esbuild native binaries) ──
+  // Run after every install to catch resolver drops. Also run on the
+  // cache-hit early-return path above so pre-existing stale machines
+  // can self-heal on next boot without needing a manual reinstall.
+  await runSafetyNets(cwd, pkgPath)
 }
 
 // ─── routes ──────────────────────────────────────────────────────────

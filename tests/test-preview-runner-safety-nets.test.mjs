@@ -97,3 +97,51 @@ test('static branch returns BEFORE the install promise (no node_modules required
     'static branch must early-return before install',
   )
 })
+
+test('preview-runner deletes package-lock.json before install (npm/cli#4828)', async () => {
+  const src = await readFile(RUNNER, 'utf8')
+  // Lockfile removal must happen BEFORE the "running npm install" log line
+  // so the fresh resolution can pull the correct platform binaries.
+  assert.match(
+    src,
+    /removed package-lock\.json to allow Linux-x64 optional binaries to resolve/,
+    'runner must delete package-lock.json before install to fix Rollup/esbuild native-binary crashes'
+  )
+  const removeIdx = src.indexOf('removed package-lock.json')
+  const installIdx = src.indexOf('running npm install in ${cwd}')
+  assert.ok(removeIdx > 0 && installIdx > 0 && removeIdx < installIdx,
+    'lockfile removal must occur before the npm install spawn'
+  )
+})
+
+test('preview-runner Rollup + esbuild safety-nets probe & install Linux-x64 binaries', async () => {
+  const src = await readFile(RUNNER, 'utf8')
+  assert.match(src, /@rollup\/rollup-linux-x64-gnu missing[\s\S]*?recovery install/,
+    'must probe for and install @rollup/rollup-linux-x64-gnu'
+  )
+  assert.match(src, /@esbuild\/linux-x64 missing[\s\S]*?recovery install/,
+    'must probe for and install @esbuild/linux-x64'
+  )
+})
+
+test('preview-runner safety-nets run on cache-hit path (stale machines self-heal)', async () => {
+  const src = await readFile(RUNNER, 'utf8')
+  // The cache-hit early return must call runSafetyNets first — otherwise
+  // pre-existing crashed machines with matching install hash stay broken
+  // forever (would need a manual node_modules wipe).
+  const cacheHitBlock = src.match(/cache hit — skipping npm install[\s\S]{0,500}?return/)
+  assert.ok(cacheHitBlock, 'cache-hit early return block must exist')
+  assert.match(cacheHitBlock[0], /await runSafetyNets\(cwd, pkgPath\)/,
+    'cache-hit path must call runSafetyNets before returning so stale machines self-heal'
+  )
+})
+
+test('preview-runner runs safety-nets after fresh install too', async () => {
+  const src = await readFile(RUNNER, 'utf8')
+  // Two callsites required: one on cache-hit path (tested above),
+  // one at end of the install flow.
+  const callSites = (src.match(/await runSafetyNets\(cwd, pkgPath\)/g) || []).length
+  assert.ok(callSites >= 2,
+    `runSafetyNets must be called from both cache-hit and post-install paths (found ${callSites} call sites)`
+  )
+})

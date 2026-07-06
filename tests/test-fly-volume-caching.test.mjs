@@ -1,0 +1,54 @@
+/**
+ * Regression test: Fly volume caching for per-project node_modules.
+ *
+ * Without the volume, every machine destroy → recreate wipes
+ * /project/node_modules and forces a fresh 3-6+ minute `npm install`.
+ * This test asserts the wiring is in place:
+ *   1. ensureProjectVolume is exported from lib/fly/apps.js
+ *   2. It's imported by lib/fly/machines.js
+ *   3. createMachineForProject calls it before booting
+ *   4. The machine config attaches the volume at /project
+ */
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+
+const appsSrc = fs.readFileSync('/app/lib/fly/apps.js', 'utf8')
+const machinesSrc = fs.readFileSync('/app/lib/fly/machines.js', 'utf8')
+
+// 1. ensureProjectVolume is exported
+assert.match(appsSrc, /export async function ensureProjectVolume\(appName, region\)/,
+  'ensureProjectVolume must be an exported async function'
+)
+console.log('OK ensureProjectVolume exported from lib/fly/apps.js')
+
+// 2. It probes for existing volumes before creating (idempotency)
+assert.match(appsSrc, /listed\.body\.find\(v => v\.name === volumeName/,
+  'ensureProjectVolume must probe for existing volumes before POST /volumes'
+)
+console.log('OK ensureProjectVolume is idempotent (probes before create)')
+
+// 3. Creation uses 1 GB volumes in the machine's region
+assert.match(appsSrc, /size_gb: 1/, 'volume size must be 1 GB (Fly minimum)')
+console.log('OK volume size is 1 GB')
+
+// 4. machines.js imports the new function
+assert.match(machinesSrc, /ensureProjectVolume/,
+  'machines.js must import ensureProjectVolume'
+)
+console.log('OK machines.js imports ensureProjectVolume')
+
+// 5. createMachineForProject calls it before the API POST
+const createFnBody = machinesSrc.match(/export async function createMachineForProject[\s\S]+?^}/m)
+assert.ok(createFnBody, 'createMachineForProject function body must be found')
+assert.match(createFnBody[0], /const volumeId = await ensureProjectVolume\(appName, region\)/,
+  'createMachineForProject must resolve volumeId before building the machine config'
+)
+console.log('OK createMachineForProject resolves volumeId before booting')
+
+// 6. Machine config declares the mount at /project
+assert.match(createFnBody[0], /mounts:\s*\[\s*\{\s*volume:\s*volumeId,\s*path:\s*'\/project',/,
+  'machine config must mount the volume at /project'
+)
+console.log('OK machine config mounts volume at /project')
+
+console.log('\nAll Fly volume caching checks passed.')
