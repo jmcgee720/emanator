@@ -1,29 +1,30 @@
 // POST /api/projects/:projectId/thumbnail-refresh
 //
 // Captures a live screenshot of the project's Fly preview and stores it
-// as the project's dashboard thumbnail. This is Workstream 4 in the
-// preview-pipeline overhaul — makes dashboard tiles show the REAL
-// running app instead of a best-guess in-browser Babel compile.
+// in Supabase Storage. This is Workstream 4 — makes dashboard tiles show
+// the REAL running app instead of a best-guess in-browser Babel compile.
 //
-// Flow:
-//   1. Auth + ownership checks
-//   2. Resolve the project's public Fly preview URL
-//   3. Call ScreenshotOne (SCREENSHOTONE_ACCESS_KEY required)
-//   4. Save the base64 data URL to project.settings.thumbnail_screenshot
-//   5. Return { url, captured_at }
+// v2 (2026-07-08): moved image storage OUT of project.settings and INTO
+// Supabase Storage. Previous version stuffed a 60-150 KB base64 data
+// URL inside settings.thumbnail_screenshot.data_url. Every subsequent
+// PUT to `settings` (preview_snapshot, aurora_config, gallery, domain,
+// deployments) then had to include the whole bloated blob, and any
+// combined update easily blew past Vercel's 4.5 MB serverless body
+// limit → HTTP 413 Request Entity Too Large → cascading write failures.
 //
-// If SCREENSHOTONE_ACCESS_KEY is missing, return 503 with a clear
-// action_required hint so the UI can surface it to the operator.
+// Now: PNG goes to Supabase Storage bucket `project-thumbnails`.
+// Settings only stores the public URL + a captured_at timestamp.
 
 import { NextResponse } from 'next/server'
 import { handleCORS, getAuthUser, checkAllowlist } from '@/lib/api/helpers'
-import { db } from '@/lib/supabase/db'
+import { db, getSupabaseAdmin } from '@/lib/supabase/db'
 import { previewAppPublicUrl } from '@/lib/fly/apps'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 const SCREENSHOTONE_BASE = 'https://api.screenshotone.com/take'
+const THUMBNAIL_BUCKET = 'project-thumbnails'
 
 export async function OPTIONS() {
   return handleCORS(NextResponse.json({}, { status: 200 }))
@@ -52,10 +53,6 @@ export async function POST(request, { params }) {
 
   try {
     const targetUrl = previewAppPublicUrl(projectId)
-    // Thumbnail-optimised capture params: 1280×960 matches the ProjectGrid
-    // iframe aspect ratio (scaled down to fit the 4:3 tile). Full-page
-    // false so users see the "above the fold" first paint — same as
-    // what the tile currently shows via Babel snapshot.
     const params = new URLSearchParams({
       access_key: key,
       url: targetUrl,
@@ -69,11 +66,7 @@ export async function POST(request, { params }) {
       block_ads: 'true',
       block_trackers: 'true',
       wait_until: 'networkidle0',
-      // Bigger timeout than the agent-tool version — thumbnails need to
-      // wait longer for slow-boot Node apps (Next.js compiles on first
-      // request, needs ~5-10s before the DOM is stable).
       timeout: '25',
-      // Small extra delay so React streaming/suspense fallbacks resolve.
       delay: '1',
     })
 
@@ -91,27 +84,79 @@ export async function POST(request, { params }) {
     }
 
     const buf = await upstream.arrayBuffer()
-    const base64 = Buffer.from(buf).toString('base64')
-    const dataUrl = `data:image/png;base64,${base64}`
     const capturedAt = new Date().toISOString()
 
-    // Save into project.settings.thumbnail_screenshot. Kept as a data URL
-    // so it can be embedded directly in <img src> without extra storage
-    // infrastructure. Typical size is 60-150 KB PNG (with our viewport
-    // + block_ads settings) — well under Supabase's 1 MB JSON field cap.
-    const settings = {
-      ...(project.settings || {}),
-      thumbnail_screenshot: {
-        data_url: dataUrl,
-        captured_at: capturedAt,
-        bytes: buf.byteLength,
-        source: 'screenshotone',
-      },
+    // Upload PNG to Supabase Storage. Filename includes a timestamp so
+    // the URL changes every capture (busts browser cache without needing
+    // Cache-Control headers). Old thumbnails are cleaned up below.
+    const supabase = getSupabaseAdmin()
+    // Ensure the bucket exists (idempotent — createBucket returns
+    // "already exists" error on subsequent calls which we ignore).
+    try {
+      await supabase.storage.createBucket(THUMBNAIL_BUCKET, {
+        public: true,
+        fileSizeLimit: '2MB',
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+      })
+    } catch { /* bucket already exists — expected */ }
+
+    const filename = `${projectId}/${Date.now()}.png`
+    const { error: uploadErr } = await supabase.storage
+      .from(THUMBNAIL_BUCKET)
+      .upload(filename, buf, {
+        contentType: 'image/png',
+        cacheControl: '31536000', // 1yr — filename has timestamp so it's safe
+        upsert: false,
+      })
+    if (uploadErr) {
+      return handleCORS(NextResponse.json({
+        error: 'Failed to upload screenshot to storage',
+        detail: uploadErr.message,
+      }, { status: 500 }))
     }
-    await db.projects.update(projectId, { settings })
+
+    const { data: pub } = supabase.storage.from(THUMBNAIL_BUCKET).getPublicUrl(filename)
+    const publicUrl = pub?.publicUrl
+    if (!publicUrl) {
+      return handleCORS(NextResponse.json({
+        error: 'Failed to resolve public URL for uploaded screenshot',
+      }, { status: 500 }))
+    }
+
+    // Save ONLY the URL + metadata into settings — never the image data.
+    // Also strips any legacy base64 data_url from settings so old bloated
+    // rows self-heal on next capture.
+    const cleanSettings = { ...(project.settings || {}) }
+    if (cleanSettings.thumbnail_screenshot?.data_url) {
+      delete cleanSettings.thumbnail_screenshot.data_url
+    }
+    cleanSettings.thumbnail_screenshot = {
+      url: publicUrl,
+      captured_at: capturedAt,
+      bytes: buf.byteLength,
+      source: 'screenshotone',
+    }
+    await db.projects.update(projectId, { settings: cleanSettings })
+
+    // Best-effort cleanup: keep only the 3 most recent thumbnails per
+    // project so the bucket doesn't grow forever. Errors here are
+    // logged but not surfaced — the current capture succeeded.
+    try {
+      const { data: existing } = await supabase.storage.from(THUMBNAIL_BUCKET).list(projectId)
+      if (existing && existing.length > 3) {
+        const stale = existing
+          .sort((a, b) => (a.name < b.name ? 1 : -1)) // newest first
+          .slice(3)
+          .map(f => `${projectId}/${f.name}`)
+        await supabase.storage.from(THUMBNAIL_BUCKET).remove(stale)
+      }
+    } catch (err) {
+      console.warn('[thumbnail-refresh] cleanup failed:', err?.message)
+    }
 
     return handleCORS(NextResponse.json({
       ok: true,
+      url: publicUrl,
       captured_at: capturedAt,
       bytes: buf.byteLength,
     }))

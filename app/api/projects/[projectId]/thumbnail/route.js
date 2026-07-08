@@ -28,7 +28,15 @@ export async function GET(request, { params }) {
     return handleCORS(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
   }
 
-  const screenshot = project.settings?.thumbnail_screenshot || null
+  const raw = project.settings?.thumbnail_screenshot || null
+  // Return only the URL-based thumbnail. Legacy rows with `data_url`
+  // (pre-2026-07-08) are ignored so the client doesn't try to render a
+  // bloated stale base64 string. The next thumbnail-refresh will upgrade
+  // them to the new URL-based storage format.
+  let screenshot = null
+  if (raw?.url) {
+    screenshot = { url: raw.url, captured_at: raw.captured_at, bytes: raw.bytes }
+  }
   const res = NextResponse.json({ screenshot })
   // No CDN caching — user just captured a new screenshot? next fetch
   // must see it, not last minute's cached response.

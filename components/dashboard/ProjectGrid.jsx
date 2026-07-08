@@ -50,26 +50,25 @@ function ProjectThumbnail({ projectId, projectName }) {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (cancelled) return
-        const dataUrl = data?.screenshot?.data_url
-        if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
-          setScreenshotUrl(dataUrl)
+        // v2 (2026-07-08): screenshots are now hosted URLs, not data URLs,
+        // to keep project.settings small and avoid Vercel's 4.5 MB serverless
+        // body limit trashing subsequent settings writes with HTTP 413.
+        const url = data?.screenshot?.url
+        if (typeof url === 'string' && url.startsWith('http')) {
+          setScreenshotUrl(url)
         }
       })
       .catch(() => {})
 
-    // Live-refresh: when ServerPreview auto-captures a fresh thumbnail
-    // (or the user clicks "Capture Thumbnail" in the preview toolbar),
-    // it dispatches this window event. The grid tile picks it up and
-    // reloads its stored screenshot without a full page refresh.
     const onThumbnailUpdated = (event) => {
       if (event?.detail?.projectId !== projectId) return
       authFetch(`/api/projects/${projectId}/thumbnail`)
         .then((r) => r.ok ? r.json() : null)
         .then((data) => {
           if (cancelled) return
-          const dataUrl = data?.screenshot?.data_url
-          if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
-            setScreenshotUrl(dataUrl)
+          const url = data?.screenshot?.url
+          if (typeof url === 'string' && url.startsWith('http')) {
+            setScreenshotUrl(url)
           }
         })
         .catch(() => {})
