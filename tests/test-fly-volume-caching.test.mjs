@@ -58,12 +58,11 @@ console.log('OK machine config conditionally mounts volume at /project')
 
 console.log('\nAll Fly volume caching checks passed.')
 
-// 7. Fly 412 "existing volume" recovery — the failure mode that just
-//    hit the user in production (StoryForge). Volume was placed in a
-//    zone with no machine capacity, machine POST returned 412. We
-//    delete the stuck volume and retry without mounts.
-assert.match(createFnBody[0], /created\.res\.status === 412/,
-  'createMachineForProject must detect the 412 status code'
+// 7. Fly 412 "existing volume" recovery — flyFetch throws on non-2xx, so
+//    we catch the thrown error and match on its message instead of
+//    checking a response object.
+assert.match(createFnBody[0], /\/ → 412:\/\.test\(msg\)/,
+  'createMachineForProject must detect the 412 status via the flyFetch error message'
 )
 assert.match(createFnBody[0], /existing volume/i,
   'must match Flys "existing volume" error text'
