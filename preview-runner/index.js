@@ -704,9 +704,16 @@ async function runInstallIfNeeded(workCwd) {
           '--no-audit',
           '--no-fund',
           '--legacy-peer-deps',
-          '--prefer-offline',
-          '--no-optional',
-          '--cache=/tmp/npm-cache',
+          // NOTE: `--no-optional` was previously here to "skip flaky
+          // platform binaries". This was a self-inflicted wound: the
+          // Rollup / esbuild Linux binaries that every Vite project
+          // needs are declared as OPTIONAL dependencies (npm/cli#4828).
+          // Skipping them caused the entire preview infra to crash
+          // loop, then the safety-nets below had to re-install what
+          // this flag just excluded. Removed 2026-07-08 — safety-nets
+          // stay as belt-and-suspenders for the rare cases where npm
+          // still drops a binary despite --include=optional (the
+          // default when this flag is absent).
           '--loglevel=error',
         ], {
           cwd,

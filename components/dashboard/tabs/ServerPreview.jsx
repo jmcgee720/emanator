@@ -317,14 +317,30 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
   }, [projectId, status])
 
   return (
-    <div className="flex h-full w-full flex-col" data-testid="server-preview">
+    <div className="flex h-full w-full flex-col bg-[#0a0716]" data-testid="server-preview">
 
-      {/* Control bar — always visible so Hard Reset is accessible when stuck */}
+      {/* Control bar — Auroraly aesthetic: dark glass with aurora accents.
+          Backdrop-blur + subtle violet-cyan gradient border, glowing status
+          dot, all buttons share a consistent pill-shaped shape. */}
       {(status === 'ready' || status === 'starting' || status === 'error') && (
-        <div className="flex items-center justify-between border-b border-border/40 bg-background px-3 py-1.5">
-          <div className="flex items-center gap-2">
-            <StatusDot status={status} />
-            <span className="text-xs text-muted-foreground">
+        <div
+          className="relative flex items-center justify-between border-b border-white/[0.06] bg-gradient-to-b from-[#120b26]/95 to-[#0a0716]/95 backdrop-blur-xl px-4 py-2"
+          style={{ boxShadow: '0 1px 0 0 rgba(139, 92, 246, 0.08), 0 8px 24px -12px rgba(139, 92, 246, 0.25)' }}
+        >
+          {/* aurora accent line at the very top edge */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              <StatusDot status={status} />
+              {status === 'ready' && (
+                <div className="absolute inset-0 -m-1 rounded-full bg-emerald-400/30 blur-md animate-pulse" />
+              )}
+              {status === 'starting' && (
+                <div className="absolute inset-0 -m-1 rounded-full bg-cyan-400/30 blur-md animate-pulse" />
+              )}
+            </div>
+            <span className="text-[11px] font-medium tracking-wide text-white/70">
               {statusLabel(status, projectName)}
             </span>
           </div>
@@ -336,7 +352,7 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1.5 text-xs"
+                className="h-7 gap-1.5 rounded-full px-3 text-[11px] font-medium text-white/70 hover:bg-white/[0.06] hover:text-white"
                 onClick={handleRefresh}
                 data-testid="server-preview-refresh"
                 title="Manually re-sync files and reload the preview iframe"
@@ -347,14 +363,11 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
                 Refresh
               </Button>
             )}
-            {/* Reset node_modules: wipe the installed packages on the Fly
-                machine and run a fresh install. The persistent volume
-                means Hard Reset alone no longer wipes node_modules. */}
             {status === 'ready' && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1.5 text-xs text-orange-400 hover:text-orange-300 disabled:opacity-50"
+                className="h-7 gap-1.5 rounded-full px-3 text-[11px] font-medium text-orange-300/90 hover:bg-orange-500/10 hover:text-orange-200 disabled:opacity-50"
                 onClick={resetNodeModules}
                 disabled={resetting}
                 data-testid="server-preview-reset-node-modules"
@@ -366,15 +379,11 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
                 {resetting ? 'Resetting…' : 'Reset node_modules'}
               </Button>
             )}
-            {/* Capture Thumbnail: force-refresh the dashboard tile
-                screenshot. Auto-fires once ~12s after preview is ready
-                too — this button is for on-demand updates after visual
-                edits. */}
             {status === 'ready' && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1.5 text-xs text-sky-400 hover:text-sky-300 disabled:opacity-50"
+                className="h-7 gap-1.5 rounded-full px-3 text-[11px] font-medium text-cyan-300/90 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:opacity-50"
                 onClick={captureThumbnail}
                 disabled={thumbnailing}
                 data-testid="server-preview-capture-thumbnail"
@@ -390,10 +399,10 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 gap-1.5 text-xs text-amber-400 hover:text-amber-300"
+              className="h-7 gap-1.5 rounded-full px-3 text-[11px] font-medium text-amber-300/90 hover:bg-amber-500/10 hover:text-amber-200"
               onClick={hardReset}
               data-testid="server-preview-hard-reset"
-              title="Destroy the Fly machine and start fresh (node_modules preserved via volume)"
+              title="Destroy the Fly machine and start fresh"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -404,7 +413,7 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1.5 text-xs text-red-400 hover:text-red-300"
+                className="h-7 gap-1.5 rounded-full px-3 text-[11px] font-medium text-rose-300/90 hover:bg-rose-500/10 hover:text-rose-200"
                 onClick={stop}
                 data-testid="server-preview-stop"
               >
@@ -442,25 +451,30 @@ export default function ServerPreview({ projectId, projectName, onRefreshReady }
           />
         )}
         {status !== 'ready' && (
-          <div className="flex h-full w-full items-center justify-center bg-black/20 p-6 text-center text-sm text-white/60">
+          <div className="relative flex h-full w-full items-center justify-center overflow-hidden p-6 text-center text-sm text-white/60" style={{ background: 'radial-gradient(ellipse at top, #1e1b4b 0%, #0f172a 50%, #0a0716 100%)' }}>
+            {/* Aurora aesthetic backdrop: soft violet + cyan glow blobs */}
+            <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(10,7,22,0.4)_100%)]" />
+
             {status === 'starting' && (
-              <div data-testid="server-preview-spinner" className="w-full max-w-2xl">
-                <div className="mb-2 text-base text-white/80 flex items-center justify-center gap-2">
-                  <svg className="h-4 w-4 animate-spin text-cyan-400" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                    <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
+              <div data-testid="server-preview-spinner" className="relative z-10 w-full max-w-2xl">
+                <div className="mb-3 text-base text-white/90 flex items-center justify-center gap-2.5 font-medium">
+                  <svg className="h-5 w-5 animate-spin text-violet-300" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-95" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
                   </svg>
-                  Starting your preview…
+                  Starting your preview
                 </div>
                 {lastInstallActivity && (
-                  <div className="text-[11px] font-mono text-cyan-300/80 mb-3 truncate" data-testid="server-preview-activity">
+                  <div className="text-[11px] font-mono text-violet-300/90 mb-4 truncate" data-testid="server-preview-activity">
                     ▸ {lastInstallActivity}
                   </div>
                 )}
-                <div className="text-xs text-white/40 mb-4">
-                  First boot installs dependencies — usually 1–2 minutes for landing pages,<br />
-                  but <strong>5–10 minutes for large imported projects</strong> (CRA, Next.js).<br />
-                  Subsequent starts are usually under 10 seconds.
+                <div className="text-xs text-white/50 mb-5 leading-relaxed max-w-md mx-auto">
+                  First-time boot takes <span className="text-white/80">1-3 minutes</span> for small projects,
+                  <br />
+                  <span className="text-white/80">5-10 minutes</span> for large imported apps (CRA, Next.js). Subsequent boots are under 10 seconds.
                 </div>
 
                 {/* Inline log stream — gives the loading screen a heartbeat so

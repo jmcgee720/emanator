@@ -9,6 +9,8 @@ import {
   Accessibility, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, Zap
 } from 'lucide-react'
 import ServerPreview from './ServerPreview'
+import WebContainerPreview from './WebContainerPreview'
+import { pickPreviewEngine } from '../../../lib/preview/pick-engine'
 import { ImageryDeferredBanner, ImageryGeneratedPill } from '../ImageryDeferredBanner.jsx'
 
 // ─── Parse VFS entries out of a components/assets.js module ────────
@@ -1707,8 +1709,23 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
     )
   }
 
-  // Node project → delegate to runner
+  // Node project → route to the right engine.
+  //
+  // WebContainer runs the app IN THE BROWSER (instant boot, no Fly).
+  // ~85-90% of user projects fit here. Server engine (Fly) is reserved
+  // for projects with native modules that WebContainer can't run
+  // (firebase-admin, prisma, puppeteer, sharp, etc.).
+  //
+  // Local storage escape hatch: users can override to 'server' or
+  // 'webcontainer' for testing via localStorage.auroraly_preview_engine.
   if (projectInfo.type === 'node') {
+    const override = typeof window !== 'undefined' && window.localStorage
+      ? window.localStorage.getItem(`auroraly_preview_engine:${project?.id || ''}`)
+      : null
+    const engine = override || pickPreviewEngine(files)
+    if (engine === 'webcontainer') {
+      return <WebContainerPreview project={project} files={files} />
+    }
     return <NodePreviewRunner project={project} files={files} onLog={onLog} />
   }
 
