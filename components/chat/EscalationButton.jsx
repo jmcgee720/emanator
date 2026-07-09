@@ -26,6 +26,17 @@ export default function EscalationButton() {
   const { activeEscalation, loading } = useEscalationListener(userId)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[EscalationButton] State:', {
+      userId: userId?.substring(0, 8),
+      activeEscalation: activeEscalation?.id?.substring(0, 8),
+      loading,
+      isPanelOpen,
+      metadata: activeEscalation?.metadata
+    })
+  }, [userId, activeEscalation, loading, isPanelOpen])
+
   // Auto-open if escalation has auto_open flag
   useEffect(() => {
     if (activeEscalation?.metadata?.auto_open && !isPanelOpen) {
