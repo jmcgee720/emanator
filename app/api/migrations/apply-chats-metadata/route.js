@@ -1,12 +1,10 @@
 /**
  * Emergency migration endpoint for chats metadata columns.
  * POST /api/migrations/apply-chats-metadata
- * 
- * Applies the migration directly via pg library to bypass Supabase schema cache issues.
  */
 
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { createClient } from '@supabase/supabase-js';
 
 const MIGRATION_SQL = `
 -- Add user_id and metadata columns to chats table for escalation support
@@ -59,45 +57,50 @@ export async function POST(request) {
       );
     }
     
-    // Extract project ref from URL
-    const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-    if (!projectRef) {
-      return NextResponse.json(
-        { error: 'Could not extract project ref from Supabase URL' },
-        { status: 500 }
-      );
-    }
-    
-    // Use direct connection with correct format
-    const connectionString = `postgresql://postgres:${serviceKey}@db.${projectRef}.supabase.co:5432/postgres`;
-    
-    const pool = new Pool({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false }
     });
     
-    console.log('[Migration] Connecting to database...');
-    const client = await pool.connect();
-    
     console.log('[Migration] Applying chats metadata migration...');
-    await client.query(MIGRATION_SQL);
+    
+    // Split into individual statements and execute one by one
+    const statements = MIGRATION_SQL
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+    
+    const results = [];
+    for (const statement of statements) {
+      console.log('[Migration] Executing:', statement.substring(0, 80) + '...');
+      const { data, error } = await supabase.rpc('exec_sql', { 
+        sql_string: statement + ';' 
+      });
+      
+      if (error) {
+        console.error('[Migration] Statement failed:', error);
+        return NextResponse.json(
+          { 
+            error: error.message,
+            statement: statement.substring(0, 200)
+          },
+          { status: 500 }
+        );
+      }
+      results.push({ statement: statement.substring(0, 80), success: true });
+    }
     
     console.log('[Migration] Verifying columns...');
-    const { rows } = await client.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'chats' 
-        AND column_name IN ('user_id', 'metadata')
-      ORDER BY column_name;
-    `);
-    
-    client.release();
-    await pool.end();
+    const { data: columns, error: verifyError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name, data_type')
+      .eq('table_name', 'chats')
+      .in('column_name', ['user_id', 'metadata']);
     
     return NextResponse.json({
       success: true,
       message: 'Migration applied successfully',
-      columns: rows,
+      statements: results.length,
+      columns: columns || []
     });
   } catch (error) {
     console.error('[Migration] Error:', error);
