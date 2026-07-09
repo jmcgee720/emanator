@@ -271,5 +271,10 @@ export default function AppShell({ initialProjectId = null }) {
     )
   }
 
-  return <Dashboard user={user} dbUser={dbUser} onSignOut={handleSignOut} initialProjectId={initialProjectId} />
+  return (
+    <>
+      <Dashboard user={user} dbUser={dbUser} onSignOut={handleSignOut} initialProjectId={initialProjectId} />
+      <EscalationButton />
+    </>
+  )
 }
