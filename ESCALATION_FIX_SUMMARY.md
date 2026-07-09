@@ -1,61 +1,68 @@
-# Escalation Tool Fix Summary
+# ESCALATION UI FIX — COMPLETE IMPLEMENTATION
 
-## Problem
+## Problems Identified
 
-The `escalate_to_core_system` tool was failing with:
-```
-Error executing escalate_to_core_system: Could not find the 'metadata' column of 'chats' in the schema cache
-```
+1. **Button not clickable when inactive**
+   - `disabled={!isActive}` on line 54 of EscalationButton.jsx
+   - Should be clickable always (just grey when inactive)
 
-This was blocking critical workflows where project agents need to collaborate with Core System to fix broken tooling.
+2. **Wrong hook usage**
+   - Line 30 uses `useState` instead of `useEffect` for auto-open logic
+   - Causes React warning and doesn't trigger
 
-## Root Cause
+3. **No auto-open on creation**
+   - `escalate_to_core_system` tool doesn't set `auto_open: true` in metadata
+   - Button never auto-expands when escalation is created
 
-The `chats` table in the production Supabase database was missing two columns required for escalation:
-- `user_id` (UUID) — owner of the chat
-- `metadata` (JSONB) — escalation tracking data
+4. **Project agent can't send messages to escalation**
+   - No tool to post messages to the escalation chat
+   - Agent creates escalation but can't communicate through it
 
-These columns were defined in migration `supabase/migrations/011_add_chats_metadata_and_user_id.sql` but had never been applied to the production database.
+5. **Listener query may not match**
+   - Query filters for `project_id IS NULL` but also checks `metadata->is_escalation`
+   - Need to verify the query matches the actual chat structure
 
-**The deeper issue:** Even after applying the migration, the Supabase JS client's schema cache would remain stale, causing the same error until the cache refreshed (which could take hours or require a restart).
+## Fixes Required
 
-## Solution
+### 1. Fix EscalationButton.jsx
+- Remove `disabled={!isActive}` (keep button always clickable)
+- Change line 30 from `useState` to `useEffect`
+- Make button visually indicate "click to open" even when inactive
 
-**Bypassed the Supabase client entirely** by rewriting `createEscalationChat` to use raw SQL via the `pg` library:
+### 2. Fix agent-escalation.js
+- Add `auto_open: true` to escalation chat metadata
+- This triggers auto-expansion of the panel
 
-1. **Direct database connection** — Uses PostgreSQL connection pooler, not Supabase client
-2. **Inline migration** — Runs `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` before every insert (idempotent, fast)
-3. **No schema cache** — Raw SQL doesn't depend on client-side schema caching
-4. **Immediate effect** — Works on first call, no waiting for cache refresh
+### 3. Add send_escalation_message tool
+- New tool for project agent to post messages to escalation chat
+- Tagged with `agent_source: 'project_agent'`
+- Core System can read these and respond
 
-## Files Changed
+### 4. Fix useEscalationListener query
+- Verify the query correctly finds escalation chats
+- Add debug logging to see what's being fetched
 
-1. **lib/ai/agent-escalation.js** — Rewrote `createEscalationChat` to use raw SQL via `pg` library
-2. **lib/migrations/apply-chats-metadata.js** — Programmatic migration runner (backup approach)
-3. **scripts/add-chats-metadata.js** — Standalone script (for manual runs)
-4. **app/api/migrations/apply-chats-metadata/route.js** — HTTP endpoint for migration (backup approach)
-5. **ESCALATION_FIX_SUMMARY.md** — This document
+### 5. Add auto-open logic
+- When `activeEscalation.metadata.auto_open === true`, set `isPanelOpen(true)`
+- Clear the flag after opening so it doesn't re-open on every render
 
-## How It Works Now
+## Implementation Order
 
-When a project agent calls `escalate_to_core_system`:
+1. Fix EscalationButton (clickability + auto-open)
+2. Fix agent-escalation (add auto_open flag)
+3. Add send_escalation_message tool
+4. Test end-to-end flow
+5. Document usage for project agents
 
-1. `handleEscalation` → `createEscalationChat`
-2. Opens direct PostgreSQL connection via `pg` library
-3. Runs idempotent migration: `ALTER TABLE chats ADD COLUMN IF NOT EXISTS user_id ...`
-4. Inserts chat row with raw SQL: `INSERT INTO chats (user_id, metadata, ...) VALUES (...)`
-5. Inserts context message with raw SQL
-6. Returns escalation chat ID
-7. **No Supabase client involved** → no schema cache issues
+## Expected Behavior After Fix
 
-## Testing
-
-✅ **Fixed.** The escalation tool will work immediately on first use:
-- No waiting for schema cache refresh
-- No manual migration required
-- No HTTP endpoint calls
-- Direct database operation, bypassing all caching layers
-
-## Next Steps
-
-Once the Vercel deployment completes (~2 minutes), the MyNexus project agent can successfully escalate the deployment tooling issues to Core System for fixing.
+1. Project agent calls `escalate_to_core_system({ task_description: "...", urgency: "blocking" })`
+2. Tool creates escalation chat with `auto_open: true`
+3. Button appears in bottom-right, pulsing blue
+4. Panel auto-opens showing the escalation chat
+5. Project agent calls `send_escalation_message({ message: "..." })` to communicate
+6. Core System sees messages and responds
+7. User can also send messages to both agents
+8. User clicks "Exit Escalation" when done
+9. Summary posted to source project chat
+10. Button returns to inactive grey state
