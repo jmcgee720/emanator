@@ -52,8 +52,7 @@ export default function EscalationButton() {
           }
           ${isPanelOpen ? 'scale-90' : 'scale-100'}
         `}
-        disabled={!isActive}
-        title={isActive ? 'Agent collaboration active' : 'No active escalation'}
+        title={isActive ? 'Agent collaboration active — click to open' : 'No active escalation'}
       >
         {/* Icon: two chat bubbles overlapping */}
         <svg
