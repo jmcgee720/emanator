@@ -68,8 +68,8 @@ export async function POST(request) {
       );
     }
     
-    // Use the connection pooler endpoint
-    const connectionString = `postgresql://postgres.${projectRef}:${serviceKey}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+    // Use direct connection with correct format
+    const connectionString = `postgresql://postgres:${serviceKey}@db.${projectRef}.supabase.co:5432/postgres`;
     
     const pool = new Pool({
       connectionString,
