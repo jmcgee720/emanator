@@ -1870,6 +1870,9 @@ Build a stunning, SEO-optimized page that fixes ALL of these issues. Make it vis
           </div>
         </div>
       )}
+
+      {/* Escalation button (floating, always visible) */}
+      <EscalationButton />
     </div>
   )
 }
