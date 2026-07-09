@@ -27,11 +27,12 @@ export default function EscalationButton() {
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 
   // Auto-open if escalation has auto_open flag
-  useState(() => {
+  useEffect(() => {
     if (activeEscalation?.metadata?.auto_open && !isPanelOpen) {
+      console.log('[EscalationButton] Auto-opening panel for escalation:', activeEscalation.id)
       setIsPanelOpen(true)
     }
-  }, [activeEscalation])
+  }, [activeEscalation, isPanelOpen])
 
   const isActive = !!activeEscalation
 
