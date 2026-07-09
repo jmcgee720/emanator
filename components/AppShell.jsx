@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import LoginPage from '@/components/auth/LoginPage'
+import EscalationButton from '@/components/chat/EscalationButton'
 import { Loader2 } from 'lucide-react'
 
 const Dashboard = dynamic(() => import('@/components/dashboard/Dashboard'), {
