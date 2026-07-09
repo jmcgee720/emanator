@@ -186,7 +186,17 @@ export default function EscalationChatPanel({ escalationChat, onClose }) {
                 )}
 
                 {/* Message bubble */}
-                <MessageBubble message={msg} />
+                <div
+                  className={`p-3 rounded-lg text-sm ${
+                    isUser
+                      ? 'bg-blue-600 text-white ml-8'
+                      : isSystem
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 italic'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 mr-8'
+                  }`}
+                >
+                  {msg.content}
+                </div>
               </div>
             )
           })
