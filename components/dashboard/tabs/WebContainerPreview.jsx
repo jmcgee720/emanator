@@ -21,7 +21,7 @@
 // so users can either fix in-code or flip to server-engine mode.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 import { WebContainer } from '@webcontainer/api'
 
 // Global singleton — WebContainer.boot() throws if called twice.
