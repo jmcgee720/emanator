@@ -9,11 +9,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/components/auth/AuthProvider'
-import MessageBubble from './MessageBubble'
 
 export default function EscalationChatPanel({ escalationChat, onClose }) {
-  const { user } = useAuth()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
