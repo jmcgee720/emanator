@@ -1,68 +1,115 @@
-# ESCALATION UI FIX — COMPLETE IMPLEMENTATION
+# ESCALATION UI DEBUGGING — NEXT STEPS
 
-## Problems Identified
+## CURRENT STATE
 
-1. **Button not clickable when inactive**
-   - `disabled={!isActive}` on line 54 of EscalationButton.jsx
-   - Should be clickable always (just grey when inactive)
+✅ **Escalation tool** (`escalate_to_core_system`) creates chats in database with correct metadata  
+✅ **EscalationButton** component is mounted in AppShell.jsx  
+✅ **useEscalationListener** hook queries for escalation chats  
+❌ **Button stays gray** — hook is not finding the escalation chat
 
-2. **Wrong hook usage**
-   - Line 30 uses `useState` instead of `useEffect` for auto-open logic
-   - Causes React warning and doesn't trigger
+## DIAGNOSTIC STEPS
 
-3. **No auto-open on creation**
-   - `escalate_to_core_system` tool doesn't set `auto_open: true` in metadata
-   - Button never auto-expands when escalation is created
+### 1. Check browser console logs
 
-4. **Project agent can't send messages to escalation**
-   - No tool to post messages to the escalation chat
-   - Agent creates escalation but can't communicate through it
+After hard refresh, you should see these logs:
+```
+[useEscalationListener] Fetching escalations for user: <uuid>
+[useEscalationListener] All Core System chats: <number>
+[useEscalationListener] First 3 chats: [...]
+[useEscalationListener] Chat <id> : { isEscalation: ..., isResolved: ..., metadata: ... }
+[useEscalationListener] Found escalations: <number>
+```
 
-5. **Listener query may not match**
-   - Query filters for `project_id IS NULL` but also checks `metadata->is_escalation`
-   - Need to verify the query matches the actual chat structure
+**If you see these logs:** The hook is running. Check what the metadata values are.
 
-## Fixes Required
+**If you DON'T see these logs:** The hook is not running. Possible causes:
+- AppShell.jsx didn't redeploy yet (wait 2 minutes after commit)
+- Browser cache (hard refresh: Cmd+Shift+R / Ctrl+Shift+F5)
+- User ID is null (auth issue)
 
-### 1. Fix EscalationButton.jsx
-- Remove `disabled={!isActive}` (keep button always clickable)
-- Change line 30 from `useState` to `useEffect`
-- Make button visually indicate "click to open" even when inactive
+### 2. Call the debug API endpoint
 
-### 2. Fix agent-escalation.js
-- Add `auto_open: true` to escalation chat metadata
-- This triggers auto-expansion of the panel
+Open a new tab and navigate to:
+```
+https://auroraly.com/api/escalations/debug?id=b4e8d9c2-3f1a-4e5d-9a7b-2c1e5f8a6d3b
+```
 
-### 3. Add send_escalation_message tool
-- New tool for project agent to post messages to escalation chat
-- Tagged with `agent_source: 'project_agent'`
-- Core System can read these and respond
+This will show:
+- Does the escalation chat exist in the database?
+- What is the `user_id` of the chat?
+- What is YOUR `user_id`?
+- Do they match?
+- What does the metadata look like?
+- What does each filter step return?
 
-### 4. Fix useEscalationListener query
-- Verify the query correctly finds escalation chats
-- Add debug logging to see what's being fetched
+**Expected output:**
+```json
+{
+  "user_id": "<your-uuid>",
+  "escalation_lookup": {
+    "id": "b4e8d9c2-...",
+    "found": true,
+    "chat": {
+      "id": "b4e8d9c2-...",
+      "user_id": "<your-uuid>",
+      "project_id": null,
+      "metadata": {
+        "is_escalation": true,
+        "auto_open": true,
+        "resolved": null
+      }
+    }
+  },
+  "listener_query": {
+    "found": true,
+    "result": { ... }
+  }
+}
+```
 
-### 5. Add auto-open logic
-- When `activeEscalation.metadata.auto_open === true`, set `isPanelOpen(true)`
-- Clear the flag after opening so it doesn't re-open on every render
+### 3. Possible root causes
 
-## Implementation Order
+#### A. User ID mismatch
+**Symptom:** `chat.user_id` ≠ `your user_id` in the debug output
 
-1. Fix EscalationButton (clickability + auto-open)
-2. Fix agent-escalation (add auto_open flag)
-3. Add send_escalation_message tool
-4. Test end-to-end flow
-5. Document usage for project agents
+**Cause:** The escalation was created with a different user's ID (maybe the project agent used the wrong userId parameter)
 
-## Expected Behavior After Fix
+**Fix:** Delete the bad escalation and create a new one:
+```sql
+DELETE FROM chats WHERE id = 'b4e8d9c2-3f1a-4e5d-9a7b-2c1e5f8a6d3b';
+```
+Then call `escalate_to_core_system` again from the MyNexus chat.
 
-1. Project agent calls `escalate_to_core_system({ task_description: "...", urgency: "blocking" })`
-2. Tool creates escalation chat with `auto_open: true`
-3. Button appears in bottom-right, pulsing blue
-4. Panel auto-opens showing the escalation chat
-5. Project agent calls `send_escalation_message({ message: "..." })` to communicate
-6. Core System sees messages and responds
-7. User can also send messages to both agents
-8. User clicks "Exit Escalation" when done
-9. Summary posted to source project chat
-10. Button returns to inactive grey state
+#### B. Metadata format issue
+**Symptom:** `metadata.is_escalation` is not exactly `true` (might be string `"true"` or missing)
+
+**Cause:** JSON serialization issue in `createEscalationChat`
+
+**Fix:** Check the actual metadata value in the debug output. If it's `"true"` (string), update the filter:
+```javascript
+chat.metadata?.is_escalation === 'true' // string instead of boolean
+```
+
+#### C. Chat doesn't exist
+**Symptom:** `escalation_lookup.found: false` in debug output
+
+**Cause:** The chat was never created, or was deleted
+
+**Fix:** Call `escalate_to_core_system` again from MyNexus chat to create a new escalation.
+
+#### D. Supabase Realtime not subscribed
+**Symptom:** Logs show "Found escalations: 0" but debug API shows the chat exists
+
+**Cause:** The initial fetch works but Realtime subscription isn't triggering updates
+
+**Fix:** This is less critical (button will activate on next page load), but we can add a polling fallback.
+
+## IMMEDIATE ACTION
+
+**Run the debug endpoint** and paste the output here. That will tell us exactly what's wrong.
+
+```
+https://auroraly.com/api/escalations/debug?id=b4e8d9c2-3f1a-4e5d-9a7b-2c1e5f8a6d3b
+```
+
+Once we see the diagnostic data, we can fix the exact issue.
