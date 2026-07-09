@@ -10,14 +10,20 @@
  *   - Opens EscalationChatPanel when clicked
  */
 
-import { useState } from 'react'
-import { useAuth } from '@/components/auth/AuthProvider'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { useEscalationListener } from '@/lib/hooks/useEscalationListener'
 import EscalationChatPanel from './EscalationChatPanel'
 
 export default function EscalationButton() {
-  const { user } = useAuth()
-  const { activeEscalation, loading } = useEscalationListener(user?.id)
+  const [userId, setUserId] = useState(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id))
+  }, [supabase])
+
+  const { activeEscalation, loading } = useEscalationListener(userId)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 
   // Auto-open if escalation has auto_open flag
