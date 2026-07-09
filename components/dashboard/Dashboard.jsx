@@ -14,6 +14,7 @@ import AdminPanel from './AdminPanel'
 import SearchPanel from './SearchPanel'
 import CanvasPanel from './CanvasPanel'
 import InlineBrief from './InlineBrief'
+import EscalationButton from '../chat/EscalationButton'
 // BuildWizard import removed — rendering moved into LeftPanel where the chat thread lives.
 import ProjectGrid from './ProjectGrid'
 import DesignPanel from './DesignPanel'
