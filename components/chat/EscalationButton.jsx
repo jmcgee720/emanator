@@ -123,7 +123,10 @@ export default function EscalationButton() {
       {isPanelOpen && activeEscalation && (
         <EscalationChatPanel
           escalationChat={activeEscalation}
-          onClose={() => setIsPanelOpen(false)}
+          onClose={() => {
+            setIsPanelOpen(false)
+            setUserDismissed(true)
+          }}
         />
       )}
     </>
