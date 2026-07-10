@@ -20,7 +20,20 @@ export default function EscalationButton() {
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id))
+    async function fetchAppUserId() {
+      const { data: authData } = await supabase.auth.getUser()
+      if (!authData.user) return
+      
+      // Look up the app user ID from public.users table using email
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', authData.user.email)
+        .single()
+      
+      setUserId(userData?.id || authData.user.id)
+    }
+    fetchAppUserId()
   }, [supabase])
 
   const { activeEscalation, loading } = useEscalationListener(userId)
