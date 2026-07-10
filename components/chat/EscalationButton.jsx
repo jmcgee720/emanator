@@ -38,6 +38,7 @@ export default function EscalationButton() {
 
   const { activeEscalation, loading } = useEscalationListener(userId)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [userDismissed, setUserDismissed] = useState(false)
 
   // Debug logging
   useEffect(() => {
@@ -46,17 +47,25 @@ export default function EscalationButton() {
       activeEscalation: activeEscalation?.id?.substring(0, 8),
       loading,
       isPanelOpen,
+      userDismissed,
       metadata: activeEscalation?.metadata
     })
-  }, [userId, activeEscalation, loading, isPanelOpen])
+  }, [userId, activeEscalation, loading, isPanelOpen, userDismissed])
 
-  // Auto-open if escalation has auto_open flag
+  // Auto-open if escalation has auto_open flag (but only if user hasn't dismissed it)
   useEffect(() => {
-    if (activeEscalation?.metadata?.auto_open && !isPanelOpen) {
+    if (activeEscalation?.metadata?.auto_open && !isPanelOpen && !userDismissed) {
       console.log('[EscalationButton] Auto-opening panel for escalation:', activeEscalation.id)
       setIsPanelOpen(true)
     }
-  }, [activeEscalation, isPanelOpen])
+  }, [activeEscalation, isPanelOpen, userDismissed])
+
+  // Reset userDismissed when a new escalation arrives
+  useEffect(() => {
+    if (activeEscalation) {
+      setUserDismissed(false)
+    }
+  }, [activeEscalation?.id])
 
   const isActive = !!activeEscalation
 
