@@ -71,7 +71,7 @@ export default function EscalationChatPanel({ escalationChat, onClose }) {
 
     setSending(true)
     try {
-      const response = await fetch(`/api/chats/${escalationChat.id}/messages`, {
+      const response = await fetch(`/api/chats/${escalationChat.id}/messages/stream-v2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
