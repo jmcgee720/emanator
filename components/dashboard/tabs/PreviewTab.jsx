@@ -1306,44 +1306,33 @@ export default function PreviewTab({ project, files, onLog, livePreviewData, isB
   // projects (CRA/Next/Vite) to the server engine. Now everything that
   // has a project ID goes through ServerPreview unconditionally.
 
+  // ── Auto-refresh DISABLED ──────────────────────────────────────────
+  // The auto-refresh was resetting the preview while users were testing
+  // (forms, modals, navigation state lost). Now the user must manually
+  // click Refresh after the agent finishes editing. The Refresh button
+  // is always visible in the ServerPreview control bar.
+  //
+  // The old logic watched `files` and auto-reloaded the iframe on every
+  // `updated_at` change. That's removed. If we ever re-enable auto-refresh,
+  // it should ONLY fire when the agent sends a FINAL "task complete" signal,
+  // not on every file write.
   useEffect(() => {
     const prevHash = prevFilesRef.current
-    // ONLY trigger refresh when files are actually WRITTEN (updated_at changes)
-    // This prevents preview thrashing when AI responds with text but doesn't change files
     const currentHash = files?.map(f => `${f.path}:${f.updated_at || ''}`).join('|') || ''
-    const hashChanged = prevHash !== null && prevHash !== currentHash
     const forceRefresh = forceRefreshRef.current || forceRecompileRef.current
     
-    // Log for debugging
-    if (hashChanged) {
-      console.log('[PreviewTab] Files changed — auto-refreshing preview', { 
-        fileCount: files?.length, 
-        prevHash: prevHash?.slice(0, 100), 
-        currentHash: currentHash?.slice(0, 100) 
-      })
-    }
-    
-    if (hashChanged || forceRefresh) {
-      // Debounce: wait 500ms before recompiling so rapid file changes don't thrash the preview
-      // Auto-refresh happens after agent file changes are complete
+    // ONLY refresh on manual force (Refresh button), NOT on file changes
+    if (forceRefresh) {
       const timer = setTimeout(() => {
-        // Invalidate snapshot when files change (new build) or user forces refresh
-        // Files changed = snapshot is stale by definition — always clear it
         setSnapshotHtml(null)
         snapshotSavedHashRef.current = null
         setRefreshKey(k => k + 1)
-        if (!forceRefresh) {
-          setIframeErrors([])
-          setConsoleLogs([])
-          setIframeLoaded(false)
-        }
+        setIframeErrors([])
+        setConsoleLogs([])
+        setIframeLoaded(false)
         forceRefreshRef.current = false
         forceRecompileRef.current = false
-        // Log auto-refresh for user visibility
-        if (hashChanged && onLog) {
-          onLog('info', 'Preview auto-refreshed after file changes')
-        }
-      }, forceRefresh ? 0 : 500)
+      }, 0)
       prevFilesRef.current = currentHash
       return () => clearTimeout(timer)
     }
